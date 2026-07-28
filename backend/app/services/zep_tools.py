@@ -21,7 +21,7 @@ from ..utils.llm_client import LLMClient
 from ..utils.locale import get_locale, t
 from ..utils.zep_paging import fetch_all_nodes, fetch_all_edges
 
-logger = get_logger('mirofish.zep_tools')
+logger = get_logger('NovaIuris.zep_tools')
 
 
 @dataclass
@@ -1350,15 +1350,15 @@ class ZepToolsService:
         
         # 添加优化前缀，约束Agent回复格式
         INTERVIEW_PROMPT_PREFIX = (
-            "你正在接受一次采访。请结合你的人设、所有的过往记忆与行动，"
-            "以纯文本方式直接回答以下问题。\n"
-            "回复要求：\n"
-            "1. 直接用自然语言回答，不要调用任何工具\n"
-            "2. 不要返回JSON格式或工具调用格式\n"
-            "3. 不要使用Markdown标题（如#、##、###）\n"
-            "4. 按问题编号逐一回答，每个回答以「问题X：」开头（X为问题编号）\n"
-            "5. 每个问题的回答之间用空行分隔\n"
-            "6. 回答要有实质内容，每个问题至少回答2-3句话\n\n"
+            "Estás siendo entrevistado. Por favor, basándote en tu perfil, todos tus recuerdos y acciones pasadas, "
+            "responde directamente a las siguientes preguntas en texto plano.\n"
+            "Requisitos para la respuesta:\n"
+            "1. Responde directamente en lenguaje natural, no llames a ninguna herramienta.\n"
+            "2. No devuelvas formato JSON ni formato de llamada a herramientas.\n"
+            "3. No uses títulos Markdown (como #, ##, ###).\n"
+            "4. Responde cada pregunta por número, comenzando cada respuesta con «Pregunta X:» (donde X es el número de la pregunta).\n"
+            "5. Separa las respuestas de cada pregunta con una línea en blanco.\n"
+            "6. Las respuestas deben tener contenido sustancial, al menos 2-3 oraciones por pregunta.\n\n"
         )
         optimized_prompt = f"{INTERVIEW_PROMPT_PREFIX}{combined_prompt}"
         

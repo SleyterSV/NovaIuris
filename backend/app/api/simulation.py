@@ -4,7 +4,11 @@ Step2: Zep实体读取与过滤、OASIS模拟准备与运行（全程自动化�
 """
 
 import os
+import tempfile
+import json
 import traceback
+import PyPDF2
+import docx
 from flask import request, jsonify, send_file
 
 from . import simulation_bp
@@ -16,8 +20,10 @@ from ..services.simulation_runner import SimulationRunner, RunnerStatus
 from ..utils.logger import get_logger
 from ..utils.locale import t, get_locale, set_locale
 from ..models.project import ProjectManager
+# --- NUEVA IMPORTACIÓN PARA EL TRIBUNAL MULTIAGENTE ---
+from ..services.court_simulation import LegalDebateSimulator
 
-logger = get_logger('mirofish.api.simulation')
+logger = get_logger('NovaIuris.api.simulation')
 
 
 # Interview prompt 优化前缀
@@ -172,7 +178,7 @@ def create_simulation():
     请求（JSON）：
         {
             "project_id": "proj_xxxx",      // 必填
-            "graph_id": "mirofish_xxxx",    // 可选，如不提供则从project获取
+            "graph_id": "NovaIuris_xxxx",    // 可选，如不提供则从project获取
             "enable_twitter": true,          // 可选，默认true
             "enable_reddit": true            // 可选，默认true
         }
@@ -183,7 +189,7 @@ def create_simulation():
             "data": {
                 "simulation_id": "sim_xxxx",
                 "project_id": "proj_xxxx",
-                "graph_id": "mirofish_xxxx",
+                "graph_id": "NovaIuris_xxxx",
                 "status": "created",
                 "enable_twitter": true,
                 "enable_reddit": true,
@@ -1381,7 +1387,7 @@ def generate_profiles():
     
     请求（JSON）：
         {
-            "graph_id": "mirofish_xxxx",     // 必填
+            "graph_id": "NovaIuris_xxxx",     // 必填
             "entity_types": ["Student"],      // 可选
             "use_llm": true,                  // 可选
             "platform": "reddit"              // 可选
@@ -2714,3 +2720,136 @@ def close_simulation_env():
             "error": str(e),
             "traceback": traceback.format_exc()
         }), 500
+
+# =====================================================================
+# ============== TRIBUNAL MULTIAGENTE INTELIGENTE (LEGAL) =============
+# =====================================================================
+
+def extraer_texto_documento(file_storage):
+    """Extrae texto dependiendo del tipo de archivo (PDF, DOCX, TXT)."""
+    filename = file_storage.filename.lower()
+    texto = ""
+    try:
+        if filename.endswith('.pdf'):
+            reader = PyPDF2.PdfReader(file_storage)
+            for page in reader.pages:
+                texto += page.extract_text() + "\n"
+        elif filename.endswith('.docx') or filename.endswith('.doc'):
+            doc = docx.Document(file_storage)
+            for para in doc.paragraphs:
+                texto += para.text + "\n"
+        elif filename.endswith('.txt'):
+            texto = file_storage.read().decode('utf-8')
+        
+        return texto.strip()
+    except Exception as e:
+        logger.error(f"🚨 Error leyendo el archivo {filename}: {e}")
+        return ""
+
+@simulation_bp.route('/court/simulate', methods=['POST'])
+def simulate_court_case():
+    """
+    Inicia una simulación de debate legal (Fiscalía vs Defensa vs Juez)
+    """
+    try:
+        data = request.get_json() or {}
+        
+        caso = data.get('caso')
+        if not caso:
+            return jsonify({
+                "success": False,
+                "error": "El parámetro 'caso' es obligatorio para iniciar la simulación jurídica."
+            }), 400
+        
+        dominio = data.get('dominio', 'General')
+        logger.info(f"⚖️ Iniciando Tribunal [{dominio}] - Caso: {caso[:50]}...")
+        
+        resultados = LegalDebateSimulator.simulate_case(caso)
+        
+        return jsonify({
+            "success": True,
+            "data": resultados
+        })
+        
+    except Exception as e:
+        logger.error(f"Error crítico en la simulación del Tribunal: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
+
+@simulation_bp.route('/court/upload-and-simulate', methods=['POST'])
+def upload_and_simulate():
+    """Recibe múltiples archivos y texto, los procesa y ejecuta la simulación."""
+    try:
+        caso_manual = request.form.get('caso', '')
+        dominio = request.form.get('dominio', 'General')
+        
+        # 1. Recibir y procesar MÚLTIPLES archivos
+        archivos = request.files.getlist('files')
+        texto_evidencia = ""
+        
+        for file in archivos:
+            if file.filename != '':
+                texto_extraido = extraer_texto_documento(file)
+                if texto_extraido:
+                    texto_evidencia += f"\n--- EVIDENCIA: {file.filename} ---\n{texto_extraido}\n"
+        
+        # 2. Ensamblar el contexto masivo
+        caso_completo = f"[{dominio}] HECHOS Y PRETENSIONES:\n{caso_manual}\n"
+        if texto_evidencia:
+            # Protegemos el token limit del LLM cortando si es excesivamente largo
+            caso_completo += f"\n[DOCUMENTAL PROBATORIA ADJUNTA]:\n{texto_evidencia[:10000]}" 
+            
+        # 3. Iniciar Simulación
+        resultados = LegalDebateSimulator.simulate_case(caso_completo)
+        
+        return jsonify({"success": True, "data": resultados})
+        
+    except Exception as e:
+        logger.error(f"Error procesando archivos para simulación: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@simulation_bp.route('/court/download-report', methods=['POST'])
+def download_report():
+    """Genera el informe final del expediente."""
+    try:
+        data = request.get_json()
+        
+        contenido = f"""
+=========================================================
+NOVA IURIS - EXPEDIENTE JUDICIAL
+ID DE SESIÓN: {data.get('session_id', 'N/A')}
+=========================================================
+
+1. POSTURA DE LA FISCALÍA / DEMANDANTE:
+{data.get('fiscal', '')}
+
+---------------------------------------------------------
+2. ESTRATEGIA DE LA DEFENSA:
+{data.get('defensa', '')}
+
+---------------------------------------------------------
+3. RESOLUCIÓN Y VEREDICTO DEL JUEZ:
+{data.get('juez', '')}
+
+---------------------------------------------------------
+4. MÉTRICAS Y PROBABILIDADES:
+- Éxito Demandante: {data.get('metricas', {}).get('probabilidad_exito_demandante', 0)}%
+- Éxito Demandado: {data.get('metricas', {}).get('probabilidad_exito_demandado', 0)}%
+- Riesgo Procesal: {data.get('metricas', {}).get('riesgo_procesal', 0)}%
+=========================================================
+        """
+        
+        temp_dir = tempfile.gettempdir()
+        file_path = os.path.join(temp_dir, f"Expediente_{data.get('session_id', 'LexSimulator')}.txt")
+        
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(contenido)
+            
+        return send_file(file_path, as_attachment=True, download_name="Expediente_Legal.txt")
+        
+    except Exception as e:
+        logger.error(f"Error generando reporte: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500

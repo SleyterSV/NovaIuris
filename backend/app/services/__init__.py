@@ -1,6 +1,5 @@
 """
-业务服务模块
-"""
+# ARCHIVO DESACTIVADO TEMPORALMENTE PARA PRUEBAS DE LA SALA PENAL
 
 from .ontology_generator import OntologyGenerator
 from .graph_builder import GraphBuilderService
@@ -70,4 +69,4 @@ __all__ = [
     'CommandType',
     'CommandStatus',
 ]
-
+"""

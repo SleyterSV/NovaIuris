@@ -302,4 +302,3 @@ class ProjectManager:
             for f in os.listdir(files_dir) 
             if os.path.isfile(os.path.join(files_dir, f))
         ]
-

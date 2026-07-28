@@ -3,11 +3,14 @@
 </template>
 
 <script setup>
-// 使用 Vue Router 来管理页面
+// Enrutador principal de Vue
 </script>
 
 <style>
-/* 全局样式重置 */
+/* Importar fuente profesional */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Reset global */
 * {
   margin: 0;
   padding: 0;
@@ -15,32 +18,32 @@
 }
 
 #app {
-  font-family: 'JetBrains Mono', 'Space Grotesk', 'Noto Sans SC', monospace;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #000000;
-  background-color: #ffffff;
+  color: #0A192F; /* Azul oscuro institucional */
+  background-color: #F4F7F9;
 }
 
-/* 滚动条样式 */
+/* Estilo de barra de desplazamiento profesional */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #F4F7F9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #000000;
+  background: #0A192F;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #333333;
+  background: #D4AF37; /* Dorado al pasar el mouse */
 }
 
-/* 全局按钮样式 */
 button {
   font-family: inherit;
 }
