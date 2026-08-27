@@ -1,52 +1,158 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../views/Home.vue'
-import Process from '../views/MainView.vue'
-import SimulationView from '../views/SimulationView.vue'
-import SimulationRunView from '../views/SimulationRunView.vue'
-import ReportView from '../views/ReportView.vue'
-import InteractionView from '../views/InteractionView.vue'
+import {
+    createRouter,
+    createWebHistory
+} from "vue-router"
+
+import Home from "../views/Home.vue"
+
+import Process from "../views/MainView.vue"
+
+import SimulationView from "../views/SimulationView.vue"
+
+import SimulationRunView from "../views/SimulationRunView.vue"
+
+import ReportView from "../views/ReportView.vue"
+
+import InteractionView from "../views/InteractionView.vue"
+
+import NovaCaseView from "../views/NovaCaseView.vue"
+
 
 const routes = [
-  {
-    path: '/',
-    name: 'Home',
-    component: Home
-  },
-  {
-    path: '/process/:projectId',
-    name: 'Process',
-    component: Process,
-    props: true
-  },
-  {
-    path: '/simulation/:simulationId',
-    name: 'Simulation',
-    component: SimulationView,
-    props: true
-  },
-  {
-    path: '/simulation/:simulationId/start',
-    name: 'SimulationRun',
-    component: SimulationRunView,
-    props: true
-  },
-  {
-    path: '/report/:reportId',
-    name: 'Report',
-    component: ReportView,
-    props: true
-  },
-  {
-    path: '/interaction/:reportId',
-    name: 'Interaction',
-    component: InteractionView,
-    props: true
-  }
+
+    {
+        path: "/",
+
+        name: "Home",
+
+        component: Home
+    },
+
+
+    {
+        path: "/buscar",
+
+        name: "NovaSearch",
+
+        component: () =>
+            import("../views/NovaSearchView.vue")
+    },
+
+
+    {
+        path: "/novacase",
+
+        name: "NovaCase",
+
+        component: NovaCaseView
+    },
+
+
+    {
+        path: "/novacourt",
+
+        name: "NovaCourt",
+
+        component: () =>
+            import("../views/NovaCourtView.vue")
+    },
+
+
+    {
+        path: "/process/:projectId",
+
+        name: "Process",
+
+        component: Process,
+
+        props: true
+    },
+
+
+    {
+        path: "/simulation/:simulationId",
+
+        name: "Simulation",
+
+        component: SimulationView,
+
+        props: true
+    },
+
+
+    {
+        path: "/simulation/:simulationId/start",
+
+        name: "SimulationRun",
+
+        component: SimulationRunView,
+
+        props: true
+    },
+
+
+    {
+        path: "/report/:reportId",
+
+        name: "Report",
+
+        component: ReportView,
+
+        props: true
+    },
+
+
+    {
+        path: "/interaction/:reportId",
+
+        name: "Interaction",
+
+        component: InteractionView,
+
+        props: true
+    }
+
 ]
 
+
 const router = createRouter({
-  history: createWebHistory(),
-  routes
+
+    history:
+        createWebHistory(),
+
+    routes,
+
+
+    scrollBehavior(
+
+        to,
+        from,
+        savedPosition
+
+    ){
+
+        if(
+
+            savedPosition
+
+        ){
+
+            return savedPosition
+
+        }
+
+
+        return {
+
+            top: 0,
+
+            behavior: "smooth"
+
+        }
+
+    }
+
 })
+
 
 export default router

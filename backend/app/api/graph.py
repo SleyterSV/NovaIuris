@@ -1,622 +1,1728 @@
 """
-图谱相关API路由
-采用项目上下文机制，服务端持久化状态
+SERVICIO DE CONSTRUCCIÓN Y CONSULTA DE GRAFOS
+=============================================
+
+Este servicio centraliza la integración entre NEXUS y Zep Cloud para:
+
+1. Crear grafos independientes.
+2. Configurar la ontología de entidades y relaciones.
+3. Procesar textos extensos por bloques.
+4. Enviar episodios a Zep.
+5. Esperar el procesamiento de la información.
+6. Obtener estadísticas del grafo.
+7. Recuperar nodos y relaciones para su visualización.
+8. Eliminar grafos cuando sea necesario.
+
+El servicio es reutilizable por los diferentes módulos del sistema,
+incluyendo NovaIuris y NovaCourt.
+
+NovaCourt utilizará posteriormente los datos obtenidos para representar:
+
+- Jueces.
+- Abogados.
+- Fiscalías.
+- Demandantes y demandados.
+- Argumentos.
+- Posturas jurídicas.
+- Normas y artículos.
+- Jurisprudencia.
+- Evidencia.
+- Decisiones y conclusiones.
+- Relaciones entre los diferentes elementos del proceso.
 """
 
-import os
-import traceback
+import logging
 import threading
-from flask import request, jsonify
+import time
+import traceback
+import uuid
 
-from . import graph_bp
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional
+
+from pydantic import Field
+
+from zep_cloud import EpisodeData, EntityEdgeSourceTarget
+from zep_cloud.client import Zep
+from zep_cloud.external_clients.ontology import (
+    EdgeModel,
+    EntityModel,
+    EntityText,
+)
+
 from ..config import Config
-from ..services.ontology_generator import OntologyGenerator
-from ..services.graph_builder import GraphBuilderService
-from ..services.text_processor import TextProcessor
-from ..utils.file_parser import FileParser
-from ..utils.logger import get_logger
-from ..utils.locale import t, get_locale, set_locale
 from ..models.task import TaskManager, TaskStatus
-from ..models.project import ProjectManager, ProjectStatus
-
-# 获取日志器
-logger = get_logger('NovaIuris.api')
-
-
-def allowed_file(filename: str) -> bool:
-    """检查文件扩展名是否允许"""
-    if not filename or '.' not in filename:
-        return False
-    ext = os.path.splitext(filename)[1].lower().lstrip('.')
-    return ext in Config.ALLOWED_EXTENSIONS
+from ..utils.locale import get_locale, set_locale, t
+from ..utils.zep_paging import fetch_all_edges, fetch_all_nodes
+from ..services.text_processor import TextProcessor
 
 
-# ============== 项目管理接口 ==============
+# ============================================================
+# LOGGER
+# ============================================================
 
-@graph_bp.route('/project/<project_id>', methods=['GET'])
-def get_project(project_id: str):
+logger = logging.getLogger(__name__)
+
+
+# ============================================================
+# INFORMACIÓN RESUMIDA DEL GRAFO
+# ============================================================
+
+@dataclass
+class GraphInfo:
     """
-    获取项目详情
+    Representa la información general de un grafo construido en Zep.
     """
-    project = ProjectManager.get_project(project_id)
-    
-    if not project:
-        return jsonify({
-            "success": False,
-            "error": t('api.projectNotFound', id=project_id)
-        }), 404
 
-    return jsonify({
-        "success": True,
-        "data": project.to_dict()
-    })
+    graph_id: str
+    node_count: int
+    edge_count: int
+    entity_types: List[str]
 
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convierte la información del grafo a un diccionario serializable.
+        """
 
-@graph_bp.route('/project/list', methods=['GET'])
-def list_projects():
-    """
-    列出所有项目
-    """
-    limit = request.args.get('limit', 50, type=int)
-    projects = ProjectManager.list_projects(limit=limit)
-    
-    return jsonify({
-        "success": True,
-        "data": [p.to_dict() for p in projects],
-        "count": len(projects)
-    })
-
-
-@graph_bp.route('/project/<project_id>', methods=['DELETE'])
-def delete_project(project_id: str):
-    """
-    删除项目
-    """
-    success = ProjectManager.delete_project(project_id)
-    
-    if not success:
-        return jsonify({
-            "success": False,
-            "error": t('api.projectDeleteFailed', id=project_id)
-        }), 404
-
-    return jsonify({
-        "success": True,
-        "message": t('api.projectDeleted', id=project_id)
-    })
-
-
-@graph_bp.route('/project/<project_id>/reset', methods=['POST'])
-def reset_project(project_id: str):
-    """
-    重置项目状态（用于重新构建图谱）
-    """
-    project = ProjectManager.get_project(project_id)
-    
-    if not project:
-        return jsonify({
-            "success": False,
-            "error": t('api.projectNotFound', id=project_id)
-        }), 404
-
-    # 重置到本体已生成状态
-    if project.ontology:
-        project.status = ProjectStatus.ONTOLOGY_GENERATED
-    else:
-        project.status = ProjectStatus.CREATED
-    
-    project.graph_id = None
-    project.graph_build_task_id = None
-    project.error = None
-    ProjectManager.save_project(project)
-    
-    return jsonify({
-        "success": True,
-        "message": t('api.projectReset', id=project_id),
-        "data": project.to_dict()
-    })
-
-
-# ============== 接口1：上传文件并生成本体 ==============
-
-@graph_bp.route('/ontology/generate', methods=['POST'])
-def generate_ontology():
-    """
-    接口1：上传文件，分析生成本体定义
-    
-    请求方式：multipart/form-data
-    
-    参数：
-        files: 上传的文件（PDF/MD/TXT），可多个
-        simulation_requirement: 模拟需求描述（必填）
-        project_name: 项目名称（可选）
-        additional_context: 额外说明（可选）
-        
-    返回：
-        {
-            "success": true,
-            "data": {
-                "project_id": "proj_xxxx",
-                "ontology": {
-                    "entity_types": [...],
-                    "edge_types": [...],
-                    "analysis_summary": "..."
-                },
-                "files": [...],
-                "total_text_length": 12345
-            }
+        return {
+            "graph_id": self.graph_id,
+            "node_count": self.node_count,
+            "edge_count": self.edge_count,
+            "entity_types": self.entity_types,
         }
+
+
+# ============================================================
+# SERVICIO PRINCIPAL
+# ============================================================
+
+class GraphBuilderService:
     """
-    try:
-        logger.info("=== 开始生成本体定义 ===")
-        
-        # 获取参数
-        simulation_requirement = request.form.get('simulation_requirement', '')
-        project_name = request.form.get('project_name', 'Unnamed Project')
-        additional_context = request.form.get('additional_context', '')
-        
-        logger.debug(f"项目名称: {project_name}")
-        logger.debug(f"模拟需求: {simulation_requirement[:100]}...")
-        
-        if not simulation_requirement:
-            return jsonify({
-                "success": False,
-                "error": t('api.requireSimulationRequirement')
-            }), 400
-        
-        # 获取上传的文件
-        uploaded_files = request.files.getlist('files')
-        if not uploaded_files or all(not f.filename for f in uploaded_files):
-            return jsonify({
-                "success": False,
-                "error": t('api.requireFileUpload')
-            }), 400
-        
-        # 创建项目
-        project = ProjectManager.create_project(name=project_name)
-        project.simulation_requirement = simulation_requirement
-        logger.info(f"创建项目: {project.project_id}")
-        
-        # 保存文件并提取文本
-        document_texts = []
-        all_text = ""
-        
-        for file in uploaded_files:
-            if file and file.filename and allowed_file(file.filename):
-                # 保存文件到项目目录
-                file_info = ProjectManager.save_file_to_project(
-                    project.project_id, 
-                    file, 
-                    file.filename
-                )
-                project.files.append({
-                    "filename": file_info["original_filename"],
-                    "size": file_info["size"]
-                })
-                
-                # 提取文本
-                text = FileParser.extract_text(file_info["path"])
-                text = TextProcessor.preprocess_text(text)
-                document_texts.append(text)
-                all_text += f"\n\n=== {file_info['original_filename']} ===\n{text}"
-        
-        if not document_texts:
-            ProjectManager.delete_project(project.project_id)
-            return jsonify({
-                "success": False,
-                "error": t('api.noDocProcessed')
-            }), 400
-        
-        # 保存提取的文本
-        project.total_text_length = len(all_text)
-        ProjectManager.save_extracted_text(project.project_id, all_text)
-        logger.info(f"文本提取完成，共 {len(all_text)} 字符")
-        
-        # 生成本体
-        logger.info("调用 LLM 生成本体定义...")
-        generator = OntologyGenerator()
-        ontology = generator.generate(
-            document_texts=document_texts,
-            simulation_requirement=simulation_requirement,
-            additional_context=additional_context if additional_context else None
+    Servicio encargado de construir, consultar y administrar grafos
+    de conocimiento mediante Zep Cloud.
+
+    El servicio es genérico y puede utilizarse desde diferentes módulos
+    del sistema.
+
+    Ejemplos de uso:
+
+    - NovaIuris:
+      Construcción de grafos jurídicos documentales.
+
+    - NovaCourt:
+      Construcción de grafos generados durante una simulación judicial,
+      relacionando actores, argumentos, evidencia, normas y decisiones.
+    """
+
+    # --------------------------------------------------------
+    # CONFIGURACIÓN
+    # --------------------------------------------------------
+
+    DEFAULT_GRAPH_NAME = "NEXUS Knowledge Graph"
+
+    RESERVED_ATTRIBUTE_NAMES = {
+        "uuid",
+        "uuid_",
+        "name",
+        "group_id",
+        "name_embedding",
+        "summary",
+        "created_at",
+        "updated_at",
+    }
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+    ):
+        """
+        Inicializa el cliente de Zep.
+
+        Args:
+            api_key:
+                Clave de acceso a Zep Cloud.
+                Si no se proporciona, se utilizará la configuración
+                definida en Config.ZEP_API_KEY.
+        """
+
+        self.api_key = api_key or Config.ZEP_API_KEY
+
+        if not self.api_key:
+            raise ValueError(
+                "No se encontró la configuración ZEP_API_KEY. "
+                "Configura una clave válida antes de utilizar el servicio de grafos."
+            )
+
+        self.client = Zep(
+            api_key=self.api_key
         )
-        
-        # 保存本体到项目
-        entity_count = len(ontology.get("entity_types", []))
-        edge_count = len(ontology.get("edge_types", []))
-        logger.info(f"本体生成完成: {entity_count} 个实体类型, {edge_count} 个关系类型")
-        
-        project.ontology = {
-            "entity_types": ontology.get("entity_types", []),
-            "edge_types": ontology.get("edge_types", [])
-        }
-        project.analysis_summary = ontology.get("analysis_summary", "")
-        project.status = ProjectStatus.ONTOLOGY_GENERATED
-        ProjectManager.save_project(project)
-        logger.info(f"=== 本体生成完成 === 项目ID: {project.project_id}")
-        
-        return jsonify({
-            "success": True,
-            "data": {
-                "project_id": project.project_id,
-                "project_name": project.name,
-                "ontology": project.ontology,
-                "analysis_summary": project.analysis_summary,
-                "files": project.files,
-                "total_text_length": project.total_text_length
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }), 500
+
+        self.task_manager = TaskManager()
+
+        logger.info(
+            "GraphBuilderService inicializado correctamente."
+        )
 
 
-# ============== 接口2：构建图谱 ==============
+    # ========================================================
+    # CONSTRUCCIÓN ASÍNCRONA
+    # ========================================================
 
-@graph_bp.route('/build', methods=['POST'])
-def build_graph():
-    """
-    接口2：根据project_id构建图谱
-    
-    请求（JSON）：
-        {
-            "project_id": "proj_xxxx",  // 必填，来自接口1
-            "graph_name": "图谱名称",    // 可选
-            "chunk_size": 500,          // 可选，默认500
-            "chunk_overlap": 50         // 可选，默认50
-        }
-        
-    返回：
-        {
-            "success": true,
-            "data": {
-                "project_id": "proj_xxxx",
-                "task_id": "task_xxxx",
-                "message": "图谱构建任务已启动"
-            }
-        }
-    """
-    try:
-        logger.info("=== 开始构建图谱 ===")
-        
-        # 检查配置
-        errors = []
-        if not Config.ZEP_API_KEY:
-            errors.append(t('api.zepApiKeyMissing'))
-        if errors:
-            logger.error(f"配置错误: {errors}")
-            return jsonify({
-                "success": False,
-                "error": t('api.configError', details="; ".join(errors))
-            }), 500
-        
-        # 解析请求
-        data = request.get_json() or {}
-        project_id = data.get('project_id')
-        logger.debug(f"请求参数: project_id={project_id}")
-        
-        if not project_id:
-            return jsonify({
-                "success": False,
-                "error": t('api.requireProjectId')
-            }), 400
-        
-        # 获取项目
-        project = ProjectManager.get_project(project_id)
-        if not project:
-            return jsonify({
-                "success": False,
-                "error": t('api.projectNotFound', id=project_id)
-            }), 404
+    def build_graph_async(
+        self,
+        text: str,
+        ontology: Dict[str, Any],
+        graph_name: str = DEFAULT_GRAPH_NAME,
+        chunk_size: int = 500,
+        chunk_overlap: int = 50,
+        batch_size: int = 3,
+    ) -> str:
+        """
+        Inicia la construcción de un grafo en segundo plano.
 
-        # 检查项目状态
-        force = data.get('force', False)  # 强制重新构建
-        
-        if project.status == ProjectStatus.CREATED:
-            return jsonify({
-                "success": False,
-                "error": t('api.ontologyNotGenerated')
-            }), 400
-        
-        if project.status == ProjectStatus.GRAPH_BUILDING and not force:
-            return jsonify({
-                "success": False,
-                "error": t('api.graphBuilding'),
-                "task_id": project.graph_build_task_id
-            }), 400
-        
-        # 如果强制重建，重置状态
-        if force and project.status in [ProjectStatus.GRAPH_BUILDING, ProjectStatus.FAILED, ProjectStatus.GRAPH_COMPLETED]:
-            project.status = ProjectStatus.ONTOLOGY_GENERATED
-            project.graph_id = None
-            project.graph_build_task_id = None
-            project.error = None
-        
-        # 获取配置
-        graph_name = data.get('graph_name', project.name or 'NovaIuris Graph')
-        chunk_size = data.get('chunk_size', project.chunk_size or Config.DEFAULT_CHUNK_SIZE)
-        chunk_overlap = data.get('chunk_overlap', project.chunk_overlap or Config.DEFAULT_CHUNK_OVERLAP)
-        
-        # 更新项目配置
-        project.chunk_size = chunk_size
-        project.chunk_overlap = chunk_overlap
-        
-        # 获取提取的文本
-        text = ProjectManager.get_extracted_text(project_id)
-        if not text:
-            return jsonify({
-                "success": False,
-                "error": t('api.textNotFound')
-            }), 400
-        
-        # 获取本体
-        ontology = project.ontology
-        if not ontology:
-            return jsonify({
-                "success": False,
-                "error": t('api.ontologyNotFound')
-            }), 400
-        
-        # 创建异步任务
-        task_manager = TaskManager()
-        task_id = task_manager.create_task(f"构建图谱: {graph_name}")
-        logger.info(f"创建图谱构建任务: task_id={task_id}, project_id={project_id}")
-        
-        # 更新项目状态
-        project.status = ProjectStatus.GRAPH_BUILDING
-        project.graph_build_task_id = task_id
-        ProjectManager.save_project(project)
-        
-        # Capture locale before spawning background thread
+        El método crea una tarea y ejecuta el procesamiento en un hilo
+        independiente para evitar bloquear la solicitud HTTP.
+
+        Args:
+            text:
+                Texto que será procesado para construir el grafo.
+
+            ontology:
+                Definición de entidades y relaciones que será utilizada
+                para configurar la ontología del grafo.
+
+            graph_name:
+                Nombre descriptivo del grafo.
+
+            chunk_size:
+                Tamaño aproximado de cada bloque de texto.
+
+            chunk_overlap:
+                Cantidad de texto compartido entre bloques consecutivos.
+
+            batch_size:
+                Número de bloques enviados por lote a Zep.
+
+        Returns:
+            str:
+                Identificador de la tarea creada.
+        """
+
+        self._validate_build_request(
+            text=text,
+            ontology=ontology,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            batch_size=batch_size,
+        )
+
+        normalized_name = (
+            graph_name.strip()
+            if isinstance(graph_name, str) and graph_name.strip()
+            else self.DEFAULT_GRAPH_NAME
+        )
+
+        task_id = self.task_manager.create_task(
+            task_type="graph_build",
+            metadata={
+                "graph_name": normalized_name,
+                "text_length": len(text),
+                "chunk_size": chunk_size,
+                "chunk_overlap": chunk_overlap,
+                "batch_size": batch_size,
+            },
+        )
+
         current_locale = get_locale()
 
-        # 启动后台任务
-        def build_task():
-            set_locale(current_locale)
-            build_logger = get_logger('NovaIuris.build')
-            try:
-                build_logger.info(f"[{task_id}] 开始构建图谱...")
-                task_manager.update_task(
-                    task_id, 
-                    status=TaskStatus.PROCESSING,
-                    message=t('progress.initGraphService')
-                )
-                
-                # 创建图谱构建服务
-                builder = GraphBuilderService(api_key=Config.ZEP_API_KEY)
-                
-                # 分块
-                task_manager.update_task(
-                    task_id,
-                    message=t('progress.textChunking'),
-                    progress=5
-                )
-                chunks = TextProcessor.split_text(
-                    text, 
-                    chunk_size=chunk_size, 
-                    overlap=chunk_overlap
-                )
-                total_chunks = len(chunks)
-                
-                # 创建图谱
-                task_manager.update_task(
-                    task_id,
-                    message=t('progress.creatingZepGraph'),
-                    progress=10
-                )
-                graph_id = builder.create_graph(name=graph_name)
-                
-                # 更新项目的graph_id
-                project.graph_id = graph_id
-                ProjectManager.save_project(project)
-                
-                # 设置本体
-                task_manager.update_task(
-                    task_id,
-                    message=t('progress.settingOntology'),
-                    progress=15
-                )
-                builder.set_ontology(graph_id, ontology)
-                
-                # 添加文本（progress_callback 签名是 (msg, progress_ratio)）
-                def add_progress_callback(msg, progress_ratio):
-                    progress = 15 + int(progress_ratio * 40)  # 15% - 55%
-                    task_manager.update_task(
-                        task_id,
-                        message=msg,
-                        progress=progress
-                    )
-                
-                task_manager.update_task(
-                    task_id,
-                    message=t('progress.addingChunks', count=total_chunks),
-                    progress=15
-                )
-                
-                episode_uuids = builder.add_text_batches(
-                    graph_id, 
-                    chunks,
-                    batch_size=3,
-                    progress_callback=add_progress_callback
-                )
-                
-                # 等待Zep处理完成（查询每个episode的processed状态）
-                task_manager.update_task(
-                    task_id,
-                    message=t('progress.waitingZepProcess'),
-                    progress=55
-                )
-                
-                def wait_progress_callback(msg, progress_ratio):
-                    progress = 55 + int(progress_ratio * 35)  # 55% - 90%
-                    task_manager.update_task(
-                        task_id,
-                        message=msg,
-                        progress=progress
-                    )
-                
-                builder._wait_for_episodes(episode_uuids, wait_progress_callback)
-                
-                # 获取图谱数据
-                task_manager.update_task(
-                    task_id,
-                    message=t('progress.fetchingGraphData'),
-                    progress=95
-                )
-                graph_data = builder.get_graph_data(graph_id)
-                
-                # 更新项目状态
-                project.status = ProjectStatus.GRAPH_COMPLETED
-                ProjectManager.save_project(project)
-                
-                node_count = graph_data.get("node_count", 0)
-                edge_count = graph_data.get("edge_count", 0)
-                build_logger.info(f"[{task_id}] 图谱构建完成: graph_id={graph_id}, 节点={node_count}, 边={edge_count}")
-                
-                # 完成
-                task_manager.update_task(
-                    task_id,
-                    status=TaskStatus.COMPLETED,
-                    message=t('progress.graphBuildComplete'),
-                    progress=100,
-                    result={
-                        "project_id": project_id,
-                        "graph_id": graph_id,
-                        "node_count": node_count,
-                        "edge_count": edge_count,
-                        "chunk_count": total_chunks
-                    }
-                )
-                
-            except Exception as e:
-                # 更新项目状态为失败
-                build_logger.error(f"[{task_id}] 图谱构建失败: {str(e)}")
-                build_logger.debug(traceback.format_exc())
-                
-                project.status = ProjectStatus.FAILED
-                project.error = str(e)
-                ProjectManager.save_project(project)
-                
-                task_manager.update_task(
-                    task_id,
-                    status=TaskStatus.FAILED,
-                    message=t('progress.buildFailed', error=str(e)),
-                    error=traceback.format_exc()
-                )
-        
-        # 启动后台线程
-        thread = threading.Thread(target=build_task, daemon=True)
+        logger.info(
+            "Iniciando construcción asíncrona del grafo. "
+            "task_id=%s, graph_name=%s",
+            task_id,
+            normalized_name,
+        )
+
+        thread = threading.Thread(
+            target=self._build_graph_worker,
+            args=(
+                task_id,
+                text,
+                ontology,
+                normalized_name,
+                chunk_size,
+                chunk_overlap,
+                batch_size,
+                current_locale,
+            ),
+            daemon=True,
+            name=f"graph-builder-{task_id}",
+        )
+
         thread.start()
-        
-        return jsonify({
-            "success": True,
-            "data": {
-                "project_id": project_id,
-                "task_id": task_id,
-                "message": t('api.graphBuildStarted', taskId=task_id)
+
+        return task_id
+
+
+    # ========================================================
+    # TRABAJADOR DE CONSTRUCCIÓN
+    # ========================================================
+
+    def _build_graph_worker(
+        self,
+        task_id: str,
+        text: str,
+        ontology: Dict[str, Any],
+        graph_name: str,
+        chunk_size: int,
+        chunk_overlap: int,
+        batch_size: int,
+        locale: Optional[str] = None,
+    ):
+        """
+        Ejecuta el proceso completo de construcción del grafo.
+
+        Etapas:
+
+        1. Crear el grafo.
+        2. Configurar la ontología.
+        3. Dividir el texto.
+        4. Enviar los bloques a Zep.
+        5. Esperar el procesamiento.
+        6. Obtener las estadísticas finales.
+        """
+
+        if locale:
+            set_locale(locale)
+
+        graph_id = None
+
+        try:
+
+            # ------------------------------------------------
+            # ETAPA 1: INICIO
+            # ------------------------------------------------
+
+            self.task_manager.update_task(
+                task_id,
+                status=TaskStatus.PROCESSING,
+                progress=5,
+                message=t("progress.startBuildingGraph"),
+            )
+
+
+            # ------------------------------------------------
+            # ETAPA 2: CREAR EL GRAFO
+            # ------------------------------------------------
+
+            graph_id = self.create_graph(
+                name=graph_name
+            )
+
+            self.task_manager.update_task(
+                task_id,
+                progress=10,
+                message=t(
+                    "progress.graphCreated",
+                    graphId=graph_id,
+                ),
+            )
+
+            logger.info(
+                "Grafo creado correctamente. task_id=%s, graph_id=%s",
+                task_id,
+                graph_id,
+            )
+
+
+            # ------------------------------------------------
+            # ETAPA 3: CONFIGURAR ONTOLOGÍA
+            # ------------------------------------------------
+
+            self.set_ontology(
+                graph_id=graph_id,
+                ontology=ontology,
+            )
+
+            self.task_manager.update_task(
+                task_id,
+                progress=15,
+                message=t("progress.ontologySet"),
+            )
+
+
+            # ------------------------------------------------
+            # ETAPA 4: DIVIDIR EL TEXTO
+            # ------------------------------------------------
+
+            chunks = TextProcessor.split_text(
+                text,
+                chunk_size,
+                chunk_overlap,
+            )
+
+            if not chunks:
+                raise ValueError(
+                    "No fue posible generar bloques de texto para construir el grafo."
+                )
+
+            total_chunks = len(chunks)
+
+            self.task_manager.update_task(
+                task_id,
+                progress=20,
+                message=t(
+                    "progress.textSplit",
+                    count=total_chunks,
+                ),
+            )
+
+            logger.info(
+                "Texto dividido en %s bloques. graph_id=%s",
+                total_chunks,
+                graph_id,
+            )
+
+
+            # ------------------------------------------------
+            # ETAPA 5: ENVIAR BLOQUES A ZEP
+            # ------------------------------------------------
+
+            episode_uuids = self.add_text_batches(
+                graph_id=graph_id,
+                chunks=chunks,
+                batch_size=batch_size,
+                progress_callback=lambda message, progress:
+                    self.task_manager.update_task(
+                        task_id,
+                        progress=20 + int(progress * 40),
+                        message=message,
+                    ),
+            )
+
+
+            # ------------------------------------------------
+            # ETAPA 6: ESPERAR PROCESAMIENTO
+            # ------------------------------------------------
+
+            self.task_manager.update_task(
+                task_id,
+                progress=60,
+                message=t("progress.waitingZepProcess"),
+            )
+
+            self._wait_for_episodes(
+                episode_uuids=episode_uuids,
+                progress_callback=lambda message, progress:
+                    self.task_manager.update_task(
+                        task_id,
+                        progress=60 + int(progress * 30),
+                        message=message,
+                    ),
+            )
+
+
+            # ------------------------------------------------
+            # ETAPA 7: OBTENER INFORMACIÓN FINAL
+            # ------------------------------------------------
+
+            self.task_manager.update_task(
+                task_id,
+                progress=90,
+                message=t("progress.fetchingGraphInfo"),
+            )
+
+            graph_info = self._get_graph_info(
+                graph_id=graph_id
+            )
+
+
+            # ------------------------------------------------
+            # ETAPA 8: COMPLETAR TAREA
+            # ------------------------------------------------
+
+            result = {
+                "graph_id": graph_id,
+                "graph_info": graph_info.to_dict(),
+                "chunks_processed": total_chunks,
+                "episodes_created": len(episode_uuids),
             }
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }), 500
+
+            self.task_manager.complete_task(
+                task_id,
+                result,
+            )
+
+            logger.info(
+                "Construcción del grafo finalizada correctamente. "
+                "task_id=%s, graph_id=%s, nodes=%s, edges=%s",
+                task_id,
+                graph_id,
+                graph_info.node_count,
+                graph_info.edge_count,
+            )
 
 
-# ============== 任务查询接口 ==============
+        except Exception as error:
 
-@graph_bp.route('/task/<task_id>', methods=['GET'])
-def get_task(task_id: str):
-    """
-    查询任务状态
-    """
-    task = TaskManager().get_task(task_id)
-    
-    if not task:
-        return jsonify({
-            "success": False,
-            "error": t('api.taskNotFound', id=task_id)
-        }), 404
-    
-    return jsonify({
-        "success": True,
-        "data": task.to_dict()
-    })
+            logger.exception(
+                "Error durante la construcción del grafo. "
+                "task_id=%s, graph_id=%s",
+                task_id,
+                graph_id,
+            )
 
+            error_message = (
+                f"Error al construir el grafo: {str(error)}\n\n"
+                f"{traceback.format_exc()}"
+            )
 
-@graph_bp.route('/tasks', methods=['GET'])
-def list_tasks():
-    """
-    列出所有任务
-    """
-    tasks = TaskManager().list_tasks()
-    
-    return jsonify({
-        "success": True,
-        "data": [t.to_dict() for t in tasks],
-        "count": len(tasks)
-    })
+            self.task_manager.fail_task(
+                task_id,
+                error_message,
+            )
 
 
-# ============== 图谱数据接口 ==============
+    # ========================================================
+    # CREAR GRAFO
+    # ========================================================
 
-@graph_bp.route('/data/<graph_id>', methods=['GET'])
-def get_graph_data(graph_id: str):
-    """
-    获取图谱数据（节点和边）
-    """
-    try:
-        if not Config.ZEP_API_KEY:
-            return jsonify({
-                "success": False,
-                "error": t('api.zepApiKeyMissing')
-            }), 500
-        
-        builder = GraphBuilderService(api_key=Config.ZEP_API_KEY)
-        graph_data = builder.get_graph_data(graph_id)
-        
-        return jsonify({
-            "success": True,
-            "data": graph_data
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }), 500
+    def create_graph(
+        self,
+        name: str,
+        description: Optional[str] = None,
+    ) -> str:
+        """
+        Crea un nuevo grafo independiente en Zep.
+
+        Args:
+            name:
+                Nombre descriptivo del grafo.
+
+            description:
+                Descripción opcional.
+
+        Returns:
+            str:
+                Identificador único del nuevo grafo.
+        """
+
+        normalized_name = (
+            name.strip()
+            if isinstance(name, str) and name.strip()
+            else self.DEFAULT_GRAPH_NAME
+        )
+
+        graph_id = (
+            f"nexus_{uuid.uuid4().hex}"
+        )
+
+        graph_description = (
+            description.strip()
+            if isinstance(description, str) and description.strip()
+            else (
+                f"Grafo de conocimiento generado por NEXUS: "
+                f"{normalized_name}"
+            )
+        )
+
+        self.client.graph.create(
+            graph_id=graph_id,
+            name=normalized_name,
+            description=graph_description,
+        )
+
+        logger.info(
+            "Nuevo grafo creado. graph_id=%s, name=%s",
+            graph_id,
+            normalized_name,
+        )
+
+        return graph_id
 
 
-@graph_bp.route('/delete/<graph_id>', methods=['DELETE'])
-def delete_graph(graph_id: str):
-    """
-    删除Zep图谱
-    """
-    try:
-        if not Config.ZEP_API_KEY:
-            return jsonify({
-                "success": False,
-                "error": t('api.zepApiKeyMissing')
-            }), 500
-        
-        builder = GraphBuilderService(api_key=Config.ZEP_API_KEY)
-        builder.delete_graph(graph_id)
-        
-        return jsonify({
-            "success": True,
-            "message": t('api.graphDeleted', id=graph_id)
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }), 500
+    # ========================================================
+    # CONFIGURAR ONTOLOGÍA
+    # ========================================================
+
+    def set_ontology(
+        self,
+        graph_id: str,
+        ontology: Dict[str, Any],
+    ):
+        """
+        Configura las entidades y relaciones del grafo.
+
+        La ontología recibida debe tener una estructura similar a:
+
+        {
+            "entity_types": [
+                {
+                    "name": "Juez",
+                    "description": "...",
+                    "attributes": [...]
+                }
+            ],
+            "edge_types": [
+                {
+                    "name": "presenta_argumento",
+                    "description": "...",
+                    "source_targets": [...]
+                }
+            ]
+        }
+        """
+
+        if not graph_id or not graph_id.strip():
+            raise ValueError(
+                "Se requiere un graph_id válido para configurar la ontología."
+            )
+
+        if not isinstance(ontology, dict):
+            raise ValueError(
+                "La ontología debe ser un diccionario válido."
+            )
+
+        entity_definitions = (
+            ontology.get("entity_types")
+            or []
+        )
+
+        edge_definitions_input = (
+            ontology.get("edge_types")
+            or []
+        )
+
+        entity_types = self._build_entity_models(
+            entity_definitions
+        )
+
+        edge_types = self._build_edge_models(
+            edge_definitions_input
+        )
+
+        if not entity_types and not edge_types:
+            logger.warning(
+                "No se encontraron entidades ni relaciones para configurar. "
+                "graph_id=%s",
+                graph_id,
+            )
+            return
+
+        self.client.graph.set_ontology(
+            graph_ids=[graph_id],
+            entities=entity_types or None,
+            edges=edge_types or None,
+        )
+
+        logger.info(
+            "Ontología configurada correctamente. graph_id=%s, "
+            "entities=%s, edges=%s",
+            graph_id,
+            len(entity_types),
+            len(edge_types),
+        )
+
+
+    # ========================================================
+    # CREAR MODELOS DE ENTIDADES
+    # ========================================================
+
+    def _build_entity_models(
+        self,
+        entity_definitions: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        Construye dinámicamente los modelos de entidades requeridos
+        por la SDK de Zep.
+        """
+
+        entity_types = {}
+
+        for entity_def in entity_definitions:
+
+            if not isinstance(entity_def, dict):
+                continue
+
+            name = str(
+                entity_def.get("name") or ""
+            ).strip()
+
+            if not name:
+                logger.warning(
+                    "Se omitió una entidad sin nombre."
+                )
+                continue
+
+            description = str(
+                entity_def.get(
+                    "description",
+                    f"Entidad {name}.",
+                )
+            )
+
+            attributes = {
+                "__doc__": description,
+            }
+
+            annotations = {}
+
+            for attribute in (
+                entity_def.get("attributes")
+                or []
+            ):
+
+                if not isinstance(attribute, dict):
+                    continue
+
+                raw_name = str(
+                    attribute.get("name") or ""
+                ).strip()
+
+                if not raw_name:
+                    continue
+
+                attribute_name = self._safe_attribute_name(
+                    raw_name
+                )
+
+                attribute_description = str(
+                    attribute.get(
+                        "description",
+                        raw_name,
+                    )
+                )
+
+                attributes[attribute_name] = Field(
+                    default=None,
+                    description=attribute_description,
+                )
+
+                annotations[attribute_name] = Optional[
+                    EntityText
+                ]
+
+            attributes["__annotations__"] = annotations
+
+            entity_class = type(
+                self._safe_class_name(name),
+                (EntityModel,),
+                attributes,
+            )
+
+            entity_class.__doc__ = description
+
+            entity_types[name] = entity_class
+
+        return entity_types
+
+
+    # ========================================================
+    # CREAR MODELOS DE RELACIONES
+    # ========================================================
+
+    def _build_edge_models(
+        self,
+        edge_definitions: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        Construye dinámicamente los modelos de relaciones requeridos
+        por la SDK de Zep.
+        """
+
+        edge_types = {}
+
+        for edge_def in edge_definitions:
+
+            if not isinstance(edge_def, dict):
+                continue
+
+            name = str(
+                edge_def.get("name") or ""
+            ).strip()
+
+            if not name:
+                logger.warning(
+                    "Se omitió una relación sin nombre."
+                )
+                continue
+
+            description = str(
+                edge_def.get(
+                    "description",
+                    f"Relación {name}.",
+                )
+            )
+
+            attributes = {
+                "__doc__": description,
+            }
+
+            annotations = {}
+
+            for attribute in (
+                edge_def.get("attributes")
+                or []
+            ):
+
+                if not isinstance(attribute, dict):
+                    continue
+
+                raw_name = str(
+                    attribute.get("name") or ""
+                ).strip()
+
+                if not raw_name:
+                    continue
+
+                attribute_name = self._safe_attribute_name(
+                    raw_name
+                )
+
+                attribute_description = str(
+                    attribute.get(
+                        "description",
+                        raw_name,
+                    )
+                )
+
+                attributes[attribute_name] = Field(
+                    default=None,
+                    description=attribute_description,
+                )
+
+                annotations[attribute_name] = Optional[str]
+
+            attributes["__annotations__"] = annotations
+
+            edge_class = type(
+                self._safe_class_name(name),
+                (EdgeModel,),
+                attributes,
+            )
+
+            edge_class.__doc__ = description
+
+            source_targets = []
+
+            for relation in (
+                edge_def.get("source_targets")
+                or []
+            ):
+
+                if not isinstance(relation, dict):
+                    continue
+
+                source = str(
+                    relation.get("source") or "Entity"
+                )
+
+                target = str(
+                    relation.get("target") or "Entity"
+                )
+
+                source_targets.append(
+                    EntityEdgeSourceTarget(
+                        source=source,
+                        target=target,
+                    )
+                )
+
+            if source_targets:
+
+                edge_types[name] = (
+                    edge_class,
+                    source_targets,
+                )
+
+            else:
+
+                logger.warning(
+                    "La relación '%s' fue omitida porque no tiene "
+                    "source_targets válidos.",
+                    name,
+                )
+
+        return edge_types
+
+
+    # ========================================================
+    # ENVIAR TEXTO POR LOTES
+    # ========================================================
+
+    def add_text_batches(
+        self,
+        graph_id: str,
+        chunks: List[str],
+        batch_size: int = 3,
+        progress_callback: Optional[Callable] = None,
+    ) -> List[str]:
+        """
+        Envía bloques de texto a Zep por lotes.
+
+        Returns:
+            Lista de identificadores de episodios creados.
+        """
+
+        if not graph_id or not graph_id.strip():
+            raise ValueError(
+                "Se requiere un graph_id válido."
+            )
+
+        valid_chunks = [
+            chunk
+            for chunk in chunks
+            if isinstance(chunk, str) and chunk.strip()
+        ]
+
+        if not valid_chunks:
+            raise ValueError(
+                "No existen bloques de texto válidos para enviar a Zep."
+            )
+
+        episode_uuids = []
+
+        total_chunks = len(valid_chunks)
+
+        total_batches = (
+            total_chunks + batch_size - 1
+        ) // batch_size
+
+        for start_index in range(
+            0,
+            total_chunks,
+            batch_size,
+        ):
+
+            batch_chunks = valid_chunks[
+                start_index:start_index + batch_size
+            ]
+
+            batch_number = (
+                start_index // batch_size
+            ) + 1
+
+            progress = (
+                start_index + len(batch_chunks)
+            ) / total_chunks
+
+            if progress_callback:
+
+                progress_callback(
+                    t(
+                        "progress.sendingBatch",
+                        current=batch_number,
+                        total=total_batches,
+                        chunks=len(batch_chunks),
+                    ),
+                    progress,
+                )
+
+            episodes = [
+                EpisodeData(
+                    data=chunk,
+                    type="text",
+                )
+                for chunk in batch_chunks
+            ]
+
+            try:
+
+                logger.info(
+                    "Enviando lote %s de %s al grafo %s.",
+                    batch_number,
+                    total_batches,
+                    graph_id,
+                )
+
+                batch_result = (
+                    self.client.graph.add_batch(
+                        graph_id=graph_id,
+                        episodes=episodes,
+                    )
+                )
+
+                episode_uuids.extend(
+                    self._extract_episode_uuids(
+                        batch_result
+                    )
+                )
+
+                # Pequeña pausa para evitar enviar solicitudes
+                # demasiado rápido a la API.
+                if batch_number < total_batches:
+                    time.sleep(1)
+
+            except Exception as error:
+
+                logger.exception(
+                    "Error al enviar el lote %s al grafo %s.",
+                    batch_number,
+                    graph_id,
+                )
+
+                if progress_callback:
+
+                    progress_callback(
+                        t(
+                            "progress.batchFailed",
+                            batch=batch_number,
+                            error=str(error),
+                        ),
+                        0,
+                    )
+
+                raise
+
+        return episode_uuids
+
+
+    # ========================================================
+    # ESPERAR PROCESAMIENTO DE EPISODIOS
+    # ========================================================
+
+    def _wait_for_episodes(
+        self,
+        episode_uuids: List[str],
+        progress_callback: Optional[Callable] = None,
+        timeout: int = 600,
+        polling_interval: int = 3,
+    ):
+        """
+        Espera hasta que Zep procese todos los episodios.
+
+        Si se supera el tiempo máximo, se finaliza la espera y se
+        registra el estado alcanzado.
+        """
+
+        if not episode_uuids:
+
+            logger.warning(
+                "No se recibieron episodios para verificar."
+            )
+
+            if progress_callback:
+                progress_callback(
+                    t("progress.noEpisodesWait"),
+                    1.0,
+                )
+
+            return
+
+        start_time = time.time()
+
+        pending_episodes = set(
+            str(item)
+            for item in episode_uuids
+            if item
+        )
+
+        total_episodes = len(
+            pending_episodes
+        )
+
+        completed_count = 0
+
+        if progress_callback:
+
+            progress_callback(
+                t(
+                    "progress.waitingEpisodes",
+                    count=total_episodes,
+                ),
+                0,
+            )
+
+        while pending_episodes:
+
+            elapsed_time = (
+                time.time() - start_time
+            )
+
+            if elapsed_time > timeout:
+
+                logger.warning(
+                    "Tiempo máximo de espera alcanzado. "
+                    "completed=%s, total=%s, pending=%s",
+                    completed_count,
+                    total_episodes,
+                    len(pending_episodes),
+                )
+
+                if progress_callback:
+
+                    progress_callback(
+                        t(
+                            "progress.episodesTimeout",
+                            completed=completed_count,
+                            total=total_episodes,
+                        ),
+                        completed_count / total_episodes,
+                    )
+
+                break
+
+            for episode_uuid in list(
+                pending_episodes
+            ):
+
+                try:
+
+                    episode = (
+                        self.client.graph.episode.get(
+                            uuid_=episode_uuid
+                        )
+                    )
+
+                    is_processed = bool(
+                        getattr(
+                            episode,
+                            "processed",
+                            False,
+                        )
+                    )
+
+                    if is_processed:
+
+                        pending_episodes.remove(
+                            episode_uuid
+                        )
+
+                        completed_count += 1
+
+                except Exception as error:
+
+                    logger.debug(
+                        "No fue posible verificar temporalmente "
+                        "el episodio %s: %s",
+                        episode_uuid,
+                        str(error),
+                    )
+
+            elapsed_seconds = int(
+                time.time() - start_time
+            )
+
+            progress = (
+                completed_count / total_episodes
+                if total_episodes > 0
+                else 1.0
+            )
+
+            if progress_callback:
+
+                progress_callback(
+                    t(
+                        "progress.zepProcessing",
+                        completed=completed_count,
+                        total=total_episodes,
+                        pending=len(pending_episodes),
+                        elapsed=elapsed_seconds,
+                    ),
+                    progress,
+                )
+
+            if pending_episodes:
+
+                time.sleep(
+                    max(
+                        1,
+                        polling_interval,
+                    )
+                )
+
+        if progress_callback:
+
+            progress_callback(
+                t(
+                    "progress.processingComplete",
+                    completed=completed_count,
+                    total=total_episodes,
+                ),
+                1.0,
+            )
+
+
+    # ========================================================
+    # OBTENER INFORMACIÓN GENERAL DEL GRAFO
+    # ========================================================
+
+    def _get_graph_info(
+        self,
+        graph_id: str,
+    ) -> GraphInfo:
+        """
+        Obtiene estadísticas generales del grafo.
+        """
+
+        nodes = fetch_all_nodes(
+            self.client,
+            graph_id,
+        )
+
+        edges = fetch_all_edges(
+            self.client,
+            graph_id,
+        )
+
+        entity_types = set()
+
+        for node in nodes:
+
+            labels = getattr(
+                node,
+                "labels",
+                None,
+            ) or []
+
+            for label in labels:
+
+                if label not in {
+                    "Entity",
+                    "Node",
+                }:
+
+                    entity_types.add(
+                        str(label)
+                    )
+
+        return GraphInfo(
+            graph_id=graph_id,
+            node_count=len(nodes),
+            edge_count=len(edges),
+            entity_types=sorted(
+                entity_types
+            ),
+        )
+
+
+    # ========================================================
+    # OBTENER DATOS COMPLETOS PARA VISUALIZACIÓN
+    # ========================================================
+
+    def get_graph_data(
+        self,
+        graph_id: str,
+    ) -> Dict[str, Any]:
+        """
+        Recupera la estructura completa de un grafo.
+
+        Esta información está diseñada para ser consumida posteriormente
+        por el frontend.
+
+        La respuesta incluye:
+
+        - Identificador del grafo.
+        - Nodos.
+        - Relaciones.
+        - Resumen de cada nodo.
+        - Atributos.
+        - Fechas.
+        - Episodios relacionados.
+        - Información de origen y destino de cada relación.
+
+        NovaCourt utilizará esta información como base para:
+
+        - Colorear nodos según el tipo de actor o información.
+        - Diferenciar jueces, abogados, fiscales y partes.
+        - Diferenciar argumentos, normas y evidencia.
+        - Mostrar el detalle de un nodo seleccionado.
+        - Mostrar el contenido en español en un panel lateral.
+        - Construir una visualización interactiva de la audiencia.
+        """
+
+        if not graph_id or not graph_id.strip():
+            raise ValueError(
+                "Se requiere un identificador de grafo válido."
+            )
+
+        normalized_graph_id = graph_id.strip()
+
+        logger.info(
+            "Obteniendo datos del grafo %s.",
+            normalized_graph_id,
+        )
+
+        nodes = fetch_all_nodes(
+            self.client,
+            normalized_graph_id,
+        )
+
+        edges = fetch_all_edges(
+            self.client,
+            normalized_graph_id,
+        )
+
+
+        # ----------------------------------------------------
+        # MAPA DE NODOS
+        # ----------------------------------------------------
+
+        node_map = {}
+
+        for node in nodes:
+
+            node_uuid = self._get_object_uuid(
+                node
+            )
+
+            if not node_uuid:
+                continue
+
+            node_map[node_uuid] = (
+                getattr(node, "name", None)
+                or ""
+            )
+
+
+        # ----------------------------------------------------
+        # NORMALIZAR NODOS
+        # ----------------------------------------------------
+
+        nodes_data = []
+
+        for node in nodes:
+
+            node_uuid = self._get_object_uuid(
+                node
+            )
+
+            if not node_uuid:
+                continue
+
+            labels = list(
+                getattr(
+                    node,
+                    "labels",
+                    None,
+                ) or []
+            )
+
+            attributes = getattr(
+                node,
+                "attributes",
+                None,
+            ) or {}
+
+            if not isinstance(
+                attributes,
+                dict,
+            ):
+                attributes = {
+                    "value": str(
+                        attributes
+                    )
+                }
+
+            nodes_data.append(
+                {
+                    "uuid": node_uuid,
+                    "name": getattr(
+                        node,
+                        "name",
+                        None,
+                    ) or "",
+                    "labels": labels,
+                    "summary": getattr(
+                        node,
+                        "summary",
+                        None,
+                    ) or "",
+                    "attributes": attributes,
+                    "created_at": self._serialize_datetime(
+                        getattr(
+                            node,
+                            "created_at",
+                            None,
+                        )
+                    ),
+                }
+            )
+
+
+        # ----------------------------------------------------
+        # NORMALIZAR RELACIONES
+        # ----------------------------------------------------
+
+        edges_data = []
+
+        for edge in edges:
+
+            edge_uuid = self._get_object_uuid(
+                edge
+            )
+
+            source_node_uuid = getattr(
+                edge,
+                "source_node_uuid",
+                None,
+            )
+
+            target_node_uuid = getattr(
+                edge,
+                "target_node_uuid",
+                None,
+            )
+
+            edge_attributes = getattr(
+                edge,
+                "attributes",
+                None,
+            ) or {}
+
+            if not isinstance(
+                edge_attributes,
+                dict,
+            ):
+                edge_attributes = {
+                    "value": str(
+                        edge_attributes
+                    )
+                }
+
+            episodes = self._normalize_episodes(
+                edge
+            )
+
+            edge_name = (
+                getattr(edge, "name", None)
+                or ""
+            )
+
+            fact = (
+                getattr(edge, "fact", None)
+                or ""
+            )
+
+            fact_type = (
+                getattr(
+                    edge,
+                    "fact_type",
+                    None,
+                )
+                or edge_name
+            )
+
+            edges_data.append(
+                {
+                    "uuid": edge_uuid,
+                    "name": edge_name,
+                    "fact": fact,
+                    "fact_type": fact_type,
+                    "source_node_uuid": source_node_uuid,
+                    "target_node_uuid": target_node_uuid,
+                    "source_node_name": node_map.get(
+                        source_node_uuid,
+                        "",
+                    ),
+                    "target_node_name": node_map.get(
+                        target_node_uuid,
+                        "",
+                    ),
+                    "attributes": edge_attributes,
+                    "created_at": self._serialize_datetime(
+                        getattr(
+                            edge,
+                            "created_at",
+                            None,
+                        )
+                    ),
+                    "valid_at": self._serialize_datetime(
+                        getattr(
+                            edge,
+                            "valid_at",
+                            None,
+                        )
+                    ),
+                    "invalid_at": self._serialize_datetime(
+                        getattr(
+                            edge,
+                            "invalid_at",
+                            None,
+                        )
+                    ),
+                    "expired_at": self._serialize_datetime(
+                        getattr(
+                            edge,
+                            "expired_at",
+                            None,
+                        )
+                    ),
+                    "episodes": episodes,
+                }
+            )
+
+
+        # ----------------------------------------------------
+        # RESPUESTA NORMALIZADA
+        # ----------------------------------------------------
+
+        return {
+            "graph_id": normalized_graph_id,
+            "nodes": nodes_data,
+            "edges": edges_data,
+            "node_count": len(nodes_data),
+            "edge_count": len(edges_data),
+        }
+
+
+    # ========================================================
+    # ELIMINAR GRAFO
+    # ========================================================
+
+    def delete_graph(
+        self,
+        graph_id: str,
+    ):
+        """
+        Elimina permanentemente un grafo de Zep.
+        """
+
+        if not graph_id or not graph_id.strip():
+            raise ValueError(
+                "Se requiere un identificador de grafo válido."
+            )
+
+        normalized_graph_id = graph_id.strip()
+
+        self.client.graph.delete(
+            graph_id=normalized_graph_id
+        )
+
+        logger.info(
+            "Grafo eliminado correctamente. graph_id=%s",
+            normalized_graph_id,
+        )
+
+
+    # ========================================================
+    # MÉTODOS AUXILIARES
+    # ========================================================
+
+    def _validate_build_request(
+        self,
+        text: str,
+        ontology: Dict[str, Any],
+        chunk_size: int,
+        chunk_overlap: int,
+        batch_size: int,
+    ):
+        """
+        Valida los parámetros necesarios antes de iniciar
+        la construcción del grafo.
+        """
+
+        if not isinstance(
+            text,
+            str,
+        ) or not text.strip():
+
+            raise ValueError(
+                "Se requiere un texto válido para construir el grafo."
+            )
+
+        if not isinstance(
+            ontology,
+            dict,
+        ):
+
+            raise ValueError(
+                "La ontología debe ser un diccionario válido."
+            )
+
+        if chunk_size <= 0:
+
+            raise ValueError(
+                "chunk_size debe ser mayor que cero."
+            )
+
+        if chunk_overlap < 0:
+
+            raise ValueError(
+                "chunk_overlap no puede ser negativo."
+            )
+
+        if chunk_overlap >= chunk_size:
+
+            raise ValueError(
+                "chunk_overlap debe ser menor que chunk_size."
+            )
+
+        if batch_size <= 0:
+
+            raise ValueError(
+                "batch_size debe ser mayor que cero."
+            )
+
+
+    def _safe_attribute_name(
+        self,
+        attribute_name: str,
+    ) -> str:
+        """
+        Evita conflictos con nombres reservados por Zep o Pydantic.
+        """
+
+        normalized_name = (
+            str(attribute_name)
+            .strip()
+            .replace(" ", "_")
+            .replace("-", "_")
+        )
+
+        if normalized_name.lower() in {
+            item.lower()
+            for item in self.RESERVED_ATTRIBUTE_NAMES
+        }:
+
+            return (
+                f"entity_{normalized_name}"
+            )
+
+        return normalized_name
+
+
+    def _safe_class_name(
+        self,
+        name: str,
+    ) -> str:
+        """
+        Genera un nombre seguro para una clase dinámica.
+        """
+
+        parts = (
+            str(name)
+            .replace("-", "_")
+            .replace(" ", "_")
+            .split("_")
+        )
+
+        result = "".join(
+            part[:1].upper() + part[1:]
+            for part in parts
+            if part
+        )
+
+        return result or "NexusEntity"
+
+
+    @staticmethod
+    def _extract_episode_uuids(
+        batch_result: Any,
+    ) -> List[str]:
+        """
+        Extrae los identificadores de episodios devueltos por Zep.
+        """
+
+        if not batch_result:
+            return []
+
+        if not isinstance(
+            batch_result,
+            list,
+        ):
+            batch_result = [
+                batch_result
+            ]
+
+        result = []
+
+        for episode in batch_result:
+
+            episode_uuid = (
+                getattr(
+                    episode,
+                    "uuid_",
+                    None,
+                )
+                or getattr(
+                    episode,
+                    "uuid",
+                    None,
+                )
+            )
+
+            if episode_uuid:
+                result.append(
+                    str(episode_uuid)
+                )
+
+        return result
+
+
+    @staticmethod
+    def _get_object_uuid(
+        obj: Any,
+    ) -> Optional[str]:
+        """
+        Obtiene de forma segura el UUID de un objeto de Zep.
+        """
+
+        value = (
+            getattr(
+                obj,
+                "uuid_",
+                None,
+            )
+            or getattr(
+                obj,
+                "uuid",
+                None,
+            )
+        )
+
+        return (
+            str(value)
+            if value
+            else None
+        )
+
+
+    @staticmethod
+    def _serialize_datetime(
+        value: Any,
+    ) -> Optional[str]:
+        """
+        Convierte una fecha a un formato serializable.
+        """
+
+        if value is None:
+            return None
+
+        return str(value)
+
+
+    @staticmethod
+    def _normalize_episodes(
+        edge: Any,
+    ) -> List[str]:
+        """
+        Normaliza los episodios asociados a una relación.
+        """
+
+        episodes = (
+            getattr(
+                edge,
+                "episodes",
+                None,
+            )
+            or getattr(
+                edge,
+                "episode_ids",
+                None,
+            )
+            or []
+        )
+
+        if not isinstance(
+            episodes,
+            list,
+        ):
+            episodes = [
+                episodes
+            ]
+
+        return [
+            str(episode)
+            for episode in episodes
+            if episode is not None
+        ]

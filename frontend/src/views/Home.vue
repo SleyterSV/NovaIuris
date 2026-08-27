@@ -6,6 +6,8 @@
       <div class="nav-links">
         <a href="#inicio" class="nav-item">INICIO</a>
         <a href="#plataforma" class="nav-item">PLATAFORMA</a>
+        <!-- Enlace a NovaSearch integrado en el menú -->
+        <router-link to="/buscar" class="nav-item">NOVASEARCH</router-link>
         <a href="#tecnologia" class="nav-item">TECNOLOGÍA</a>
         <a href="#nosotros" class="nav-item">NOSOTROS</a>
         <a href="#contacto" class="nav-item">CONTACTO</a>
@@ -29,7 +31,19 @@
           Anticípese a los resultados judiciales con estrategias validadas por Inteligencia Artificial.
         </p>
 
-        <button class="cta-btn">SOLICITAR DEMOSTRACIÓN</button>
+        <!-- Botones de Acción (Hero Actions) -->
+        <div class="hero-actions">
+          <button class="cta-btn">SOLICITAR DEMOSTRACIÓN</button>
+          
+          <!-- Nuevo Botón de NovaSearch (Estilo Outline Premium) -->
+          <router-link to="/buscar" class="cta-btn-outline">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            PROBAR NOVASEARCH
+          </router-link>
+        </div>
       </div>
     </header>
 
@@ -41,7 +55,7 @@
         <p class="section-subtitle">Seleccione la rama del Derecho correspondiente para acceder a la base normativa, jurisprudencia y agentes especializados.</p>
       </div>
 
-      <!-- Cambiado a Flexbox para que las 5 tarjetas queden perfectamente centradas (3 arriba, 2 abajo al centro) -->
+      <!-- Flexbox para que las 5 tarjetas queden perfectamente centradas -->
       <div class="domains-grid">
         <div 
           v-for="(domain, index) in domains" 
@@ -143,10 +157,10 @@ const selectDomain = (domain) => {
   background-color: var(--gray-bg);
   min-height: 100vh;
   font-family: 'Inter', sans-serif;
-  padding-top: 80px; /* Espacio exacto para que el navbar fijo no tape el Hero */
+  padding-top: 80px;
 }
 
-/* NAVBAR (Fijo, sólido y sin sobreponerse mal) */
+/* NAVBAR */
 .navbar {
   position: fixed;
   top: 0;
@@ -186,7 +200,7 @@ const selectDomain = (domain) => {
   transition: color 0.3s ease;
 }
 
-.nav-item:hover {
+.nav-item:hover, .router-link-active.nav-item {
   color: #D4AF37 !important;
 }
 
@@ -197,7 +211,7 @@ const selectDomain = (domain) => {
   border-left: 1px solid #2D3748;
 }
 
-/* HERO SECTION (Textos forzados a blanco para evitar pérdida de contraste) */
+/* HERO SECTION */
 .hero-section {
   background: radial-gradient(circle at center, #112240 0%, #0A192F 100%);
   padding: 80px 20px 120px;
@@ -259,6 +273,15 @@ const selectDomain = (domain) => {
   font-weight: 300;
 }
 
+/* HERO ACTIONS (Nuevos estilos para el contenedor de botones) */
+.hero-actions {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .cta-btn {
   background: linear-gradient(135deg, #D4AF37 0%, #B5952F 100%);
   color: #0A192F !important;
@@ -276,6 +299,28 @@ const selectDomain = (domain) => {
 .cta-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 25px rgba(212, 175, 55, 0.5);
+}
+
+.cta-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  color: #D4AF37 !important;
+  border: 2px solid #D4AF37;
+  padding: 16px 35px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.cta-btn-outline:hover {
+  background: rgba(212, 175, 55, 0.1);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.2);
+  transform: translateY(-3px);
 }
 
 /* DOMAINS SECTION */
@@ -313,7 +358,6 @@ const selectDomain = (domain) => {
   line-height: 1.6;
 }
 
-/* FLEXBOX: Soluciona el problema de la última fila impar */
 .domains-grid {
   display: flex;
   flex-wrap: wrap;
@@ -321,7 +365,6 @@ const selectDomain = (domain) => {
   gap: 35px;
 }
 
-/* TARJETAS MEJORADAS (Claras pero con contorno y sombra profesional) */
 .domain-card {
   background: #FFFFFF;
   border-radius: 8px;
@@ -333,7 +376,6 @@ const selectDomain = (domain) => {
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  /* Flex basis para asegurar que midan lo mismo */
   flex: 1 1 320px;
   max-width: 380px; 
 }
@@ -354,7 +396,7 @@ const selectDomain = (domain) => {
 .domain-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 20px 40px rgba(10, 25, 47, 0.12);
-  border-color: #D4AF37; /* Contorno dorado al pasar el ratón */
+  border-color: #D4AF37; 
 }
 
 .domain-card:hover::before {
@@ -368,19 +410,24 @@ const selectDomain = (domain) => {
 }
 
 .card-icon {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.5rem;
-  color: #D4AF37;
-  font-weight: 700;
-  margin-right: 15px;
-  background: rgba(212, 175, 55, 0.1);
-  width: 55px;
-  height: 55px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 1px solid rgba(212, 175, 55, 0.3);
+    width: 58px;
+    height: 58px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 15px;
+
+    font-size: 1.65rem;
+
+    background: #EFF6FF;
+
+    color: #2563EB;
+
+    border: 1px solid #DBEAFE;
+
+    flex-shrink: 0;
 }
 
 .card-title {
@@ -477,7 +524,7 @@ const selectDomain = (domain) => {
 /* MEDIA QUERIES */
 @media (max-width: 768px) {
   .navbar {
-    position: static; /* Quita lo fijo en celular para ahorrar pantalla */
+    position: static; 
     flex-direction: column;
     height: auto;
     padding: 20px;
@@ -496,6 +543,15 @@ const selectDomain = (domain) => {
   }
   .hero-logo {
     width: 170px;
+  }
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+    padding: 0 20px;
+  }
+  .cta-btn, .cta-btn-outline {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>

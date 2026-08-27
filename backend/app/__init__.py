@@ -63,11 +63,27 @@ def create_app(config_class=Config):
         return response
     
     # 注册蓝图
-    from .api import graph_bp, simulation_bp, report_bp
+    # 👇 1. SE AGREGÓ export_bp A LA IMPORTACIÓN
+    from .api import (
+        graph_bp,
+        simulation_bp,
+        report_bp,
+        export_bp,
+        search_bp,
+        case_bp
+    )
     app.register_blueprint(graph_bp, url_prefix='/api/graph')
     app.register_blueprint(simulation_bp, url_prefix='/api/simulation')
     app.register_blueprint(report_bp, url_prefix='/api/report')
+    # 👇 2. SE REGISTRÓ LA NUEVA RUTA DE EXPORTACIÓN
+    app.register_blueprint(export_bp, url_prefix='/api/export')
+    app.register_blueprint(search_bp, url_prefix='/api/search') # 👈 AGREGA ESTA LÍNEA 
     
+    app.register_blueprint(
+        case_bp,
+        url_prefix='/api'
+    )
+
     # 健康检查
     @app.route('/health')
     def health():
@@ -77,4 +93,3 @@ def create_app(config_class=Config):
         logger.info("NovaIuris Backend 启动完成")
     
     return app
-

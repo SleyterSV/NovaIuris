@@ -15,6 +15,9 @@ from supabase import create_client, Client
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from app.services.retriever import LegalRetriever
 from app.utils.legal_roles import LegalPersonas
+
+# --- IMPORTACIÓN DEL NUEVO CEREBRO LANGGRAPH ---
+from app.services.langgraph_engine import nova_iuris_tribunal
 # --------------------------------------------
 
 # Configuración de entorno y logs
@@ -36,7 +39,7 @@ supabase_client: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SU
 
 
 class LegalDebateSimulator:
-    """Orquestador Multi-Agente con Arquitectura de Memoria Híbrida (Zep Graphs + Supabase Vector RAG)."""
+    """Orquestador Multi-Agente con Arquitectura Híbrida (LangGraph + Zep + Supabase Vector RAG)."""
 
     @staticmethod
     def _vectorizar_expediente_vivo(texto_completo: str, session_id: str) -> bool:
@@ -114,39 +117,45 @@ class LegalDebateSimulator:
             return "Error recuperando la evidencia documental."
 
     @staticmethod
-    def _generar_respuesta_agente(rol_prompt: str, contexto_estructural_zep: str, evidencia_documental: str, contexto_leyes: str, input_actual: str) -> str:
+    def _consultar_base_legal(query: str, limit: int = 5) -> str:
         """
-        El Cerebro Central: Llama al LLM inyectando el Grafo (Zep), el Expediente (Supabase) y la Ley (RAG).
+        Consulta la tabla legal_knowledge en Supabase por similitud semántica.
+        Extrae los artículos exactos (Código Civil, Penal, etc.) para fundamentar el debate.
         """
-        system_prompt = f"""{rol_prompt}
-
-[MEMORIA ESTRUCTURAL DEL CASO]
-{contexto_estructural_zep}
-
-[EVIDENCIA DOCUMENTAL ESPECÍFICA (EXPEDIENTE)]
-A continuación, extractos literales del expediente recuperados mediante búsqueda semántica:
-{evidencia_documental}
-
-[MARCO LEGAL APLICABLE (LEYES Y JURISPRUDENCIA)]
-{contexto_leyes}
-
-INSTRUCCIÓN CRÍTICA:
-Basado estrictamente en la evidencia documental y el marco legal proporcionado, desarrolla tu argumentación. 
-No inventes fechas, nombres ni artículos. Si la evidencia menciona un dato exacto, cítalo.
-"""
         try:
-            response = openai_client.chat.completions.create(
-                model="gpt-4o", 
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"[TU TURNO]\n{input_actual}"}
-                ],
-                temperature=0.2 # Temperatura baja para mantener el rigor jurídico
-            )
-            return response.choices[0].message.content
+            logger.info("📚 Buscando jurisprudencia y artículos en legal_knowledge...")
+            # 1. Convertir la consulta a vector
+            query_vector = openai_client.embeddings.create(
+                input=query, 
+                model="text-embedding-3-small"
+            ).data[0].embedding
+            
+            # 2. Llamar a la función RPC de Supabase para la tabla legal_knowledge
+            resultados = supabase_client.rpc(
+                'match_legal_knowledge',
+                {
+                    'query_embedding': query_vector, 
+                    'match_threshold': 0.4, 
+                    'match_count': limit
+                }
+            ).execute()
+            
+            if not resultados.data:
+                return "No se encontraron artículos legales específicos en la base de datos."
+                
+            # 3. Formatear estructuradamente según las columnas
+            leyes_encontradas = []
+            for item in resultados.data:
+                fuente = item.get('fuente', 'Norma Legal')
+                articulo = item.get('articulo', 'Artículo')
+                texto = item.get('texto', '')
+                leyes_encontradas.append(f"[{fuente}] {articulo}: {texto}")
+                
+            return "\n\n".join(leyes_encontradas)
+            
         except Exception as e:
-            logger.error(f"🚨 Error en el clúster de inferencia: {e}")
-            return "Error de comunicación con el agente neuronal."
+            logger.error(f"🚨 Error consultando la base legal en Supabase: {e}")
+            return "Error recuperando el marco legal aplicable."
 
     @staticmethod
     def _generar_metricas(caso: str, veredicto: str) -> dict:
@@ -179,120 +188,76 @@ No inventes fechas, nombres ni artículos. Si la evidencia menciona un dato exac
 
     @classmethod
     def simulate_case(cls, caso_completo: str) -> Dict[str, str]:
-        """Orquesta el flujo completo de la audiencia virtual."""
+        """Orquesta el flujo delegando el razonamiento a LangGraph (Nova Iuris 2.0)"""
         
-        # Generar IDs únicos
-        session_id = f"audiencia_{uuid4().hex[:8]}"
-        logger.info(f"\n⚖️ Iniciando Tribunal Híbrido [Sesión: {session_id}]")
+        # Generar ID único para esta audiencia
+        session_id = f"audiencia_nova_{uuid4().hex[:8]}"
+        logger.info(f"\n⚖️ Iniciando Nova Iuris Tribunal [Sesión: {session_id}]")
         logger.info("="*60)
 
-        # 1. Ingesta: Vectorizar el expediente completo en Supabase
+        # 1. Ingesta: Vectorizar el expediente completo en Supabase 
         cls._vectorizar_expediente_vivo(caso_completo, session_id)
 
-        # 2. Crear el Grafo de Zep (Memoria Estructural)
+        # 2. Recuperar la Evidencia Central (Hechos)
+        logger.info("📄 Consultando hechos en el expediente...")
+        evidencia_central = cls._consultar_evidencia_documental(
+            "Hechos clave, acusaciones, atenuantes y pruebas", 
+            session_id, 
+            limit=4
+        )
+
+        # 3. Recuperar los Artículos de la Ley (legal_knowledge)
+        marco_legal = cls._consultar_base_legal(caso_completo[:1000], limit=5)
+
+        # 4. Construir el Estado Inicial Combinado para LangGraph
+        dossier_combinado = (
+            f"--- HECHOS Y EVIDENCIA DEL CASO ---\n{evidencia_central}\n\n"
+            f"--- MARCO LEGAL APLICABLE ---\n{marco_legal}"
+        )
+
+        # 5. Zep Cloud: Registrar el caso para el grafo visual
         try:
-            logger.info("🌐 Registrando relaciones del expediente en Zep Cloud...")
+            logger.info("🌐 Registrando relaciones iniciales en Zep Cloud...")
             zep_client.graph.create(
                 graph_id=session_id,
                 name=f"Expediente {session_id}",
-                description="Simulación de debate legal (Fiscalía vs Defensa)"
+                description="Simulación de debate legal (Nova Iuris 2.0)"
             )
-            # Extraer entidades iniciales para el contexto estructural
             zep_client.graph.add(graph_id=session_id, type="text", data=caso_completo[:1000])
         except Exception as e:
-            logger.warning(f"⚠️ Aviso de Zep: {e}")
+            logger.warning(f"⚠️ Aviso de Zep (Omitido para continuar): {e}")
 
-        transcript = []
+        # 6. Construir el Estado Inicial para la Máquina de Estados (LangGraph)
+        estado_inicial = {
+            "caso": caso_completo[:1500],  # Limitamos caracteres para optimizar tokens
+            "dossier_rag": dossier_combinado,
+            "mensajes": []
+        }
 
-        # 3. Recuperar Marco Legal General (Bypass de seguridad)
-        logger.info("📚 Consultando Base Legal del sistema peruano...")
-        contexto_legal = "Aplica los principios generales del derecho penal, civil y procesal peruano."
+        # 7. ¡Ejecutar el Grafo Multi-Agente! 
+        logger.info("⚙️ Iniciando motor Multi-Agente LangGraph...")
+        resultado_final = nova_iuris_tribunal.invoke(estado_inicial)
 
+        # 8. Zep Cloud: Inyectar resultados de LangGraph para el mapa de entidades
         try:
-            # Solo intenta buscar si la función realmente existe en tu retriever
-            if hasattr(LegalRetriever, 'search_relevant_laws'):
-                leyes = LegalRetriever.search_relevant_laws(query=caso_completo[:1000], match_count=6, threshold=0.3)
-                if leyes:
-                    contexto_legal = "\n".join([f"[{i+1}] {l['fuente']} - {l['articulo']}:\n{l['texto']}" for i, l in enumerate(leyes)])
-        except Exception as e:
-            logger.warning(f"⚠️ Se omitió la búsqueda de leyes estáticas: {e}")
-            
-        # ---------------------------------------------------------
-        # TURNO 1: EL FISCAL
-        # ---------------------------------------------------------
-        logger.info("👨‍⚖️ Fiscal consultando el expediente y elaborando acusación...")
-        evidencia_fiscal = cls._consultar_evidencia_documental(
-            "Hechos ilícitos, acusación, vulneraciones a la ley, agravios", session_id
-        )
-        
-        argumento_fiscal = cls._generar_respuesta_agente(
-            rol_prompt=LegalPersonas.FISCAL_PROMPT,
-            contexto_estructural_zep="Inicio del debate. Analiza el caso central.",
-            evidencia_documental=evidencia_fiscal,
-            contexto_leyes=contexto_legal,
-            input_actual="Formula tu acusación formal, tipificación y pena solicitada basándote en el expediente."
-        )
-        transcript.append(f"FISCAL:\n{argumento_fiscal}")
-        
-        try:
-            zep_client.graph.add(graph_id=session_id, type="text", data=f"FISCAL: {argumento_fiscal}")
-        except: pass
+            zep_client.graph.add(graph_id=session_id, type="text", data=f"FISCAL: {resultado_final.get('argumento_fiscal', '')}")
+            zep_client.graph.add(graph_id=session_id, type="text", data=f"DEFENSA: {resultado_final.get('argumento_defensa', '')}")
+            zep_client.graph.add(graph_id=session_id, type="text", data=f"JUEZ: {resultado_final.get('veredicto_juez', '')}")
+        except Exception:
+            pass
 
-        # ---------------------------------------------------------
-        # TURNO 2: LA DEFENSA
-        # ---------------------------------------------------------
-        logger.info("🛡️ Defensa buscando inconsistencias en la evidencia...")
-        evidencia_defensa = cls._consultar_evidencia_documental(
-            "Atenuantes, contradicciones, defensa propia, falta de pruebas", session_id
-        )
-        historial_defensa = "\n\n".join(transcript)
-        
-        argumento_defensa = cls._generar_respuesta_agente(
-            rol_prompt=LegalPersonas.DEFENSA_PROMPT,
-            contexto_estructural_zep=f"Historial hasta el momento:\n{historial_defensa}",
-            evidencia_documental=evidencia_defensa,
-            contexto_leyes=contexto_legal,
-            input_actual="El Fiscal ha presentado su acusación. Refuta sus argumentos, busca vacíos legales en el expediente y protege a tu cliente."
-        )
-        transcript.append(f"DEFENSA:\n{argumento_defensa}")
-        
-        try:
-            zep_client.graph.add(graph_id=session_id, type="text", data=f"DEFENSA: {argumento_defensa}")
-        except: pass
+        # 9. Extrayendo Analítica Avanzada
+        logger.info("📊 Extrayendo analítica para el Dashboard...")
+        metricas_graficas = cls._generar_metricas(caso_completo, resultado_final.get("veredicto_juez", ""))
 
-        # ---------------------------------------------------------
-        # TURNO 3: EL JUEZ
-        # ---------------------------------------------------------
-        logger.info("⚖️ Juez Supremo cruzando el debate con la base documental...")
-        evidencia_juez = cls._consultar_evidencia_documental(
-            "Pruebas definitivas, sentencias previas, resolución del conflicto", session_id
-        )
-        historial_juez = "\n\n".join(transcript)
-
-        veredicto_juez = cls._generar_respuesta_agente(
-            rol_prompt=LegalPersonas.JUEZ_PROMPT,
-            contexto_estructural_zep=f"Historial del debate:\n{historial_juez}",
-            evidencia_documental=evidencia_juez,
-            contexto_leyes=contexto_legal,
-            input_actual="Ambas partes han expuesto. Emite una resolución final, evaluando quién aplicó mejor la ley y justificando con la evidencia documental."
-        )
-
-        try:
-            zep_client.graph.add(graph_id=session_id, type="text", data=f"JUEZ: {veredicto_juez}")
-        except: pass
-
-        # ---------------------------------------------------------
-        # MÉTRICAS Y RETORNO
-        # ---------------------------------------------------------
-        logger.info("📊 Extrayendo analítica avanzada para el Dashboard...")
-        metricas_graficas = cls._generar_metricas(caso_completo, veredicto_juez)
-
+        # 10. Retornar la estructura exacta que tu Frontend de Vue ya consume
+        logger.info("✅ Simulación completada con éxito. Retornando payload al cliente.")
         return {
             "session_id": session_id,
-            "base_legal": contexto_legal,
-            "fiscal": argumento_fiscal,
-            "defensa": argumento_defensa,
-            "juez": veredicto_juez,
+            "base_legal": marco_legal, # Cambiado para devolver el marco normativo al frontend
+            "fiscal": resultado_final.get("argumento_fiscal", "Error en ejecución de Fiscalía"),
+            "defensa": resultado_final.get("argumento_defensa", "Error en ejecución de Defensa"),
+            "juez": resultado_final.get("veredicto_juez", "Error en resolución del Juez"),
             "metricas": metricas_graficas
         }
 

@@ -1,3 +1,4 @@
+import re
 import os
 import time
 import json
@@ -7,6 +8,7 @@ from supabase import create_client, Client
 from openai import OpenAI
 from pathlib import Path
 import sys
+from app.services.legal_processor import LegalKnowledgeProcessor
 
 # Truco para importar módulos hermanos
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -25,14 +27,22 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 class VectorStoreManager:
+
+    processor = LegalKnowledgeProcessor()
     
     @staticmethod
     def get_embedding(text: str) -> List[float]:
-        text = text.replace("\n", " ")
+
+        text = re.sub(r"\s+", " ", text).strip()
+
+        if not text:
+            raise ValueError("El texto para embedding está vacío.")
+
         response = client.embeddings.create(
             input=[text],
             model="text-embedding-3-small"
         )
+
         return response.data[0].embedding
 
     # =====================================================================
@@ -115,16 +125,11 @@ class VectorStoreManager:
     @staticmethod
     def _process_and_upload_batches(articles: List[dict], fuente: str):
         # 1. Limpieza Quirúrgica: Borramos registros previos de esta fuente en base_legal
-        try:
-            print(f"[*] Limpiando registros previos de '{fuente}' en Supabase...")
-            supabase.table("base_legal").delete().eq("fuente", fuente).execute()
-        except Exception as e:
-            print(f"⚠️ Nota: No se encontraron datos previos o hubo un error al limpiar: {e}")
+        print(f"[*] Iniciando subida de {len(articles)} artículos...")
 
         # 2. Generación de embeddings con Chunking Dinámico
-        print(f"[*] Iniciando subida de {len(articles)} artículos vectorizados a 'base_legal'...")
-        
-        MAX_CHARS = 10000 
+        print(f"[*] Iniciando subida de {len(articles)} artículos vectorizados a 'legal_knowledge'...")
+                
         batch_size = 50
         
         for i in range(0, len(articles), batch_size):
@@ -132,57 +137,83 @@ class VectorStoreManager:
             data_to_insert = []
             
             for article in batch:
-                text_full = article['texto']
-                
-                # REGLA PARA GIGANTES
-                if len(text_full) > MAX_CHARS:
-                    print(f"⚠️ El {article['articulo']} es gigante ({len(text_full)} chars). Dividiendo en partes...")
-                    chunks = [text_full[j:j+MAX_CHARS] for j in range(0, len(text_full), MAX_CHARS)]
-                    
-                    for idx, chunk in enumerate(chunks):
-                        try:
-                            articulo_nombre = f"{article['articulo']} (Parte {idx+1})"
-                            text_to_embed = f"{article['fuente']} - {articulo_nombre}: {chunk}"
-                            
-                            vector = VectorStoreManager.get_embedding(text_to_embed)
-                            # Mapeado a las columnas de la tabla base_legal
-                            data_to_insert.append({
-                                "dominio": article['rama'],
-                                "fuente": article['fuente'],
-                                "articulo": articulo_nombre,
-                                "texto_contenido": chunk,
-                                "embedding": vector
-                            })
-                        except Exception as e:
-                            print(f"[!] Error en embedding para {articulo_nombre}: {e}")
-                
-                # REGLA PARA NORMALES
-                else:
-                    try:
-                        text_to_embed = f"{article['fuente']} - {article['articulo']}: {text_full}"
-                        vector = VectorStoreManager.get_embedding(text_to_embed)
-                        # Mapeado a las columnas de la tabla base_legal
-                        data_to_insert.append({
-                            "dominio": article['rama'],
-                            "fuente": article['fuente'],
-                            "articulo": article['articulo'],
-                            "texto_contenido": text_full,
-                            "embedding": vector
-                        })
-                    except Exception as e:
-                        print(f"[!] Error en embedding para {article['articulo']}: {e}")
-            
+
+                try:
+                    document = VectorStoreManager.processor.process_article(article)
+
+                    existing = (
+                        supabase
+                        .table("legal_knowledge")
+                        .select("id", count="exact")
+                        .eq("hash_documento", document.hash_documento)
+                        .limit(1)
+                        .execute()
+                    )
+
+                    if existing.data:
+                        print(f"⏭ Saltando duplicado: {document.articulo}")
+                        continue
+
+                    texto_embedding = VectorStoreManager.processor.build_search_text(document)
+
+                    vector = VectorStoreManager.get_embedding(texto_embedding)
+
+                    data_to_insert.append({
+
+                    "hash_documento": document.hash_documento,
+
+                    "rama": document.rama,
+
+                    "fuente": document.fuente,
+
+                    "tipo_documento": document.tipo_documento,
+
+                    "jerarquia": document.jerarquia,
+
+                    "articulo": document.articulo,
+
+                    "texto": document.texto,
+
+                    "resumen": document.resumen,
+
+                    "vigencia": document.vigencia,
+
+                    "entidad": document.entidad,
+
+                    "numero": document.numero,
+
+                    "fecha_publicacion": document.fecha_publicacion or None,
+
+                    "keywords": document.keywords,
+
+                    "metadata": document.metadata,
+
+                    "embedding": vector
+
+                    })
+
+                except Exception as e:
+                    print(f"[!] Error procesando {article.get('articulo', 'Sin nombre')}: {e}")               
+                         
             # 3. Insertar lote
             if data_to_insert:
                 try:
-                    supabase.table("base_legal").insert(data_to_insert).execute()
+                    response = (
+                        supabase
+                        .table("legal_knowledge")
+                        .insert(data_to_insert)
+                        .execute()
+                    )
+
+                    print(f"✅ Insertados {len(response.data)} registros.")
                     print(f"✅ Lote insertado: {min(i + batch_size, len(articles))} / {len(articles)}")
                     time.sleep(0.5)
                 except Exception as e:
                     print(f"❌ Error al insertar en Supabase: {e}")
 
 if __name__ == "__main__":
-    PROCESSED_DIR = Path("processed_docs")
+    BASE_DIR = Path(__file__).resolve().parents[2]
+    PROCESSED_DIR = BASE_DIR.parent / "processed_docs"
     
     print("=================== INICIANDO SUBIDA VECTORIAL A SUPABASE ===================")
     

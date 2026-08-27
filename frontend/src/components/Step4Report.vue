@@ -127,14 +127,28 @@
             </div>
           </div>
 
-          <!-- Next Step Button - 在完成后显示 -->
-          <button v-if="isComplete" class="next-step-btn" @click="goToInteraction">
-            <span>{{ $t('step4.goToInteraction') }}</span>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="12 5 19 12 12 19"></polyline>
-            </svg>
-          </button>
+          <!-- Action Buttons - Se muestran al completar el reporte -->
+          <div v-if="isComplete" class="action-buttons-container">
+            <!-- Botón de Descarga PDF -->
+            <button class="export-pdf-btn" @click="exportarDictamen" :disabled="isDownloading">
+              <span v-if="isDownloading" class="pdf-spinner"></span>
+              <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>{{ isDownloading ? 'Compilando Documento...' : 'Descargar Reporte Oficial (PDF)' }}</span>
+            </button>
+
+            <!-- Botón de Siguiente Paso original -->
+            <button class="next-step-btn" @click="goToInteraction">
+              <span>{{ $t('step4.goToInteraction') }}</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          </div>
 
           <div class="workflow-divider"></div>
         </div>
@@ -430,6 +444,59 @@ const leftPanel = ref(null)
 const rightPanel = ref(null)
 const logContent = ref(null)
 const showRawResult = reactive({})
+
+// --- NUEVO ESTADO PARA EL PDF ---
+const isDownloading = ref(false)
+
+// --- FUNCIÓN DE EXPORTACIÓN CON FETCH NATIVO ---
+const exportarDictamen = async () => {
+  isDownloading.value = true
+  try {
+    // 1. Recopilamos todo el texto de las secciones generadas
+    // Usamos Object.values para extraer el contenido markdown generado por el LLM
+    const seccionesGeneradas = Object.values(generatedSections.value).join('\n\n')
+
+    // 2. Preparamos el payload exacto que Flask y LaTeX esperan
+    const payload = {
+      tipo: 'NovaCase',
+      datos: {
+        resumenHechos: reportOutline.value?.summary || "Reporte generado por Nova Iuris.",
+        estrategiaSugerida: seccionesGeneradas || "Sin contenido generado.",
+        fundamentacionLegal: [], // Se envía vacío por ahora, se puede popular dinámicamente luego
+        jurisprudenciaClave: []
+      }
+    }
+
+    // 3. Llamada directa a tu nuevo endpoint de Flask
+    const response = await fetch('http://localhost:5000/api/export/pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) throw new Error('Error en el servidor al generar el PDF')
+
+    // 4. Manejo profesional de Blobs para forzar la descarga
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `NovaIuris_Reporte_${props.reportId || 'Oficial'}.pdf`)
+    
+    document.body.appendChild(link)
+    link.click()
+    
+    // 5. Limpieza de memoria (Garbage Collection)
+    link.parentNode.removeChild(link)
+    window.URL.revokeObjectURL(url)
+
+  } catch (error) {
+    console.error("Hubo un problema descargando el PDF:", error)
+    // Opcional: Aquí podrías disparar un toast/alerta de error de tu UI
+  } finally {
+    isDownloading.value = false
+  }
+}
 
 // Toggle functions
 const toggleRawResult = (timestamp, event) => {
@@ -3402,13 +3469,66 @@ watch(() => props.reportId, (newId) => {
   font-size: 14px;
 }
 
+/* Contenedor de botones finales */
+.action-buttons-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 20px 0 20px;
+}
+
+/* Botón Premium para el PDF */
+.export-pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0B1120;
+  background: linear-gradient(135deg, #2563EB 0%, #dfb55d 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(205, 163, 79, 0.2);
+}
+
+.export-pdf-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 8px -1px rgba(205, 163, 79, 0.3);
+}
+
+.export-pdf-btn:disabled {
+  background: #E5E7EB;
+  color: #9CA3AF;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.export-pdf-btn svg {
+  flex-shrink: 0;
+}
+
+/* Spinner exclusivo para el botón PDF */
+.pdf-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(11, 17, 32, 0.3);
+  border-top-color: #0B1120;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Ajuste del botón existente para que ocupe todo el ancho */
 .next-step-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: calc(100% - 40px);
-  margin: 4px 20px 0 20px;
+  width: 100%;
   padding: 14px 20px;
   font-size: 14px;
   font-weight: 600;
@@ -3418,18 +3538,6 @@ watch(() => props.reportId, (newId) => {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-}
-
-.next-step-btn:hover {
-  background: #374151;
-}
-
-.next-step-btn svg {
-  transition: transform 0.2s ease;
-}
-
-.next-step-btn:hover svg {
-  transform: translateX(4px);
 }
 
 /* Workflow Empty */

@@ -1,7 +1,20 @@
-"""Zep Graph 分页读取工具。
+"""
+Utilidades de paginación para Zep Cloud.
 
-Zep 的 node/edge 列表接口使用 UUID cursor 分页，
-本模块封装自动翻页逻辑（含单页重试），对调用方透明地返回完整列表。
+Las API de nodos y relaciones de Zep utilizan paginación basada en UUID.
+Este módulo centraliza la obtención completa y segura de los elementos de
+un grafo, gestionando automáticamente:
+
+- Paginación mediante cursor UUID.
+- Reintentos ante errores transitorios.
+- Espera exponencial entre reintentos.
+- Límites de seguridad para evitar cargas excesivas.
+- Detección de cursores repetidos.
+- Registro detallado de eventos y errores.
+
+El objetivo es que los servicios consumidores puedan solicitar todos los
+nodos o relaciones de un grafo sin preocuparse por la lógica interna de
+paginación.
 """
 
 from __future__ import annotations
@@ -15,129 +28,541 @@ from zep_cloud.client import Zep
 
 from .logger import get_logger
 
-logger = get_logger('NovaIuris.zep_paging')
 
-_DEFAULT_PAGE_SIZE = 100
-_MAX_NODES = 2000
-_DEFAULT_MAX_RETRIES = 3
-_DEFAULT_RETRY_DELAY = 2.0  # seconds, doubles each retry
+logger = get_logger("NovaIuris.zep_paging")
 
 
-def _fetch_page_with_retry(
+# ============================================================
+# CONFIGURACIÓN Y LÍMITES
+# ============================================================
+
+TAMANO_PAGINA_PREDETERMINADO = 100
+
+MAXIMO_NODOS_PREDETERMINADO = 2000
+
+MAXIMO_RELACIONES_PREDETERMINADO = 5000
+
+MAXIMO_REINTENTOS_PREDETERMINADO = 3
+
+RETRASO_REINTENTO_PREDETERMINADO = 2.0
+
+
+# ============================================================
+# VALIDACIÓN DE PARÁMETROS
+# ============================================================
+
+def _validar_parametros_paginacion(
+    page_size: int,
+    max_items: int,
+    max_retries: int,
+    retry_delay: float,
+) -> None:
+    """
+    Valida los parámetros utilizados durante la paginación.
+
+    Raises:
+        ValueError: Si alguno de los parámetros tiene un valor inválido.
+    """
+
+    if page_size < 1:
+        raise ValueError(
+            "page_size debe ser mayor o igual a 1."
+        )
+
+    if max_items < 1:
+        raise ValueError(
+            "max_items debe ser mayor o igual a 1."
+        )
+
+    if max_retries < 1:
+        raise ValueError(
+            "max_retries debe ser mayor o igual a 1."
+        )
+
+    if retry_delay < 0:
+        raise ValueError(
+            "retry_delay no puede ser negativo."
+        )
+
+
+# ============================================================
+# EJECUCIÓN DE UNA PÁGINA CON REINTENTOS
+# ============================================================
+
+def _obtener_pagina_con_reintentos(
     api_call: Callable[..., list[Any]],
     *args: Any,
-    max_retries: int = _DEFAULT_MAX_RETRIES,
-    retry_delay: float = _DEFAULT_RETRY_DELAY,
-    page_description: str = "page",
+    max_retries: int = MAXIMO_REINTENTOS_PREDETERMINADO,
+    retry_delay: float = RETRASO_REINTENTO_PREDETERMINADO,
+    page_description: str = "página",
     **kwargs: Any,
 ) -> list[Any]:
-    """单页请求，失败时指数退避重试。仅重试网络/IO类瞬态错误。"""
+    """
+    Ejecuta una solicitud de una página de Zep con reintentos.
+
+    Los reintentos se aplican únicamente ante errores considerados
+    transitorios, utilizando espera exponencial entre intentos.
+
+    Args:
+        api_call:
+            Función de Zep que realizará la solicitud.
+
+        *args:
+            Argumentos posicionales para la función.
+
+        max_retries:
+            Número máximo de intentos.
+
+        retry_delay:
+            Tiempo inicial de espera entre reintentos.
+
+        page_description:
+            Descripción utilizada en los registros.
+
+        **kwargs:
+            Argumentos adicionales para la función.
+
+    Returns:
+        Lista de elementos obtenidos desde Zep.
+
+    Raises:
+        ValueError:
+            Si max_retries o retry_delay son inválidos.
+
+        Exception:
+            Propaga el último error transitorio si se agotan los intentos.
+    """
+
     if max_retries < 1:
-        raise ValueError("max_retries must be >= 1")
+        raise ValueError(
+            "max_retries debe ser mayor o igual a 1."
+        )
 
-    last_exception: Exception | None = None
-    delay = retry_delay
+    if retry_delay < 0:
+        raise ValueError(
+            "retry_delay no puede ser negativo."
+        )
 
-    for attempt in range(max_retries):
+    ultimo_error: Exception | None = None
+
+    espera_actual = retry_delay
+
+    for intento in range(1, max_retries + 1):
+
         try:
-            return api_call(*args, **kwargs)
-        except (ConnectionError, TimeoutError, OSError, InternalServerError) as e:
-            last_exception = e
-            if attempt < max_retries - 1:
-                logger.warning(
-                    f"Zep {page_description} attempt {attempt + 1} failed: {str(e)[:100]}, retrying in {delay:.1f}s..."
+
+            resultado = api_call(
+                *args,
+                **kwargs,
+            )
+
+            return resultado or []
+
+        except (
+            ConnectionError,
+            TimeoutError,
+            OSError,
+            InternalServerError,
+        ) as error:
+
+            ultimo_error = error
+
+            if intento >= max_retries:
+
+                logger.error(
+                    "Error definitivo al obtener %s después de %s intentos: %s",
+                    page_description,
+                    max_retries,
+                    str(error),
                 )
-                time.sleep(delay)
-                delay *= 2
-            else:
-                logger.error(f"Zep {page_description} failed after {max_retries} attempts: {str(e)}")
 
-    assert last_exception is not None
-    raise last_exception
+                break
 
+            logger.warning(
+                "Error al obtener %s. "
+                "Intento %s/%s. "
+                "Nuevo intento en %.1f segundos. "
+                "Detalle: %s",
+                page_description,
+                intento,
+                max_retries,
+                espera_actual,
+                str(error)[:300],
+            )
+
+            if espera_actual > 0:
+                time.sleep(espera_actual)
+
+            espera_actual *= 2
+
+    if ultimo_error is not None:
+        raise ultimo_error
+
+    raise RuntimeError(
+        f"No fue posible obtener {page_description}."
+    )
+
+
+# ============================================================
+# OBTENER UUID DE UN ELEMENTO
+# ============================================================
+
+def _obtener_uuid_elemento(
+    elemento: Any,
+) -> str | None:
+    """
+    Obtiene el UUID de un nodo o relación devuelto por Zep.
+
+    Algunas versiones o representaciones del SDK pueden exponer el
+    identificador como 'uuid_' o como 'uuid', por lo que se soportan
+    ambas variantes.
+
+    Args:
+        elemento:
+            Nodo o relación de Zep.
+
+    Returns:
+        UUID del elemento o None si no está disponible.
+    """
+
+    uuid = getattr(
+        elemento,
+        "uuid_",
+        None,
+    )
+
+    if uuid:
+        return str(uuid)
+
+    uuid = getattr(
+        elemento,
+        "uuid",
+        None,
+    )
+
+    if uuid:
+        return str(uuid)
+
+    return None
+
+
+# ============================================================
+# PAGINACIÓN GENÉRICA
+# ============================================================
+
+def _obtener_todos_los_elementos(
+    api_call: Callable[..., list[Any]],
+    graph_id: str,
+    *,
+    tipo_elemento: str,
+    page_size: int,
+    max_items: int,
+    max_retries: int,
+    retry_delay: float,
+) -> list[Any]:
+    """
+    Obtiene todos los elementos de una API paginada de Zep.
+
+    Implementa la lógica común para nodos y relaciones:
+
+    - Solicitud paginada.
+    - Cursor UUID.
+    - Reintentos.
+    - Límite máximo de elementos.
+    - Protección contra cursores repetidos.
+    - Finalización segura.
+
+    Args:
+        api_call:
+            Método de Zep utilizado para recuperar los elementos.
+
+        graph_id:
+            Identificador del grafo.
+
+        tipo_elemento:
+            Nombre descriptivo del elemento para logs.
+
+        page_size:
+            Cantidad solicitada por página.
+
+        max_items:
+            Máximo total de elementos permitidos.
+
+        max_retries:
+            Máximo de intentos por página.
+
+        retry_delay:
+            Espera inicial entre reintentos.
+
+    Returns:
+        Lista completa de elementos obtenidos dentro del límite definido.
+    """
+
+    _validar_parametros_paginacion(
+        page_size=page_size,
+        max_items=max_items,
+        max_retries=max_retries,
+        retry_delay=retry_delay,
+    )
+
+    if not graph_id or not str(graph_id).strip():
+        raise ValueError(
+            "graph_id es obligatorio para realizar la paginación."
+        )
+
+    elementos: list[Any] = []
+
+    cursor: str | None = None
+
+    cursores_utilizados: set[str] = set()
+
+    numero_pagina = 0
+
+    logger.debug(
+        "Iniciando obtención paginada de %s para el grafo %s.",
+        tipo_elemento,
+        graph_id,
+    )
+
+    while True:
+
+        numero_pagina += 1
+
+        kwargs: dict[str, Any] = {
+            "limit": page_size,
+        }
+
+        if cursor is not None:
+            kwargs["uuid_cursor"] = cursor
+
+        descripcion_pagina = (
+            f"{tipo_elemento}, página {numero_pagina}, "
+            f"grafo={graph_id}"
+        )
+
+        lote = _obtener_pagina_con_reintentos(
+            api_call,
+            graph_id,
+            max_retries=max_retries,
+            retry_delay=retry_delay,
+            page_description=descripcion_pagina,
+            **kwargs,
+        )
+
+        if not lote:
+
+            logger.debug(
+                "No se encontraron más %s. "
+                "Total recuperado: %s.",
+                tipo_elemento,
+                len(elementos),
+            )
+
+            break
+
+        elementos.extend(lote)
+
+        logger.debug(
+            "Recuperada página %s de %s para el grafo %s. "
+            "Elementos en página: %s. Total acumulado: %s.",
+            numero_pagina,
+            tipo_elemento,
+            graph_id,
+            len(lote),
+            len(elementos),
+        )
+
+        # ----------------------------------------------------
+        # LÍMITE DE SEGURIDAD
+        # ----------------------------------------------------
+
+        if len(elementos) >= max_items:
+
+            elementos = elementos[:max_items]
+
+            logger.warning(
+                "Se alcanzó el límite máximo de %s (%s) "
+                "para el grafo %s. "
+                "La paginación se detendrá.",
+                tipo_elemento,
+                max_items,
+                graph_id,
+            )
+
+            break
+
+        # ----------------------------------------------------
+        # ÚLTIMA PÁGINA
+        # ----------------------------------------------------
+
+        if len(lote) < page_size:
+
+            logger.debug(
+                "Se alcanzó la última página de %s "
+                "para el grafo %s.",
+                tipo_elemento,
+                graph_id,
+            )
+
+            break
+
+        # ----------------------------------------------------
+        # OBTENER CURSOR PARA LA SIGUIENTE PÁGINA
+        # ----------------------------------------------------
+
+        siguiente_cursor = _obtener_uuid_elemento(
+            lote[-1],
+        )
+
+        if siguiente_cursor is None:
+
+            logger.warning(
+                "No fue posible obtener el UUID del último %s "
+                "en la página %s del grafo %s. "
+                "La paginación se detendrá para evitar resultados "
+                "duplicados o un ciclo infinito.",
+                tipo_elemento,
+                numero_pagina,
+                graph_id,
+            )
+
+            break
+
+        # ----------------------------------------------------
+        # PROTECCIÓN CONTRA CURSOR REPETIDO
+        # ----------------------------------------------------
+
+        if siguiente_cursor in cursores_utilizados:
+
+            logger.warning(
+                "Se detectó un cursor repetido durante la paginación "
+                "de %s para el grafo %s: %s. "
+                "La operación se detendrá para evitar un ciclo infinito.",
+                tipo_elemento,
+                graph_id,
+                siguiente_cursor,
+            )
+
+            break
+
+        cursores_utilizados.add(
+            siguiente_cursor,
+        )
+
+        cursor = siguiente_cursor
+
+    logger.info(
+        "Obtención de %s finalizada para el grafo %s. "
+        "Total recuperado: %s.",
+        tipo_elemento,
+        graph_id,
+        len(elementos),
+    )
+
+    return elementos
+
+
+# ============================================================
+# OBTENER TODOS LOS NODOS
+# ============================================================
 
 def fetch_all_nodes(
     client: Zep,
     graph_id: str,
-    page_size: int = _DEFAULT_PAGE_SIZE,
-    max_items: int = _MAX_NODES,
-    max_retries: int = _DEFAULT_MAX_RETRIES,
-    retry_delay: float = _DEFAULT_RETRY_DELAY,
+    page_size: int = TAMANO_PAGINA_PREDETERMINADO,
+    max_items: int = MAXIMO_NODOS_PREDETERMINADO,
+    max_retries: int = MAXIMO_REINTENTOS_PREDETERMINADO,
+    retry_delay: float = RETRASO_REINTENTO_PREDETERMINADO,
 ) -> list[Any]:
-    """分页获取图谱节点，最多返回 max_items 条（默认 2000）。每页请求自带重试。"""
-    all_nodes: list[Any] = []
-    cursor: str | None = None
-    page_num = 0
+    """
+    Obtiene todos los nodos disponibles de un grafo de Zep.
 
-    while True:
-        kwargs: dict[str, Any] = {"limit": page_size}
-        if cursor is not None:
-            kwargs["uuid_cursor"] = cursor
+    La función gestiona automáticamente la paginación mediante UUID,
+    los reintentos ante errores transitorios y el límite máximo de
+    nodos recuperados.
 
-        page_num += 1
-        batch = _fetch_page_with_retry(
-            client.graph.node.get_by_graph_id,
-            graph_id,
-            max_retries=max_retries,
-            retry_delay=retry_delay,
-            page_description=f"fetch nodes page {page_num} (graph={graph_id})",
-            **kwargs,
-        )
-        if not batch:
-            break
+    Args:
+        client:
+            Cliente de Zep Cloud.
 
-        all_nodes.extend(batch)
-        if len(all_nodes) >= max_items:
-            all_nodes = all_nodes[:max_items]
-            logger.warning(f"Node count reached limit ({max_items}), stopping pagination for graph {graph_id}")
-            break
-        if len(batch) < page_size:
-            break
+        graph_id:
+            Identificador del grafo.
 
-        cursor = getattr(batch[-1], "uuid_", None) or getattr(batch[-1], "uuid", None)
-        if cursor is None:
-            logger.warning(f"Node missing uuid field, stopping pagination at {len(all_nodes)} nodes")
-            break
+        page_size:
+            Cantidad máxima de nodos solicitados por página.
 
-    return all_nodes
+        max_items:
+            Cantidad máxima total de nodos a recuperar.
 
+        max_retries:
+            Número máximo de intentos por página.
+
+        retry_delay:
+            Tiempo inicial de espera entre reintentos.
+
+    Returns:
+        Lista de nodos recuperados.
+    """
+
+    return _obtener_todos_los_elementos(
+        api_call=client.graph.node.get_by_graph_id,
+        graph_id=graph_id,
+        tipo_elemento="nodos",
+        page_size=page_size,
+        max_items=max_items,
+        max_retries=max_retries,
+        retry_delay=retry_delay,
+    )
+
+
+# ============================================================
+# OBTENER TODAS LAS RELACIONES
+# ============================================================
 
 def fetch_all_edges(
     client: Zep,
     graph_id: str,
-    page_size: int = _DEFAULT_PAGE_SIZE,
-    max_retries: int = _DEFAULT_MAX_RETRIES,
-    retry_delay: float = _DEFAULT_RETRY_DELAY,
+    page_size: int = TAMANO_PAGINA_PREDETERMINADO,
+    max_items: int = MAXIMO_RELACIONES_PREDETERMINADO,
+    max_retries: int = MAXIMO_REINTENTOS_PREDETERMINADO,
+    retry_delay: float = RETRASO_REINTENTO_PREDETERMINADO,
 ) -> list[Any]:
-    """分页获取图谱所有边，返回完整列表。每页请求自带重试。"""
-    all_edges: list[Any] = []
-    cursor: str | None = None
-    page_num = 0
+    """
+    Obtiene todas las relaciones disponibles de un grafo de Zep.
 
-    while True:
-        kwargs: dict[str, Any] = {"limit": page_size}
-        if cursor is not None:
-            kwargs["uuid_cursor"] = cursor
+    La función gestiona automáticamente la paginación mediante UUID,
+    los reintentos ante errores transitorios y el límite máximo de
+    relaciones recuperadas.
 
-        page_num += 1
-        batch = _fetch_page_with_retry(
-            client.graph.edge.get_by_graph_id,
-            graph_id,
-            max_retries=max_retries,
-            retry_delay=retry_delay,
-            page_description=f"fetch edges page {page_num} (graph={graph_id})",
-            **kwargs,
-        )
-        if not batch:
-            break
+    Args:
+        client:
+            Cliente de Zep Cloud.
 
-        all_edges.extend(batch)
-        if len(batch) < page_size:
-            break
+        graph_id:
+            Identificador del grafo.
 
-        cursor = getattr(batch[-1], "uuid_", None) or getattr(batch[-1], "uuid", None)
-        if cursor is None:
-            logger.warning(f"Edge missing uuid field, stopping pagination at {len(all_edges)} edges")
-            break
+        page_size:
+            Cantidad máxima de relaciones solicitadas por página.
 
-    return all_edges
+        max_items:
+            Cantidad máxima total de relaciones a recuperar.
+
+        max_retries:
+            Número máximo de intentos por página.
+
+        retry_delay:
+            Tiempo inicial de espera entre reintentos.
+
+    Returns:
+        Lista de relaciones recuperadas.
+    """
+
+    return _obtener_todos_los_elementos(
+        api_call=client.graph.edge.get_by_graph_id,
+        graph_id=graph_id,
+        tipo_elemento="relaciones",
+        page_size=page_size,
+        max_items=max_items,
+        max_retries=max_retries,
+        retry_delay=retry_delay,
+    )
