@@ -1,24 +1,168 @@
-# Logs
-logs
-*.log
+# ==========================================
+
+# NEXUS - .gitignore
+
+# ==========================================
+
+# ------------------------------------------
+
+# VARIABLES DE ENTORNO Y SECRETOS
+
+# ------------------------------------------
+
+.env
+.env.*
+!.env.example
+
+# API Keys y archivos de configuración sensibles
+
+*.pem
+*.key
+secrets.json
+credentials.json
+
+# ------------------------------------------
+
+# PYTHON
+
+# ------------------------------------------
+
+# Entornos virtuales
+
+.venv/
+venv/
+env/
+ENV/
+
+# Cache de Python
+
+**pycache**/
+*.py[cod]
+*$py.class
+
+# Archivos de distribución
+
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+
+# Archivos de testing y cobertura
+
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# MyPy
+
+.mypy_cache/
+
+# Ruff
+
+.ruff_cache/
+
+# ------------------------------------------
+
+# NODE.JS / FRONTEND
+
+# ------------------------------------------
+
+# Dependencias
+
+node_modules/
+
+# Builds
+
+dist/
+dist-ssr/
+build/
+
+# Archivos locales
+
+*.local
+
+# Logs de Node
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# ------------------------------------------
 
-# Editor directories and files
+# LOGS GENERALES
+
+# ------------------------------------------
+
+logs/
+*.log
+
+# ------------------------------------------
+
+# BASES DE DATOS LOCALES
+
+# ------------------------------------------
+
+*.db
+*.sqlite
+*.sqlite3
+
+# ------------------------------------------
+
+# EDITORES / IDE
+
+# ------------------------------------------
+
+# VS Code
+
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+
+# JetBrains
+
+.idea/
+
+# Visual Studio
+
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
+
+# ------------------------------------------
+
+# ARCHIVOS TEMPORALES
+
+# ------------------------------------------
+
+*.tmp
+*.temp
+*.swp
+*.swo
 *.sw?
+
+# ------------------------------------------
+
+# SISTEMA OPERATIVO
+
+# ------------------------------------------
+
+# macOS
+
+.DS_Store
+
+# Windows
+
+Thumbs.db
+Desktop.ini
