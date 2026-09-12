@@ -3,44 +3,32 @@
     <section class="court-report">
 
         <!-- =====================================================
-             HEADER
+             ENCABEZADO
         ====================================================== -->
 
         <header class="report-header">
 
             <div class="report-heading">
 
-                <div class="report-icon">
+                <span class="report-eyebrow">
+                    NOVACOURT · INFORME FINAL
+                </span>
 
-                    📜
+                <h2>
+                    Informe Judicial Inteligente
+                </h2>
 
-                </div>
+                <div class="title-accent"></div>
 
-                <div class="report-heading-content">
-
-                    <span class="report-eyebrow">
-
-                        NOVACOURT · INFORME FINAL
-
-                    </span>
-
-                    <h2>
-
-                        Informe Judicial Inteligente
-
-                    </h2>
-
-                    <p>
-
-                        Síntesis consolidada del análisis, simulación
-                        y evaluación jurídica realizada por NovaCourt.
-
-                    </p>
-
-                </div>
+                <p>
+                    Síntesis consolidada del análisis, simulación
+                    y evaluación jurídica realizada por NovaCourt.
+                </p>
 
             </div>
 
+
+            <!-- ESTADO -->
 
             <div
                 v-if="status"
@@ -51,9 +39,7 @@
                 <span class="status-dot"></span>
 
                 <span>
-
                     {{ status }}
-
                 </span>
 
             </div>
@@ -70,39 +56,22 @@
             class="report-loading"
         >
 
-            <div class="loading-emblem">
-
-                <div class="loading-orbit"></div>
-
-                <div class="loading-core">
-
-                    ⚖️
-
-                </div>
-
-            </div>
-
+            <div class="loading-line"></div>
 
             <div class="loading-content">
 
-                <span class="loading-label">
-
+                <span class="loading-eyebrow">
                     PROCESAMIENTO JUDICIAL
-
                 </span>
 
                 <h3>
-
                     Generando informe judicial
-
                 </h3>
 
                 <p>
-
                     NovaCourt está consolidando el análisis del caso,
                     organizando los hallazgos y estructurando las
                     conclusiones finales.
-
                 </p>
 
             </div>
@@ -111,7 +80,7 @@
 
 
         <!-- =====================================================
-             CONTENT
+             CONTENIDO DEL INFORME
         ====================================================== -->
 
         <div
@@ -119,14 +88,14 @@
             class="report-content"
         >
 
+            <!-- CABECERA DEL DOCUMENTO -->
+
             <div class="document-header">
 
                 <div class="document-heading">
 
                     <span class="document-label">
-
                         DOCUMENTO DE ANÁLISIS
-
                     </span>
 
                     <span class="document-line"></span>
@@ -134,27 +103,27 @@
                 </div>
 
                 <span class="document-mark">
-
                     NOVACOURT AI
-
                 </span>
 
             </div>
 
 
-            <div class="report-document">
+            <!-- DOCUMENTO -->
+
+            <article class="report-document">
 
                 <MarkdownRenderer
                     :content="content"
                 />
 
-            </div>
+            </article>
 
         </div>
 
 
         <!-- =====================================================
-             EMPTY STATE
+             ESTADO VACÍO
         ====================================================== -->
 
         <div
@@ -162,37 +131,33 @@
             class="report-empty"
         >
 
-            <div class="empty-emblem">
-
-                📄
-
+            <div class="empty-mark">
+                REPORT
             </div>
 
-            <span class="empty-label">
+            <div class="empty-content">
 
-                NOVACOURT · INFORME JUDICIAL
+                <span class="empty-label">
+                    NOVACOURT · INFORME JUDICIAL
+                </span>
 
-            </span>
+                <h3>
+                    Informe pendiente
+                </h3>
 
-            <h3>
+                <p>
+                    El informe judicial consolidado aparecerá aquí
+                    cuando NovaCourt finalice el análisis integral
+                    del caso.
+                </p>
 
-                Informe pendiente
-
-            </h3>
-
-            <p>
-
-                El informe judicial consolidado aparecerá aquí
-                cuando NovaCourt finalice el análisis integral
-                del caso.
-
-            </p>
+            </div>
 
         </div>
 
 
         <!-- =====================================================
-             FOOTER
+             PIE DEL INFORME
         ====================================================== -->
 
         <footer
@@ -202,17 +167,11 @@
 
             <div class="footer-info">
 
-                <span class="footer-icon">
-
-                    🏛️
-
-                </span>
+                <span class="footer-rule"></span>
 
                 <span>
-
                     Informe estructurado mediante el motor
                     de análisis judicial de NovaCourt.
-
                 </span>
 
             </div>
@@ -241,35 +200,23 @@ import MarkdownRenderer from "../common/MarkdownRenderer.vue"
 defineProps({
 
     content: {
-
         type: String,
-
         default: ""
-
     },
 
     loading: {
-
         type: Boolean,
-
         default: false
-
     },
 
     status: {
-
         type: String,
-
         default: ""
-
     },
 
     statusType: {
-
         type: String,
-
         default: "neutral"
-
     }
 
 })
@@ -280,454 +227,434 @@ defineProps({
 <style scoped>
 
 /* =====================================================
-   NOVACOURT · INFORME JUDICIAL
-   SISTEMA VISUAL INSTITUCIONAL
+   NOVACOURT · COURT REPORT
+
+   SISTEMA VISUAL
+   JURÍDICO · INSTITUCIONAL · EDITORIAL · SOBRIO
+
+   PALETA
+
+   AZUL MARINO:
+   #17375E
+
+   AZUL INSTITUCIONAL:
+   #315C97
+
+   DORADO:
+   #B08A4C
+
+   FONDO:
+   #FFFFFF
+
+   PRINCIPIO:
+   EL INFORME NO DEBE PARECER UNA CARD.
+   DEBE SENTIRSE COMO UN DOCUMENTO
+   INSTITUCIONAL INTEGRADO EN NOVACOURT.
 ===================================================== */
 
-.court-report{
 
-    width:100%;
+/* =====================================================
+   CONTENEDOR PRINCIPAL
+===================================================== */
 
-    display:flex;
+.court-report {
 
-    flex-direction:column;
+    width: 100%;
 
-    gap:30px;
+    margin: 0;
 
-    padding:32px;
+    padding: 42px 48px 44px;
 
-    background:#FFFFFF;
-
-    border:1px solid #D6DFEA;
-
-    border-radius:22px;
-
-    box-shadow:
-
-        0 10px 30px
-        rgba(
-            23,
-            55,
-            94,
-            .07
-        );
-
-    animation:
-        reportAppear .4s ease;
+    background: #FFFFFF;
 
 }
 
 
 /* =====================================================
-   HEADER
+   ENCABEZADO
 ===================================================== */
 
-.report-header{
+.report-header {
 
-    display:flex;
+    display: flex;
 
-    align-items:flex-start;
+    align-items: flex-start;
 
-    justify-content:space-between;
+    justify-content: space-between;
 
-    gap:28px;
+    gap: 32px;
 
-    padding-bottom:24px;
+    padding-bottom: 28px;
 
     border-bottom:
-        1px solid #DCE4EC;
+        1px solid
+        #D9E0E8;
 
 }
 
 
-.report-heading{
+.report-heading {
 
-    display:flex;
+    flex: 1;
 
-    align-items:flex-start;
+    min-width: 0;
 
-    gap:18px;
-
-    min-width:0;
+    max-width: 900px;
 
 }
 
 
-.report-icon{
+/* =====================================================
+   EYEBROW
+===================================================== */
 
-    position:relative;
+.report-eyebrow {
 
-    width:58px;
+    display: block;
 
-    height:58px;
+    margin-bottom: 16px;
 
-    display:flex;
+    color: #315C97;
 
-    align-items:center;
+    font-size: .68rem;
 
-    justify-content:center;
+    font-weight: 700;
 
-    flex-shrink:0;
+    letter-spacing: 1.45px;
 
-    font-size:1.45rem;
-
-    background:#F7F9FC;
-
-    border:1px solid #D6DFEA;
-
-    border-radius:16px;
+    line-height: 1.2;
 
 }
 
 
-.report-icon::after{
+/* =====================================================
+   TÍTULO
+===================================================== */
 
-    content:"";
+.report-heading h2 {
 
-    position:absolute;
+    margin: 0;
 
-    left:12px;
-
-    right:12px;
-
-    bottom:8px;
-
-    height:2px;
-
-    background:#B08A4C;
-
-    border-radius:999px;
-
-}
-
-
-.report-heading-content{
-
-    min-width:0;
-
-}
-
-
-.report-eyebrow{
-
-    display:flex;
-
-    align-items:center;
-
-    gap:8px;
-
-    margin-bottom:8px;
-
-    color:#315C97;
-
-    font-size:.72rem;
-
-    font-weight:700;
-
-    letter-spacing:1.1px;
-
-}
-
-
-.report-eyebrow::before{
-
-    content:"";
-
-    width:5px;
-
-    height:5px;
-
-    background:#B08A4C;
-
-    border-radius:50%;
-
-}
-
-
-.report-heading h2{
-
-    margin:0;
-
-    color:#17375E;
+    color: #17375E;
 
     font-family:
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size:1.55rem;
+    font-size: 2rem;
 
-    font-weight:700;
+    font-weight: 500;
 
-    line-height:1.3;
+    line-height: 1.25;
 
-    letter-spacing:-.2px;
-
-}
-
-
-.report-heading p{
-
-    max-width:680px;
-
-    margin:9px 0 0;
-
-    color:#5E6D80;
-
-    font-size:.94rem;
-
-    line-height:1.7;
+    letter-spacing: -.2px;
 
 }
 
 
 /* =====================================================
-   STATUS
+   ACENTO
 ===================================================== */
 
-.report-status{
+.title-accent {
 
-    display:inline-flex;
+    width: 46px;
 
-    align-items:center;
+    height: 2px;
 
-    gap:8px;
+    margin: 18px 0;
 
-    flex-shrink:0;
-
-    padding:9px 13px;
-
-    border:1px solid #D6DFEA;
-
-    border-radius:999px;
-
-    background:#F8FAFC;
-
-    color:#5E6D80;
-
-    font-size:.78rem;
-
-    font-weight:700;
-
-    white-space:nowrap;
+    background: #315C97;
 
 }
 
 
-.status-dot{
+/* =====================================================
+   DESCRIPCIÓN
+===================================================== */
 
-    width:7px;
+.report-heading p {
 
-    height:7px;
+    max-width: 820px;
 
-    flex-shrink:0;
+    margin: 0;
 
-    border-radius:50%;
+    color: #5E6D7E;
 
-    background:#8A99AA;
+    font-size: .97rem;
 
-}
+    font-weight: 400;
 
+    line-height: 1.85;
 
-/* Neutral */
-
-.status-neutral{
-
-    background:#F7F9FC;
-
-    border-color:#D6DFEA;
-
-    color:#5E6D80;
+    letter-spacing: .01em;
 
 }
 
 
-/* Processing */
+/* =====================================================
+   ESTADO
+===================================================== */
 
-.status-processing{
+.report-status {
 
-    background:#F1F5FA;
+    display: inline-flex;
 
-    border-color:#D6DFEA;
+    align-items: center;
 
-    color:#315C97;
+    gap: 9px;
+
+    flex-shrink: 0;
+
+    margin-top: 3px;
+
+    padding: 9px 0;
+
+    color: #647487;
+
+    border-bottom:
+        1px solid
+        #D9E0E8;
+
+    font-size: .76rem;
+
+    font-weight: 700;
+
+    line-height: 1.4;
+
+    white-space: nowrap;
 
 }
 
 
-.status-processing .status-dot{
+.status-dot {
 
-    background:#315C97;
+    width: 7px;
 
-    animation:pulse 1.5s ease-in-out infinite;
+    height: 7px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #8A97A5;
 
 }
 
 
-/* Success */
+/* =====================================================
+   ESTADO · NEUTRAL
+===================================================== */
+
+.status-neutral {
+
+    color: #647487;
+
+}
+
+
+/* =====================================================
+   ESTADO · PROCESANDO
+===================================================== */
+
+.status-processing {
+
+    color: #315C97;
+
+}
+
+
+.status-processing .status-dot {
+
+    background: #315C97;
+
+    animation:
+        pulse
+        1.5s
+        ease-in-out
+        infinite;
+
+}
+
+
+/* =====================================================
+   ESTADO · COMPLETADO
+===================================================== */
 
 .status-success,
+.status-completed {
 
-.status-completed{
-
-    background:#F3F8F5;
-
-    border-color:#D6E6DB;
-
-    color:#35664B;
+    color: #35664B;
 
 }
 
 
 .status-success .status-dot,
+.status-completed .status-dot {
 
-.status-completed .status-dot{
-
-    background:#4D8A66;
-
-}
-
-
-/* Warning */
-
-.status-warning{
-
-    background:#FCF8F0;
-
-    border-color:#E8D9B9;
-
-    color:#8B6A2F;
-
-}
-
-
-.status-warning .status-dot{
-
-    background:#B08A4C;
-
-}
-
-
-/* Error */
-
-.status-error{
-
-    background:#FCF5F5;
-
-    border-color:#EBD7D7;
-
-    color:#8D4141;
-
-}
-
-
-.status-error .status-dot{
-
-    background:#B65A5A;
+    background: #4D8A66;
 
 }
 
 
 /* =====================================================
-   CONTENT
+   ESTADO · ADVERTENCIA
 ===================================================== */
 
-.report-content{
+.status-warning {
 
-    width:100%;
-
-}
-
-
-.document-header{
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:space-between;
-
-    gap:20px;
-
-    margin-bottom:14px;
-
-    padding:0 4px;
+    color: #8B6A2F;
 
 }
 
 
-.document-heading{
+.status-warning .status-dot {
 
-    display:flex;
-
-    align-items:center;
-
-    gap:12px;
-
-    flex:1;
-
-    min-width:0;
+    background: #B08A4C;
 
 }
 
 
-.document-label{
+/* =====================================================
+   ESTADO · ERROR
+===================================================== */
 
-    flex-shrink:0;
+.status-error {
 
-    color:#315C97;
-
-    font-size:.68rem;
-
-    font-weight:700;
-
-    letter-spacing:1px;
+    color: #8D4141;
 
 }
 
 
-.document-line{
+.status-error .status-dot {
 
-    width:100%;
-
-    height:1px;
-
-    background:#DCE4EC;
+    background: #B65A5A;
 
 }
 
 
-.document-mark{
+/* =====================================================
+   CONTENIDO
+===================================================== */
 
-    flex-shrink:0;
+.report-content {
 
-    color:#B08A4C;
+    width: 100%;
 
-    font-size:.67rem;
-
-    font-weight:700;
-
-    letter-spacing:.9px;
+    padding-top: 34px;
 
 }
 
 
-.report-document{
+/* =====================================================
+   CABECERA DEL DOCUMENTO
+===================================================== */
 
-    padding:30px;
+.document-header {
 
-    background:#FFFFFF;
+    display: flex;
 
-    border:1px solid #D6DFEA;
+    align-items: center;
 
-    border-radius:18px;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 18px;
 
 }
 
 
-.report-document :deep(.markdown-body){
+.document-heading {
 
-    max-width:100%;
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    flex: 1;
+
+    min-width: 0;
+
+}
+
+
+.document-label {
+
+    flex-shrink: 0;
+
+    color: #315C97;
+
+    font-size: .67rem;
+
+    font-weight: 700;
+
+    letter-spacing: 1.25px;
+
+    line-height: 1.3;
+
+}
+
+
+.document-line {
+
+    width: 100%;
+
+    height: 1px;
+
+    background: #DCE4EC;
+
+}
+
+
+.document-mark {
+
+    flex-shrink: 0;
+
+    color: #B08A4C;
+
+    font-size: .65rem;
+
+    font-weight: 700;
+
+    letter-spacing: 1px;
+
+}
+
+
+/* =====================================================
+   DOCUMENTO
+
+   IMPORTANTE:
+   No parece una segunda card.
+   Se mantiene limpio y editorial.
+===================================================== */
+
+.report-document {
+
+    width: 100%;
+
+    padding: 30px 4px 10px;
+
+    color: #24364A;
+
+}
+
+
+/* =====================================================
+   MARKDOWN
+
+   Se mantiene compatible con
+   MarkdownRenderer existente.
+===================================================== */
+
+.report-document :deep(.markdown-body) {
+
+    width: 100%;
+
+    max-width: 100%;
 
 }
 
@@ -736,270 +663,205 @@ defineProps({
    LOADING
 ===================================================== */
 
-.report-loading{
+.report-loading {
 
-    min-height:340px;
+    display: flex;
 
-    display:flex;
+    align-items: flex-start;
 
-    flex-direction:column;
+    gap: 22px;
 
-    align-items:center;
+    min-height: 170px;
 
-    justify-content:center;
+    padding: 32px 0;
 
-    text-align:center;
-
-    padding:42px;
-
-    background:#F8FAFC;
-
-    border:1px dashed #C8D3E0;
-
-    border-radius:20px;
+    border-bottom:
+        1px solid
+        #E1E6EC;
 
 }
 
 
-.loading-emblem{
+.loading-line {
 
-    position:relative;
+    width: 3px;
 
-    width:88px;
+    min-height: 78px;
 
-    height:88px;
+    flex-shrink: 0;
 
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    margin-bottom:22px;
-
-}
-
-
-.loading-orbit{
-
-    position:absolute;
-
-    inset:0;
-
-    border:2px solid #D6DFEA;
-
-    border-top-color:#315C97;
-
-    border-right-color:#B08A4C;
-
-    border-radius:50%;
-
-    animation:spin 1.2s linear infinite;
+    background:
+        linear-gradient(
+            180deg,
+            #17375E 0%,
+            #315C97 70%,
+            #B08A4C 100%
+        );
 
 }
 
 
-.loading-core{
+.loading-content {
 
-    width:58px;
+    display: flex;
 
-    height:58px;
+    flex-direction: column;
 
-    display:flex;
+    gap: 7px;
 
-    align-items:center;
-
-    justify-content:center;
-
-    background:#FFFFFF;
-
-    border:1px solid #D6DFEA;
-
-    border-radius:50%;
-
-    font-size:1.4rem;
+    padding-top: 1px;
 
 }
 
 
-.loading-content{
+.loading-eyebrow {
 
-    display:flex;
+    color: #315C97;
 
-    flex-direction:column;
+    font-size: .66rem;
 
-    align-items:center;
+    font-weight: 700;
 
-}
+    letter-spacing: 1.35px;
 
-
-.loading-label{
-
-    margin-bottom:9px;
-
-    color:#315C97;
-
-    font-size:.68rem;
-
-    font-weight:700;
-
-    letter-spacing:1px;
+    line-height: 1.3;
 
 }
 
 
-.report-loading h3{
+.report-loading h3 {
 
-    margin:0;
+    margin: 0;
 
-    color:#17375E;
+    color: #17375E;
 
     font-family:
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size:1.18rem;
+    font-size: 1.25rem;
 
-    font-weight:700;
+    font-weight: 500;
+
+    line-height: 1.4;
 
 }
 
 
-.report-loading p{
+.report-loading p {
 
-    max-width:500px;
+    max-width: 650px;
 
-    margin:10px 0 0;
+    margin: 2px 0 0;
 
-    color:#5E6D80;
+    color: #647487;
 
-    font-size:.92rem;
+    font-size: .91rem;
 
-    line-height:1.7;
+    line-height: 1.8;
 
 }
 
 
 /* =====================================================
-   EMPTY STATE
+   ESTADO VACÍO
 ===================================================== */
 
-.report-empty{
+.report-empty {
 
-    min-height:300px;
+    display: flex;
 
-    display:flex;
+    align-items: flex-start;
 
-    flex-direction:column;
+    gap: 28px;
 
-    align-items:center;
+    min-height: 210px;
 
-    justify-content:center;
+    padding: 38px 0;
 
-    padding:42px 25px;
-
-    text-align:center;
-
-    background:#F8FAFC;
-
-    border:1px dashed #C8D3E0;
-
-    border-radius:20px;
+    border-bottom:
+        1px solid
+        #E1E6EC;
 
 }
 
 
-.empty-emblem{
+.empty-mark {
 
-    position:relative;
+    flex-shrink: 0;
 
-    width:68px;
+    padding-top: 3px;
 
-    height:68px;
+    color: #315C97;
 
-    display:flex;
+    font-size: .62rem;
 
-    align-items:center;
+    font-weight: 700;
 
-    justify-content:center;
+    letter-spacing: 1.6px;
 
-    margin-bottom:17px;
+    writing-mode: vertical-rl;
 
-    background:#FFFFFF;
-
-    border:1px solid #D6DFEA;
-
-    border-radius:18px;
-
-    font-size:1.8rem;
+    transform:
+        rotate(180deg);
 
 }
 
 
-.empty-emblem::after{
+.empty-content {
 
-    content:"";
-
-    position:absolute;
-
-    width:26px;
-
-    height:2px;
-
-    bottom:9px;
-
-    background:#B08A4C;
-
-    border-radius:999px;
+    max-width: 580px;
 
 }
 
 
-.empty-label{
+.empty-label {
 
-    margin-bottom:8px;
+    display: block;
 
-    color:#315C97;
+    margin-bottom: 9px;
 
-    font-size:.67rem;
+    color: #315C97;
 
-    font-weight:700;
+    font-size: .65rem;
 
-    letter-spacing:1px;
+    font-weight: 700;
+
+    letter-spacing: 1.3px;
 
 }
 
 
-.report-empty h3{
+.report-empty h3 {
 
-    margin:0;
+    margin: 0 0 11px;
 
-    color:#17375E;
+    color: #17375E;
 
     font-family:
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size:1.16rem;
+    font-size: 1.3rem;
 
-    font-weight:700;
+    font-weight: 500;
+
+    line-height: 1.35;
 
 }
 
 
-.report-empty p{
+.report-empty p {
 
-    max-width:480px;
+    margin: 0;
 
-    margin:10px 0 0;
+    color: #647487;
 
-    color:#5E6D80;
+    font-size: .93rem;
 
-    font-size:.92rem;
-
-    line-height:1.7;
+    line-height: 1.8;
 
 }
 
@@ -1008,160 +870,117 @@ defineProps({
    FOOTER
 ===================================================== */
 
-.report-footer{
+.report-footer {
 
-    display:flex;
+    display: flex;
 
-    align-items:center;
+    align-items: center;
 
-    justify-content:space-between;
+    justify-content: space-between;
 
-    gap:20px;
+    gap: 24px;
 
-    padding-top:22px;
+    margin-top: 30px;
+
+    padding-top: 20px;
 
     border-top:
-        1px solid #DCE4EC;
+        1px solid
+        #DCE4EC;
 
 }
 
 
-.footer-info{
+.footer-info {
 
-    display:flex;
+    display: flex;
 
-    align-items:center;
+    align-items: center;
 
-    gap:9px;
+    gap: 10px;
 
-    color:#68788A;
+    min-width: 0;
 
-    font-size:.83rem;
+    color: #687789;
 
-    line-height:1.5;
+    font-size: .79rem;
 
-}
-
-
-.footer-icon{
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    width:28px;
-
-    height:28px;
-
-    flex-shrink:0;
-
-    background:#F4F7FA;
-
-    border:1px solid #DCE4EC;
-
-    border-radius:8px;
-
-    font-size:.85rem;
+    line-height: 1.5;
 
 }
 
 
-.footer-badge{
+.footer-rule {
 
-    display:inline-flex;
+    width: 24px;
 
-    align-items:center;
+    height: 1px;
 
-    gap:7px;
+    flex-shrink: 0;
 
-    flex-shrink:0;
-
-    padding:7px 11px;
-
-    color:#17375E;
-
-    background:#FFFFFF;
-
-    border:1px solid #D6DFEA;
-
-    border-radius:8px;
-
-    font-size:.66rem;
-
-    font-weight:700;
-
-    letter-spacing:.8px;
+    background: #B08A4C;
 
 }
 
 
-.badge-dot{
+.footer-badge {
 
-    width:5px;
+    display: inline-flex;
 
-    height:5px;
+    align-items: center;
 
-    background:#B08A4C;
+    gap: 7px;
 
-    border-radius:50%;
+    flex-shrink: 0;
+
+    color: #17375E;
+
+    font-size: .64rem;
+
+    font-weight: 700;
+
+    letter-spacing: .9px;
+
+}
+
+
+.badge-dot {
+
+    width: 5px;
+
+    height: 5px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #B08A4C;
 
 }
 
 
 /* =====================================================
-   ANIMATIONS
+   ANIMACIONES
 ===================================================== */
 
-@keyframes reportAppear{
-
-    from{
-
-        opacity:0;
-
-        transform:translateY(12px);
-
-    }
-
-    to{
-
-        opacity:1;
-
-        transform:translateY(0);
-
-    }
-
-}
-
-
-@keyframes spin{
-
-    to{
-
-        transform:rotate(360deg);
-
-    }
-
-}
-
-
-@keyframes pulse{
+@keyframes pulse {
 
     0%,
-    100%{
+    100% {
 
-        transform:scale(1);
+        transform:
+            scale(1);
 
-        opacity:1;
+        opacity: 1;
 
     }
 
-    50%{
+    50% {
 
-        transform:scale(1.3);
+        transform:
+            scale(1.35);
 
-        opacity:.55;
+        opacity: .55;
 
     }
 
@@ -1169,129 +988,275 @@ defineProps({
 
 
 /* =====================================================
-   RESPONSIVE
+   RESPONSIVE · TABLET
 ===================================================== */
 
-@media(max-width:768px){
+@media (max-width: 768px) {
 
-    .court-report{
+    .court-report {
 
-        gap:24px;
-
-        padding:24px;
-
-    }
-
-
-    .report-header{
-
-        flex-direction:column;
-
-        gap:18px;
+        padding:
+            34px
+            30px
+            36px;
 
     }
 
 
-    .report-status{
+    .report-header {
 
-        align-self:flex-start;
+        flex-direction: column;
 
-    }
-
-
-    .report-document{
-
-        padding:24px;
+        gap: 20px;
 
     }
 
 
-    .report-footer{
+    .report-status {
 
-        flex-direction:column;
+        align-self: flex-start;
 
-        align-items:flex-start;
+        margin-top: 0;
+
+    }
+
+
+    .report-heading h2 {
+
+        font-size: 1.8rem;
+
+    }
+
+
+    .report-content {
+
+        padding-top: 28px;
+
+    }
+
+
+    .report-document {
+
+        padding:
+            26px
+            0
+            8px;
+
+    }
+
+
+    .report-footer {
+
+        align-items: flex-start;
 
     }
 
 }
 
 
-@media(max-width:576px){
+/* =====================================================
+   RESPONSIVE · MOBILE
+===================================================== */
 
-    .court-report{
+@media (max-width: 576px) {
 
-        padding:18px;
+    .court-report {
 
-        border-radius:18px;
-
-    }
-
-
-    .report-heading{
-
-        gap:13px;
+        padding:
+            28px
+            20px
+            30px;
 
     }
 
 
-    .report-icon{
+    .report-header {
 
-        width:50px;
-
-        height:50px;
-
-        border-radius:14px;
-
-        font-size:1.25rem;
+        padding-bottom: 24px;
 
     }
 
 
-    .report-heading h2{
+    .report-eyebrow {
 
-        font-size:1.3rem;
+        margin-bottom: 13px;
 
-    }
-
-
-    .document-header{
-
-        align-items:flex-start;
+        font-size: .64rem;
 
     }
 
 
-    .document-mark{
+    .report-heading h2 {
 
-        display:none;
-
-    }
-
-
-    .report-document{
-
-        padding:18px;
-
-        border-radius:14px;
+        font-size: 1.55rem;
 
     }
 
 
-    .report-loading,
+    .title-accent {
 
-    .report-empty{
+        width: 38px;
 
-        min-height:270px;
-
-        padding:32px 20px;
+        margin:
+            16px
+            0;
 
     }
 
 
-    .footer-info{
+    .report-heading p {
 
-        align-items:flex-start;
+        font-size: .9rem;
+
+        line-height: 1.75;
+
+    }
+
+
+    .report-content {
+
+        padding-top: 24px;
+
+    }
+
+
+    .document-header {
+
+        align-items: flex-start;
+
+        gap: 12px;
+
+    }
+
+
+    .document-label {
+
+        font-size: .62rem;
+
+    }
+
+
+    .document-mark {
+
+        display: none;
+
+    }
+
+
+    .report-document {
+
+        padding:
+            22px
+            0
+            6px;
+
+    }
+
+
+    .report-loading {
+
+        gap: 16px;
+
+        min-height: 145px;
+
+        padding:
+            26px
+            0;
+
+    }
+
+
+    .loading-line {
+
+        min-height: 72px;
+
+    }
+
+
+    .loading-eyebrow {
+
+        font-size: .62rem;
+
+    }
+
+
+    .report-loading h3 {
+
+        font-size: 1.08rem;
+
+    }
+
+
+    .report-loading p {
+
+        font-size: .87rem;
+
+        line-height: 1.7;
+
+    }
+
+
+    .report-empty {
+
+        gap: 20px;
+
+        min-height: 180px;
+
+        padding:
+            30px
+            0;
+
+    }
+
+
+    .empty-mark {
+
+        font-size: .58rem;
+
+    }
+
+
+    .empty-label {
+
+        font-size: .61rem;
+
+    }
+
+
+    .report-empty h3 {
+
+        font-size: 1.15rem;
+
+    }
+
+
+    .report-empty p {
+
+        font-size: .88rem;
+
+        line-height: 1.75;
+
+    }
+
+
+    .report-footer {
+
+        flex-direction: column;
+
+        align-items: flex-start;
+
+        gap: 14px;
+
+        margin-top: 24px;
+
+    }
+
+
+    .footer-info {
+
+        align-items: flex-start;
+
+        font-size: .76rem;
 
     }
 

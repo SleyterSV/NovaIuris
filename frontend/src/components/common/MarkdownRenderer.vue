@@ -3,12 +3,9 @@
     <div class="markdown-container">
 
         <article
-
             class="markdown-body"
-
             v-html="renderedMarkdown"
-
-        />
+        ></article>
 
     </div>
 
@@ -18,9 +15,7 @@
 <script setup>
 
 import {
-
     computed
-
 } from "vue"
 
 import MarkdownIt from "markdown-it"
@@ -28,9 +23,9 @@ import MarkdownIt from "markdown-it"
 import hljs from "highlight.js"
 
 
-/* =========================================
+/* ============================================================
    PROPS
-========================================= */
+============================================================ */
 
 const props = defineProps({
 
@@ -45,9 +40,9 @@ const props = defineProps({
 })
 
 
-/* =========================================
-   MARKDOWN
-========================================= */
+/* ============================================================
+   MARKDOWN ENGINE
+============================================================ */
 
 const md = new MarkdownIt({
 
@@ -64,68 +59,50 @@ const md = new MarkdownIt({
     highlight(str, lang){
 
         if(
-
             lang &&
-
             hljs.getLanguage(lang)
-
         ){
 
             try{
 
+                const highlighted = hljs.highlight(
+                    str,
+                    {
+                        language: lang,
+                        ignoreIllegals: true
+                    }
+                ).value
+
                 return `
-
-<pre class="hljs">
-
-<code>
-
-${hljs.highlight(
-
-    str,
-
-    {
-
-        language: lang,
-
-        ignoreIllegals: true
-
-    }
-
-).value}
-
-</code>
-
-</pre>
-
-`
+                    <pre class="hljs">
+                        <code>${highlighted}</code>
+                    </pre>
+                `
 
             }
 
             catch{
 
+                /* Fallback below */
+
             }
 
         }
 
-
         return `
-
-<pre class="hljs">
-
-<code>
-
-${md.utils.escapeHtml(str)}
-
-</code>
-
-</pre>
-
-`
+            <pre class="hljs">
+                <code>${md.utils.escapeHtml(str)}</code>
+            </pre>
+        `
 
     }
 
 })
 
+
+/* ============================================================
+   TIPOGRAFÍA MARKDOWN
+============================================================ */
 
 md.set({
 
@@ -134,133 +111,126 @@ md.set({
 })
 
 
-/* =========================================
+/* ============================================================
    ENLACES EXTERNOS
-========================================= */
+============================================================ */
 
-const defaultRender =
-
+const defaultLinkOpen =
     md.renderer.rules.link_open ||
-
-    function(tokens, idx, options, env, self){
+    function(
+        tokens,
+        idx,
+        options,
+        env,
+        self
+    ){
 
         return self.renderToken(
-
             tokens,
-
             idx,
-
             options
-
         )
 
     }
 
 
 md.renderer.rules.link_open = (
-
     tokens,
-
     idx,
-
     options,
-
     env,
-
     self
-
-)=>{
+) => {
 
     tokens[idx].attrSet(
-
         "target",
-
         "_blank"
-
     )
-
 
     tokens[idx].attrSet(
-
         "rel",
-
         "noopener noreferrer"
-
     )
 
-
-    return defaultRender(
-
+    return defaultLinkOpen(
         tokens,
-
         idx,
-
         options,
-
         env,
-
         self
-
     )
 
 }
 
 
-/* =========================================
+/* ============================================================
    RENDER
-========================================= */
+============================================================ */
 
-const renderedMarkdown = computed(()=>
+const renderedMarkdown = computed(() => {
 
-    md.render(
-
-        props.content
-
+    return md.render(
+        props.content || ""
     )
 
-)
+})
 
 </script>
 
 
 <style scoped>
 
-/* =========================================
-   NOVACOURT MARKDOWN RENDERER
-   ESTILO JURÍDICO INSTITUCIONAL
-========================================= */
+/* ============================================================
+   NOVA MARKDOWN RENDERER
+   Sistema visual institucional Nova Iuris
+============================================================ */
 
 .markdown-container{
 
     width:100%;
 
+    min-width:0;
+
 }
 
 
-/* =========================================
+/* ============================================================
    CUERPO PRINCIPAL
-========================================= */
+============================================================ */
 
 .markdown-body{
 
     width:100%;
 
+    min-width:0;
+
     color:#334155;
 
-    font-size:.96rem;
+    font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+    font-size:.95rem;
 
     font-weight:400;
 
-    line-height:1.85;
+    line-height:1.8;
 
-    letter-spacing:.005em;
+    letter-spacing:.002em;
+
+    overflow-wrap:anywhere;
 
 }
 
 
-/* =========================================
+/* ============================================================
    TÍTULOS
-========================================= */
+============================================================ */
 
 .markdown-body :deep(h1),
 .markdown-body :deep(h2),
@@ -269,78 +239,132 @@ const renderedMarkdown = computed(()=>
 .markdown-body :deep(h5),
 .markdown-body :deep(h6){
 
-    color:#102238;
+    color:#0F2747;
 
     font-family:
-
-        Georgia,
-        "Times New Roman",
-        serif;
-
-    font-weight:500;
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
 
     line-height:1.35;
 
-    letter-spacing:-.015em;
+    letter-spacing:-.02em;
 
 }
 
+
+/* ============================================================
+   H1
+============================================================ */
 
 .markdown-body :deep(h1){
 
-    margin:32px 0 16px;
+    position:relative;
 
-    font-size:1.7rem;
+    margin:30px 0 18px;
+
+    padding-bottom:14px;
+
+    font-size:1.65rem;
+
+    font-weight:750;
 
 }
 
+
+.markdown-body :deep(h1::after){
+
+    content:"";
+
+    position:absolute;
+
+    left:0;
+
+    bottom:0;
+
+    width:42px;
+
+    height:3px;
+
+    border-radius:999px;
+
+    background:#2563EB;
+
+}
+
+
+/* ============================================================
+   H2
+============================================================ */
 
 .markdown-body :deep(h2){
 
-    margin:30px 0 15px;
+    margin:28px 0 15px;
 
-    padding-bottom:11px;
+    padding-bottom:10px;
 
-    border-bottom:1px solid #D6DFEA;
+    border-bottom:1px solid #E2E8F0;
 
-    font-size:1.42rem;
+    font-size:1.35rem;
+
+    font-weight:700;
 
 }
 
+
+/* ============================================================
+   H3
+============================================================ */
 
 .markdown-body :deep(h3){
 
-    margin:26px 0 13px;
+    margin:24px 0 12px;
 
-    font-size:1.18rem;
+    font-size:1.15rem;
+
+    font-weight:700;
 
 }
 
+
+/* ============================================================
+   H4
+============================================================ */
 
 .markdown-body :deep(h4){
 
-    margin:22px 0 11px;
+    margin:21px 0 10px;
 
-    font-size:1.04rem;
+    font-size:1.02rem;
 
-    font-weight:600;
+    font-weight:700;
 
 }
 
+
+/* ============================================================
+   H5 / H6
+============================================================ */
 
 .markdown-body :deep(h5),
 .markdown-body :deep(h6){
 
-    margin:20px 0 10px;
+    margin:18px 0 9px;
 
-    font-size:.95rem;
+    font-size:.94rem;
 
-    font-weight:600;
+    font-weight:700;
 
 }
 
 
-/* Primer título sin espacio excesivo */
+/* ============================================================
+   PRIMER TÍTULO
+============================================================ */
 
 .markdown-body :deep(h1:first-child),
 .markdown-body :deep(h2:first-child),
@@ -351,15 +375,15 @@ const renderedMarkdown = computed(()=>
 }
 
 
-/* =========================================
+/* ============================================================
    PÁRRAFOS
-========================================= */
+============================================================ */
 
 .markdown-body :deep(p){
 
-    margin:0 0 17px;
+    margin:0 0 16px;
 
-    color:#596575;
+    color:#475569;
 
 }
 
@@ -371,9 +395,9 @@ const renderedMarkdown = computed(()=>
 }
 
 
-/* =========================================
-   TEXTO DESTACADO
-========================================= */
+/* ============================================================
+   TEXTO FUERTE
+============================================================ */
 
 .markdown-body :deep(strong){
 
@@ -384,52 +408,81 @@ const renderedMarkdown = computed(()=>
 }
 
 
+/* ============================================================
+   TEXTO EN CURSIVA
+============================================================ */
+
 .markdown-body :deep(em){
 
-    color:#596575;
+    color:#475569;
 
 }
 
 
-/* =========================================
+/* ============================================================
    LISTAS
-========================================= */
+============================================================ */
 
 .markdown-body :deep(ul),
 .markdown-body :deep(ol){
 
-    margin:0 0 20px;
+    margin:0 0 19px;
 
     padding-left:25px;
 
 }
 
 
+.markdown-body :deep(ul){
+
+    list-style-type:disc;
+
+}
+
+
+.markdown-body :deep(ol){
+
+    list-style-type:decimal;
+
+}
+
+
 .markdown-body :deep(li){
 
-    margin-bottom:9px;
+    margin-bottom:8px;
 
     padding-left:3px;
 
-    color:#596575;
+    color:#475569;
+
+    line-height:1.75;
+
+}
+
+
+.markdown-body :deep(li:last-child){
+
+    margin-bottom:0;
 
 }
 
 
 .markdown-body :deep(li::marker){
 
-    color:#315C97;
+    color:#2563EB;
+
+    font-weight:700;
 
 }
 
 
-/* =========================================
+/* ============================================================
    ENLACES
-========================================= */
+============================================================ */
 
 .markdown-body :deep(a){
 
-    color:#315C97;
+    color:#2563EB;
 
     font-weight:600;
 
@@ -437,14 +490,13 @@ const renderedMarkdown = computed(()=>
 
     border-bottom:1px solid
         rgba(
-            49,
-            92,
-            151,
+            37,
+            99,
+            235,
             .25
         );
 
     transition:
-
         color .2s ease,
         border-color .2s ease;
 
@@ -453,16 +505,16 @@ const renderedMarkdown = computed(()=>
 
 .markdown-body :deep(a:hover){
 
-    color:#17375E;
+    color:#0F2747;
 
-    border-bottom-color:#17375E;
+    border-bottom-color:#2563EB;
 
 }
 
 
-/* =========================================
-   CITA / BLOQUE JURÍDICO
-========================================= */
+/* ============================================================
+   CITAS JURÍDICAS
+============================================================ */
 
 .markdown-body :deep(blockquote){
 
@@ -470,116 +522,158 @@ const renderedMarkdown = computed(()=>
 
     margin:22px 0;
 
-    padding:16px 20px;
+    padding:17px 20px 17px 22px;
 
-    color:#596575;
+    background:#F8FAFC;
 
-    background:#F5F7FA;
+    border:1px solid #E2E8F0;
 
-    border-top:1px solid #D6DFEA;
+    border-left:3px solid #2563EB;
 
-    border-right:1px solid #D6DFEA;
+    border-radius:0 12px 12px 0;
 
-    border-bottom:1px solid #D6DFEA;
+    color:#475569;
 
-    border-left:3px solid #315C97;
+}
 
-    border-radius:0 6px 6px 0;
+
+.markdown-body :deep(blockquote::before){
+
+    content:"";
+
+    position:absolute;
+
+    top:0;
+
+    left:-3px;
+
+    width:3px;
+
+    height:35%;
+
+    border-radius:0 0 4px 4px;
+
+    background:#1D4ED8;
 
 }
 
 
 .markdown-body :deep(blockquote p){
 
-    color:#596575;
+    margin:0;
+
+    color:#475569;
 
 }
 
 
-.markdown-body :deep(blockquote p:last-child){
+.markdown-body :deep(blockquote p + p){
 
-    margin-bottom:0;
+    margin-top:12px;
 
 }
 
 
-/* =========================================
-   SEPARADOR
-========================================= */
+/* ============================================================
+   SEPARADORES
+============================================================ */
 
 .markdown-body :deep(hr){
 
-    margin:30px 0;
+    height:1px;
+
+    margin:28px 0;
 
     border:0;
 
-    border-top:1px solid #D6DFEA;
+    background:#E2E8F0;
 
 }
 
 
-/* =========================================
-   CÓDIGO
-========================================= */
+/* ============================================================
+   CÓDIGO INLINE
+============================================================ */
 
-.markdown-body :deep(pre){
+.markdown-body :deep(:not(pre) > code){
 
-    margin:22px 0;
+    display:inline-block;
 
-    padding:18px;
+    padding:2px 6px;
 
-    overflow-x:auto;
+    color:#17375E;
 
-    background:#F4F6F8;
+    background:#F1F5F9;
 
-    border:1px solid #D6DFEA;
+    border:1px solid #E2E8F0;
 
-    border-radius:7px;
-
-}
-
-
-.markdown-body :deep(code){
+    border-radius:6px;
 
     font-family:
-
         "JetBrains Mono",
         "Fira Code",
         Consolas,
         monospace;
 
-    font-size:.87rem;
+    font-size:.84em;
+
+}
+
+
+/* ============================================================
+   BLOQUES DE CÓDIGO
+============================================================ */
+
+.markdown-body :deep(pre){
+
+    margin:22px 0;
+
+    padding:18px 20px;
+
+    overflow-x:auto;
+
+    background:#F8FAFC;
+
+    border:1px solid #E2E8F0;
+
+    border-radius:12px;
+
+    box-shadow:
+        0 4px 12px
+        rgba(
+            15,
+            39,
+            71,
+            .035
+        );
 
 }
 
 
 .markdown-body :deep(pre code){
 
-    color:#17375E;
+    display:block;
+
+    color:#334155;
+
+    font-family:
+        "JetBrains Mono",
+        "Fira Code",
+        Consolas,
+        monospace;
+
+    font-size:.84rem;
 
     line-height:1.7;
 
-}
-
-
-.markdown-body :deep(:not(pre) > code){
-
-    padding:3px 6px;
-
-    color:#17375E;
-
-    background:#F1F4F7;
-
-    border:1px solid #DCE4EC;
-
-    border-radius:4px;
+    white-space:pre;
 
 }
 
 
-/* =========================================
+/* ============================================================
    TABLAS
-========================================= */
+============================================================ */
 
 .markdown-body :deep(table){
 
@@ -591,16 +685,29 @@ const renderedMarkdown = computed(()=>
 
     border-spacing:0;
 
-    overflow:hidden;
-
     background:#FFFFFF;
 
-    border:1px solid #D6DFEA;
+    border:1px solid #E2E8F0;
 
-    border-radius:7px;
+    border-radius:12px;
+
+    overflow:hidden;
+
+    box-shadow:
+        0 4px 14px
+        rgba(
+            15,
+            39,
+            71,
+            .035
+        );
 
 }
 
+
+/* ============================================================
+   CABECERA DE TABLA
+============================================================ */
 
 .markdown-body :deep(th){
 
@@ -608,41 +715,57 @@ const renderedMarkdown = computed(()=>
 
     text-align:left;
 
-    color:#17375E;
+    color:#0F2747;
 
-    background:#F3F6F9;
+    background:#F8FAFC;
 
-    border-bottom:1px solid #D6DFEA;
+    border-bottom:1px solid #E2E8F0;
 
-    font-size:.86rem;
+    font-size:.82rem;
 
-    font-weight:700;
+    font-weight:750;
+
+    line-height:1.5;
 
 }
 
+
+/* ============================================================
+   CELDAS
+============================================================ */
 
 .markdown-body :deep(td){
 
     padding:13px 15px;
 
-    color:#596575;
+    color:#475569;
 
-    border-bottom:1px solid #DCE4EC;
+    border-bottom:1px solid #E2E8F0;
 
-    font-size:.9rem;
+    font-size:.88rem;
 
     line-height:1.65;
 
+    vertical-align:top;
+
 }
 
+
+/* ============================================================
+   DIVISORES VERTICALES
+============================================================ */
 
 .markdown-body :deep(th + th),
 .markdown-body :deep(td + td){
 
-    border-left:1px solid #DCE4EC;
+    border-left:1px solid #E2E8F0;
 
 }
 
+
+/* ============================================================
+   ÚLTIMA FILA
+============================================================ */
 
 .markdown-body :deep(tr:last-child td){
 
@@ -651,13 +774,14 @@ const renderedMarkdown = computed(()=>
 }
 
 
-/* =========================================
-   FILAS
-========================================= */
+/* ============================================================
+   HOVER TABLAS
+============================================================ */
 
 .markdown-body :deep(tbody tr){
 
-    transition:background .2s ease;
+    transition:
+        background-color .2s ease;
 
 }
 
@@ -669,9 +793,9 @@ const renderedMarkdown = computed(()=>
 }
 
 
-/* =========================================
+/* ============================================================
    IMÁGENES
-========================================= */
+============================================================ */
 
 .markdown-body :deep(img){
 
@@ -681,103 +805,268 @@ const renderedMarkdown = computed(()=>
 
     height:auto;
 
-    margin:22px 0;
+    margin:22px auto;
 
-    border:1px solid #D6DFEA;
+    border:1px solid #E2E8F0;
 
-    border-radius:7px;
+    border-radius:12px;
+
+    box-shadow:
+        0 6px 18px
+        rgba(
+            15,
+            39,
+            71,
+            .06
+        );
 
 }
 
 
-/* =========================================
+/* ============================================================
+   FIGURAS / IMÁGENES CON TEXTO
+============================================================ */
+
+.markdown-body :deep(figure){
+
+    margin:24px 0;
+
+}
+
+
+.markdown-body :deep(figcaption){
+
+    margin-top:8px;
+
+    color:#64748B;
+
+    font-size:.78rem;
+
+    line-height:1.5;
+
+    text-align:center;
+
+}
+
+
+/* ============================================================
    DETAILS
-========================================= */
+============================================================ */
 
 .markdown-body :deep(details){
 
     margin:18px 0;
 
-    padding:14px 16px;
+    padding:0;
 
-    background:#F7F8FA;
+    background:#FFFFFF;
 
-    border:1px solid #D6DFEA;
+    border:1px solid #E2E8F0;
 
-    border-radius:6px;
+    border-radius:12px;
+
+    overflow:hidden;
 
 }
 
 
 .markdown-body :deep(summary){
 
-    color:#17375E;
+    padding:14px 17px;
+
+    color:#0F2747;
+
+    background:#F8FAFC;
 
     font-weight:700;
 
     cursor:pointer;
 
+    transition:
+        background-color .2s ease,
+        color .2s ease;
+
 }
 
 
-/* =========================================
+.markdown-body :deep(summary:hover){
+
+    color:#2563EB;
+
+    background:#EFF6FF;
+
+}
+
+
+.markdown-body :deep(details > :not(summary)){
+
+    margin-left:17px;
+
+    margin-right:17px;
+
+}
+
+
+.markdown-body :deep(details > :last-child){
+
+    margin-bottom:17px;
+
+}
+
+
+/* ============================================================
+   CHECKLIST / TASKS
+============================================================ */
+
+.markdown-body :deep(input[type="checkbox"]){
+
+    width:15px;
+
+    height:15px;
+
+    margin-right:7px;
+
+    vertical-align:-2px;
+
+    accent-color:#2563EB;
+
+}
+
+
+/* ============================================================
+   MARK / TEXTO DESTACADO
+============================================================ */
+
+.markdown-body :deep(mark){
+
+    padding:2px 5px;
+
+    color:#17375E;
+
+    background:#DBEAFE;
+
+    border-radius:4px;
+
+}
+
+
+/* ============================================================
+   SMALL
+============================================================ */
+
+.markdown-body :deep(small){
+
+    color:#64748B;
+
+    font-size:.82rem;
+
+}
+
+
+/* ============================================================
    SELECCIÓN
-========================================= */
+============================================================ */
 
 .markdown-body :deep(::selection){
 
-    color:#102238;
+    color:#0F2747;
 
     background:
         rgba(
-            49,
-            92,
-            151,
-            .16
+            37,
+            99,
+            235,
+            .14
         );
 
 }
 
 
-/* =========================================
-   RESPONSIVE
-========================================= */
+/* ============================================================
+   SCROLLBAR — CÓDIGO Y TABLAS
+============================================================ */
+
+.markdown-body :deep(pre::-webkit-scrollbar),
+.markdown-body :deep(table::-webkit-scrollbar){
+
+    height:7px;
+
+}
+
+
+.markdown-body :deep(pre::-webkit-scrollbar-track),
+.markdown-body :deep(table::-webkit-scrollbar-track){
+
+    background:#F1F5F9;
+
+}
+
+
+.markdown-body :deep(pre::-webkit-scrollbar-thumb),
+.markdown-body :deep(table::-webkit-scrollbar-thumb){
+
+    background:#CBD5E1;
+
+    border-radius:999px;
+
+}
+
+
+.markdown-body :deep(pre::-webkit-scrollbar-thumb:hover),
+.markdown-body :deep(table::-webkit-scrollbar-thumb:hover){
+
+    background:#94A3B8;
+
+}
+
+
+/* ============================================================
+   RESPONSIVE — TABLET
+============================================================ */
 
 @media(max-width:768px){
 
     .markdown-body{
 
-        font-size:.93rem;
+        font-size:.92rem;
 
-        line-height:1.8;
+        line-height:1.78;
 
     }
 
 
     .markdown-body :deep(h1){
 
-        font-size:1.5rem;
+        margin-top:26px;
+
+        font-size:1.48rem;
 
     }
 
 
     .markdown-body :deep(h2){
 
-        font-size:1.28rem;
+        margin-top:25px;
+
+        font-size:1.25rem;
 
     }
 
 
     .markdown-body :deep(h3){
 
-        font-size:1.1rem;
+        margin-top:22px;
+
+        font-size:1.08rem;
 
     }
 
 
     .markdown-body :deep(pre){
 
-        padding:15px;
+        padding:15px 16px;
+
+        border-radius:10px;
 
     }
 
@@ -789,41 +1078,86 @@ const renderedMarkdown = computed(()=>
 
     }
 
+
+    .markdown-body :deep(blockquote){
+
+        padding:15px 17px 15px 18px;
+
+    }
+
 }
 
+
+/* ============================================================
+   RESPONSIVE — MOBILE
+============================================================ */
 
 @media(max-width:576px){
 
     .markdown-body{
 
-        font-size:.9rem;
+        font-size:.89rem;
 
-        line-height:1.75;
+        line-height:1.72;
 
     }
 
 
     .markdown-body :deep(h1){
 
-        font-size:1.38rem;
+        margin-top:23px;
+
+        margin-bottom:14px;
+
+        padding-bottom:11px;
+
+        font-size:1.36rem;
+
+    }
+
+
+    .markdown-body :deep(h1::after){
+
+        width:34px;
+
+        height:2px;
 
     }
 
 
     .markdown-body :deep(h2){
 
-        margin-top:25px;
+        margin-top:22px;
 
-        font-size:1.2rem;
+        margin-bottom:13px;
+
+        padding-bottom:8px;
+
+        font-size:1.17rem;
 
     }
 
 
     .markdown-body :deep(h3){
 
-        margin-top:22px;
+        margin-top:20px;
 
-        font-size:1.05rem;
+        font-size:1.02rem;
+
+    }
+
+
+    .markdown-body :deep(p){
+
+        margin-bottom:14px;
+
+    }
+
+
+    .markdown-body :deep(ul),
+    .markdown-body :deep(ol){
+
+        padding-left:21px;
 
     }
 
@@ -832,16 +1166,27 @@ const renderedMarkdown = computed(()=>
 
         margin:18px 0;
 
-        padding:14px 16px;
+        padding:13px 14px 13px 16px;
+
+        border-radius:0 9px 9px 0;
 
     }
 
 
     .markdown-body :deep(pre){
 
+        margin:18px 0;
+
         padding:13px;
 
-        font-size:.82rem;
+        border-radius:9px;
+
+    }
+
+
+    .markdown-body :deep(pre code){
+
+        font-size:.78rem;
 
     }
 
@@ -850,9 +1195,93 @@ const renderedMarkdown = computed(()=>
 
         display:block;
 
+        width:100%;
+
         overflow-x:auto;
 
         white-space:normal;
+
+    }
+
+
+    .markdown-body :deep(th),
+    .markdown-body :deep(td){
+
+        min-width:120px;
+
+        padding:10px 11px;
+
+        font-size:.82rem;
+
+    }
+
+
+    .markdown-body :deep(img){
+
+        margin:18px auto;
+
+        border-radius:9px;
+
+    }
+
+}
+
+
+/* ============================================================
+   ANIMACIÓN
+============================================================ */
+
+.markdown-body{
+
+    animation:
+        markdownAppear
+        .35s
+        ease
+        both;
+
+}
+
+
+@keyframes markdownAppear{
+
+    from{
+
+        opacity:0;
+
+        transform:
+            translateY(6px);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:
+            translateY(0);
+
+    }
+
+}
+
+
+/* ============================================================
+   REDUCED MOTION
+============================================================ */
+
+@media(prefers-reduced-motion: reduce){
+
+    .markdown-body{
+
+        animation:none;
+
+    }
+
+    .markdown-body :deep(a),
+    .markdown-body :deep(summary),
+    .markdown-body :deep(tbody tr){
+
+        transition:none;
 
     }
 

@@ -2,25 +2,55 @@
 
     <section class="graph-panel">
 
-        <!-- =========================================
+        <!-- =====================================================
+             DECORACIÓN INSTITUCIONAL
+        ====================================================== -->
+
+        <div
+            class="panel-accent"
+            aria-hidden="true"
+        ></div>
+
+        <div
+            class="panel-orbit panel-orbit-right"
+            aria-hidden="true"
+        ></div>
+
+        <div
+            class="panel-orbit panel-orbit-left"
+            aria-hidden="true"
+        ></div>
+
+
+        <!-- =====================================================
              ENCABEZADO
-        ========================================== -->
+        ====================================================== -->
 
         <header class="graph-header">
 
             <div class="graph-heading">
 
-                <span class="section-label">
+                <div class="section-label">
 
-                    NOVACOURT · MAPA RELACIONAL
+                    <span class="label-line"></span>
 
-                </span>
+                    <span>
+                        NOVACOURT
+                    </span>
+
+                    <span class="label-dot"></span>
+
+                    <span>
+                        MAPA RELACIONAL
+                    </span>
+
+                </div>
+
 
                 <h2>
-
                     Red de Relaciones del Caso
-
                 </h2>
+
 
                 <p>
 
@@ -32,6 +62,11 @@
 
             </div>
 
+
+            <!-- =================================================
+                 ESTADÍSTICAS
+            ================================================== -->
+
             <div
                 v-if="hasGraphData"
                 class="graph-stats"
@@ -39,34 +74,36 @@
 
                 <div class="stat-item">
 
+                    <span class="stat-caption">
+                        ELEMENTOS
+                    </span>
+
                     <strong>
-
                         {{ normalizedNodes.length }}
-
                     </strong>
 
-                    <span>
-
+                    <span class="stat-label">
                         Nodos
-
                     </span>
 
                 </div>
 
+
                 <div class="stat-divider"></div>
+
 
                 <div class="stat-item">
 
+                    <span class="stat-caption">
+                        VÍNCULOS
+                    </span>
+
                     <strong>
-
                         {{ normalizedLinks.length }}
-
                     </strong>
 
-                    <span>
-
+                    <span class="stat-label">
                         Relaciones
-
                     </span>
 
                 </div>
@@ -76,9 +113,9 @@
         </header>
 
 
-        <!-- =========================================
+        <!-- =====================================================
              LEYENDA
-        ========================================== -->
+        ====================================================== -->
 
         <div
             v-if="hasGraphData"
@@ -87,13 +124,14 @@
 
             <div class="legend-title">
 
+                <span class="legend-title-mark"></span>
+
                 <span>
-
-                    Clasificación
-
+                    Clasificación jurídica
                 </span>
 
             </div>
+
 
             <div class="legend-items">
 
@@ -106,14 +144,13 @@
                     <span
                         class="legend-dot"
                         :style="{
-                            background: item.color
+                            background: item.color,
+                            boxShadow: `0 0 0 3px ${hexToRgba(item.color, .10)}`
                         }"
                     ></span>
 
                     <span>
-
                         {{ item.label }}
-
                     </span>
 
                 </div>
@@ -123,23 +160,34 @@
         </div>
 
 
-        <!-- =========================================
+        <!-- =====================================================
              ESTADO DE CARGA
-        ========================================== -->
+        ====================================================== -->
 
         <div
             v-if="loading"
             class="graph-state graph-loading"
         >
 
-            <div class="loading-spinner"></div>
+            <div class="loading-visual">
 
-            <div>
+                <div class="loading-ring"></div>
+
+                <span>
+                    ⚖
+                </span>
+
+            </div>
+
+
+            <div class="state-content">
+
+                <span class="state-eyebrow">
+                    NOVACOURT · PROCESAMIENTO
+                </span>
 
                 <strong>
-
                     Construyendo red relacional
-
                 </strong>
 
                 <p>
@@ -154,9 +202,9 @@
         </div>
 
 
-        <!-- =========================================
+        <!-- =====================================================
              ERROR
-        ========================================== -->
+        ====================================================== -->
 
         <div
             v-else-if="error"
@@ -164,23 +212,22 @@
         >
 
             <div class="state-icon">
-
                 !
-
             </div>
 
-            <div>
+
+            <div class="state-content">
+
+                <span class="state-eyebrow">
+                    NOVACOURT · ESTADO
+                </span>
 
                 <strong>
-
                     No se pudo cargar el grafo
-
                 </strong>
 
                 <p>
-
                     {{ error }}
-
                 </p>
 
             </div>
@@ -188,26 +235,37 @@
         </div>
 
 
-        <!-- =========================================
+        <!-- =====================================================
              ESTADO VACÍO
-        ========================================== -->
+        ====================================================== -->
 
         <div
             v-else-if="!hasGraphData"
             class="graph-empty"
         >
 
-            <div class="empty-icon">
+            <div class="empty-visual">
 
-                ◌
+                <div class="empty-orbit empty-orbit-one"></div>
+
+                <div class="empty-orbit empty-orbit-two"></div>
+
+                <div class="empty-center">
+                    ⚖
+                </div>
 
             </div>
 
+
+            <span class="empty-eyebrow">
+                NOVACOURT · MAPA RELACIONAL
+            </span>
+
+
             <h3>
-
                 Red relacional pendiente
-
             </h3>
+
 
             <p>
 
@@ -220,79 +278,115 @@
         </div>
 
 
-        <!-- =========================================
+        <!-- =====================================================
              GRAFO
-        ========================================== -->
+        ====================================================== -->
 
         <div
             v-else
             class="graph-workspace"
         >
 
-            <!-- CONTROLES -->
+            <!-- =================================================
+                 BARRA DE HERRAMIENTAS
+            ================================================== -->
 
             <div class="graph-toolbar">
 
-                <button
-                    type="button"
-                    class="toolbar-button"
-                    title="Restablecer visualización"
-                    @click="resetGraph"
-                >
+                <div class="toolbar-caption">
 
-                    ↺
+                    <span class="toolbar-status"></span>
 
                     <span>
-
-                        Restablecer
-
+                        Exploración interactiva
                     </span>
 
-                </button>
+                </div>
 
-                <button
-                    type="button"
-                    class="toolbar-button"
-                    title="Centrar grafo"
-                    @click="centerGraph"
-                >
 
-                    ⊙
+                <div class="toolbar-actions">
 
-                    <span>
+                    <button
+                        type="button"
+                        class="toolbar-button"
+                        title="Restablecer visualización"
+                        @click="resetGraph"
+                    >
 
-                        Centrar
+                        <span class="toolbar-icon">
+                            ↺
+                        </span>
 
-                    </span>
+                        <span>
+                            Restablecer
+                        </span>
 
-                </button>
+                    </button>
 
-                <button
-                    type="button"
-                    class="toolbar-button"
-                    title="Cerrar selección"
-                    :disabled="!selectedNode"
-                    @click="clearSelection"
-                >
 
-                    ×
+                    <button
+                        type="button"
+                        class="toolbar-button"
+                        title="Centrar grafo"
+                        @click="centerGraph"
+                    >
 
-                    <span>
+                        <span class="toolbar-icon">
+                            ⊙
+                        </span>
 
-                        Limpiar
+                        <span>
+                            Centrar
+                        </span>
 
-                    </span>
+                    </button>
 
-                </button>
+
+                    <button
+                        type="button"
+                        class="toolbar-button"
+                        :class="{
+                            'is-disabled': !selectedNode
+                        }"
+                        title="Cerrar selección"
+                        :disabled="!selectedNode"
+                        @click="clearSelection"
+                    >
+
+                        <span class="toolbar-icon">
+                            ×
+                        </span>
+
+                        <span>
+                            Limpiar
+                        </span>
+
+                    </button>
+
+                </div>
 
             </div>
 
 
-            <!-- ÁREA PRINCIPAL -->
+            <!-- =================================================
+                 ÁREA PRINCIPAL
+            ================================================== -->
 
             <div class="graph-main">
 
-                <!-- SVG -->
+                <!-- DECORACIÓN -->
+
+                <div
+                    class="canvas-watermark"
+                    aria-hidden="true"
+                >
+                    NOVA
+                </div>
+
+
+                <!-- =================================================
+                     SVG
+                ================================================== -->
 
                 <div
                     ref="graphContainer"
@@ -307,16 +401,21 @@
                 </div>
 
 
-                <!-- PANEL DEL NODO -->
+                <!-- =================================================
+                     PANEL DEL NODO
+                ================================================== -->
 
                 <aside
                     v-if="selectedNode"
                     class="node-detail-panel"
                 >
 
+                    <div class="detail-panel-accent"></div>
+
+
                     <div class="detail-header">
 
-                        <div>
+                        <div class="detail-heading">
 
                             <span
                                 class="detail-type"
@@ -325,21 +424,34 @@
                                 }"
                             >
 
+                                <span
+                                    class="detail-type-dot"
+                                    :style="{
+                                        background: getNodeColor(selectedNode)
+                                    }"
+                                ></span>
+
                                 {{ getNodeCategoryLabel(selectedNode) }}
 
                             </span>
 
+
                             <h3>
 
-                                {{ selectedNode.name || "Elemento sin nombre" }}
+                                {{
+                                    selectedNode.name ||
+                                    "Elemento sin nombre"
+                                }}
 
                             </h3>
 
                         </div>
 
+
                         <button
                             type="button"
                             class="close-button"
+                            title="Cerrar detalle"
                             @click="clearSelection"
                         >
 
@@ -350,25 +462,29 @@
                     </div>
 
 
+                    <!-- =================================================
+                         RESUMEN
+                    ================================================== -->
+
                     <div
                         v-if="selectedNode.summary"
                         class="detail-section"
                     >
 
                         <span class="detail-label">
-
                             Resumen
-
                         </span>
 
                         <p>
-
                             {{ selectedNode.summary }}
-
                         </p>
 
                     </div>
 
+
+                    <!-- =================================================
+                         CLASIFICACIÓN
+                    ================================================== -->
 
                     <div
                         v-if="selectedNode.labels?.length"
@@ -376,10 +492,9 @@
                     >
 
                         <span class="detail-label">
-
                             Clasificación
-
                         </span>
+
 
                         <div class="label-list">
 
@@ -398,16 +513,19 @@
                     </div>
 
 
+                    <!-- =================================================
+                         ATRIBUTOS
+                    ================================================== -->
+
                     <div
                         v-if="attributeEntries.length"
                         class="detail-section"
                     >
 
                         <span class="detail-label">
-
                             Atributos
-
                         </span>
+
 
                         <div class="attributes-list">
 
@@ -418,15 +536,11 @@
                             >
 
                                 <span>
-
                                     {{ formatAttributeKey(key) }}
-
                                 </span>
 
                                 <strong>
-
                                     {{ formatAttributeValue(value) }}
-
                                 </strong>
 
                             </div>
@@ -436,21 +550,44 @@
                     </div>
 
 
+                    <!-- =================================================
+                         FOOTER DEL PANEL
+                    ================================================== -->
+
                     <div class="detail-footer">
 
-                        <span>
+                        <span class="connection-indicator"></span>
 
+                        <strong>
                             {{ selectedNodeConnectionCount }}
+                        </strong>
 
+                        <span>
+                            relaciones identificadas
                         </span>
-
-                        relaciones identificadas
 
                     </div>
 
                 </aside>
 
             </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             FIRMA INSTITUCIONAL
+        ====================================================== -->
+
+        <div class="graph-footer-mark">
+
+            <span class="footer-line"></span>
+
+            <span>
+                INTELIGENCIA JUDICIAL · NOVA IURIS
+            </span>
+
+            <span class="footer-line"></span>
 
         </div>
 
@@ -475,9 +612,9 @@ import {
 import * as d3 from "d3"
 
 
-/* =========================================
+/* ============================================================
    PROPS
-========================================= */
+============================================================ */
 
 const props = defineProps({
 
@@ -508,9 +645,9 @@ const props = defineProps({
 })
 
 
-/* =========================================
+/* ============================================================
    REFERENCIAS
-========================================= */
+============================================================ */
 
 const graphContainer = ref(null)
 
@@ -519,9 +656,9 @@ const svgElement = ref(null)
 const selectedNode = ref(null)
 
 
-/* =========================================
+/* ============================================================
    INSTANCIAS D3
-========================================= */
+============================================================ */
 
 let simulation = null
 
@@ -534,25 +671,25 @@ let currentSvg = null
 let currentRoot = null
 
 
-/* =========================================
-   COLORES JURÍDICOS
-========================================= */
+/* ============================================================
+   PALETA NOVACOURT
+============================================================ */
 
 const categoryColors = {
 
-    judicial: "#1D4ED8",
+    judicial: "#0F2747",
 
     lawyer: "#2563EB",
 
-    prosecution: "#B45309",
+    prosecution: "#B08A4C",
 
-    party: "#7C3AED",
+    party: "#725C9A",
 
-    evidence: "#15803D",
+    evidence: "#2F7D62",
 
-    norm: "#0369A1",
+    norm: "#2C6680",
 
-    argument: "#BE123C",
+    argument: "#9A4656",
 
     fact: "#64748B",
 
@@ -646,9 +783,9 @@ const legendItems = [
 ]
 
 
-/* =========================================
+/* ============================================================
    NORMALIZAR DATOS
-========================================= */
+============================================================ */
 
 const normalizedNodes = computed(() => {
 
@@ -746,9 +883,9 @@ const hasGraphData = computed(() =>
 )
 
 
-/* =========================================
+/* ============================================================
    DETALLE DEL NODO
-========================================= */
+============================================================ */
 
 const attributeEntries = computed(() => {
 
@@ -801,15 +938,17 @@ const selectedNodeConnectionCount = computed(() => {
 })
 
 
-/* =========================================
-   CLASIFICACIÓN DEL NODO
-========================================= */
+/* ============================================================
+   CLASIFICACIÓN
+============================================================ */
 
 function getNodeText(node) {
 
     return [
 
-        ...(Array.isArray(node?.labels) ? node.labels : []),
+        ...(Array.isArray(node?.labels)
+            ? node.labels
+            : []),
 
         node?.name || "",
 
@@ -978,11 +1117,13 @@ function getNodeCategory(node) {
 
 function getNodeColor(node) {
 
-    return categoryColors[
+    return (
 
-        getNodeCategory(node)
+        categoryColors[getNodeCategory(node)] ||
 
-    ] || categoryColors.default
+        categoryColors.default
+
+    )
 
 }
 
@@ -1020,9 +1161,43 @@ function getNodeCategoryLabel(node) {
 }
 
 
-/* =========================================
+/* ============================================================
+   UTILIDADES DE COLOR
+============================================================ */
+
+function hexToRgba(hex, alpha = 1) {
+
+    const normalized = String(hex).replace("#", "")
+
+    if (normalized.length !== 6) {
+
+        return `rgba(71,85,105,${alpha})`
+
+    }
+
+    const r = parseInt(
+        normalized.slice(0, 2),
+        16
+    )
+
+    const g = parseInt(
+        normalized.slice(2, 4),
+        16
+    )
+
+    const b = parseInt(
+        normalized.slice(4, 6),
+        16
+    )
+
+    return `rgba(${r},${g},${b},${alpha})`
+
+}
+
+
+/* ============================================================
    FORMATEADORES
-========================================= */
+============================================================ */
 
 function formatAttributeKey(key) {
 
@@ -1030,7 +1205,9 @@ function formatAttributeKey(key) {
 
         .replaceAll("_", " ")
 
-        .replace(/\b\w/g, char => char.toUpperCase())
+        .replace(/\b\w/g, char =>
+            char.toUpperCase()
+        )
 
 }
 
@@ -1048,9 +1225,9 @@ function formatAttributeValue(value) {
 }
 
 
-/* =========================================
+/* ============================================================
    CREAR GRAFO
-========================================= */
+============================================================ */
 
 function renderGraph() {
 
@@ -1074,6 +1251,7 @@ function renderGraph() {
 
     const container = graphContainer.value
 
+
     const width = Math.max(
 
         container.clientWidth,
@@ -1081,6 +1259,7 @@ function renderGraph() {
         320
 
     )
+
 
     const height = Math.max(
 
@@ -1123,6 +1302,41 @@ function renderGraph() {
 
 
     currentSvg = svg
+
+
+    const defs = svg
+
+        .append("defs")
+
+
+    const shadowFilter = defs
+
+        .append("filter")
+
+        .attr("id", "node-shadow")
+
+        .attr("x", "-50%")
+
+        .attr("y", "-50%")
+
+        .attr("width", "200%")
+
+        .attr("height", "200%")
+
+
+    shadowFilter
+
+        .append("feDropShadow")
+
+        .attr("dx", "0")
+
+        .attr("dy", "3")
+
+        .attr("stdDeviation", "4")
+
+        .attr("flood-color", "#0F2747")
+
+        .attr("flood-opacity", ".16")
 
 
     const root = svg
@@ -1184,6 +1398,10 @@ function renderGraph() {
     )
 
 
+    /* ========================================================
+       LINKS
+    ======================================================== */
+
     const linkGroup = root
 
         .append("g")
@@ -1193,19 +1411,6 @@ function renderGraph() {
             "class",
 
             "graph-links"
-
-        )
-
-
-    const nodeGroup = root
-
-        .append("g")
-
-        .attr(
-
-            "class",
-
-            "graph-nodes"
 
         )
 
@@ -1229,6 +1434,23 @@ function renderGraph() {
             "class",
 
             "graph-link"
+
+        )
+
+
+    /* ========================================================
+       NODES
+    ======================================================== */
+
+    const nodeGroup = root
+
+        .append("g")
+
+        .attr(
+
+            "class",
+
+            "graph-nodes"
 
         )
 
@@ -1264,6 +1486,49 @@ function renderGraph() {
         )
 
 
+    /* ========================================================
+       AURA
+    ======================================================== */
+
+    nodeSelection
+
+        .append("circle")
+
+        .attr(
+
+            "class",
+
+            "node-aura"
+
+        )
+
+        .attr(
+
+            "r",
+
+            33
+
+        )
+
+        .attr(
+
+            "fill",
+
+            node => hexToRgba(
+
+                getNodeColor(node),
+
+                .06
+
+            )
+
+        )
+
+
+    /* ========================================================
+       CÍRCULO PRINCIPAL
+    ======================================================== */
+
     nodeSelection
 
         .append("circle")
@@ -1280,7 +1545,7 @@ function renderGraph() {
 
             "r",
 
-            24
+            23
 
         )
 
@@ -1292,6 +1557,18 @@ function renderGraph() {
 
         )
 
+        .attr(
+
+            "filter",
+
+            "url(#node-shadow)"
+
+        )
+
+
+    /* ========================================================
+       BORDE EXTERIOR
+    ======================================================== */
 
     nodeSelection
 
@@ -1321,6 +1598,51 @@ function renderGraph() {
 
         )
 
+
+    /* ========================================================
+       PUNTO CENTRAL
+    ======================================================== */
+
+    nodeSelection
+
+        .append("circle")
+
+        .attr(
+
+            "class",
+
+            "node-core"
+
+        )
+
+        .attr(
+
+            "r",
+
+            4
+
+        )
+
+        .attr(
+
+            "fill",
+
+            "#FFFFFF"
+
+        )
+
+        .attr(
+
+            "opacity",
+
+            .85
+
+        )
+
+
+    /* ========================================================
+       TEXTO
+    ======================================================== */
 
     nodeSelection
 
@@ -1360,6 +1682,10 @@ function renderGraph() {
 
         ))
 
+
+    /* ========================================================
+       CLICK
+    ======================================================== */
 
     nodeSelection
 
@@ -1405,6 +1731,10 @@ function renderGraph() {
     )
 
 
+    /* ========================================================
+       DRAG
+    ======================================================== */
+
     const drag = d3
 
         .drag()
@@ -1417,11 +1747,11 @@ function renderGraph() {
 
                 if (!event.active) {
 
-                    simulation.alphaTarget(
+                    simulation
 
-                        0.3
+                        .alphaTarget(.3)
 
-                    ).restart()
+                        .restart()
 
                 }
 
@@ -1455,11 +1785,9 @@ function renderGraph() {
 
                 if (!event.active) {
 
-                    simulation.alphaTarget(
+                    simulation
 
-                        0
-
-                    )
+                        .alphaTarget(0)
 
                 }
 
@@ -1475,6 +1803,10 @@ function renderGraph() {
     nodeSelection.call(drag)
 
 
+    /* ========================================================
+       SIMULACIÓN
+    ======================================================== */
+
     simulation = d3
 
         .forceSimulation(nodes)
@@ -1489,9 +1821,9 @@ function renderGraph() {
 
                 .id(node => node.id)
 
-                .distance(130)
+                .distance(135)
 
-                .strength(0.7)
+                .strength(.62)
 
         )
 
@@ -1503,7 +1835,7 @@ function renderGraph() {
 
                 .forceManyBody()
 
-                .strength(-500)
+                .strength(-520)
 
         )
 
@@ -1529,7 +1861,7 @@ function renderGraph() {
 
                 .forceCollide()
 
-                .radius(70)
+                .radius(72)
 
         )
 
@@ -1592,9 +1924,9 @@ function renderGraph() {
 }
 
 
-/* =========================================
-   RESALTAR SELECCIÓN
-========================================= */
+/* ============================================================
+   SELECCIÓN
+============================================================ */
 
 function updateSelectionStyles(
 
@@ -1710,9 +2042,9 @@ function updateSelectionStyles(
 }
 
 
-/* =========================================
+/* ============================================================
    UTILIDADES
-========================================= */
+============================================================ */
 
 function truncateText(
 
@@ -1881,9 +2213,9 @@ function destroyGraph() {
 }
 
 
-/* =========================================
-   OBSERVAR CAMBIOS
-========================================= */
+/* ============================================================
+   WATCHERS
+============================================================ */
 
 watch(
 
@@ -1927,9 +2259,9 @@ watch(
 )
 
 
-/* =========================================
+/* ============================================================
    CICLO DE VIDA
-========================================= */
+============================================================ */
 
 onMounted(async () => {
 
@@ -1988,1115 +2320,2493 @@ onBeforeUnmount(() => {
 
 <style scoped>
 
-/* =========================================
-   CONTENEDOR PRINCIPAL
-========================================= */
+/* ============================================================
+   VARIABLES
+============================================================ */
 
-.graph-panel{
+.graph-panel {
 
-    width:100%;
+    --court-navy: #0F2747;
 
-    padding:30px;
+    --court-navy-deep: #102238;
 
-    background:#FFFFFF;
+    --court-blue: #2563EB;
 
-    border:1px solid #E2E8F0;
+    --court-blue-dark: #1D4ED8;
 
-    border-radius:22px;
+    --court-blue-soft: #EFF6FF;
+
+    --court-gold: #B08A4C;
+
+    --court-gold-dark: #96743F;
+
+    --court-gold-soft: #F8F4EC;
+
+    --court-text: #334155;
+
+    --court-muted: #64748B;
+
+    --court-border: #E2E8F0;
+
+    --court-border-soft: #EDF1F5;
+
+    --court-soft: #F8FAFC;
+
+    --court-white: #FFFFFF;
+
+    position: relative;
+
+    width: 100%;
+
+    padding: 30px;
+
+    overflow: hidden;
+
+    isolation: isolate;
+
+    background:
+
+        linear-gradient(
+
+            145deg,
+
+            #FFFFFF 0%,
+
+            #FCFDFE 58%,
+
+            #F7FAFE 100%
+
+        );
+
+    border: 1px solid var(--court-border);
+
+    border-radius: 22px;
 
     box-shadow:
 
-        0 10px 30px
+        0 12px 34px
 
         rgba(
+
             15,
+
             39,
+
             71,
-            .06
+
+            .055
+
         );
 
 }
 
 
-/* =========================================
+/* ============================================================
+   ACENTO SUPERIOR
+============================================================ */
+
+.panel-accent {
+
+    position: absolute;
+
+    z-index: 8;
+
+    top: 0;
+
+    left: 0;
+
+    width: 100%;
+
+    height: 3px;
+
+    background:
+
+        linear-gradient(
+
+            90deg,
+
+            var(--court-navy) 0%,
+
+            var(--court-blue) 48%,
+
+            var(--court-gold) 100%
+
+        );
+
+}
+
+
+/* ============================================================
+   DECORACIÓN
+============================================================ */
+
+.panel-orbit {
+
+    position: absolute;
+
+    z-index: -1;
+
+    border-radius: 50%;
+
+    pointer-events: none;
+
+}
+
+
+.panel-orbit-right {
+
+    width: 390px;
+
+    height: 390px;
+
+    right: -300px;
+
+    bottom: -270px;
+
+    border: 1px solid
+
+        rgba(
+
+            37,
+
+            99,
+
+            235,
+
+            .055
+
+        );
+
+    box-shadow:
+
+        0 0 0 62px
+
+        rgba(
+
+            37,
+
+            99,
+
+            235,
+
+            .014
+
+        ),
+
+        0 0 0 124px
+
+        rgba(
+
+            176,
+
+            138,
+
+            76,
+
+            .009
+
+        );
+
+}
+
+
+.panel-orbit-left {
+
+    width: 230px;
+
+    height: 230px;
+
+    left: -185px;
+
+    top: -165px;
+
+    border: 1px solid
+
+        rgba(
+
+            176,
+
+            138,
+
+            76,
+
+            .065
+
+        );
+
+}
+
+
+/* ============================================================
    ENCABEZADO
-========================================= */
+============================================================ */
 
-.graph-header{
+.graph-header {
 
-    display:flex;
+    position: relative;
 
-    align-items:flex-start;
+    z-index: 2;
 
-    justify-content:space-between;
+    display: flex;
 
-    gap:28px;
+    align-items: flex-start;
 
-    padding-bottom:24px;
+    justify-content: space-between;
 
-    border-bottom:1px solid #E2E8F0;
+    gap: 30px;
 
-}
+    padding-bottom: 24px;
 
-.graph-heading{
+    border-bottom: 1px solid
 
-    min-width:0;
-
-}
-
-.section-label{
-
-    display:block;
-
-    margin-bottom:8px;
-
-    color:#2563EB;
-
-    font-size:.72rem;
-
-    font-weight:700;
-
-    letter-spacing:1px;
-
-}
-
-.graph-heading h2{
-
-    margin:0 0 8px;
-
-    color:#0F2747;
-
-    font-size:1.5rem;
-
-    font-weight:700;
-
-    line-height:1.3;
-
-}
-
-.graph-heading p{
-
-    max-width:720px;
-
-    margin:0;
-
-    color:#64748B;
-
-    font-size:.95rem;
-
-    line-height:1.7;
+        var(--court-border);
 
 }
 
 
-/* =========================================
+.graph-heading {
+
+    min-width: 0;
+
+}
+
+
+/* ============================================================
+   ETIQUETA INSTITUCIONAL
+============================================================ */
+
+.section-label {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    margin-bottom: 9px;
+
+    color: var(--court-muted);
+
+    font-size: .65rem;
+
+    font-weight: 800;
+
+    letter-spacing: .13em;
+
+    line-height: 1;
+
+}
+
+
+.label-line {
+
+    width: 24px;
+
+    height: 2px;
+
+    border-radius: 999px;
+
+    background:
+
+        var(--court-blue);
+
+}
+
+
+.label-dot {
+
+    width: 4px;
+
+    height: 4px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background:
+
+        var(--court-gold);
+
+}
+
+
+/* ============================================================
+   TÍTULO
+============================================================ */
+
+.graph-heading h2 {
+
+    margin: 0 0 9px;
+
+    color: var(--court-navy);
+
+    font-size: 1.55rem;
+
+    font-weight: 720;
+
+    line-height: 1.28;
+
+    letter-spacing: -.025em;
+
+}
+
+
+.graph-heading p {
+
+    max-width: 730px;
+
+    margin: 0;
+
+    color: var(--court-muted);
+
+    font-size: .91rem;
+
+    font-weight: 400;
+
+    line-height: 1.72;
+
+}
+
+
+/* ============================================================
    ESTADÍSTICAS
-========================================= */
+============================================================ */
 
-.graph-stats{
+.graph-stats {
 
-    display:flex;
+    display: flex;
 
-    align-items:center;
+    align-items: stretch;
 
-    flex-shrink:0;
+    flex-shrink: 0;
 
-    padding:12px 16px;
+    padding: 10px 14px;
 
-    background:#F8FAFC;
+    background:
 
-    border:1px solid #E2E8F0;
+        rgba(
 
-    border-radius:14px;
+            248,
 
-}
+            250,
 
-.stat-item{
+            252,
 
-    display:flex;
+            .78
 
-    flex-direction:column;
+        );
 
-    min-width:62px;
+    border: 1px solid
 
-    text-align:center;
+        var(--court-border);
 
-}
+    border-radius: 13px;
 
-.stat-item strong{
+    box-shadow:
 
-    color:#0F2747;
+        0 4px 14px
 
-    font-size:1.1rem;
+        rgba(
 
-    font-weight:750;
+            15,
 
-}
+            39,
 
-.stat-item span{
+            71,
 
-    margin-top:3px;
+            .025
 
-    color:#64748B;
-
-    font-size:.72rem;
-
-}
-
-.stat-divider{
-
-    width:1px;
-
-    height:30px;
-
-    margin:0 14px;
-
-    background:#E2E8F0;
+        );
 
 }
 
 
-/* =========================================
+.stat-item {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    min-width: 72px;
+
+    text-align: center;
+
+}
+
+
+.stat-caption {
+
+    margin-bottom: 2px;
+
+    color: #94A3B8;
+
+    font-size: .48rem;
+
+    font-weight: 800;
+
+    letter-spacing: .11em;
+
+}
+
+
+.stat-item strong {
+
+    color: var(--court-navy);
+
+    font-size: 1.15rem;
+
+    font-weight: 760;
+
+    line-height: 1.2;
+
+}
+
+
+.stat-label {
+
+    margin-top: 2px;
+
+    color: var(--court-muted);
+
+    font-size: .67rem;
+
+}
+
+
+.stat-divider {
+
+    width: 1px;
+
+    height: 38px;
+
+    align-self: center;
+
+    margin: 0 10px;
+
+    background:
+
+        var(--court-border);
+
+}
+
+
+/* ============================================================
    LEYENDA
-========================================= */
+============================================================ */
 
-.graph-legend{
+.graph-legend {
 
-    display:flex;
+    position: relative;
 
-    align-items:center;
+    z-index: 2;
 
-    gap:18px;
+    display: flex;
 
-    flex-wrap:wrap;
+    align-items: center;
 
-    padding:18px 0;
+    gap: 20px;
 
-    border-bottom:1px solid #E2E8F0;
+    flex-wrap: wrap;
 
-}
+    padding: 17px 0;
 
-.legend-title{
+    border-bottom: 1px solid
 
-    color:#475569;
-
-    font-size:.78rem;
-
-    font-weight:700;
+        var(--court-border);
 
 }
 
-.legend-items{
 
-    display:flex;
+.legend-title {
 
-    align-items:center;
+    display: flex;
 
-    flex-wrap:wrap;
+    align-items: center;
 
-    gap:12px 18px;
+    gap: 8px;
 
-}
+    color: #475569;
 
-.legend-item{
+    font-size: .73rem;
 
-    display:inline-flex;
-
-    align-items:center;
-
-    gap:7px;
-
-    color:#64748B;
-
-    font-size:.78rem;
+    font-weight: 750;
 
 }
 
-.legend-dot{
 
-    width:9px;
+.legend-title-mark {
 
-    height:9px;
+    width: 5px;
 
-    border-radius:50%;
+    height: 18px;
+
+    border-radius: 999px;
+
+    background:
+
+        var(--court-gold);
+
+}
+
+
+.legend-items {
+
+    display: flex;
+
+    align-items: center;
+
+    flex-wrap: wrap;
+
+    gap: 10px 19px;
+
+}
+
+
+.legend-item {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    color: #64748B;
+
+    font-size: .72rem;
+
+    font-weight: 500;
+
+}
+
+
+.legend-dot {
+
+    width: 8px;
+
+    height: 8px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+}
+
+
+/* ============================================================
+   ESTADOS
+============================================================ */
+
+.graph-state {
+
+    position: relative;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 20px;
+
+    min-height: 330px;
+
+    margin-top: 22px;
+
+    padding: 38px;
+
+    overflow: hidden;
+
+    border-radius: 18px;
+
+}
+
+
+.graph-loading {
+
+    background:
+
+        linear-gradient(
+
+            135deg,
+
+            #F8FAFC,
+
+            #FDFEFE
+
+        );
+
+    border: 1px solid
+
+        var(--court-border-soft);
+
+}
+
+
+.loading-visual {
+
+    position: relative;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 62px;
+
+    height: 62px;
+
+    flex-shrink: 0;
+
+    border: 1px solid
+
+        rgba(
+
+            176,
+
+            138,
+
+            76,
+
+            .22
+
+        );
+
+    border-radius: 50%;
+
+    color: var(--court-gold);
+
+    background:
+
+        var(--court-gold-soft);
+
+    font-size: 1.45rem;
+
+}
+
+
+.loading-ring {
+
+    position: absolute;
+
+    inset: -7px;
+
+    border: 1px solid
+
+        rgba(
+
+            37,
+
+            99,
+
+            235,
+
+            .16
+
+        );
+
+    border-top-color:
+
+        var(--court-blue);
+
+    border-radius: 50%;
+
+    animation:
+
+        loadingRotate
+
+        1.2s
+
+        linear
+
+        infinite;
+
+}
+
+
+.state-content {
+
+    min-width: 0;
+
+}
+
+
+.state-eyebrow {
+
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: var(--court-gold);
+
+    font-size: .58rem;
+
+    font-weight: 800;
+
+    letter-spacing: .12em;
+
+}
+
+
+.graph-state strong {
+
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: var(--court-navy);
+
+    font-size: 1rem;
+
+    font-weight: 720;
+
+}
+
+
+.graph-state p {
+
+    max-width: 580px;
+
+    margin: 0;
+
+    color: var(--court-muted);
+
+    font-size: .87rem;
+
+    line-height: 1.65;
+
+}
+
+
+/* ============================================================
+   ERROR
+============================================================ */
+
+.graph-error {
+
+    background:
+
+        #FFFAFA;
+
+    border: 1px solid
+
+        #F2D6D6;
+
+}
+
+
+.graph-error .state-eyebrow {
+
+    color: #A05252;
+
+}
+
+
+.graph-error strong {
+
+    color: #7F1D1D;
+
+}
+
+
+.state-icon {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 44px;
+
+    height: 44px;
+
+    flex-shrink: 0;
+
+    border: 1px solid
+
+        #FECACA;
+
+    border-radius: 12px;
+
+    color: #B91C1C;
+
+    background: #FEF2F2;
+
+    font-size: 1rem;
+
+    font-weight: 800;
+
+}
+
+
+/* ============================================================
+   VACÍO
+============================================================ */
+
+.graph-empty {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    min-height: 440px;
+
+    margin-top: 22px;
+
+    padding: 40px;
+
+    text-align: center;
+
+    background:
+
+        radial-gradient(
+
+            circle at center,
+
+            rgba(
+
+                239,
+
+                246,
+
+                255,
+
+                .55
+
+            ),
+
+            transparent 48%
+
+        ),
+
+        #FAFCFE;
+
+    border: 1px dashed
+
+        #CBD5E1;
+
+    border-radius: 18px;
+
+}
+
+
+.empty-visual {
+
+    position: relative;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 86px;
+
+    height: 86px;
+
+    margin-bottom: 19px;
+
+}
+
+
+.empty-orbit {
+
+    position: absolute;
+
+    border: 1px solid;
+
+    border-radius: 50%;
+
+}
+
+
+.empty-orbit-one {
+
+    inset: 0;
+
+    border-color:
+
+        rgba(
+
+            37,
+
+            99,
+
+            235,
+
+            .12
+
+        );
+
+}
+
+
+.empty-orbit-two {
+
+    inset: 10px;
+
+    border-color:
+
+        rgba(
+
+            176,
+
+            138,
+
+            76,
+
+            .22
+
+        );
+
+}
+
+
+.empty-center {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 48px;
+
+    height: 48px;
+
+    border: 1px solid
+
+        var(--court-border);
+
+    border-radius: 50%;
+
+    color: var(--court-gold);
+
+    background: #FFFFFF;
+
+    box-shadow:
+
+        0 8px 20px
+
+        rgba(
+
+            15,
+
+            39,
+
+            71,
+
+            .07
+
+        );
+
+    font-size: 1.35rem;
+
+}
+
+
+.empty-eyebrow {
+
+    margin-bottom: 7px;
+
+    color: var(--court-gold);
+
+    font-size: .58rem;
+
+    font-weight: 800;
+
+    letter-spacing: .13em;
+
+}
+
+
+.graph-empty h3 {
+
+    margin: 0 0 9px;
+
+    color: var(--court-navy);
+
+    font-size: 1.08rem;
+
+    font-weight: 720;
+
+}
+
+
+.graph-empty p {
+
+    max-width: 530px;
+
+    margin: 0;
+
+    color: var(--court-muted);
+
+    font-size: .87rem;
+
+    line-height: 1.72;
+
+}
+
+
+/* ============================================================
+   WORKSPACE
+============================================================ */
+
+.graph-workspace {
+
+    position: relative;
+
+    z-index: 2;
+
+    margin-top: 22px;
+
+}
+
+
+/* ============================================================
+   TOOLBAR
+============================================================ */
+
+.graph-toolbar {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 14px;
+
+    margin-bottom: 11px;
+
+}
+
+
+.toolbar-caption {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    color: #94A3B8;
+
+    font-size: .65rem;
+
+    font-weight: 650;
+
+    letter-spacing: .01em;
+
+}
+
+
+.toolbar-status {
+
+    width: 6px;
+
+    height: 6px;
+
+    border-radius: 50%;
+
+    background:
+
+        var(--court-gold);
 
     box-shadow:
 
         0 0 0 3px
 
         rgba(
-            15,
-            23,
-            42,
-            .04
+
+            176,
+
+            138,
+
+            76,
+
+            .10
+
         );
 
 }
 
 
-/* =========================================
-   ESTADOS
-========================================= */
+.toolbar-actions {
 
-.graph-state{
+    display: flex;
 
-    display:flex;
+    align-items: center;
 
-    align-items:center;
-
-    gap:18px;
-
-    min-height:300px;
-
-    margin-top:22px;
-
-    padding:32px;
-
-    border-radius:18px;
-
-}
-
-.graph-loading{
-
-    color:#475569;
-
-    background:#F8FAFC;
-
-    border:1px dashed #CBD5E1;
-
-}
-
-.graph-error{
-
-    color:#991B1B;
-
-    background:#FEF2F2;
-
-    border:1px solid #FECACA;
-
-}
-
-.graph-state strong{
-
-    display:block;
-
-    margin-bottom:6px;
-
-    color:#0F2747;
-
-    font-size:.98rem;
-
-}
-
-.graph-error strong{
-
-    color:#991B1B;
-
-}
-
-.graph-state p{
-
-    margin:0;
-
-    color:#64748B;
-
-    font-size:.9rem;
-
-    line-height:1.6;
-
-}
-
-.state-icon{
-
-    width:40px;
-
-    height:40px;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    flex-shrink:0;
-
-    border-radius:50%;
-
-    color:#B91C1C;
-
-    background:#FEE2E2;
-
-    font-size:1.1rem;
-
-    font-weight:800;
-
-}
-
-.loading-spinner{
-
-    width:34px;
-
-    height:34px;
-
-    flex-shrink:0;
-
-    border:3px solid #DBEAFE;
-
-    border-top-color:#2563EB;
-
-    border-radius:50%;
-
-    animation:spin .9s linear infinite;
+    gap: 7px;
 
 }
 
 
-/* =========================================
-   VACÍO
-========================================= */
+.toolbar-button {
 
-.graph-empty{
+    display: inline-flex;
 
-    display:flex;
+    align-items: center;
 
-    flex-direction:column;
+    justify-content: center;
 
-    align-items:center;
+    gap: 7px;
 
-    justify-content:center;
+    min-height: 35px;
 
-    min-height:430px;
+    padding: 7px 11px;
 
-    margin-top:22px;
+    border: 1px solid
 
-    padding:40px;
+        var(--court-border);
 
-    text-align:center;
+    border-radius: 9px;
 
-    background:#F8FAFC;
+    cursor: pointer;
 
-    border:1px dashed #CBD5E1;
+    background: #FFFFFF;
 
-    border-radius:18px;
+    color: #52647A;
 
-}
+    font-family: inherit;
 
-.empty-icon{
+    font-size: .71rem;
 
-    width:68px;
-
-    height:68px;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    margin-bottom:18px;
-
-    border-radius:20px;
-
-    color:#2563EB;
-
-    background:#EFF6FF;
-
-    font-size:2rem;
-
-}
-
-.graph-empty h3{
-
-    margin:0 0 10px;
-
-    color:#0F2747;
-
-    font-size:1.08rem;
-
-    font-weight:700;
-
-}
-
-.graph-empty p{
-
-    max-width:500px;
-
-    margin:0;
-
-    color:#64748B;
-
-    font-size:.93rem;
-
-    line-height:1.7;
-
-}
-
-
-/* =========================================
-   WORKSPACE
-========================================= */
-
-.graph-workspace{
-
-    margin-top:22px;
-
-}
-
-.graph-toolbar{
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:flex-end;
-
-    gap:8px;
-
-    margin-bottom:12px;
-
-}
-
-.toolbar-button{
-
-    display:inline-flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    gap:7px;
-
-    min-height:36px;
-
-    padding:8px 12px;
-
-    border:1px solid #E2E8F0;
-
-    border-radius:9px;
-
-    cursor:pointer;
-
-    background:#FFFFFF;
-
-    color:#475569;
-
-    font-family:inherit;
-
-    font-size:.78rem;
-
-    font-weight:650;
+    font-weight: 700;
 
     transition:
 
         color .2s ease,
+
         background .2s ease,
-        border-color .2s ease;
 
-}
+        border-color .2s ease,
 
-.toolbar-button:hover:not(:disabled){
+        box-shadow .2s ease,
 
-    color:#0F2747;
-
-    background:#F8FAFC;
-
-    border-color:#CBD5E1;
-
-}
-
-.toolbar-button:disabled{
-
-    cursor:not-allowed;
-
-    opacity:.45;
+        transform .2s ease;
 
 }
 
 
-/* =========================================
-   ÁREA DEL GRAFO
-========================================= */
+.toolbar-icon {
 
-.graph-main{
+    display: inline-flex;
 
-    position:relative;
+    align-items: center;
 
-    display:grid;
+    justify-content: center;
 
-    grid-template-columns:minmax(0,1fr);
+    color: #64748B;
 
-    min-height:560px;
+    font-size: .95rem;
 
-    overflow:hidden;
-
-    background:
-
-        radial-gradient(
-            circle at 1px 1px,
-            rgba(148,163,184,.18) 1px,
-            transparent 0
-        );
-
-    background-size:22px 22px;
-
-    border:1px solid #E2E8F0;
-
-    border-radius:18px;
-
-}
-
-.graph-canvas{
-
-    width:100%;
-
-    min-height:560px;
-
-    overflow:hidden;
-
-}
-
-.graph-svg{
-
-    display:block;
-
-    width:100%;
-
-    height:560px;
-
-}
-
-
-/* =========================================
-   ELEMENTOS D3
-========================================= */
-
-.graph-svg :deep(.graph-link){
-
-    stroke:#CBD5E1;
-
-    stroke-width:1.5;
-
-    stroke-opacity:.8;
+    line-height: 1;
 
     transition:
 
-        stroke .2s ease,
-        stroke-opacity .2s ease;
-
-}
-
-.graph-svg :deep(.graph-link.is-active){
-
-    stroke:#2563EB;
-
-    stroke-width:2.5;
-
-    stroke-opacity:1;
-
-}
-
-.graph-svg :deep(.graph-link.is-muted){
-
-    stroke-opacity:.15;
-
-}
-
-.graph-svg :deep(.graph-node){
-
-    transition:opacity .2s ease;
-
-}
-
-.graph-svg :deep(.graph-node.is-muted){
-
-    opacity:.22;
-
-}
-
-.graph-svg :deep(.graph-node.is-selected .node-ring){
-
-    stroke:#0F2747;
-
-    stroke-width:2;
-
-    opacity:1;
-
-}
-
-.graph-svg :deep(.node-circle){
-
-    stroke:#FFFFFF;
-
-    stroke-width:3;
-
-    filter:
-
-        drop-shadow(
-            0 4px 8px
-            rgba(15,23,42,.16)
-        );
-
-}
-
-.graph-svg :deep(.node-ring){
-
-    stroke:#2563EB;
-
-    stroke-width:0;
-
-    opacity:0;
-
-}
-
-.graph-svg :deep(.node-text){
-
-    fill:#334155;
-
-    font-family:inherit;
-
-    font-size:12px;
-
-    font-weight:600;
-
-    pointer-events:none;
-
-}
-
-
-/* =========================================
-   PANEL DE DETALLE
-========================================= */
-
-.node-detail-panel{
-
-    position:absolute;
-
-    top:16px;
-
-    right:16px;
-
-    bottom:16px;
-
-    z-index:5;
-
-    width:min(340px,calc(100% - 32px));
-
-    padding:22px;
-
-    overflow-y:auto;
-
-    background:
-
-        rgba(
-            255,
-            255,
-            255,
-            .96
-        );
-
-    backdrop-filter:blur(14px);
-
-    border:1px solid #E2E8F0;
-
-    border-radius:16px;
-
-    box-shadow:
-
-        0 18px 45px
-
-        rgba(
-            15,
-            23,
-            42,
-            .12
-        );
-
-}
-
-.detail-header{
-
-    display:flex;
-
-    align-items:flex-start;
-
-    justify-content:space-between;
-
-    gap:14px;
-
-    padding-bottom:18px;
-
-    border-bottom:1px solid #E2E8F0;
-
-}
-
-.detail-type{
-
-    display:block;
-
-    margin-bottom:7px;
-
-    font-size:.68rem;
-
-    font-weight:750;
-
-    letter-spacing:.8px;
-
-}
-
-.detail-header h3{
-
-    margin:0;
-
-    color:#0F2747;
-
-    font-size:1.05rem;
-
-    line-height:1.45;
-
-}
-
-.close-button{
-
-    width:32px;
-
-    height:32px;
-
-    flex-shrink:0;
-
-    border:1px solid #E2E8F0;
-
-    border-radius:8px;
-
-    cursor:pointer;
-
-    background:#FFFFFF;
-
-    color:#64748B;
-
-    font-size:1.2rem;
-
-    transition:
-
-        background .2s ease,
         color .2s ease;
 
 }
 
-.close-button:hover{
 
-    color:#0F2747;
+.toolbar-button:hover:not(:disabled) {
 
-    background:#F8FAFC;
+    color: var(--court-navy);
 
-}
+    background:
 
-.detail-section{
+        linear-gradient(
 
-    padding:18px 0;
+            180deg,
 
-    border-bottom:1px solid #E2E8F0;
+            #FFFFFF,
 
-}
+            #F8FAFC
 
-.detail-label{
+        );
 
-    display:block;
+    border-color:
 
-    margin-bottom:9px;
+        #C9D3DF;
 
-    color:#64748B;
+    box-shadow:
 
-    font-size:.7rem;
+        0 4px 12px
 
-    font-weight:750;
+        rgba(
 
-    letter-spacing:.6px;
+            15,
 
-    text-transform:uppercase;
+            39,
 
-}
+            71,
 
-.detail-section p{
+            .055
 
-    margin:0;
+        );
 
-    color:#475569;
+    transform:
 
-    font-size:.88rem;
-
-    line-height:1.7;
+        translateY(-1px);
 
 }
 
-.label-list{
 
-    display:flex;
+.toolbar-button:hover:not(:disabled)
 
-    flex-wrap:wrap;
+.toolbar-icon {
 
-    gap:7px;
-
-}
-
-.node-label{
-
-    display:inline-flex;
-
-    align-items:center;
-
-    padding:5px 8px;
-
-    border:1px solid #DBEAFE;
-
-    border-radius:999px;
-
-    color:#1D4ED8;
-
-    background:#EFF6FF;
-
-    font-size:.72rem;
-
-    font-weight:650;
-
-}
-
-.attributes-list{
-
-    display:flex;
-
-    flex-direction:column;
-
-    gap:10px;
-
-}
-
-.attribute-row{
-
-    display:flex;
-
-    flex-direction:column;
-
-    gap:4px;
-
-    padding:10px;
-
-    background:#F8FAFC;
-
-    border:1px solid #E2E8F0;
-
-    border-radius:9px;
-
-}
-
-.attribute-row span{
-
-    color:#64748B;
-
-    font-size:.72rem;
-
-    font-weight:600;
-
-}
-
-.attribute-row strong{
-
-    overflow-wrap:anywhere;
-
-    color:#334155;
-
-    font-size:.8rem;
-
-    font-weight:650;
-
-    line-height:1.5;
-
-}
-
-.detail-footer{
-
-    padding-top:18px;
-
-    color:#64748B;
-
-    font-size:.78rem;
-
-}
-
-.detail-footer span{
-
-    margin-right:3px;
-
-    color:#0F2747;
-
-    font-weight:750;
+    color: var(--court-gold-dark);
 
 }
 
 
-/* =========================================
+.toolbar-button:disabled {
+
+    cursor: not-allowed;
+
+    opacity: .4;
+
+}
+
+
+/* ============================================================
+   ÁREA DEL GRAFO
+============================================================ */
+
+.graph-main {
+
+    position: relative;
+
+    min-height: 560px;
+
+    overflow: hidden;
+
+    background-color: #FBFCFE;
+
+    background-image:
+
+        radial-gradient(
+
+            circle at 1px 1px,
+
+            rgba(
+
+                100,
+
+                116,
+
+                139,
+
+                .13
+
+            ) 1px,
+
+            transparent 0
+
+        );
+
+    background-size: 22px 22px;
+
+    border: 1px solid
+
+        var(--court-border);
+
+    border-radius: 18px;
+
+    box-shadow:
+
+        inset 0 1px 0
+
+        rgba(
+
+            255,
+
+            255,
+
+            255,
+
+            .9
+
+        );
+
+}
+
+
+.graph-main::before {
+
+    content: "";
+
+    position: absolute;
+
+    z-index: 0;
+
+    inset: 0;
+
+    pointer-events: none;
+
+    background:
+
+        linear-gradient(
+
+            90deg,
+
+            rgba(
+
+                255,
+
+                255,
+
+                255,
+
+                .28
+
+            ),
+
+            transparent 20%,
+
+            transparent 80%,
+
+            rgba(
+
+                255,
+
+                255,
+
+                255,
+
+                .32
+
+            )
+
+        );
+
+}
+
+
+.canvas-watermark {
+
+    position: absolute;
+
+    z-index: 0;
+
+    right: 24px;
+
+    bottom: 16px;
+
+    color:
+
+        rgba(
+
+            15,
+
+            39,
+
+            71,
+
+            .035
+
+        );
+
+    font-family:
+
+        Georgia,
+
+        "Times New Roman",
+
+        serif;
+
+    font-size: 3.2rem;
+
+    font-weight: 700;
+
+    letter-spacing: -.06em;
+
+    pointer-events: none;
+
+}
+
+
+/* ============================================================
+   CANVAS
+============================================================ */
+
+.graph-canvas {
+
+    position: relative;
+
+    z-index: 1;
+
+    width: 100%;
+
+    min-height: 560px;
+
+    overflow: hidden;
+
+}
+
+
+.graph-svg {
+
+    display: block;
+
+    width: 100%;
+
+    height: 560px;
+
+    overflow: visible;
+
+}
+
+
+/* ============================================================
+   ELEMENTOS D3 — RELACIONES
+============================================================ */
+
+.graph-svg :deep(.graph-link) {
+
+    stroke:
+
+        #CBD5E1;
+
+    stroke-width: 1.25;
+
+    stroke-opacity: .72;
+
+    transition:
+
+        stroke .2s ease,
+
+        stroke-width .2s ease,
+
+        stroke-opacity .2s ease;
+
+}
+
+
+.graph-svg :deep(.graph-link.is-active) {
+
+    stroke:
+
+        var(--court-gold);
+
+    stroke-width: 2.5;
+
+    stroke-opacity: 1;
+
+}
+
+
+.graph-svg :deep(.graph-link.is-muted) {
+
+    stroke-opacity: .10;
+
+}
+
+
+/* ============================================================
+   NODOS
+============================================================ */
+
+.graph-svg :deep(.graph-node) {
+
+    transition:
+
+        opacity .2s ease;
+
+}
+
+
+.graph-svg :deep(.graph-node.is-muted) {
+
+    opacity: .18;
+
+}
+
+
+.graph-svg :deep(.node-aura) {
+
+    pointer-events: none;
+
+}
+
+
+.graph-svg :deep(.node-circle) {
+
+    stroke:
+
+        #FFFFFF;
+
+    stroke-width: 2.5;
+
+}
+
+
+.graph-svg :deep(.node-ring) {
+
+    stroke:
+
+        var(--court-gold);
+
+    stroke-width: 1.5;
+
+    stroke-opacity: 0;
+
+    transform-origin: center;
+
+    transition:
+
+        stroke-opacity .2s ease,
+
+        stroke-width .2s ease,
+
+        r .2s ease;
+
+}
+
+
+.graph-svg :deep(.graph-node.is-selected .node-ring) {
+
+    stroke-opacity: 1;
+
+    stroke-width: 2;
+
+}
+
+
+.graph-svg :deep(.graph-node.is-selected .node-aura) {
+
+    opacity: 1;
+
+}
+
+
+.graph-svg :deep(.node-core) {
+
+    pointer-events: none;
+
+}
+
+
+/* ============================================================
+   TEXTO DE LOS NODOS
+============================================================ */
+
+.graph-svg :deep(.node-text) {
+
+    fill:
+
+        #334155;
+
+    font-family:
+
+        Inter,
+
+        ui-sans-serif,
+
+        system-ui,
+
+        -apple-system,
+
+        BlinkMacSystemFont,
+
+        "Segoe UI",
+
+        sans-serif;
+
+    font-size: 12px;
+
+    font-weight: 650;
+
+    letter-spacing: -.005em;
+
+    pointer-events: none;
+
+}
+
+
+/* ============================================================
+   PANEL DE DETALLE
+============================================================ */
+
+.node-detail-panel {
+
+    position: absolute;
+
+    z-index: 5;
+
+    top: 15px;
+
+    right: 15px;
+
+    bottom: 15px;
+
+    width: min(
+
+        340px,
+
+        calc(100% - 30px)
+
+    );
+
+    padding: 21px;
+
+    overflow-y: auto;
+
+    background:
+
+        rgba(
+
+            255,
+
+            255,
+
+            255,
+
+            .965
+
+        );
+
+    backdrop-filter:
+
+        blur(18px);
+
+    -webkit-backdrop-filter:
+
+        blur(18px);
+
+    border: 1px solid
+
+        rgba(
+
+            226,
+
+            232,
+
+            240,
+
+            .92
+
+        );
+
+    border-radius: 16px;
+
+    box-shadow:
+
+        0 18px 50px
+
+        rgba(
+
+            15,
+
+            39,
+
+            71,
+
+            .13
+
+        ),
+
+        0 2px 8px
+
+        rgba(
+
+            15,
+
+            39,
+
+            71,
+
+            .04
+
+        );
+
+    animation:
+
+        detailAppear
+
+        .22s
+
+        ease
+
+        both;
+
+}
+
+
+.detail-panel-accent {
+
+    position: absolute;
+
+    top: 0;
+
+    left: 21px;
+
+    right: 21px;
+
+    height: 2px;
+
+    border-radius: 0 0 999px 999px;
+
+    background:
+
+        linear-gradient(
+
+            90deg,
+
+            var(--court-navy),
+
+            var(--court-blue),
+
+            var(--court-gold)
+
+        );
+
+}
+
+
+/* ============================================================
+   CABECERA DEL DETALLE
+============================================================ */
+
+.detail-header {
+
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+
+    gap: 14px;
+
+    padding-bottom: 18px;
+
+    border-bottom: 1px solid
+
+        var(--court-border);
+
+}
+
+
+.detail-heading {
+
+    min-width: 0;
+
+}
+
+
+.detail-type {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    margin-bottom: 7px;
+
+    font-size: .61rem;
+
+    font-weight: 800;
+
+    letter-spacing: .08em;
+
+}
+
+
+.detail-type-dot {
+
+    width: 6px;
+
+    height: 6px;
+
+    border-radius: 50%;
+
+}
+
+
+.detail-header h3 {
+
+    margin: 0;
+
+    color: var(--court-navy);
+
+    font-size: 1.03rem;
+
+    font-weight: 720;
+
+    line-height: 1.42;
+
+    letter-spacing: -.01em;
+
+}
+
+
+/* ============================================================
+   BOTÓN CERRAR
+============================================================ */
+
+.close-button {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 31px;
+
+    height: 31px;
+
+    flex-shrink: 0;
+
+    border: 1px solid
+
+        var(--court-border);
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    background: #FFFFFF;
+
+    color: #64748B;
+
+    font-family: inherit;
+
+    font-size: 1.15rem;
+
+    line-height: 1;
+
+    transition:
+
+        color .2s ease,
+
+        background .2s ease,
+
+        border-color .2s ease;
+
+}
+
+
+.close-button:hover {
+
+    color: var(--court-navy);
+
+    background:
+
+        var(--court-gold-soft);
+
+    border-color:
+
+        rgba(
+
+            176,
+
+            138,
+
+            76,
+
+            .28
+
+        );
+
+}
+
+
+/* ============================================================
+   SECCIONES DEL DETALLE
+============================================================ */
+
+.detail-section {
+
+    padding: 17px 0;
+
+    border-bottom: 1px solid
+
+        var(--court-border-soft);
+
+}
+
+
+.detail-label {
+
+    display: block;
+
+    margin-bottom: 8px;
+
+    color: #94A3B8;
+
+    font-size: .61rem;
+
+    font-weight: 800;
+
+    letter-spacing: .10em;
+
+    text-transform: uppercase;
+
+}
+
+
+.detail-section p {
+
+    margin: 0;
+
+    color: #475569;
+
+    font-size: .83rem;
+
+    line-height: 1.72;
+
+}
+
+
+/* ============================================================
+   ETIQUETAS
+============================================================ */
+
+.label-list {
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 6px;
+
+}
+
+
+.node-label {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    padding: 5px 8px;
+
+    border: 1px solid
+
+        #D9E5F5;
+
+    border-radius: 999px;
+
+    color: var(--court-blue-dark);
+
+    background:
+
+        var(--court-blue-soft);
+
+    font-size: .66rem;
+
+    font-weight: 650;
+
+}
+
+
+/* ============================================================
+   ATRIBUTOS
+============================================================ */
+
+.attributes-list {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+
+}
+
+
+.attribute-row {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 4px;
+
+    padding: 10px;
+
+    background:
+
+        #FAFBFC;
+
+    border: 1px solid
+
+        var(--court-border-soft);
+
+    border-radius: 9px;
+
+}
+
+
+.attribute-row span {
+
+    color: #94A3B8;
+
+    font-size: .66rem;
+
+    font-weight: 650;
+
+}
+
+
+.attribute-row strong {
+
+    overflow-wrap: anywhere;
+
+    color: #334155;
+
+    font-size: .76rem;
+
+    font-weight: 650;
+
+    line-height: 1.5;
+
+}
+
+
+/* ============================================================
+   FOOTER DEL DETALLE
+============================================================ */
+
+.detail-footer {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    padding-top: 17px;
+
+    color: #64748B;
+
+    font-size: .71rem;
+
+}
+
+
+.detail-footer strong {
+
+    color: var(--court-navy);
+
+    font-weight: 760;
+
+}
+
+
+.connection-indicator {
+
+    width: 6px;
+
+    height: 6px;
+
+    margin-right: 2px;
+
+    border-radius: 50%;
+
+    background:
+
+        var(--court-gold);
+
+}
+
+
+/* ============================================================
+   FIRMA INSTITUCIONAL
+============================================================ */
+
+.graph-footer-mark {
+
+    position: relative;
+
+    z-index: 2;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    margin-top: 17px;
+
+    color: #A0ACBA;
+
+    font-size: .51rem;
+
+    font-weight: 800;
+
+    letter-spacing: .13em;
+
+    white-space: nowrap;
+
+}
+
+
+.footer-line {
+
+    width: 18px;
+
+    height: 1px;
+
+    background:
+
+        #D4DCE5;
+
+}
+
+
+/* ============================================================
    ANIMACIONES
-========================================= */
+============================================================ */
 
-@keyframes spin{
+@keyframes loadingRotate {
 
-    to{
+    to {
 
-        transform:rotate(360deg);
+        transform:
 
-    }
-
-}
-
-
-/* =========================================
-   RESPONSIVE
-========================================= */
-
-@media(max-width:900px){
-
-    .graph-header{
-
-        flex-direction:column;
-
-        gap:18px;
-
-    }
-
-    .graph-stats{
-
-        align-self:flex-start;
-
-    }
-
-    .graph-main{
-
-        min-height:520px;
-
-    }
-
-    .graph-canvas{
-
-        min-height:520px;
-
-    }
-
-    .graph-svg{
-
-        height:520px;
+            rotate(360deg);
 
     }
 
 }
 
 
-@media(max-width:700px){
+@keyframes detailAppear {
 
-    .graph-panel{
+    from {
 
-        padding:22px;
+        opacity: 0;
 
-    }
+        transform:
 
-    .graph-legend{
-
-        align-items:flex-start;
-
-        flex-direction:column;
-
-        gap:12px;
+            translateX(10px);
 
     }
 
-    .graph-toolbar{
+    to {
 
-        justify-content:flex-start;
+        opacity: 1;
 
-        overflow-x:auto;
+        transform:
 
-    }
-
-    .toolbar-button span{
-
-        display:none;
-
-    }
-
-    .toolbar-button{
-
-        width:38px;
-
-        padding:8px;
-
-    }
-
-    .graph-main{
-
-        min-height:480px;
-
-    }
-
-    .graph-canvas{
-
-        min-height:480px;
-
-    }
-
-    .graph-svg{
-
-        height:480px;
-
-    }
-
-    .node-detail-panel{
-
-        top:auto;
-
-        right:10px;
-
-        bottom:10px;
-
-        left:10px;
-
-        width:auto;
-
-        max-height:60%;
+            translateX(0);
 
     }
 
 }
 
 
-@media(max-width:480px){
+/* ============================================================
+   RESPONSIVE — 900px
+============================================================ */
 
-    .graph-panel{
+@media (max-width: 900px) {
 
-        padding:18px;
+    .graph-header {
 
-        border-radius:18px;
+        flex-direction: column;
 
-    }
-
-    .graph-heading h2{
-
-        font-size:1.3rem;
+        gap: 18px;
 
     }
 
-    .graph-stats{
 
-        width:100%;
+    .graph-stats {
 
-        justify-content:center;
+        align-self: flex-start;
 
     }
 
-    .graph-empty{
 
-        min-height:360px;
+    .graph-main {
 
-        padding:30px 20px;
+        min-height: 520px;
+
+    }
+
+
+    .graph-canvas {
+
+        min-height: 520px;
+
+    }
+
+
+    .graph-svg {
+
+        height: 520px;
 
     }
 
 }
+
+
+/* ============================================================
+   RESPONSIVE — 700px
+============================================================ */
+
+@media (max-width: 700px) {
+
+    .graph-panel {
+
+        padding: 23px;
+
+    }
+
+
+    .graph-legend {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 12px;
+
+    }
+
+
+    .graph-toolbar {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+    }
+
+
+    .toolbar-actions {
+
+        width: 100%;
+
+    }
+
+
+    .toolbar-button {
+
+        flex: 0 0 auto;
+
+    }
+
+
+    .graph-main {
+
+        min-height: 480px;
+
+    }
+
+
+    .graph-canvas {
+
+        min-height: 480px;
+
+    }
+
+
+    .graph-svg {
+
+        height: 480px;
+
+    }
+
+
+    .node-detail-panel {
+
+        top: auto;
+
+        right: 10px;
+
+        bottom: 10px;
+
+        left: 10px;
+
+        width: auto;
+
+        max-height: 60%;
+
+    }
+
+}
+
+
+/* ============================================================
+   RESPONSIVE — 480px
+============================================================ */
+
+@media (max-width: 480px) {
+
+    .graph-panel {
+
+        padding: 18px;
+
+        border-radius: 18px;
+
+    }
+
+
+    .section-label {
+
+        font-size: .58rem;
+
+        letter-spacing: .10em;
+
+    }
+
+
+    .label-line {
+
+        width: 18px;
+
+    }
+
+
+    .graph-heading h2 {
+
+        font-size: 1.32rem;
+
+    }
+
+
+    .graph-heading p {
+
+        font-size: .83rem;
+
+    }
+
+
+    .graph-stats {
+
+        width: 100%;
+
+        justify-content: center;
+
+    }
+
+
+    .legend-items {
+
+        gap: 9px 14px;
+
+    }
+
+
+    .legend-item {
+
+        font-size: .68rem;
+
+    }
+
+
+    .graph-toolbar {
+
+        gap: 9px;
+
+    }
+
+
+    .toolbar-caption {
+
+        display: none;
+
+    }
+
+
+    .toolbar-actions {
+
+        justify-content: flex-start;
+
+    }
+
+
+    .toolbar-button {
+
+        min-width: 37px;
+
+        padding: 8px;
+
+    }
+
+
+    .toolbar-button span:not(.toolbar-icon) {
+
+        display: none;
+
+    }
+
+
+    .graph-empty {
+
+        min-height: 370px;
+
+        padding: 30px 20px;
+
+    }
+
+
+    .graph-empty p {
+
+        font-size: .82rem;
+
+    }
+
+
+    .graph-footer-mark {
+
+        font-size: .46rem;
+
+        letter-spacing: .09em;
+
+    }
+
+
+    .footer-line {
+
+        width: 11px;
+
+    }
+
+}
+
+
+/* ============================================================
+   REDUCED MOTION
+============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .loading-ring,
+
+    .node-detail-panel {
+
+        animation: none;
+
+    }
+
+
+    .toolbar-button,
+
+    .close-button,
+
+    .graph-svg :deep(*) {
+
+        transition: none;
+
+    }
+
+}
+
 </style>

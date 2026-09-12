@@ -11,7 +11,7 @@
             <div class="section-heading">
 
                 <span class="section-eyebrow">
-                    SIMULACIÓN JUDICIAL
+                    NOVACOURT · SIMULACIÓN JUDICIAL
                 </span>
 
                 <h2>
@@ -39,12 +39,20 @@
 
             <div class="field-header">
 
-                <label
-                    class="input-label"
-                    for="case-description"
-                >
-                    Descripción del caso
-                </label>
+                <div class="field-title">
+
+                    <span class="field-index">
+                        01
+                    </span>
+
+                    <label
+                        class="input-label"
+                        for="case-description"
+                    >
+                        Descripción del caso
+                    </label>
+
+                </div>
 
                 <span class="minimum-hint">
                     Mínimo 20 caracteres
@@ -53,59 +61,111 @@
             </div>
 
 
-            <textarea
-                id="case-description"
-                v-model="localValue"
-                class="case-textarea"
-                placeholder="Describe los hechos relevantes, las partes involucradas, pretensiones, argumentos, evidencia disponible y cualquier información jurídica importante..."
-                rows="12"
-                :disabled="loading"
-            />
+            <!-- =====================================
+                 TEXTAREA
+            ====================================== -->
 
+            <div class="textarea-wrapper">
+
+                <textarea
+                    id="case-description"
+                    v-model="localValue"
+                    class="case-textarea"
+                    placeholder="Describe los hechos relevantes, las partes involucradas, pretensiones, argumentos, evidencia disponible y cualquier información jurídica importante..."
+                    rows="12"
+                    :disabled="loading"
+                ></textarea>
+
+                <div class="textarea-corner">
+                    NOVACOURT
+                </div>
+
+            </div>
+
+
+            <!-- =====================================
+                 PIE DEL FORMULARIO
+            ====================================== -->
 
             <div class="input-footer">
 
                 <div class="input-status">
 
-                    <span class="character-count">
-                        {{ localValue.length }} caracteres
-                    </span>
+                    <div class="character-row">
 
-                    <span
-                        v-if="localValue.trim().length > 0 && localValue.trim().length < 20"
-                        class="validation-message"
-                    >
-                        Añade al menos {{ 20 - localValue.trim().length }} caracteres más
-                    </span>
+                        <span class="character-count">
+                            {{ localValue.length }} caracteres
+                        </span>
 
-                    <span
-                        v-else-if="localValue.trim().length >= 20"
-                        class="ready-message"
-                    >
-                        Listo para iniciar la simulación
-                    </span>
+                        <span
+                            v-if="localValue.trim().length > 0 && localValue.trim().length < 20"
+                            class="validation-message"
+                        >
+                            Faltan {{ 20 - localValue.trim().length }}
+                        </span>
+
+                        <span
+                            v-else-if="localValue.trim().length >= 20"
+                            class="ready-message"
+                        >
+                            Caso listo para análisis
+                        </span>
+
+                    </div>
+
+                    <div class="status-line">
+
+                        <span
+                            class="status-indicator"
+                            :class="{
+                                'is-ready': localValue.trim().length >= 20
+                            }"
+                        ></span>
+
+                        <span>
+                            {{ localValue.trim().length >= 20
+                                ? "Información suficiente para iniciar"
+                                : "Ingresa la información del caso"
+                            }}
+                        </span>
+
+                    </div>
 
                 </div>
 
 
+                <!-- =================================
+                     BOTÓN
+                ================================== -->
+
                 <button
+                    type="button"
                     class="simulate-button"
                     :disabled="!canSimulate"
                     @click="handleSimulate"
                 >
 
-                    <span
-                        v-if="loading"
-                        class="button-content"
-                    >
-                        Analizando escenario...
-                    </span>
+                    <span class="button-content">
 
-                    <span
-                        v-else
-                        class="button-content"
-                    >
-                        Iniciar simulación
+                        <span
+                            v-if="loading"
+                            class="button-spinner"
+                        ></span>
+
+                        <span>
+                            {{ loading
+                                ? "Analizando escenario..."
+                                : "Iniciar simulación"
+                            }}
+                        </span>
+
+                        <span
+                            v-if="!loading"
+                            class="button-arrow"
+                        >
+                            →
+                        </span>
+
                     </span>
 
                 </button>
@@ -128,11 +188,16 @@ import {
 } from "vue"
 
 
+/* =========================================
+   PROPS
+========================================= */
+
 const props = defineProps({
 
     modelValue: {
 
         type: String,
+
         default: ""
 
     },
@@ -140,6 +205,7 @@ const props = defineProps({
     loading: {
 
         type: Boolean,
+
         default: false
 
     }
@@ -147,22 +213,39 @@ const props = defineProps({
 })
 
 
+/* =========================================
+   EVENTOS
+========================================= */
+
 const emit = defineEmits([
+
     "update:modelValue",
+
     "simulate"
+
 ])
 
 
+/* =========================================
+   ESTADO LOCAL
+========================================= */
+
 const localValue = ref(
+
     props.modelValue
+
 )
 
+
+/* =========================================
+   SINCRONIZACIÓN
+========================================= */
 
 watch(
 
     () => props.modelValue,
 
-    (value) => {
+    value => {
 
         localValue.value = value
 
@@ -175,17 +258,24 @@ watch(
 
     localValue,
 
-    (value) => {
+    value => {
 
         emit(
+
             "update:modelValue",
+
             value
+
         )
 
     }
 
 )
 
+
+/* =========================================
+   VALIDACIÓN
+========================================= */
 
 const canSimulate = computed(() =>
 
@@ -198,20 +288,24 @@ const canSimulate = computed(() =>
 )
 
 
+/* =========================================
+   SIMULACIÓN
+========================================= */
+
 function handleSimulate() {
 
-    if (
-        !canSimulate.value
-    ) {
+    if (!canSimulate.value) {
 
         return
 
     }
 
-
     emit(
+
         "simulate",
+
         localValue.value.trim()
+
     )
 
 }
@@ -223,15 +317,17 @@ function handleSimulate() {
 
 /* =====================================================
    NOVACOURT INPUT
+   IDENTIDAD VISUAL
 
-   DIRECCIÓN VISUAL:
-   JURÍDICA · SOBRIA · INSTITUCIONAL · ELEGANTE
-
-   IMPORTANTE:
-   ESTA SECCIÓN NO DEBE FUNCIONAR COMO UNA "CARD".
-   LA ESTRUCTURA DEBE SENTIRSE COMO UNA SECCIÓN
-   DE UNA WEB INSTITUCIONAL, SIMILAR A LA LANDING
-   PRINCIPAL DE NOVA IURIS.
+   NOVA IURIS
+   ─────────────────────────────────────────────────────
+   • Institucional
+   • Jurídico
+   • Premium
+   • Blanco / Navy / Azul
+   • Líneas finas
+   • Espaciado editorial
+   • Sin apariencia de card genérica
 ===================================================== */
 
 
@@ -245,9 +341,13 @@ function handleSimulate() {
 
     margin: 0;
 
-    padding: 42px 48px 44px;
+    padding: 46px 52px 48px;
 
     background: #FFFFFF;
+
+    color: #17375E;
+
+    box-sizing: border-box;
 
 }
 
@@ -258,11 +358,9 @@ function handleSimulate() {
 
 .input-header {
 
-    padding-bottom: 28px;
+    padding-bottom: 30px;
 
-    border-bottom:
-        1px solid
-        #D9E0E8;
+    border-bottom: 1px solid #DCE3EB;
 
 }
 
@@ -271,7 +369,7 @@ function handleSimulate() {
 
     width: 100%;
 
-    max-width: 920px;
+    max-width: 940px;
 
 }
 
@@ -282,19 +380,23 @@ function handleSimulate() {
 
 .section-eyebrow {
 
-    display: block;
+    display: inline-flex;
 
-    margin-bottom: 16px;
+    align-items: center;
+
+    margin-bottom: 14px;
 
     color: #315C97;
 
     font-size: .68rem;
 
-    font-weight: 700;
+    font-weight: 750;
 
-    letter-spacing: 1.45px;
+    letter-spacing: 1.55px;
 
     line-height: 1.2;
+
+    text-transform: uppercase;
 
 }
 
@@ -314,28 +416,28 @@ function handleSimulate() {
         "Times New Roman",
         serif;
 
-    font-size: 2rem;
+    font-size: 2.05rem;
 
     font-weight: 500;
 
     line-height: 1.25;
 
-    letter-spacing: -.2px;
+    letter-spacing: -.25px;
 
 }
 
 
 /* =====================================================
-   LÍNEA DE IDENTIDAD
+   ACENTO DE IDENTIDAD
 ===================================================== */
 
 .title-accent {
 
-    width: 46px;
+    width: 48px;
 
     height: 2px;
 
-    margin: 18px 0;
+    margin: 18px 0 17px;
 
     background: #315C97;
 
@@ -348,19 +450,19 @@ function handleSimulate() {
 
 .input-header p {
 
-    max-width: 900px;
+    max-width: 880px;
 
     margin: 0;
 
     color: #5E6D7E;
 
-    font-size: .97rem;
+    font-size: .95rem;
 
     font-weight: 400;
 
     line-height: 1.85;
 
-    letter-spacing: .01em;
+    letter-spacing: .005em;
 
 }
 
@@ -371,7 +473,7 @@ function handleSimulate() {
 
 .input-body {
 
-    margin-top: 30px;
+    margin-top: 32px;
 
 }
 
@@ -395,11 +497,53 @@ function handleSimulate() {
 }
 
 
+.field-title {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+}
+
+
+.field-index {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    min-width: 26px;
+
+    height: 22px;
+
+    padding: 0 7px;
+
+    box-sizing: border-box;
+
+    border: 1px solid #D4DFEB;
+
+    color: #315C97;
+
+    background: #F7F9FC;
+
+    font-size: .65rem;
+
+    font-weight: 750;
+
+    letter-spacing: .5px;
+
+}
+
+
 .input-label {
 
     color: #17375E;
 
-    font-size: .88rem;
+    font-size: .87rem;
 
     font-weight: 700;
 
@@ -412,9 +556,22 @@ function handleSimulate() {
 
     color: #7A8795;
 
-    font-size: .78rem;
+    font-size: .75rem;
 
     line-height: 1.4;
+
+}
+
+
+/* =====================================================
+   CONTENEDOR DEL TEXTAREA
+===================================================== */
+
+.textarea-wrapper {
+
+    position: relative;
+
+    width: 100%;
 
 }
 
@@ -429,13 +586,13 @@ function handleSimulate() {
 
     width: 100%;
 
-    min-height: 320px;
+    min-height: 330px;
 
     box-sizing: border-box;
 
     resize: vertical;
 
-    padding: 21px 22px;
+    padding: 22px 24px 42px;
 
     outline: none;
 
@@ -443,15 +600,13 @@ function handleSimulate() {
 
     color: #24364A;
 
-    border:
-        1px solid
-        #C9D3DE;
+    border: 1px solid #C9D3DE;
 
-    border-radius: 0;
+    border-radius: 2px;
 
     font-family: inherit;
 
-    font-size: .96rem;
+    font-size: .95rem;
 
     font-weight: 400;
 
@@ -476,7 +631,7 @@ function handleSimulate() {
 
 .case-textarea:hover:not(:disabled) {
 
-    border-color: #9DAEBD;
+    border-color: #9EAFBF;
 
 }
 
@@ -493,7 +648,7 @@ function handleSimulate() {
             49,
             92,
             151,
-            .08
+            .07
         );
 
 }
@@ -511,6 +666,33 @@ function handleSimulate() {
 
 
 /* =====================================================
+   MARCA INTERNA
+===================================================== */
+
+.textarea-corner {
+
+    position: absolute;
+
+    right: 14px;
+
+    bottom: 11px;
+
+    pointer-events: none;
+
+    color: #A3AFBB;
+
+    font-size: .58rem;
+
+    font-weight: 750;
+
+    letter-spacing: 1.1px;
+
+    opacity: .75;
+
+}
+
+
+/* =====================================================
    PIE DEL FORMULARIO
 ===================================================== */
 
@@ -522,9 +704,9 @@ function handleSimulate() {
 
     justify-content: space-between;
 
-    gap: 24px;
+    gap: 28px;
 
-    margin-top: 20px;
+    margin-top: 18px;
 
 }
 
@@ -535,7 +717,18 @@ function handleSimulate() {
 
     flex-direction: column;
 
-    gap: 5px;
+    gap: 7px;
+
+}
+
+
+.character-row {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
 
 }
 
@@ -544,7 +737,7 @@ function handleSimulate() {
 
     color: #687789;
 
-    font-size: .79rem;
+    font-size: .76rem;
 
     line-height: 1.4;
 
@@ -553,9 +746,13 @@ function handleSimulate() {
 
 .validation-message {
 
+    padding-left: 12px;
+
+    border-left: 1px solid #D7E0E9;
+
     color: #315C97;
 
-    font-size: .79rem;
+    font-size: .76rem;
 
     line-height: 1.4;
 
@@ -564,13 +761,73 @@ function handleSimulate() {
 
 .ready-message {
 
+    padding-left: 12px;
+
+    border-left: 1px solid #D7E0E9;
+
     color: #315C97;
 
-    font-size: .79rem;
+    font-size: .76rem;
 
-    font-weight: 600;
+    font-weight: 650;
 
     line-height: 1.4;
+
+}
+
+
+/* =====================================================
+   ESTADO
+===================================================== */
+
+.status-line {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    color: #8793A0;
+
+    font-size: .7rem;
+
+    line-height: 1.4;
+
+}
+
+
+.status-indicator {
+
+    width: 6px;
+
+    height: 6px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #CBD5E1;
+
+    transition:
+        background .2s ease,
+        box-shadow .2s ease;
+
+}
+
+
+.status-indicator.is-ready {
+
+    background: #315C97;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(
+            49,
+            92,
+            151,
+            .09
+        );
 
 }
 
@@ -589,17 +846,17 @@ function handleSimulate() {
 
     flex-shrink: 0;
 
-    min-width: 220px;
+    min-width: 238px;
 
-    min-height: 48px;
+    min-height: 50px;
 
-    padding: 13px 26px;
+    padding: 13px 24px;
 
-    border:
-        1px solid
-        #17375E;
+    box-sizing: border-box;
 
-    border-radius: 0;
+    border: 1px solid #17375E;
+
+    border-radius: 2px;
 
     cursor: pointer;
 
@@ -609,11 +866,11 @@ function handleSimulate() {
 
     font-family: inherit;
 
-    font-size: .82rem;
+    font-size: .76rem;
 
-    font-weight: 700;
+    font-weight: 750;
 
-    letter-spacing: .04em;
+    letter-spacing: .07em;
 
     text-transform: uppercase;
 
@@ -621,6 +878,7 @@ function handleSimulate() {
         background .2s ease,
         border-color .2s ease,
         transform .2s ease,
+        box-shadow .2s ease,
         opacity .2s ease;
 
 }
@@ -634,13 +892,33 @@ function handleSimulate() {
 
     justify-content: center;
 
-    text-align: center;
+    gap: 11px;
+
+    white-space: nowrap;
+
+}
+
+
+.button-arrow {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 1rem;
+
+    line-height: 1;
+
+    transition:
+        transform .2s ease;
 
 }
 
 
 /* =====================================================
-   INTERACCIONES
+   HOVER
 ===================================================== */
 
 .simulate-button:hover:not(:disabled) {
@@ -649,13 +927,37 @@ function handleSimulate() {
 
     border-color: #102A49;
 
+    box-shadow:
+        0 7px 18px
+        rgba(
+            23,
+            55,
+            94,
+            .14
+        );
+
     transform:
         translateY(-1px);
 
 }
 
 
+.simulate-button:hover:not(:disabled)
+.button-arrow {
+
+    transform:
+        translateX(3px);
+
+}
+
+
+/* =====================================================
+   ACTIVE
+===================================================== */
+
 .simulate-button:active:not(:disabled) {
+
+    box-shadow: none;
 
     transform:
         translateY(0);
@@ -663,17 +965,96 @@ function handleSimulate() {
 }
 
 
+/* =====================================================
+   DISABLED
+===================================================== */
+
 .simulate-button:disabled {
 
     cursor: not-allowed;
 
-    opacity: .45;
+    opacity: .42;
 
 }
 
 
 /* =====================================================
-   RESPONSIVE - TABLET
+   SPINNER
+===================================================== */
+
+.button-spinner {
+
+    width: 13px;
+
+    height: 13px;
+
+    box-sizing: border-box;
+
+    border:
+        2px solid
+        rgba(
+            255,
+            255,
+            255,
+            .35
+        );
+
+    border-top-color: #FFFFFF;
+
+    border-radius: 50%;
+
+    animation:
+        novacourt-spin .75s linear infinite;
+
+}
+
+
+@keyframes novacourt-spin {
+
+    to {
+
+        transform:
+            rotate(360deg);
+
+    }
+
+}
+
+
+/* =====================================================
+   RESPONSIVE — TABLET
+===================================================== */
+
+@media (max-width: 900px) {
+
+    .novacourt-input {
+
+        padding:
+            40px
+            36px
+            42px;
+
+    }
+
+
+    .input-header h2 {
+
+        font-size: 1.9rem;
+
+    }
+
+
+    .case-textarea {
+
+        min-height: 300px;
+
+    }
+
+}
+
+
+/* =====================================================
+   RESPONSIVE — TABLET PEQUEÑA
 ===================================================== */
 
 @media (max-width: 768px) {
@@ -683,7 +1064,14 @@ function handleSimulate() {
         padding:
             34px
             30px
-            36px;
+            38px;
+
+    }
+
+
+    .input-header {
+
+        padding-bottom: 26px;
 
     }
 
@@ -691,6 +1079,13 @@ function handleSimulate() {
     .input-header h2 {
 
         font-size: 1.8rem;
+
+    }
+
+
+    .input-header p {
+
+        font-size: .92rem;
 
     }
 
@@ -715,13 +1110,15 @@ function handleSimulate() {
 
         width: 100%;
 
+        min-width: 0;
+
     }
 
 }
 
 
 /* =====================================================
-   RESPONSIVE - MOBILE
+   RESPONSIVE — MOBILE
 ===================================================== */
 
 @media (max-width: 576px) {
@@ -731,7 +1128,7 @@ function handleSimulate() {
         padding:
             28px
             20px
-            30px;
+            32px;
 
     }
 
@@ -745,9 +1142,11 @@ function handleSimulate() {
 
     .section-eyebrow {
 
-        margin-bottom: 13px;
+        margin-bottom: 12px;
 
-        font-size: .64rem;
+        font-size: .61rem;
+
+        letter-spacing: 1.25px;
 
     }
 
@@ -756,6 +1155,8 @@ function handleSimulate() {
 
         font-size: 1.55rem;
 
+        line-height: 1.3;
+
     }
 
 
@@ -763,8 +1164,10 @@ function handleSimulate() {
 
         width: 38px;
 
+        height: 2px;
+
         margin:
-            16px
+            15px
             0;
 
     }
@@ -772,7 +1175,7 @@ function handleSimulate() {
 
     .input-header p {
 
-        font-size: .9rem;
+        font-size: .88rem;
 
         line-height: 1.75;
 
@@ -792,7 +1195,14 @@ function handleSimulate() {
 
         flex-direction: column;
 
-        gap: 5px;
+        gap: 7px;
+
+    }
+
+
+    .minimum-hint {
+
+        font-size: .7rem;
 
     }
 
@@ -801,31 +1211,107 @@ function handleSimulate() {
 
         min-height: 250px;
 
-        padding: 17px;
+        padding:
+            17px
+            17px
+            38px;
 
-        font-size: .92rem;
+        font-size: .9rem;
 
         line-height: 1.75;
 
     }
 
 
+    .textarea-corner {
+
+        right: 11px;
+
+        bottom: 9px;
+
+        font-size: .52rem;
+
+    }
+
+
     .input-footer {
 
-        margin-top: 18px;
+        gap: 18px;
+
+        margin-top: 17px;
+
+    }
+
+
+    .character-row {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 6px;
+
+    }
+
+
+    .validation-message,
+    .ready-message {
+
+        padding-left: 0;
+
+        border-left: none;
 
     }
 
 
     .simulate-button {
 
-        min-width: 0;
+        min-height: 48px;
 
-        min-height: 46px;
+        padding:
+            12px
+            18px;
 
-        padding: 12px 20px;
+        font-size: .71rem;
 
-        font-size: .76rem;
+    }
+
+}
+
+
+/* =====================================================
+   RESPONSIVE — MOBILE PEQUEÑO
+===================================================== */
+
+@media (max-width: 400px) {
+
+    .novacourt-input {
+
+        padding:
+            24px
+            16px
+            28px;
+
+    }
+
+
+    .input-header h2 {
+
+        font-size: 1.4rem;
+
+    }
+
+
+    .field-title {
+
+        gap: 8px;
+
+    }
+
+
+    .case-textarea {
+
+        min-height: 230px;
 
     }
 

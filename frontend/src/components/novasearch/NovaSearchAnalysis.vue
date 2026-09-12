@@ -1,8 +1,10 @@
 <template>
+
     <section
         v-if="hasAnalysis"
         class="nova-search-analysis"
     >
+
         <!-- =========================================
              HEADER
         ========================================== -->
@@ -11,46 +13,70 @@
 
             <div class="analysis-heading">
 
-                <span class="analysis-eyebrow">
-                    ANÁLISIS DE LA CONSULTA
-                </span>
+                <div class="analysis-heading-top">
+
+                    <span class="analysis-eyebrow">
+                        NOVA SEARCH · INTERPRETACIÓN
+                    </span>
+
+                    <span class="analysis-index">
+                        01
+                    </span>
+
+                </div>
+
 
                 <h2>
                     Interpretación jurídica
                 </h2>
 
+
                 <p>
-                    NovaSearch identifica automáticamente la naturaleza,
-                    intención y elementos jurídicamente relevantes de la consulta.
+                    NovaSearch identifica la naturaleza, intención y
+                    elementos jurídicamente relevantes de la consulta
+                    para optimizar su análisis y recuperación.
                 </p>
 
             </div>
 
 
-            <div class="analysis-seal">
+            <!-- SELLO -->
 
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.7"
-                    aria-hidden="true"
-                >
-                    <path
-                        d="M12 3a9 9 0 1 0 9 9"
-                    />
+            <div
+                class="analysis-seal"
+                aria-hidden="true"
+            >
 
-                    <path
-                        d="M12 3v9l6.5 4"
-                    />
+                <span class="analysis-seal-inner">
 
-                    <path
-                        d="M9.5 9.5c.7-1.2 2-2 3.5-2
-                           2.2 0 4 1.5 4 3.5
-                           0 1.3-.8 2.2-1.8 2.8
-                           -.9.5-1.7 1-1.7 2.2"
-                    />
-                </svg>
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                    >
+
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="8.5"
+                        />
+
+                        <path
+                            d="M12 7V12L15.5 14"
+                        />
+
+                        <path
+                            d="M8.5 4.8L6.8 3.2"
+                        />
+
+                        <path
+                            d="M15.5 4.8L17.2 3.2"
+                        />
+
+                    </svg>
+
+                </span>
 
             </div>
 
@@ -58,191 +84,254 @@
 
 
         <!-- =========================================
-             GRID DE INFORMACIÓN
+             CUERPO
         ========================================== -->
 
-        <div class="analysis-grid">
+        <div class="analysis-body">
+
+            <!-- LÍNEA DE CONTEXTO -->
+
+            <div class="analysis-context">
+
+                <span class="analysis-context-line"></span>
+
+                <span>
+                    Elementos identificados en la consulta
+                </span>
+
+            </div>
 
 
-            <!-- RAMA JURÍDICA -->
+            <!-- =====================================
+                 GRID
+            ====================================== -->
 
-            <article
-                v-if="analysis?.rama"
-                class="analysis-card"
-            >
-
-                <div class="analysis-card-icon">
-
-                    <span>§</span>
-
-                </div>
+            <div class="analysis-grid">
 
 
-                <div class="analysis-card-content">
+                <!-- RAMA JURÍDICA -->
 
-                    <span class="analysis-label">
-                        Rama jurídica
-                    </span>
+                <article
+                    v-if="analysis?.rama"
+                    class="analysis-card"
+                >
 
-                    <strong class="analysis-value">
-                        {{ analysis.rama }}
-                    </strong>
+                    <div class="analysis-card-icon">
 
-                </div>
-
-            </article>
-
-
-            <!-- INTENCIÓN -->
-
-            <article
-                v-if="analysis?.intent"
-                class="analysis-card"
-            >
-
-                <div class="analysis-card-icon">
-
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                    >
-                        <circle
-                            cx="12"
-                            cy="12"
-                            r="8"
-                        />
-
-                        <path
-                            d="M12 8v4l3 2"
-                        />
-                    </svg>
-
-                </div>
-
-
-                <div class="analysis-card-content">
-
-                    <span class="analysis-label">
-                        Intención detectada
-                    </span>
-
-                    <strong class="analysis-value">
-                        {{ analysis.intent }}
-                    </strong>
-
-                </div>
-
-            </article>
-
-
-            <!-- CONSULTA NORMALIZADA -->
-
-            <article
-                v-if="normalizedQuery"
-                class="analysis-card analysis-card-wide"
-            >
-
-                <div class="analysis-card-icon">
-
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                    >
-                        <path
-                            d="M4 6h16"
-                        />
-
-                        <path
-                            d="M4 12h11"
-                        />
-
-                        <path
-                            d="M4 18h8"
-                        />
-                    </svg>
-
-                </div>
-
-
-                <div class="analysis-card-content">
-
-                    <span class="analysis-label">
-                        Consulta interpretada
-                    </span>
-
-                    <strong class="analysis-value analysis-value-query">
-                        {{ normalizedQuery }}
-                    </strong>
-
-                </div>
-
-            </article>
-
-
-            <!-- ENTIDADES -->
-
-            <article
-                v-if="analysis?.entities?.length"
-                class="analysis-card analysis-card-entities"
-            >
-
-                <div class="analysis-card-icon">
-
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                    >
-                        <path
-                            d="M8 7a4 4 0 1 0 0-8
-                               4 4 0 0 0 0 8Z"
-                        />
-
-                        <path
-                            d="M16 11a3 3 0 1 0 0-6
-                               3 3 0 0 0 0 6Z"
-                        />
-
-                        <path
-                            d="M2 21v-2a6 6 0 0 1 12 0v2"
-                        />
-
-                        <path
-                            d="M14 15a5 5 0 0 1 8 4v2"
-                        />
-                    </svg>
-
-                </div>
-
-
-                <div class="analysis-card-content">
-
-                    <span class="analysis-label">
-                        Conceptos y entidades detectadas
-                    </span>
-
-
-                    <div class="analysis-tags">
-
-                        <span
-                            v-for="entity in analysis.entities"
-                            :key="entity"
-                            class="analysis-tag"
-                        >
-                            {{ entity }}
+                        <span class="legal-symbol">
+                            §
                         </span>
 
                     </div>
 
-                </div>
 
-            </article>
+                    <div class="analysis-card-content">
 
+                        <span class="analysis-label">
+                            Rama jurídica
+                        </span>
+
+                        <strong class="analysis-value">
+                            {{ analysis.rama }}
+                        </strong>
+
+                    </div>
+
+
+                    <span class="analysis-card-number">
+                        01
+                    </span>
+
+                </article>
+
+
+                <!-- INTENCIÓN -->
+
+                <article
+                    v-if="analysis?.intent"
+                    class="analysis-card"
+                >
+
+                    <div class="analysis-card-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            aria-hidden="true"
+                        >
+
+                            <circle
+                                cx="12"
+                                cy="12"
+                                r="8"
+                            />
+
+                            <path
+                                d="M12 8V12L15 14"
+                            />
+
+                        </svg>
+
+                    </div>
+
+
+                    <div class="analysis-card-content">
+
+                        <span class="analysis-label">
+                            Intención detectada
+                        </span>
+
+                        <strong class="analysis-value">
+                            {{ analysis.intent }}
+                        </strong>
+
+                    </div>
+
+
+                    <span class="analysis-card-number">
+                        02
+                    </span>
+
+                </article>
+
+
+                <!-- CONSULTA NORMALIZADA -->
+
+                <article
+                    v-if="normalizedQuery"
+                    class="
+                        analysis-card
+                        analysis-card-wide
+                        analysis-query-card
+                    "
+                >
+
+                    <div class="analysis-card-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            aria-hidden="true"
+                        >
+
+                            <path d="M5 6H19" />
+
+                            <path d="M5 11H17" />
+
+                            <path d="M5 16H14" />
+
+                        </svg>
+
+                    </div>
+
+
+                    <div class="analysis-card-content">
+
+                        <span class="analysis-label">
+                            Consulta interpretada
+                        </span>
+
+                        <strong
+                            class="
+                                analysis-value
+                                analysis-value-query
+                            "
+                        >
+                            {{ normalizedQuery }}
+                        </strong>
+
+                    </div>
+
+
+                    <span class="analysis-card-number">
+                        03
+                    </span>
+
+                </article>
+
+
+                <!-- ENTIDADES -->
+
+                <article
+                    v-if="analysis?.entities?.length"
+                    class="
+                        analysis-card
+                        analysis-card-wide
+                        analysis-card-entities
+                    "
+                >
+
+                    <div class="analysis-card-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            aria-hidden="true"
+                        >
+
+                            <circle
+                                cx="9"
+                                cy="8"
+                                r="3"
+                            />
+
+                            <circle
+                                cx="17"
+                                cy="10"
+                                r="2.5"
+                            />
+
+                            <path
+                                d="M3.5 20a5.5 5.5 0 0 1 11 0"
+                            />
+
+                            <path
+                                d="M14 19a4.5 4.5 0 0 1 7 1"
+                            />
+
+                        </svg>
+
+                    </div>
+
+
+                    <div class="analysis-card-content">
+
+                        <span class="analysis-label">
+                            Conceptos y entidades detectadas
+                        </span>
+
+
+                        <div class="analysis-tags">
+
+                            <span
+                                v-for="entity in analysis.entities"
+                                :key="entity"
+                                class="analysis-tag"
+                            >
+                                <span class="analysis-tag-dot"></span>
+
+                                {{ entity }}
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <span class="analysis-card-number">
+                        04
+                    </span>
+
+                </article>
+
+            </div>
 
         </div>
 
@@ -253,16 +342,32 @@
 
         <footer class="analysis-footer">
 
-            <div class="analysis-footer-line"></div>
+            <div class="analysis-footer-brand">
 
-            <span>
-                Interpretación generada para optimizar la recuperación
-                y clasificación del contexto jurídico.
+                <span class="footer-mark">
+                    NS
+                </span>
+
+                <span>
+                    Interpretación generada automáticamente
+                    para optimizar la recuperación jurídica.
+                </span>
+
+            </div>
+
+
+            <span class="analysis-footer-status">
+
+                <span class="footer-status-dot"></span>
+
+                Procesado
+
             </span>
 
         </footer>
 
     </section>
+
 </template>
 
 
@@ -270,6 +375,10 @@
 
 import { computed } from "vue"
 
+
+/* =========================================
+   PROPS
+========================================= */
 
 const props = defineProps({
 
@@ -317,22 +426,30 @@ const hasAnalysis = computed(() => {
 
 <style scoped>
 
-/* =========================================
+/* =========================================================
    NOVA SEARCH — ANALYSIS
-========================================= */
+   LÍNEA VISUAL INSTITUCIONAL NOVA IURIS
+========================================================= */
 
-.nova-search-analysis{
 
-    width:100%;
+/* =========================================================
+   CONTENEDOR PRINCIPAL
+========================================================= */
 
-    padding:30px 32px;
+.nova-search-analysis {
+
+    width: 100%;
+
+    box-sizing: border-box;
+
+    overflow: hidden;
 
     background:
 
         linear-gradient(
             135deg,
             #FFFFFF 0%,
-            #FCFDFE 60%,
+            #FCFDFE 58%,
             #F7F9FC 100%
         );
 
@@ -340,11 +457,466 @@ const hasAnalysis = computed(() => {
         1px solid
         #D6DFEA;
 
-    border-radius:12px;
+    border-radius: 12px;
 
     box-shadow:
 
-        0 12px 30px
+        0 14px 34px
+        rgba(
+            23,
+            55,
+            94,
+            .055
+        );
+
+    animation:
+
+        novaAnalysisEnter
+        .35s
+        ease-out;
+
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.analysis-header {
+
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+
+    gap: 28px;
+
+    padding:
+        28px
+        30px
+        25px;
+
+    border-bottom:
+        1px solid
+        #E2E8EF;
+
+    background:
+
+        linear-gradient(
+            90deg,
+            #FFFFFF 0%,
+            #FBFCFE 100%
+        );
+
+}
+
+
+.analysis-heading {
+
+    min-width: 0;
+
+    flex: 1;
+
+}
+
+
+.analysis-heading-top {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    margin-bottom: 7px;
+
+}
+
+
+.analysis-eyebrow {
+
+    display: block;
+
+    color:
+        #7A6440;
+
+    font-size:
+        .65rem;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        1.45px;
+
+}
+
+
+.analysis-index {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    min-width: 27px;
+
+    height: 19px;
+
+    padding: 0 6px;
+
+    border:
+        1px solid
+        rgba(
+            176,
+            138,
+            76,
+            .28
+        );
+
+    border-radius: 4px;
+
+    background:
+        rgba(
+            176,
+            138,
+            76,
+            .045
+        );
+
+    color:
+        #9A7A42;
+
+    font-size:
+        .59rem;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        .6px;
+
+}
+
+
+.analysis-heading h2 {
+
+    margin: 0;
+
+    color:
+        #17375E;
+
+    font-family:
+
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size:
+        1.5rem;
+
+    font-weight:
+        600;
+
+    line-height:
+        1.3;
+
+}
+
+
+.analysis-heading p {
+
+    max-width:
+        780px;
+
+    margin:
+        8px
+        0
+        0;
+
+    color:
+        #627183;
+
+    font-size:
+        .88rem;
+
+    line-height:
+        1.7;
+
+}
+
+
+/* =========================================================
+   SELLO
+========================================================= */
+
+.analysis-seal {
+
+    position:
+        relative;
+
+    width:
+        66px;
+
+    height:
+        66px;
+
+    flex:
+        0 0 66px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border:
+        1px solid
+        rgba(
+            176,
+            138,
+            76,
+            .50
+        );
+
+    border-radius:
+        50%;
+
+    background:
+
+        radial-gradient(
+            circle,
+            rgba(
+                176,
+                138,
+                76,
+                .065
+            ) 0%,
+            transparent 70%
+        );
+
+    color:
+        #7A6440;
+
+}
+
+
+.analysis-seal::before {
+
+    content:
+        "";
+
+    position:
+        absolute;
+
+    inset:
+        6px;
+
+    border:
+        1px solid
+        rgba(
+            176,
+            138,
+            76,
+            .24
+        );
+
+    border-radius:
+        50%;
+
+}
+
+
+.analysis-seal-inner {
+
+    position:
+        relative;
+
+    z-index:
+        1;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+}
+
+
+.analysis-seal svg {
+
+    width:
+        28px;
+
+    height:
+        28px;
+
+}
+
+
+/* =========================================================
+   BODY
+========================================================= */
+
+.analysis-body {
+
+    padding:
+        24px
+        30px
+        27px;
+
+}
+
+
+.analysis-context {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        9px;
+
+    margin-bottom:
+        14px;
+
+    color:
+        #8A96A3;
+
+    font-size:
+        .67rem;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        .8px;
+
+    text-transform:
+        uppercase;
+
+}
+
+
+.analysis-context-line {
+
+    width:
+        22px;
+
+    height:
+        1px;
+
+    flex:
+        0 0 22px;
+
+    background:
+        #B08A4C;
+
+}
+
+
+/* =========================================================
+   GRID
+========================================================= */
+
+.analysis-grid {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(
+                0,
+                1fr
+            )
+        );
+
+    gap:
+        12px;
+
+}
+
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.analysis-card {
+
+    position:
+        relative;
+
+    display:
+        flex;
+
+    align-items:
+        flex-start;
+
+    gap:
+        13px;
+
+    min-width:
+        0;
+
+    box-sizing:
+        border-box;
+
+    padding:
+        17px;
+
+    background:
+        #FFFFFF;
+
+    border:
+        1px solid
+        #E0E7EF;
+
+    border-radius:
+        9px;
+
+    transition:
+
+        border-color
+        .2s
+        ease,
+
+        box-shadow
+        .2s
+        ease,
+
+        transform
+        .2s
+        ease;
+
+}
+
+
+.analysis-card:hover {
+
+    transform:
+        translateY(
+            -1px
+        );
+
+    border-color:
+        #C9D6E4;
+
+    box-shadow:
+
+        0 7px 18px
         rgba(
             23,
             55,
@@ -355,58 +927,80 @@ const hasAnalysis = computed(() => {
 }
 
 
-/* =========================================
-   HEADER
-========================================= */
+.analysis-card-wide {
 
-.analysis-header{
+    grid-column:
+        span 2;
 
-    display:flex;
+}
 
-    align-items:flex-start;
 
-    justify-content:space-between;
+.analysis-card-entities {
 
-    gap:28px;
+    grid-column:
+        span 2;
 
-    padding-bottom:24px;
+}
 
-    border-bottom:
+
+/* =========================================================
+   ICONOS
+========================================================= */
+
+.analysis-card-icon {
+
+    width:
+        38px;
+
+    height:
+        38px;
+
+    flex:
+        0 0 38px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    box-sizing:
+        border-box;
+
+    border:
         1px solid
-        #E5EBF1;
+        #DCE5EE;
+
+    border-radius:
+        9px;
+
+    background:
+        #F7F9FC;
+
+    color:
+        #315C97;
 
 }
 
 
-.analysis-heading{
+.analysis-card-icon svg {
 
-    min-width:0;
+    width:
+        18px;
 
-}
-
-
-.analysis-eyebrow{
-
-    display:block;
-
-    margin-bottom:8px;
-
-    color:#7A6440;
-
-    font-size:.68rem;
-
-    font-weight:800;
-
-    letter-spacing:1.45px;
+    height:
+        18px;
 
 }
 
 
-.analysis-heading h2{
+.legal-symbol {
 
-    margin:0 0 10px;
-
-    color:#17375E;
+    color:
+        #315C97;
 
     font-family:
 
@@ -414,233 +1008,323 @@ const hasAnalysis = computed(() => {
         "Times New Roman",
         serif;
 
-    font-size:1.55rem;
+    font-size:
+        1.15rem;
 
-    font-weight:600;
-
-    line-height:1.3;
-
-}
-
-
-.analysis-heading p{
-
-    max-width:760px;
-
-    margin:0;
-
-    color:#5E6D7E;
-
-    font-size:.94rem;
-
-    line-height:1.75;
+    font-weight:
+        600;
 
 }
 
 
-/* =========================================
-   SELLO
-========================================= */
+/* =========================================================
+   CONTENIDO
+========================================================= */
 
-.analysis-seal{
+.analysis-card-content {
 
-    width:64px;
+    flex:
+        1;
 
-    height:64px;
+    min-width:
+        0;
 
-    flex-shrink:0;
+}
 
-    display:flex;
 
-    align-items:center;
+.analysis-label {
 
-    justify-content:center;
+    display:
+        block;
 
-    border-radius:50%;
+    margin-bottom:
+        5px;
+
+    color:
+        #8995A2;
+
+    font-size:
+        .61rem;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        .9px;
+
+    text-transform:
+        uppercase;
+
+}
+
+
+.analysis-value {
+
+    display:
+        block;
+
+    color:
+        #17375E;
+
+    font-size:
+        .88rem;
+
+    font-weight:
+        700;
+
+    line-height:
+        1.5;
+
+}
+
+
+.analysis-value-query {
+
+    color:
+        #3D5269;
+
+    font-weight:
+        600;
+
+    line-height:
+        1.65;
+
+    word-break:
+        break-word;
+
+}
+
+
+/* =========================================================
+   NUMERACIÓN
+========================================================= */
+
+.analysis-card-number {
+
+    position:
+        absolute;
+
+    top:
+        13px;
+
+    right:
+        14px;
+
+    color:
+        #B0BAC5;
+
+    font-size:
+        .57rem;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        .6px;
+
+}
+
+
+/* =========================================================
+   ENTIDADES
+========================================================= */
+
+.analysis-tags {
+
+    display:
+        flex;
+
+    flex-wrap:
+        wrap;
+
+    gap:
+        7px;
+
+    margin-top:
+        2px;
+
+}
+
+
+.analysis-tag {
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    gap:
+        6px;
+
+    min-height:
+        27px;
+
+    box-sizing:
+        border-box;
+
+    padding:
+        4px
+        9px;
 
     border:
-
         1px solid
-        rgba(
-            176,
-            138,
-            76,
-            .50
-        );
+        #DCE5EE;
 
-    color:#7A6440;
+    border-radius:
+        6px;
 
     background:
+        #F7F9FC;
 
-        radial-gradient(
-            circle,
-            rgba(
-                176,
-                138,
-                76,
-                .06
-            ) 0%,
-            transparent 70%
-        );
+    color:
+        #315C97;
 
-}
+    font-size:
+        .7rem;
 
+    font-weight:
+        650;
 
-.analysis-seal svg{
-
-    width:27px;
-
-    height:27px;
-
-}
-
-
-/* =========================================
-   GRID
-========================================= */
-
-.analysis-grid{
-
-    display:grid;
-
-    grid-template-columns:
-
-        repeat(
-            2,
-            minmax(
-                0,
-                1fr
-            )
-        );
-
-    gap:14px;
-
-    margin-top:24px;
-
-}
-
-
-/* =========================================
-   CARD
-========================================= */
-
-.analysis-card{
-
-    display:flex;
-
-    align-items:flex-start;
-
-    gap:14px;
-
-    min-width:0;
-
-    padding:18px;
-
-    background:#FFFFFF;
-
-    border:
-        1px solid
-        #E0E7EF;
-
-    border-radius:10px;
+    line-height:
+        1.35;
 
     transition:
 
-        transform
+        background
         .2s
         ease,
 
         border-color
-        .2s
-        ease,
-
-        box-shadow
         .2s
         ease;
 
 }
 
 
-.analysis-card:hover{
-
-    transform:
-
-        translateY(
-            -2px
-        );
-
-    border-color:
-        #C8D5E4;
-
-    box-shadow:
-
-        0 8px 20px
-        rgba(
-            23,
-            55,
-            94,
-            .06
-        );
-
-}
-
-
-.analysis-card-wide{
-
-    grid-column:
-        span 2;
-
-}
-
-
-.analysis-card-entities{
-
-    grid-column:
-        span 2;
-
-}
-
-
-/* =========================================
-   ICONOS
-========================================= */
-
-.analysis-card-icon{
-
-    width:38px;
-
-    height:38px;
-
-    flex:
-
-        0 0
-        38px;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    border-radius:9px;
+.analysis-tag:hover {
 
     background:
+        #F1F5F9;
 
-        #F6F8FB;
-
-    border:
-
-        1px solid
-        #E1E8F0;
-
-    color:#315C97;
+    border-color:
+        #C8D6E5;
 
 }
 
 
-.analysis-card-icon span{
+.analysis-tag-dot {
 
-    color:#315C97;
+    width:
+        5px;
+
+    height:
+        5px;
+
+    flex:
+        0 0 5px;
+
+    border-radius:
+        50%;
+
+    background:
+        #B08A4C;
+
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.analysis-footer {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap:
+        18px;
+
+    padding:
+        13px
+        30px;
+
+    border-top:
+        1px solid
+        #E3E8EE;
+
+    background:
+        #FBFCFE;
+
+}
+
+
+.analysis-footer-brand {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        9px;
+
+    min-width:
+        0;
+
+    color:
+        #8995A2;
+
+    font-size:
+        .68rem;
+
+    line-height:
+        1.5;
+
+}
+
+
+.footer-mark {
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    width:
+        24px;
+
+    height:
+        24px;
+
+    flex:
+        0 0 24px;
+
+    border:
+        1px solid
+        rgba(
+            176,
+            138,
+            76,
+            .28
+        );
+
+    border-radius:
+        50%;
+
+    color:
+        #8B7044;
 
     font-family:
 
@@ -648,193 +1332,144 @@ const hasAnalysis = computed(() => {
         "Times New Roman",
         serif;
 
-    font-size:1.1rem;
+    font-size:
+        .57rem;
 
-    font-weight:600;
+    font-weight:
+        700;
 
-}
-
-
-.analysis-card-icon svg{
-
-    width:19px;
-
-    height:19px;
+    letter-spacing:
+        .5px;
 
 }
 
 
-/* =========================================
-   CONTENIDO
-========================================= */
+.analysis-footer-status {
 
-.analysis-card-content{
+    display:
+        inline-flex;
 
-    flex:1;
+    align-items:
+        center;
 
-    min-width:0;
+    gap:
+        6px;
 
-}
+    flex-shrink:
+        0;
 
+    color:
+        #64798C;
 
-.analysis-label{
+    font-size:
+        .65rem;
 
-    display:block;
-
-    margin-bottom:6px;
-
-    color:#7A8795;
-
-    font-size:.68rem;
-
-    font-weight:800;
-
-    text-transform:uppercase;
-
-    letter-spacing:1px;
+    font-weight:
+        700;
 
 }
 
 
-.analysis-value{
+.footer-status-dot {
 
-    display:block;
+    width:
+        6px;
 
-    color:#17375E;
+    height:
+        6px;
 
-    font-size:.96rem;
-
-    font-weight:700;
-
-    line-height:1.55;
-
-}
-
-
-.analysis-value-query{
-
-    color:#30465F;
-
-    font-weight:600;
-
-    white-space:normal;
-
-    word-break:break-word;
-
-}
-
-
-/* =========================================
-   ENTIDADES
-========================================= */
-
-.analysis-tags{
-
-    display:flex;
-
-    flex-wrap:wrap;
-
-    gap:8px;
-
-    margin-top:3px;
-
-}
-
-
-.analysis-tag{
-
-    display:inline-flex;
-
-    align-items:center;
-
-    min-height:28px;
-
-    padding:
-
-        5px
-        10px;
-
-    border-radius:999px;
+    border-radius:
+        50%;
 
     background:
+        #4E8A68;
 
-        #F5F7FA;
+    box-shadow:
 
-    border:
-
-        1px solid
-        #DCE5EE;
-
-    color:#315C97;
-
-    font-size:.78rem;
-
-    font-weight:600;
-
-    line-height:1.3;
+        0 0 0 3px
+        rgba(
+            78,
+            138,
+            104,
+            .09
+        );
 
 }
 
 
-/* =========================================
-   FOOTER
-========================================= */
+/* =========================================================
+   ANIMACIÓN
+========================================================= */
 
-.analysis-footer{
+@keyframes novaAnalysisEnter {
 
-    display:flex;
+    from {
 
-    align-items:center;
+        opacity:
+            0;
 
-    gap:10px;
+        transform:
+            translateY(
+                8px
+            );
 
-    margin-top:22px;
+    }
 
-    padding-top:18px;
+    to {
 
-    color:#8491A0;
+        opacity:
+            1;
 
-    font-size:.75rem;
+        transform:
+            translateY(
+                0
+            );
 
-    line-height:1.5;
-
-}
-
-
-.analysis-footer-line{
-
-    width:18px;
-
-    height:1px;
-
-    flex-shrink:0;
-
-    background:#B08A4C;
+    }
 
 }
 
 
-/* =========================================
+/* =========================================================
    RESPONSIVE
-========================================= */
+========================================================= */
 
-@media(max-width:760px){
+@media(max-width:800px) {
 
-    .nova-search-analysis{
+    .analysis-header {
 
-        padding:26px 24px;
-
-    }
-
-
-    .analysis-header{
-
-        gap:20px;
+        padding:
+            25px
+            24px
+            22px;
 
     }
 
 
-    .analysis-grid{
+    .analysis-body {
+
+        padding:
+            22px
+            24px
+            24px;
+
+    }
+
+
+    .analysis-footer {
+
+        padding:
+            13px
+            24px;
+
+    }
+
+}
+
+
+@media(max-width:700px) {
+
+    .analysis-grid {
 
         grid-template-columns:
             1fr;
@@ -843,8 +1478,7 @@ const hasAnalysis = computed(() => {
 
 
     .analysis-card-wide,
-
-    .analysis-card-entities{
+    .analysis-card-entities {
 
         grid-column:
             span 1;
@@ -854,60 +1488,125 @@ const hasAnalysis = computed(() => {
 }
 
 
-@media(max-width:576px){
+@media(max-width:600px) {
 
-    .nova-search-analysis{
+    .nova-search-analysis {
 
-        padding:22px 18px;
-
-        border-radius:10px;
-
-    }
-
-
-    .analysis-header{
-
-        flex-direction:column;
+        border-radius:
+            10px;
 
     }
 
 
-    .analysis-seal{
+    .analysis-header {
 
-        width:54px;
+        flex-direction:
+            column;
 
-        height:54px;
+        gap:
+            20px;
 
-    }
-
-
-    .analysis-heading h2{
-
-        font-size:1.25rem;
-
-    }
-
-
-    .analysis-heading p{
-
-        font-size:.88rem;
+        padding:
+            22px
+            18px;
 
     }
 
 
-    .analysis-card{
+    .analysis-heading h2 {
 
-        padding:16px;
+        font-size:
+            1.28rem;
 
     }
 
 
-    .analysis-footer{
+    .analysis-heading p {
 
-        align-items:flex-start;
+        font-size:
+            .82rem;
+
+        line-height:
+            1.65;
+
+    }
+
+
+    .analysis-seal {
+
+        width:
+            54px;
+
+        height:
+            54px;
+
+        flex-basis:
+            54px;
+
+    }
+
+
+    .analysis-seal svg {
+
+        width:
+            23px;
+
+        height:
+            23px;
+
+    }
+
+
+    .analysis-body {
+
+        padding:
+            20px
+            18px
+            22px;
+
+    }
+
+
+    .analysis-card {
+
+        padding:
+            15px;
+
+    }
+
+
+    .analysis-card-number {
+
+        display:
+            none;
+
+    }
+
+
+    .analysis-value {
+
+        font-size:
+            .84rem;
+
+    }
+
+
+    .analysis-footer {
+
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+
+        gap:
+            10px;
+
+        padding:
+            13px
+            18px;
 
     }
 
 }
-
 </style>

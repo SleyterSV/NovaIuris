@@ -1,158 +1,225 @@
 import {
-    createRouter,
-    createWebHistory
-} from "vue-router"
+  createRouter,
+  createWebHistory
+} from "vue-router";
 
-import Home from "../views/Home.vue"
+// =====================================================
+// VISTAS PRINCIPALES
+// =====================================================
 
-import Process from "../views/MainView.vue"
+import Home from "../views/Home.vue";
+import Process from "../views/MainView.vue";
+import SimulationView from "../views/SimulationView.vue";
+import SimulationRunView from "../views/SimulationRunView.vue";
+import ReportView from "../views/ReportView.vue";
+import InteractionView from "../views/InteractionView.vue";
+import NovaCaseView from "../views/NovaCaseView.vue";
 
-import SimulationView from "../views/SimulationView.vue"
 
-import SimulationRunView from "../views/SimulationRunView.vue"
-
-import ReportView from "../views/ReportView.vue"
-
-import InteractionView from "../views/InteractionView.vue"
-
-import NovaCaseView from "../views/NovaCaseView.vue"
-
+// =====================================================
+// RUTAS
+// =====================================================
 
 const routes = [
 
-    {
-        path: "/",
+  // ===================================================
+  // HOME / LANDING
+  // ===================================================
 
-        name: "Home",
-
-        component: Home
-    },
-
-
-    {
-        path: "/buscar",
-
-        name: "NovaSearch",
-
-        component: () =>
-            import("../views/NovaSearchView.vue")
-    },
-
-
-    {
-        path: "/novacase",
-
-        name: "NovaCase",
-
-        component: NovaCaseView
-    },
-
-
-    {
-        path: "/novacourt",
-
-        name: "NovaCourt",
-
-        component: () =>
-            import("../views/NovaCourtView.vue")
-    },
-
-
-    {
-        path: "/process/:projectId",
-
-        name: "Process",
-
-        component: Process,
-
-        props: true
-    },
-
-
-    {
-        path: "/simulation/:simulationId",
-
-        name: "Simulation",
-
-        component: SimulationView,
-
-        props: true
-    },
-
-
-    {
-        path: "/simulation/:simulationId/start",
-
-        name: "SimulationRun",
-
-        component: SimulationRunView,
-
-        props: true
-    },
-
-
-    {
-        path: "/report/:reportId",
-
-        name: "Report",
-
-        component: ReportView,
-
-        props: true
-    },
-
-
-    {
-        path: "/interaction/:reportId",
-
-        name: "Interaction",
-
-        component: InteractionView,
-
-        props: true
+  {
+    path: "/",
+    name: "Home",
+    component: Home,
+    meta: {
+      title: "Nova Iuris | Inteligencia Jurídica"
     }
+  },
 
-]
 
+  // ===================================================
+  // NOVA SEARCH
+  // Búsqueda jurídica inteligente
+  // ===================================================
+
+    {
+    path: "/novasearch",
+    name: "NovaSearch",
+    component: () =>
+        import("../views/NovaSearchView.vue"),
+
+    meta: {
+        title: "Nova Search | Nova Iuris"
+    }
+    },
+
+
+  // ===================================================
+  // NOVA CASE
+  // Análisis y estructuración de casos
+  // ===================================================
+
+  {
+    path: "/novacase",
+    name: "NovaCase",
+    component: NovaCaseView,
+
+    meta: {
+      title: "Nova Case | Nova Iuris"
+    }
+  },
+
+
+  // ===================================================
+  // NOVA COURT
+  // Tribunal multiagente y simulación jurídica
+  // ===================================================
+
+  {
+    path: "/novacourt",
+    name: "NovaCourt",
+    component: () =>
+      import("../views/NovaCourtView.vue"),
+
+    meta: {
+      title: "Nova Court | Nova Iuris"
+    }
+  },
+
+
+  // ===================================================
+  // PROCESAMIENTO DEL CASO
+  // SISTEMA INTERNO EXISTENTE
+  // ===================================================
+
+  {
+    path: "/process/:projectId",
+    name: "Process",
+    component: Process,
+    props: true,
+
+    meta: {
+      title: "Procesando Caso | Nova Iuris"
+    }
+  },
+
+
+  // ===================================================
+  // SIMULACIÓN
+  // ===================================================
+
+  {
+    path: "/simulation/:simulationId",
+    name: "Simulation",
+    component: SimulationView,
+    props: true,
+
+    meta: {
+      title: "Simulación Jurídica | Nova Iuris"
+    }
+  },
+
+
+  // ===================================================
+  // EJECUCIÓN DE SIMULACIÓN
+  // ===================================================
+
+  {
+    path: "/simulation/:simulationId/start",
+    name: "SimulationRun",
+    component: SimulationRunView,
+    props: true,
+
+    meta: {
+      title: "Ejecutando Simulación | Nova Iuris"
+    }
+  },
+
+
+  // ===================================================
+  // REPORTES
+  // ===================================================
+
+  {
+    path: "/report/:reportId",
+    name: "Report",
+    component: ReportView,
+    props: true,
+
+    meta: {
+      title: "Reporte Jurídico | Nova Iuris"
+    }
+  },
+
+
+  // ===================================================
+  // INTERACCIÓN CON RESULTADOS
+  // ===================================================
+
+  {
+    path: "/interaction/:reportId",
+    name: "Interaction",
+    component: InteractionView,
+    props: true,
+
+    meta: {
+      title: "Análisis Jurídico | Nova Iuris"
+    }
+  },
+
+
+  // ===================================================
+  // RUTA NO ENCONTRADA
+  // ===================================================
+
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: "/"
+  }
+
+];
+
+
+// =====================================================
+// CREACIÓN DEL ROUTER
+// =====================================================
 
 const router = createRouter({
 
-    history:
-        createWebHistory(),
+  history: createWebHistory(),
 
-    routes,
+  routes,
 
+  scrollBehavior(to, from, savedPosition) {
 
-    scrollBehavior(
-
-        to,
-        from,
-        savedPosition
-
-    ){
-
-        if(
-
-            savedPosition
-
-        ){
-
-            return savedPosition
-
-        }
-
-
-        return {
-
-            top: 0,
-
-            behavior: "smooth"
-
-        }
-
+    if (savedPosition) {
+      return savedPosition;
     }
 
-})
+    return {
+      top: 0,
+      behavior: "smooth"
+    };
+
+  }
+
+});
 
 
-export default router
+// =====================================================
+// TÍTULO DINÁMICO DEL NAVEGADOR
+// =====================================================
+
+router.afterEach((to) => {
+
+  document.title =
+    to.meta.title ||
+    "Nova Iuris | Inteligencia Jurídica";
+
+});
+
+
+// =====================================================
+// EXPORTACIÓN
+// =====================================================
+
+export default router;

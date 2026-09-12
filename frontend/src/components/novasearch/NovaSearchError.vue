@@ -1,80 +1,149 @@
 <template>
+
     <section
         v-if="message"
         class="nova-search-error"
         role="alert"
+        aria-live="polite"
     >
 
-        <!-- ICONO -->
-        <div class="nova-search-error-icon">
+        <!-- ===================================================
+             INDICADOR
+        ==================================================== -->
+
+        <div class="error-indicator">
+
+            <div class="error-indicator-inner">
+
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    aria-hidden="true"
+                >
+
+                    <circle
+                        cx="12"
+                        cy="12"
+                        r="8.5"
+                    />
+
+                    <path
+                        d="M12 8v5"
+                    />
+
+                    <circle
+                        cx="12"
+                        cy="16.4"
+                        r=".7"
+                        fill="currentColor"
+                        stroke="none"
+                    />
+
+                </svg>
+
+            </div>
+
+        </div>
+
+
+        <!-- ===================================================
+             CONTENIDO
+        ==================================================== -->
+
+        <div class="error-content">
+
+            <div class="error-header">
+
+                <div class="error-heading">
+
+                    <span class="error-eyebrow">
+                        NOVA SEARCH · SISTEMA DE BÚSQUEDA
+                    </span>
+
+                    <h3>
+                        No fue posible completar la búsqueda
+                    </h3>
+
+                </div>
+
+
+                <span class="error-badge">
+                    ERROR
+                </span>
+
+            </div>
+
+
+            <!-- MENSAJE -->
+
+            <p class="error-message">
+                {{ message }}
+            </p>
+
+
+            <!-- AYUDA -->
+
+            <div class="error-help">
+
+                <span class="error-help-mark"></span>
+
+                <span>
+                    Verifica tu conexión o reformula la consulta
+                    e inténtalo nuevamente.
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- ===================================================
+             ACCIÓN
+        ==================================================== -->
+
+        <button
+            v-if="showRetry"
+            type="button"
+            class="error-retry-button"
+            @click="$emit('retry')"
+        >
 
             <svg
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="1.7"
+                stroke-width="1.8"
                 aria-hidden="true"
             >
-                <circle
-                    cx="12"
-                    cy="12"
-                    r="9"
+
+                <path
+                    d="M20 11a8 8 0 1 0 1 4"
                 />
 
                 <path
-                    d="M12 7.5V12.5"
-                />
-
-                <circle
-                    cx="12"
-                    cy="16"
-                    r=".8"
-                    fill="currentColor"
-                    stroke="none"
+                    d="M20 5v6h-6"
                 />
 
             </svg>
 
-        </div>
-
-
-        <!-- CONTENIDO -->
-        <div class="nova-search-error-content">
-
-            <span class="nova-search-error-eyebrow">
-                NOVA SEARCH
+            <span>
+                Intentar nuevamente
             </span>
 
-            <h3>
-                No fue posible completar la búsqueda
-            </h3>
-
-            <p>
-                {{ message }}
-            </p>
-
-            <span class="nova-search-error-help">
-                Verifica tu conexión e intenta realizar nuevamente la consulta.
-            </span>
-
-        </div>
-
-
-        <!-- ACCIÓN OPCIONAL -->
-        <button
-            v-if="showRetry"
-            type="button"
-            class="nova-search-error-button"
-            @click="$emit('retry')"
-        >
-            Intentar nuevamente
         </button>
 
     </section>
+
 </template>
 
 
 <script setup>
+
+/* =========================================================
+   PROPS
+========================================================= */
 
 defineProps({
 
@@ -97,6 +166,10 @@ defineProps({
 })
 
 
+/* =========================================================
+   EVENTOS
+========================================================= */
+
 defineEmits([
 
     "retry"
@@ -110,9 +183,12 @@ defineEmits([
 
 /* =======================================================
    NOVA SEARCH — ERROR STATE
+   Estado de error institucional
 ======================================================= */
 
 .nova-search-error{
+
+    position:relative;
 
     width:100%;
 
@@ -122,57 +198,63 @@ defineEmits([
 
     gap:18px;
 
-    padding:24px 26px;
+    padding:22px 24px;
+
+    margin-bottom:22px;
 
     background:
 
         linear-gradient(
             135deg,
-            #FFFDFD 0%,
-            #FFF8F8 100%
+            #FFFFFF 0%,
+            #FCFDFE 100%
         );
 
     border:
+
         1px solid
-        #F0D6D6;
+        #DCE4EC;
 
     border-left:
+
         3px solid
         #A34B4B;
 
-    border-radius:12px;
+    border-radius:11px;
 
     box-shadow:
 
-        0 10px 26px
+        0 8px 24px
         rgba(
-            74,
-            35,
-            35,
+            23,
+            55,
+            94,
             .045
         );
 
     animation:
 
         novaSearchErrorEnter
-        .35s
+        .32s
         ease-out;
 
 }
 
 
 /* =======================================================
-   ICONO
+   INDICADOR
 ======================================================= */
 
-.nova-search-error-icon{
+.error-indicator{
 
-    width:46px;
+    width:44px;
 
-    height:46px;
+    height:44px;
 
     flex:
-        0 0 46px;
+
+        0 0
+        44px;
 
     display:flex;
 
@@ -182,22 +264,42 @@ defineEmits([
 
     border-radius:50%;
 
-    background:#FFF1F1;
+    background:#FBF7F7;
 
     border:
+
         1px solid
-        #F2D3D3;
+        #E9DADA;
+
+}
+
+
+.error-indicator-inner{
+
+    width:34px;
+
+    height:34px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    border-radius:50%;
+
+    background:#F9EEEE;
 
     color:#A34B4B;
 
 }
 
 
-.nova-search-error-icon svg{
+.error-indicator svg{
 
-    width:23px;
+    width:19px;
 
-    height:23px;
+    height:19px;
 
 }
 
@@ -206,7 +308,7 @@ defineEmits([
    CONTENIDO
 ======================================================= */
 
-.nova-search-error-content{
+.error-content{
 
     flex:1;
 
@@ -215,68 +317,178 @@ defineEmits([
 }
 
 
-.nova-search-error-eyebrow{
+/* =======================================================
+   CABECERA
+======================================================= */
+
+.error-header{
+
+    display:flex;
+
+    align-items:flex-start;
+
+    justify-content:space-between;
+
+    gap:20px;
+
+    margin-bottom:9px;
+
+}
+
+
+.error-heading{
+
+    min-width:0;
+
+}
+
+
+.error-eyebrow{
 
     display:block;
 
     margin-bottom:5px;
 
-    color:#8B5A5A;
+    color:#7A6440;
 
-    font-size:.66rem;
+    font-size:.61rem;
 
     font-weight:800;
 
-    letter-spacing:1.35px;
+    letter-spacing:1.2px;
 
 }
 
 
-.nova-search-error h3{
+.error-heading h3{
 
-    margin:0 0 7px;
+    margin:0;
 
     color:#17375E;
 
     font-family:
 
         Georgia,
+
         "Times New Roman",
+
         serif;
 
-    font-size:1.1rem;
+    font-size:1.03rem;
 
     font-weight:600;
 
-    line-height:1.35;
+    line-height:1.45;
 
 }
 
 
-.nova-search-error p{
+/* =======================================================
+   BADGE
+======================================================= */
+
+.error-badge{
+
+    flex-shrink:0;
+
+    display:inline-flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    min-height:25px;
+
+    padding:
+
+        0
+        10px;
+
+    background:#FBF7F7;
+
+    border:
+
+        1px solid
+        #E5CFCF;
+
+    border-radius:999px;
+
+    color:#9A5555;
+
+    font-size:.57rem;
+
+    font-weight:800;
+
+    letter-spacing:.8px;
+
+}
+
+
+/* =======================================================
+   MENSAJE
+======================================================= */
+
+.error-message{
+
+    max-width:900px;
 
     margin:0;
 
-    color:#5E4B4B;
+    color:#536273;
 
-    font-size:.9rem;
+    font-size:.86rem;
 
-    line-height:1.7;
+    line-height:1.75;
 
 }
 
 
-.nova-search-error-help{
+/* =======================================================
+   AYUDA
+======================================================= */
 
-    display:block;
+.error-help{
 
-    margin-top:10px;
+    display:flex;
 
-    color:#8A7777;
+    align-items:flex-start;
 
-    font-size:.78rem;
+    gap:9px;
 
-    line-height:1.5;
+    margin-top:14px;
+
+    padding-top:12px;
+
+    border-top:
+
+        1px solid
+        #E8EDF2;
+
+    color:#84909D;
+
+    font-size:.72rem;
+
+    line-height:1.65;
+
+}
+
+
+.error-help-mark{
+
+    width:5px;
+
+    height:5px;
+
+    flex:
+
+        0 0
+        5px;
+
+    margin-top:7px;
+
+    border-radius:50%;
+
+    background:#B08A4C;
 
 }
 
@@ -285,29 +497,41 @@ defineEmits([
    BOTÓN
 ======================================================= */
 
-.nova-search-error-button{
+.error-retry-button{
 
     flex-shrink:0;
 
     min-height:40px;
 
+    display:inline-flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    gap:8px;
+
     padding:
+
         0
-        16px;
-
-    border:
-        1px solid
-        #D8B7B7;
-
-    border-radius:8px;
+        15px;
 
     background:#FFFFFF;
 
-    color:#17375E;
+    border:
 
-    font-size:.78rem;
+        1px solid
+        #D3DDE7;
 
-    font-weight:700;
+    border-radius:8px;
+
+    color:#315C97;
+
+    font-family:inherit;
+
+    font-size:.76rem;
+
+    font-weight:750;
 
     cursor:pointer;
 
@@ -318,6 +542,10 @@ defineEmits([
         ease,
 
         border-color
+        .2s
+        ease,
+
+        color
         .2s
         ease,
 
@@ -332,11 +560,22 @@ defineEmits([
 }
 
 
-.nova-search-error-button:hover{
+.error-retry-button svg{
 
-    background:#FFF8F8;
+    width:16px;
 
-    border-color:#A34B4B;
+    height:16px;
+
+}
+
+
+.error-retry-button:hover{
+
+    background:#F6F8FB;
+
+    border-color:#B9C8D8;
+
+    color:#17375E;
 
     transform:
 
@@ -348,22 +587,36 @@ defineEmits([
 
         0 6px 14px
         rgba(
-            74,
-            35,
-            35,
-            .08
+            23,
+            55,
+            94,
+            .07
         );
 
 }
 
 
-.nova-search-error-button:active{
+.error-retry-button:active{
 
     transform:
 
         translateY(
             0
         );
+
+    box-shadow:none;
+
+}
+
+
+.error-retry-button:focus-visible{
+
+    outline:
+
+        2px solid
+        #315C97;
+
+    outline-offset:3px;
 
 }
 
@@ -405,20 +658,56 @@ defineEmits([
    RESPONSIVE
 ======================================================= */
 
-@media(max-width:640px){
+@media(max-width:700px){
 
     .nova-search-error{
 
         flex-direction:column;
 
-        padding:22px;
-
         gap:14px;
+
+        padding:21px;
 
     }
 
 
-    .nova-search-error-icon{
+    .error-header{
+
+        flex-direction:column;
+
+        gap:9px;
+
+    }
+
+
+    .error-badge{
+
+        align-self:flex-start;
+
+    }
+
+
+    .error-retry-button{
+
+        width:100%;
+
+    }
+
+}
+
+
+@media(max-width:576px){
+
+    .nova-search-error{
+
+        padding:19px;
+
+        border-radius:10px;
+
+    }
+
+
+    .error-indicator{
 
         width:42px;
 
@@ -429,11 +718,35 @@ defineEmits([
     }
 
 
-    .nova-search-error-button{
+    .error-indicator-inner{
 
-        width:100%;
+        width:32px;
+
+        height:32px;
+
+    }
+
+
+    .error-heading h3{
+
+        font-size:.98rem;
+
+    }
+
+
+    .error-message{
+
+        font-size:.84rem;
+
+    }
+
+
+    .error-help{
+
+        font-size:.7rem;
 
     }
 
 }
+
 </style>

@@ -1,62 +1,254 @@
 <template>
 
-<section class="case-tabs">
+    <section class="case-tabs">
 
-    <div class="tabs-header">
+        <!-- =====================================================
+             NAVEGACIÓN
+        ====================================================== -->
 
-        <button
+        <div class="tabs-header">
 
-            v-for="tab in tabs"
+            <button
+                v-for="tab in tabs"
+                :key="tab.id"
+                type="button"
+                class="tab-button"
+                :class="{
+                    active: activeTab === tab.id
+                }"
+                :aria-selected="activeTab === tab.id"
+                @click="activeTab = tab.id"
+            >
 
-            :key="tab.id"
+                <span class="tab-icon">
 
-            @click="activeTab = tab.id"
+                    <!-- INFORME -->
+                    <svg
+                        v-if="tab.id === 'report'"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M6 3.5h8l4 4V20.5H6z"
+                        />
 
-            :class="[
+                        <path
+                            d="M14 3.5v4h4"
+                        />
 
-                'tab-button',
+                        <path
+                            d="M9 12h6"
+                        />
 
-                {
+                        <path
+                            d="M9 15.5h6"
+                        />
 
-                    active:
+                    </svg>
 
-                    activeTab === tab.id
 
-                }
+                    <!-- ANÁLISIS -->
+                    <svg
+                        v-else-if="tab.id === 'analysis'"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M12 3v18"
+                        />
 
-            ]"
+                        <path
+                            d="M5 6h14"
+                        />
 
-        >
+                        <path
+                            d="M7 6l-3 6a3 3 0 0 0 6 0L7 6Z"
+                        />
 
-            <span class="tab-icon">
+                        <path
+                            d="M17 6l-3 6a3 3 0 0 0 6 0l-3-6Z"
+                        />
 
-                {{ tab.icon }}
+                        <path
+                            d="M8 21h8"
+                        />
 
-            </span>
+                    </svg>
 
-            {{ tab.label }}
 
-        </button>
+                    <!-- EVIDENCIA -->
+                    <svg
+                        v-else-if="tab.id === 'evidence'"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        aria-hidden="true"
+                    >
+                        <rect
+                            x="5"
+                            y="4"
+                            width="14"
+                            height="16"
+                            rx="1.5"
+                        />
 
-    </div>
+                        <path
+                            d="M8.5 8h7"
+                        />
 
-    <div class="tabs-content">
+                        <path
+                            d="M8.5 11.5h7"
+                        />
 
-        <slot
+                        <path
+                            d="M8.5 15h4.5"
+                        />
 
-            :name="activeTab"
+                    </svg>
 
-        />
 
-    </div>
+                    <!-- RIESGOS -->
+                    <svg
+                        v-else-if="tab.id === 'risk'"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M12 3.5L21 20H3L12 3.5Z"
+                        />
 
-</section>
+                        <path
+                            d="M12 9v5"
+                        />
+
+                        <path
+                            d="M12 17h.01"
+                        />
+
+                    </svg>
+
+
+                    <!-- CONTRAARGUMENTOS -->
+                    <svg
+                        v-else-if="tab.id === 'counter'"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M4 6.5h16"
+                        />
+
+                        <path
+                            d="M4 12h11"
+                        />
+
+                        <path
+                            d="M4 17.5h7"
+                        />
+
+                        <path
+                            d="M17 14l3 3-3 3"
+                        />
+
+                        <path
+                            d="M20 17h-6"
+                        />
+
+                    </svg>
+
+
+                    <!-- ESTRATEGIA -->
+                    <svg
+                        v-else
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        aria-hidden="true"
+                    >
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="8"
+                        />
+
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="3"
+                        />
+
+                        <path
+                            d="M12 4V2.5"
+                        />
+
+                        <path
+                            d="M12 21.5V20"
+                        />
+
+                        <path
+                            d="M4 12H2.5"
+                        />
+
+                        <path
+                            d="M21.5 12H20"
+                        />
+
+                    </svg>
+
+                </span>
+
+
+                <span class="tab-label">
+                    {{ tab.label }}
+                </span>
+
+            </button>
+
+        </div>
+
+
+        <!-- =====================================================
+             CONTENIDO
+        ====================================================== -->
+
+        <div class="tabs-content">
+
+            <slot
+                :name="activeTab"
+            ></slot>
+
+        </div>
+
+    </section>
 
 </template>
 
+
 <script setup>
 
-import { ref, watch } from "vue"
+import {
+    ref,
+    watch
+} from "vue"
+
+
+/* =========================================================
+   PROPS
+========================================================= */
 
 const props = defineProps({
 
@@ -70,273 +262,490 @@ const props = defineProps({
 
 })
 
+
+/* =========================================================
+   EVENTOS
+========================================================= */
+
 const emit = defineEmits([
-
     "change"
-
 ])
+
+
+/* =========================================================
+   PESTAÑAS
+========================================================= */
 
 const tabs = [
 
     {
-
         id: "report",
-
-        label: "Informe",
-
-        icon: "📄"
-
+        label: "Informe"
     },
 
     {
-
         id: "analysis",
-
-        label: "Análisis",
-
-        icon: "⚖️"
-
+        label: "Análisis"
     },
 
     {
-
         id: "evidence",
-
-        label: "Evidencia",
-
-        icon: "📑"
-
+        label: "Evidencia"
     },
 
     {
-
         id: "risk",
-
-        label: "Riesgos",
-
-        icon: "⚠️"
-
+        label: "Riesgos"
     },
 
     {
-
         id: "counter",
-
-        label: "Contraargumentos",
-
-        icon: "🛡️"
-
+        label: "Contraargumentos"
     },
 
     {
-
         id: "strategy",
-
-        label: "Estrategia",
-
-        icon: "🎯"
-
+        label: "Estrategia"
     }
 
 ]
 
+
+/* =========================================================
+   ESTADO
+========================================================= */
+
 const activeTab = ref(
-
     props.defaultTab
-
 )
 
+
+/* =========================================================
+   CAMBIO DE PESTAÑA
+========================================================= */
+
 watch(
-
     activeTab,
-
-    (value)=>{
+    (value) => {
 
         emit(
-
             "change",
-
             value
-
         )
 
     }
-
 )
 
 </script>
 
+
 <style scoped>
 
-.case-tabs{
+/* =========================================================
+   NOVACASE — CASE TABS
+========================================================= */
 
-    margin-top:32px;
+.case-tabs {
 
-    border-radius:22px;
+    width: 100%;
 
-    background:linear-gradient(
+    background: #FFFFFF;
 
-        180deg,
+    border:
+        1px solid
+        #DCE5EE;
 
-        rgba(18,26,40,.97),
+    border-radius: 14px;
 
-        rgba(13,19,30,.98)
-
-    );
-
-    border:1px solid rgba(255,255,255,.05);
+    overflow: hidden;
 
     box-shadow:
-
-        0 20px 50px rgba(0,0,0,.30);
-
-    overflow:hidden;
+        0 8px 24px
+        rgba(
+            23,
+            55,
+            94,
+            .045
+        );
 
 }
 
-.tabs-header{
 
-    display:flex;
+/* =========================================================
+   CABECERA DE PESTAÑAS
+========================================================= */
 
-    align-items:center;
+.tabs-header {
 
-    gap:10px;
+    display: flex;
 
-    padding:18px;
+    align-items: stretch;
 
-    overflow-x:auto;
+    gap: 0;
 
-    scrollbar-width:none;
+    width: 100%;
+
+    padding:
+        0 8px;
+
+    background:
+        #FBFCFD;
 
     border-bottom:
+        1px solid
+        #DCE5EE;
 
-        1px solid rgba(255,255,255,.05);
+    overflow-x: auto;
 
-}
-
-.tabs-header::-webkit-scrollbar{
-
-    display:none;
+    scrollbar-width: none;
 
 }
 
-.tab-button{
+.tabs-header::-webkit-scrollbar {
 
-    display:flex;
+    display: none;
 
-    align-items:center;
+}
 
-    gap:10px;
 
-    white-space:nowrap;
+/* =========================================================
+   BOTÓN
+========================================================= */
 
-    border:none;
+.tab-button {
 
-    cursor:pointer;
+    position: relative;
 
-    padding:12px 22px;
+    display: inline-flex;
 
-    border-radius:14px;
+    align-items: center;
 
-    background:transparent;
+    justify-content: center;
 
-    color:#94A3B8;
+    gap: 8px;
 
-    font-size:.95rem;
+    min-height: 58px;
 
-    font-weight:600;
+    padding:
+        0 19px;
+
+    border: none;
+
+    border-bottom:
+        2px solid
+        transparent;
+
+    background:
+        transparent;
+
+    color: #748397;
+
+    font-family: inherit;
+
+    font-size: .70rem;
+
+    font-weight: 750;
+
+    letter-spacing: .15px;
+
+    white-space: nowrap;
+
+    cursor: pointer;
 
     transition:
-
-        all .25s ease;
+        color .20s ease,
+        background-color .20s ease,
+        border-color .20s ease;
 
 }
 
-.tab-button:hover{
+
+/* =========================================================
+   ICONO
+========================================================= */
+
+.tab-icon {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 25px;
+
+    height: 25px;
+
+    flex: 0 0 25px;
+
+    color: #8997A7;
+
+    transition:
+        color .20s ease;
+
+}
+
+
+.tab-icon svg {
+
+    width: 17px;
+
+    height: 17px;
+
+}
+
+
+/* =========================================================
+   TEXTO
+========================================================= */
+
+.tab-label {
+
+    line-height: 1;
+
+}
+
+
+/* =========================================================
+   HOVER
+========================================================= */
+
+.tab-button:hover {
+
+    color: #315C97;
 
     background:
-
-        rgba(78,168,255,.08);
-
-    color:white;
+        #F7F9FB;
 
 }
 
-.tab-button.active{
+.tab-button:hover .tab-icon {
+
+    color: #315C97;
+
+}
+
+
+/* =========================================================
+   ACTIVO
+========================================================= */
+
+.tab-button.active {
+
+    color: #17375E;
 
     background:
+        #FFFFFF;
 
-        linear-gradient(
+    border-bottom-color:
+        #B08A4C;
 
-            135deg,
+}
 
-            #2563EB,
 
-            #3B82F6
+.tab-button.active .tab-icon {
 
+    color: #8A6A36;
+
+}
+
+
+/* =========================================================
+   INDICADOR SUPERIOR SUTIL
+========================================================= */
+
+.tab-button.active::before {
+
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+
+    left: 18px;
+
+    right: 18px;
+
+    height: 2px;
+
+    background:
+        #B08A4C;
+
+    opacity: .85;
+
+}
+
+
+/* =========================================================
+   CONTENIDO
+========================================================= */
+
+.tabs-content {
+
+    min-height: 500px;
+
+    padding: 30px;
+
+    background:
+        #FFFFFF;
+
+}
+
+
+/* =========================================================
+   FOCUS
+========================================================= */
+
+.tab-button:focus-visible {
+
+    outline:
+        2px solid
+        rgba(
+            49,
+            92,
+            151,
+            .35
         );
 
-    color:white;
-
-    box-shadow:
-
-        0 10px 30px rgba(
-
-            37,
-
-            99,
-
-            235,
-
-            .30
-
-        );
+    outline-offset:
+        -3px;
 
 }
 
-.tab-icon{
 
-    display:flex;
+/* =========================================================
+   1000 PX
+========================================================= */
 
-    align-items:center;
+@media (max-width: 1000px) {
 
-    justify-content:center;
+    .tab-button {
 
-    width:24px;
+        padding:
+            0 15px;
 
-    height:24px;
-
-    font-size:16px;
-
-}
-
-.tabs-content{
-
-    padding:32px;
-
-    min-height:500px;
-
-}
-
-@media(max-width:900px){
-
-    .tabs-header{
-
-        padding:12px;
+        font-size: .67rem;
 
     }
 
-    .tab-button{
+    .tabs-content {
 
-        padding:10px 18px;
-
-        font-size:.90rem;
+        padding: 26px;
 
     }
 
-    .tabs-content{
+}
 
-        padding:22px;
+
+/* =========================================================
+   760 PX
+========================================================= */
+
+@media (max-width: 760px) {
+
+    .case-tabs {
+
+        border-radius: 12px;
+
+    }
+
+    .tabs-header {
+
+        padding:
+            0 4px;
+
+    }
+
+    .tab-button {
+
+        min-height: 54px;
+
+        padding:
+            0 13px;
+
+        gap: 7px;
+
+    }
+
+    .tab-icon {
+
+        width: 22px;
+
+        height: 22px;
+
+        flex-basis: 22px;
+
+    }
+
+    .tab-icon svg {
+
+        width: 16px;
+
+        height: 16px;
+
+    }
+
+    .tabs-content {
+
+        min-height: 400px;
+
+        padding: 22px;
+
+    }
+
+}
+
+
+/* =========================================================
+   520 PX
+========================================================= */
+
+@media (max-width: 520px) {
+
+    .tab-button {
+
+        min-height: 51px;
+
+        padding:
+            0 12px;
+
+    }
+
+    .tab-label {
+
+        font-size: .64rem;
+
+    }
+
+    .tabs-content {
+
+        padding: 18px;
+
+    }
+
+    .tab-button.active::before {
+
+        left: 12px;
+
+        right: 12px;
+
+    }
+
+}
+
+
+/* =========================================================
+   REDUCIR MOVIMIENTO
+========================================================= */
+
+@media (
+    prefers-reduced-motion: reduce
+) {
+
+    .tab-button,
+    .tab-icon {
+
+        transition: none;
 
     }
 

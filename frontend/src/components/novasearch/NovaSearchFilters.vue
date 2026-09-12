@@ -13,7 +13,7 @@
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="1.8"
+                    stroke-width="1.7"
                     aria-hidden="true"
                 >
                     <path d="M4 6h16" />
@@ -22,6 +22,7 @@
                 </svg>
 
             </div>
+
 
             <div class="filters-header-content">
 
@@ -200,7 +201,11 @@
             <div class="summary-items">
 
                 <span class="summary-chip">
+
+                    <span class="summary-chip-dot"></span>
+
                     {{ tipoDocumentoLabel }}
+
                 </span>
 
             </div>
@@ -223,7 +228,7 @@
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="1.8"
+                stroke-width="1.7"
                 aria-hidden="true"
             >
                 <path
@@ -364,68 +369,152 @@ const hasActiveFilters = computed(() => {
 
 <style scoped>
 
-/* =========================================
+/* =================================================
    CONTENEDOR PRINCIPAL
-========================================= */
+================================================= */
 
 .nova-search-filters {
 
     width: 100%;
+
     box-sizing: border-box;
 
-    background: #FFFFFF;
+    padding: 22px;
 
-    border: 1px solid #DCE3EB;
+    background:
+        linear-gradient(
+            180deg,
+            #FFFFFF 0%,
+            #FCFDFE 100%
+        );
+
+    border:
+        1px solid
+        rgba(
+            7,
+            18,
+            37,
+            .10
+        );
+
     border-radius: 12px;
 
-    padding: 24px;
-
     box-shadow:
-        0 12px 30px
-        rgba(23, 55, 94, 0.045);
+        0 10px 28px
+        rgba(
+            7,
+            18,
+            37,
+            .045
+        );
 
 }
 
 
-/* =========================================
+/* =================================================
    CABECERA
-========================================= */
+================================================= */
 
 .filters-header {
 
     display: flex;
+
     align-items: center;
 
-    gap: 13px;
+    gap: 12px;
 
 }
+
+
+/* =================================================
+   ICONO
+================================================= */
 
 .filters-header-icon {
 
-    width: 42px;
-    height: 42px;
+    position: relative;
+
+    width: 40px;
+
+    height: 40px;
+
+    flex: 0 0 40px;
 
     display: flex;
+
     align-items: center;
+
     justify-content: center;
 
-    flex: 0 0 42px;
+    color:
+        #C9A45C;
 
-    border: 1px solid #E0E6ED;
-    border-radius: 10px;
+    background:
+        #0B1628;
 
-    background: #F5F7FA;
+    border:
+        1px solid
+        rgba(
+            201,
+            164,
+            92,
+            .40
+        );
 
-    color: #315C97;
+    border-radius: 9px;
+
+    box-shadow:
+        0 5px 14px
+        rgba(
+            7,
+            18,
+            37,
+            .10
+        );
 
 }
+
+
+.filters-header-icon::after {
+
+    content: "";
+
+    position: absolute;
+
+    inset: 4px;
+
+    border:
+        1px solid
+        rgba(
+            201,
+            164,
+            92,
+            .16
+        );
+
+    border-radius: 6px;
+
+    pointer-events: none;
+
+}
+
 
 .filters-header-icon svg {
 
-    width: 20px;
-    height: 20px;
+    position: relative;
+
+    z-index: 1;
+
+    width: 19px;
+
+    height: 19px;
 
 }
+
+
+/* =================================================
+   CONTENIDO CABECERA
+================================================= */
 
 .filters-header-content {
 
@@ -433,401 +522,745 @@ const hasActiveFilters = computed(() => {
 
 }
 
+
+/* =================================================
+   EYEBROW
+================================================= */
+
 .filters-eyebrow {
 
     display: block;
 
     margin-bottom: 4px;
 
-    color: #7A6440;
+    color:
+        #9A7A42;
 
-    font-size: 0.62rem;
-    font-weight: 800;
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 
-    letter-spacing: 1.25px;
+    font-size:
+        .58rem;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        1.35px;
+
+    line-height:
+        1.2;
 
 }
+
+
+/* =================================================
+   TÍTULO
+================================================= */
 
 .filters-title {
 
     margin: 0;
 
-    color: #17375E;
+    color:
+        #0B1628;
 
     font-family:
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size: 1.2rem;
-    font-weight: 600;
+    font-size:
+        1.15rem;
 
-    line-height: 1.3;
+    font-weight:
+        500;
+
+    line-height:
+        1.25;
+
+    letter-spacing:
+        -.15px;
 
 }
 
 
-/* =========================================
+/* =================================================
    DESCRIPCIÓN
-========================================= */
+================================================= */
 
 .filters-description {
 
-    margin: 16px 0 0;
+    margin:
+        15px
+        0
+        0;
 
-    color: #6D7B8B;
+    color:
+        #687386;
 
-    font-size: 0.83rem;
-    line-height: 1.65;
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size:
+        .78rem;
+
+    line-height:
+        1.65;
 
 }
 
 
-/* =========================================
+/* =================================================
    DIVISOR
-========================================= */
+================================================= */
 
 .filters-divider {
 
     width: 100%;
+
     height: 1px;
 
-    margin: 22px 0;
+    margin:
+        19px
+        0;
 
-    background: #E4E9EF;
+    background:
+        rgba(
+            7,
+            18,
+            37,
+            .09
+        );
 
 }
 
 
-/* =========================================
+/* =================================================
    GRUPO
-========================================= */
+================================================= */
 
 .filter-group {
 
-    margin-bottom: 26px;
+    margin-bottom:
+        22px;
 
 }
+
 
 .filter-label {
 
-    display: block;
+    display: flex;
 
-    margin-bottom: 10px;
+    align-items: center;
 
-    color: #334B66;
+    gap: 7px;
 
-    font-size: 0.75rem;
-    font-weight: 800;
+    margin-bottom:
+        10px;
 
-    letter-spacing: 0.25px;
+    color:
+        #24354F;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size:
+        .70rem;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        .35px;
 
 }
 
 
-/* =========================================
-   OPCIONES DE DOCUMENTO
-========================================= */
+.filter-label::before {
+
+    content: "";
+
+    width: 3px;
+
+    height: 12px;
+
+    background:
+        #C9A45C;
+
+    border-radius:
+        2px;
+
+}
+
+
+/* =================================================
+   OPCIONES
+================================================= */
 
 .document-options {
 
-    display: flex;
-    flex-direction: column;
+    display:
+        flex;
 
-    gap: 10px;
+    flex-direction:
+        column;
+
+    gap:
+        8px;
 
 }
+
+
+/* =================================================
+   OPCIÓN INDIVIDUAL
+================================================= */
 
 .document-option {
 
     position: relative;
 
     display: flex;
+
     align-items: center;
 
-    gap: 11px;
+    gap: 10px;
 
     width: 100%;
+
     box-sizing: border-box;
 
-    padding: 13px 12px;
+    padding:
+        11px
+        10px;
 
-    border: 1px solid #E0E6ED;
-    border-radius: 9px;
+    background:
+        #FFFFFF;
 
-    background: #FFFFFF;
+    border:
+        1px solid
+        #E2E7ED;
 
-    cursor: pointer;
-    user-select: none;
+    border-radius:
+        8px;
+
+    cursor:
+        pointer;
+
+    user-select:
+        none;
 
     transition:
-        border-color 0.2s ease,
-        background 0.2s ease,
-        box-shadow 0.2s ease;
+        border-color .2s ease,
+        background .2s ease,
+        box-shadow .2s ease,
+        transform .2s ease;
 
 }
+
 
 .document-option:hover {
 
-    border-color: #BFCBD8;
+    background:
+        #FAFBFC;
 
-    background: #FBFCFE;
+    border-color:
+        #C8D2DE;
+
+    transform:
+        translateY(-1px);
 
 }
+
 
 .document-option.active {
 
-    border-color:
-        rgba(49, 92, 151, 0.55);
+    background:
+        linear-gradient(
+            135deg,
+            #F8FAFC 0%,
+            #F3F6F9 100%
+        );
 
-    background: #F7F9FC;
+    border-color:
+        rgba(
+            201,
+            164,
+            92,
+            .52
+        );
 
     box-shadow:
-        0 4px 14px
-        rgba(49, 92, 151, 0.06);
+        inset 3px 0 0
+        #C9A45C;
 
 }
 
 
-/* =========================================
-   INPUT RADIO
-========================================= */
+/* =================================================
+   RADIO NATIVO OCULTO
+================================================= */
 
 .document-option input {
 
-    position: absolute;
+    position:
+        absolute;
 
-    width: 1px;
-    height: 1px;
+    width:
+        1px;
 
-    opacity: 0;
+    height:
+        1px;
 
-    pointer-events: none;
+    opacity:
+        0;
+
+    pointer-events:
+        none;
 
 }
 
 
-/* =========================================
+/* =================================================
    RADIO PERSONALIZADO
-========================================= */
+================================================= */
 
 .option-radio {
 
-    width: 16px;
-    height: 16px;
+    position:
+        relative;
 
-    flex: 0 0 16px;
+    width:
+        16px;
 
-    position: relative;
+    height:
+        16px;
 
-    box-sizing: border-box;
+    flex:
+        0 0 16px;
 
-    border: 1.5px solid #B6C1CD;
-    border-radius: 50%;
+    box-sizing:
+        border-box;
 
-    background: #FFFFFF;
+    background:
+        #FFFFFF;
+
+    border:
+        1.5px solid
+        #B7C2CE;
+
+    border-radius:
+        50%;
 
     transition:
-        border-color 0.2s ease,
-        background 0.2s ease;
+        border-color .2s ease,
+        background .2s ease,
+        box-shadow .2s ease;
 
 }
+
+
+.document-option:hover .option-radio {
+
+    border-color:
+        #8E9CAC;
+
+}
+
 
 .document-option.active .option-radio {
 
-    border-color: #315C97;
+    border-color:
+        #C9A45C;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(
+            201,
+            164,
+            92,
+            .10
+        );
 
 }
+
 
 .document-option.active .option-radio::after {
 
     content: "";
 
-    position: absolute;
+    position:
+        absolute;
 
-    inset: 3px;
+    inset:
+        3px;
 
-    border-radius: 50%;
+    background:
+        #C9A45C;
 
-    background: #315C97;
+    border-radius:
+        50%;
 
 }
 
 
-/* =========================================
-   CONTENIDO
-========================================= */
+/* =================================================
+   CONTENIDO DE OPCIÓN
+================================================= */
 
 .option-content {
 
-    display: flex;
-    flex-direction: column;
+    display:
+        flex;
 
-    gap: 3px;
+    flex-direction:
+        column;
 
-    min-width: 0;
+    gap:
+        3px;
+
+    min-width:
+        0;
 
 }
+
 
 .option-content strong {
 
-    color: #29415D;
+    color:
+        #24354F;
 
-    font-size: 0.78rem;
-    font-weight: 700;
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size:
+        .75rem;
+
+    font-weight:
+        700;
+
+    line-height:
+        1.3;
 
 }
+
 
 .option-content small {
 
-    color: #8794A2;
+    color:
+        #8793A1;
 
-    font-size: 0.7rem;
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 
-    line-height: 1.4;
+    font-size:
+        .66rem;
+
+    line-height:
+        1.4;
 
 }
 
 
-/* =========================================
+/* =================================================
    CONFIGURACIÓN ACTUAL
-========================================= */
+================================================= */
 
 .filters-summary {
 
-    padding: 16px 0;
+    padding:
+        15px
+        0;
 
-    border-top: 1px solid #E4E9EF;
+    border-top:
+        1px solid
+        rgba(
+            7,
+            18,
+            37,
+            .08
+        );
 
 }
+
 
 .summary-label {
 
-    display: block;
+    display:
+        block;
 
-    margin-bottom: 10px;
+    margin-bottom:
+        9px;
 
-    color: #98A3AE;
+    color:
+        #8C98A6;
 
-    font-size: 0.61rem;
-    font-weight: 800;
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 
-    letter-spacing: 1.15px;
+    font-size:
+        .57rem;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        1.15px;
 
 }
+
 
 .summary-items {
 
-    display: flex;
-    flex-wrap: wrap;
+    display:
+        flex;
 
-    gap: 7px;
+    flex-wrap:
+        wrap;
+
+    gap:
+        6px;
 
 }
+
 
 .summary-chip {
 
-    display: inline-flex;
-    align-items: center;
+    display:
+        inline-flex;
 
-    padding: 6px 10px;
+    align-items:
+        center;
 
-    border: 1px solid #E1E7ED;
-    border-radius: 6px;
+    gap:
+        6px;
 
-    background: #F4F7FA;
+    padding:
+        6px
+        9px;
 
-    color: #52657A;
+    color:
+        #52657A;
 
-    font-size: 0.7rem;
-    font-weight: 700;
+    background:
+        #F4F6F8;
+
+    border:
+        1px solid
+        #E1E6EB;
+
+    border-radius:
+        6px;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size:
+        .66rem;
+
+    font-weight:
+        700;
 
 }
 
 
-/* =========================================
+.summary-chip-dot {
+
+    width:
+        5px;
+
+    height:
+        5px;
+
+    flex:
+        0 0 5px;
+
+    background:
+        #C9A45C;
+
+    border-radius:
+        50%;
+
+}
+
+
+/* =================================================
    BOTÓN RESTABLECER
-========================================= */
+================================================= */
 
 .clear-filters-button {
 
-    width: 100%;
-    min-height: 42px;
+    width:
+        100%;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    min-height:
+        40px;
 
-    gap: 8px;
+    display:
+        flex;
 
-    padding: 0 14px;
+    align-items:
+        center;
 
-    border: 1px solid #D4DDE7;
-    border-radius: 8px;
+    justify-content:
+        center;
 
-    background: #FFFFFF;
+    gap:
+        8px;
 
-    color: #52657A;
+    padding:
+        0
+        13px;
 
-    font-size: 0.78rem;
-    font-weight: 700;
+    color:
+        #687386;
 
-    cursor: pointer;
+    background:
+        #FFFFFF;
+
+    border:
+        1px solid
+        #D7DEE6;
+
+    border-radius:
+        7px;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size:
+        .72rem;
+
+    font-weight:
+        700;
+
+    cursor:
+        pointer;
 
     transition:
-        background 0.2s ease,
-        border-color 0.2s ease,
-        color 0.2s ease;
+        background .2s ease,
+        border-color .2s ease,
+        color .2s ease,
+        transform .2s ease;
 
 }
+
 
 .clear-filters-button svg {
 
-    width: 16px;
-    height: 16px;
+    width:
+        15px;
+
+    height:
+        15px;
 
 }
+
 
 .clear-filters-button:hover:not(:disabled) {
 
-    background: #F7F9FC;
+    color:
+        #0B1628;
 
-    border-color: #BFCBD8;
+    background:
+        #F7F9FB;
 
-    color: #17375E;
+    border-color:
+        #BFCAD6;
+
+    transform:
+        translateY(-1px);
 
 }
+
+
+.clear-filters-button:active:not(:disabled) {
+
+    transform:
+        translateY(0);
+
+}
+
 
 .clear-filters-button:disabled {
 
-    opacity: 0.45;
+    opacity:
+        .42;
 
-    cursor: not-allowed;
+    cursor:
+        not-allowed;
 
 }
 
 
-/* =========================================
+/* =================================================
    RESPONSIVE
-========================================= */
+================================================= */
 
 @media (max-width: 900px) {
 
     .nova-search-filters {
 
-        padding: 22px;
+        padding:
+            21px;
 
     }
 
 }
+
 
 @media (max-width: 640px) {
 
     .nova-search-filters {
 
-        padding: 20px;
+        padding:
+            19px;
 
     }
 
 }
+
+
+@media (max-width: 576px) {
+
+    .nova-search-filters {
+
+        border-radius:
+            10px;
+
+    }
+
+    .filters-description {
+
+        font-size:
+            .76rem;
+
+    }
+
+    .document-option {
+
+        padding:
+            11px
+            9px;
+
+    }
+
+}
+
 </style>

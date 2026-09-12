@@ -1,162 +1,301 @@
 <template>
 
-<section class="analysis-view">
+    <section class="nova-case-analysis">
 
-    <header class="analysis-header">
+        <!-- ===================================================
+             CABECERA PRINCIPAL
+        ==================================================== -->
 
-        <div>
+        <header class="analysis-header">
 
-            <h2>
+            <div class="analysis-heading">
 
-                Análisis Jurídico
+                <div class="analysis-eyebrow">
 
-            </h2>
+                    <span class="eyebrow-line"></span>
 
-            <p>
+                    NOVACASE · ANÁLISIS JURÍDICO
 
-                Evaluación estructurada del caso realizada por NovaCase.
+                </div>
 
-            </p>
+                <h2>
+                    Análisis Jurídico
+                </h2>
 
-        </div>
+                <p>
+                    Evaluación estructurada de los elementos jurídicos
+                    relevantes identificados durante el análisis del caso.
+                </p>
 
-    </header>
+            </div>
 
-    <section class="analysis-grid">
 
-        <article
+            <div class="analysis-status">
 
-            v-for="section in sections"
+                <span class="status-dot"></span>
 
-            :key="section.id"
+                <span>
+                    Análisis completado
+                </span>
 
-            class="analysis-card"
+            </div>
 
+        </header>
+
+
+        <!-- ===================================================
+             SECCIONES DEL ANÁLISIS
+        ==================================================== -->
+
+        <section
+            class="analysis-grid"
+            aria-label="Secciones del análisis jurídico"
         >
 
-            <header class="card-header">
+            <article
+                v-for="(section, index) in sections"
+                :key="section.id"
+                class="analysis-card"
+                :style="{ '--card-index': index }"
+            >
 
-                <div class="card-title">
+                <!-- CABECERA -->
 
-                    <span class="card-icon">
+                <header class="card-header">
 
-                        {{ section.icon }}
+                    <div class="card-heading">
+
+                        <span
+                            class="card-number"
+                            aria-hidden="true"
+                        >
+                            {{ formatNumber(index + 1) }}
+                        </span>
+
+
+                        <div class="card-title-group">
+
+                            <span class="card-kicker">
+                                {{ section.category }}
+                            </span>
+
+                            <h3>
+                                {{ section.title }}
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+
+                    <span class="card-status">
+
+                        <span
+                            class="card-status-icon"
+                            aria-hidden="true"
+                        >
+
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+
+                                <path d="M5 12.5l4 4L19 7" />
+
+                            </svg>
+
+                        </span>
+
+                        Completado
 
                     </span>
 
-                    <div>
+                </header>
 
-                        <h3>
 
-                            {{ section.title }}
+                <!-- CONTENIDO -->
 
-                        </h3>
+                <div class="card-body">
 
-                        <small>
+                    <MarkdownRenderer
+                        :content="section.content"
+                    />
 
-                            Análisis generado por NovaCase
+                </div>
 
-                        </small>
+
+                <!-- PIE -->
+
+                <footer class="card-footer">
+
+                    <span>
+                        NovaCase Intelligence
+                    </span>
+
+                    <span class="card-footer-mark">
+                        {{ formatNumber(index + 1) }}
+                    </span>
+
+                </footer>
+
+            </article>
+
+        </section>
+
+
+        <!-- ===================================================
+             PROCESO DE ANÁLISIS
+        ==================================================== -->
+
+        <section class="analysis-process">
+
+            <header class="process-header">
+
+                <div>
+
+                    <div class="process-eyebrow">
+
+                        <span class="eyebrow-line"></span>
+
+                        METODOLOGÍA
+
+                    </div>
+
+                    <h3>
+                        Proceso de Análisis
+                    </h3>
+
+                    <p>
+                        Etapas ejecutadas por NovaCase para estructurar
+                        y evaluar jurídicamente la información del caso.
+                    </p>
+
+                </div>
+
+
+                <div class="process-count">
+
+                    <strong>
+                        {{ formatNumber(processSteps.length) }}
+                    </strong>
+
+                    <span>
+                        etapas
+                    </span>
+
+                </div>
+
+            </header>
+
+
+            <!-- TIMELINE -->
+
+            <div
+                class="process-timeline"
+                aria-label="Etapas del análisis"
+            >
+
+                <div
+                    v-for="(step, index) in processSteps"
+                    :key="step.id"
+                    class="process-step"
+                    :style="{ '--step-index': index }"
+                >
+
+                    <!-- CONECTOR -->
+
+                    <div
+                        v-if="index < processSteps.length - 1"
+                        class="timeline-line"
+                        aria-hidden="true"
+                    ></div>
+
+
+                    <!-- MARCADOR -->
+
+                    <div
+                        class="process-marker"
+                        aria-hidden="true"
+                    >
+
+                        <span>
+                            {{ formatNumber(step.id) }}
+                        </span>
+
+                    </div>
+
+
+                    <!-- CONTENIDO -->
+
+                    <div class="process-content">
+
+                        <div class="process-content-top">
+
+                            <span class="process-label">
+                                ETAPA {{ formatNumber(step.id) }}
+                            </span>
+
+
+                            <span class="process-completed">
+
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+
+                                    <path d="M5 12.5l4 4L19 7" />
+
+                                </svg>
+
+                                Completado
+
+                            </span>
+
+                        </div>
+
+
+                        <h4>
+                            {{ step.title }}
+                        </h4>
+
+
+                        <p>
+                            {{ step.description }}
+                        </p>
 
                     </div>
 
                 </div>
 
-                <span class="status-badge">
-
-                    Completado
-
-                </span>
-
-            </header>
-
-            <section class="card-body">
-
-                <MarkdownRenderer
-
-                    :content="section.content"
-
-                />
-
-            </section>
-
-        </article>
-
-    </section>
-
-    <section class="analysis-process">
-
-        <header class="process-header">
-
-            <h3>
-
-                Proceso de Análisis
-
-            </h3>
-
-            <p>
-
-                Etapas ejecutadas por NovaCase durante la evaluación del caso.
-
-            </p>
-
-        </header>
-
-        <div class="process-timeline">
-
-            <div
-
-                v-for="step in processSteps"
-
-                :key="step.id"
-
-                class="process-step"
-
-            >
-
-                <div class="process-icon">
-
-                    {{ step.icon }}
-
-                </div>
-
-                <div class="process-content">
-
-                    <h4>
-
-                        {{ step.title }}
-
-                    </h4>
-
-                    <p>
-
-                        {{ step.description }}
-
-                    </p>
-
-                </div>
-
-                <div class="process-status">
-
-                    ✓
-
-                </div>
-
             </div>
 
-        </div>
+        </section>
 
     </section>
 
-</section>
-
 </template>
+
 
 <script setup>
 
 import { computed } from "vue"
 
-import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue"
+import MarkdownRenderer
+    from "@/components/common/MarkdownRenderer.vue"
+
+
+/* =========================================================
+   PROPS
+========================================================= */
 
 const props = defineProps({
 
@@ -170,18 +309,23 @@ const props = defineProps({
 
 })
 
+
+/* =========================================================
+   SECCIONES DEL ANÁLISIS
+========================================================= */
+
 const sections = computed(() => [
 
     {
 
         id: "summary",
 
+        category: "VISIÓN GENERAL",
+
         title: "Resumen Ejecutivo",
 
-        icon: "📌",
-
-        content: props.analysis.summary ||
-
+        content:
+            props.analysis.summary ||
             "No se generó un resumen ejecutivo."
 
     },
@@ -190,12 +334,12 @@ const sections = computed(() => [
 
         id: "facts",
 
+        category: "BASE FÁCTICA",
+
         title: "Hechos Relevantes",
 
-        icon: "⚖️",
-
-        content: props.analysis.facts ||
-
+        content:
+            props.analysis.facts ||
             "No se identificaron hechos relevantes."
 
     },
@@ -204,12 +348,12 @@ const sections = computed(() => [
 
         id: "issues",
 
+        category: "ANÁLISIS",
+
         title: "Problemas Jurídicos",
 
-        icon: "📚",
-
-        content: props.analysis.issues ||
-
+        content:
+            props.analysis.issues ||
             "No se identificaron problemas jurídicos."
 
     },
@@ -218,12 +362,12 @@ const sections = computed(() => [
 
         id: "law",
 
+        category: "MARCO NORMATIVO",
+
         title: "Normativa Aplicable",
 
-        icon: "📖",
-
-        content: props.analysis.law ||
-
+        content:
+            props.analysis.law ||
             "No se encontró normativa aplicable."
 
     },
@@ -232,12 +376,12 @@ const sections = computed(() => [
 
         id: "jurisprudence",
 
+        category: "PRECEDENTES",
+
         title: "Jurisprudencia",
 
-        icon: "🏛️",
-
-        content: props.analysis.jurisprudence ||
-
+        content:
+            props.analysis.jurisprudence ||
             "No se encontraron precedentes relevantes."
 
     },
@@ -246,17 +390,22 @@ const sections = computed(() => [
 
         id: "observations",
 
+        category: "VALORACIÓN",
+
         title: "Observaciones",
 
-        icon: "💡",
-
-        content: props.analysis.observations ||
-
+        content:
+            props.analysis.observations ||
             "No existen observaciones adicionales."
 
     }
 
 ])
+
+
+/* =========================================================
+   PROCESO DE ANÁLISIS
+========================================================= */
 
 const processSteps = [
 
@@ -264,12 +413,9 @@ const processSteps = [
 
         id: 1,
 
-        icon: "📥",
-
         title: "Recepción del Caso",
 
         description:
-
             "Se recibió la descripción del caso para iniciar el análisis."
 
     },
@@ -278,12 +424,9 @@ const processSteps = [
 
         id: 2,
 
-        icon: "⚖️",
-
         title: "Identificación de Hechos",
 
         description:
-
             "Se identificaron los hechos jurídicamente relevantes."
 
     },
@@ -292,12 +435,9 @@ const processSteps = [
 
         id: 3,
 
-        icon: "📚",
-
         title: "Problemas Jurídicos",
 
         description:
-
             "Se determinaron las principales controversias legales."
 
     },
@@ -306,12 +446,9 @@ const processSteps = [
 
         id: 4,
 
-        icon: "📖",
-
         title: "Normativa Aplicable",
 
         description:
-
             "Se localizaron las normas relacionadas con el caso."
 
     },
@@ -320,12 +457,9 @@ const processSteps = [
 
         id: 5,
 
-        icon: "🏛️",
-
         title: "Jurisprudencia",
 
         description:
-
             "Se analizaron precedentes relevantes."
 
     },
@@ -334,516 +468,1540 @@ const processSteps = [
 
         id: 6,
 
-        icon: "📄",
-
         title: "Informe Jurídico",
 
         description:
-
             "Se generó el informe final para el usuario."
 
     }
 
 ]
 
+
+/* =========================================================
+   UTILIDADES
+========================================================= */
+
+function formatNumber(value) {
+
+    return String(value).padStart(2, "0")
+
+}
+
 </script>
+
 
 <style scoped>
 
-.analysis-view{
+/* =========================================================
+   NOVACASE — ANALYSIS VIEW
+   Identidad:
+   Azul institucional · Dorado jurídico · Blanco · Gris
+========================================================= */
 
-    display:flex;
+.nova-case-analysis {
 
-    flex-direction:column;
+    width: 100%;
 
-    gap:32px;
+    display: flex;
 
-    padding:32px;
+    flex-direction: column;
 
-    border-radius:24px;
+    gap: 30px;
 
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    box-shadow: 0 8px 24px rgba(15, 39, 71, 0.06);
+    padding: 30px;
 
-}
-
-.analysis-header{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:flex-start;
-
-    gap:20px;
-
-    border-bottom:1px solid #E2E8F0;
-
-    padding-bottom:22px;
-
-}
-
-.analysis-header h2{
-
-    margin:0;
-
-    color:#0F2747;
-
-    font-size:1.8rem;
-
-    font-weight:700;
-
-}
-
-.analysis-header p{
-
-    margin-top:8px;
-
-    color:#64748B;
-
-    line-height:1.7;
-
-}
-
-.analysis-grid{
-
-    display:grid;
-
-    grid-template-columns:
-
-        repeat(
-
-            auto-fit,
-
-            minmax(
-
-                380px,
-
-                1fr
-
-            )
-
+    background:
+        linear-gradient(
+            135deg,
+            #FFFFFF 0%,
+            #FCFDFE 100%
         );
 
-    gap:24px;
+    border:
+        1px solid
+        #DCE4EC;
 
-}
-
-.analysis-card{
-    background:#FFFFFF;
-    border:1px solid #E2E8F0;
-    border-radius:20px;
-    overflow:hidden;
-    transition:
-        transform .25s ease,
-        border-color .25s ease,
-        box-shadow .25s ease;
-}
-
-.analysis-card:hover{
-
-    transform:translateY(-4px);
-
-    border-color:#BFDBFE;
+    border-radius: 14px;
 
     box-shadow:
+        0 10px 28px
+        rgba(
+            23,
+            55,
+            94,
+            .045
+        );
 
-        0 12px 30px rgba(37,99,235,.12);
-
-}
-
-.card-header{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:center;
-
-    padding:20px 24px;
-
-    border-bottom:1px solid #E2E8F0;
+    animation:
+        novaCaseAnalysisEnter
+        .4s
+        ease-out;
 
 }
 
-.card-title{
 
-    display:flex;
+/* =========================================================
+   CABECERA PRINCIPAL
+========================================================= */
 
-    align-items:center;
+.analysis-header {
 
-    gap:14px;
+    display: flex;
 
-}
+    align-items: flex-end;
 
-.card-icon{
-    width:48px;
-    height:48px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:14px;
-    background:#EFF6FF;
-    border:1px solid #DBEAFE;
-    font-size:1.35rem;
-}
+    justify-content: space-between;
 
-.card-title h3{
+    gap: 24px;
 
-    margin:0;
+    padding:
+        0
+        4px
+        21px;
 
-    color:#0F2747;
-
-    font-size:1.05rem;
+    border-bottom:
+        1px solid
+        #DCE5EE;
 
 }
 
-.card-title small{
 
-    color:#64748B;
+.analysis-heading {
 
-}
-
-.status-badge{
-
-    padding:6px 12px;
-
-    border-radius:999px;
-
-    background:#F0FDF4;
-
-    color:#15803D;
-
-    border:1px solid #BBF7D0;
-
-    font-size:.75rem;
-
-    font-weight:700;
+    min-width: 0;
 
 }
 
-.card-body{
 
-    padding:24px;
+.analysis-eyebrow,
+.process-eyebrow {
 
-}
+    display: flex;
 
-.analysis-process{
+    align-items: center;
 
-    margin-top:12px;
+    gap: 8px;
 
-}
+    margin-bottom: 9px;
 
-.process-header h3{
+    color: #8A6A37;
 
-    margin:0;
+    font-size: .61rem;
 
-    color:#0F2747;
+    font-weight: 800;
 
-}
-
-.process-header p{
-
-    margin-top:8px;
-
-    color:#64748B;
+    letter-spacing: 1.4px;
 
 }
 
-.process-timeline{
 
-    margin-top:24px;
+.eyebrow-line {
 
-    display:flex;
+    width: 22px;
 
-    flex-direction:column;
+    height: 1px;
 
-    gap:18px;
+    flex-shrink: 0;
+
+    background: #B08A4C;
 
 }
 
-.process-step{
 
-    display:grid;
+.analysis-heading h2 {
+
+    margin:
+        0
+        0
+        8px;
+
+    color: #17375E;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: 1.65rem;
+
+    font-weight: 600;
+
+    line-height: 1.3;
+
+}
+
+
+.analysis-heading p {
+
+    max-width: 720px;
+
+    margin: 0;
+
+    color: #697888;
+
+    font-size: .87rem;
+
+    line-height: 1.7;
+
+}
+
+
+/* =========================================================
+   ESTADO PRINCIPAL
+========================================================= */
+
+.analysis-status {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    flex-shrink: 0;
+
+    min-height: 31px;
+
+    padding:
+        0
+        12px;
+
+    background:
+        #F7FAF8;
+
+    border:
+        1px solid
+        #D8E7DD;
+
+    border-radius: 999px;
+
+    color: #587161;
+
+    font-size: .66rem;
+
+    font-weight: 750;
+
+}
+
+
+.status-dot {
+
+    width: 6px;
+
+    height: 6px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #668B70;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(
+            102,
+            139,
+            112,
+            .10
+        );
+
+}
+
+
+/* =========================================================
+   GRID
+========================================================= */
+
+.analysis-grid {
+
+    display: grid;
 
     grid-template-columns:
+        repeat(
+            2,
+            minmax(
+                0,
+                1fr
+            )
+        );
 
-        60px
+    gap: 16px;
 
-        1fr
+}
 
-        40px;
 
-    gap:18px;
+/* =========================================================
+   TARJETAS
+========================================================= */
 
-    align-items:center;
+.analysis-card {
 
-    padding:18px;
+    position: relative;
 
-    border-radius:18px;
+    min-width: 0;
 
-    background:#FFFFFF;
+    overflow: hidden;
 
-    border:1px solid #E2E8F0;
+    display: flex;
+
+    flex-direction: column;
+
+    background: #FFFFFF;
+
+    border:
+        1px solid
+        #D9E2EC;
+
+    border-radius: 11px;
+
+    box-shadow:
+        0 5px 18px
+        rgba(
+            23,
+            55,
+            94,
+            .035
+        );
 
     transition:
+        transform
+        .22s
+        ease,
 
-        all .25s ease;
+        border-color
+        .22s
+        ease,
 
-}
+        box-shadow
+        .22s
+        ease;
 
-.process-step:hover{
+    animation:
+        novaCaseCardEnter
+        .4s
+        ease-out
+        both;
 
-    transform:translateX(6px);
-
-    border-color:#BFDBFE;
-
-}
-
-.process-icon{
-
-    width:52px;
-
-    height:52px;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    border-radius:14px;
-
-    background:#EFF6FF;
-
-    border:1px solid #DBEAFE;
-
-    color:#2563EB;
-
-    font-size:1.35rem;
+    animation-delay:
+        calc(
+            var(--card-index)
+            * .045s
+        );
 
 }
 
-.process-content h4{
 
-    margin:0;
+.analysis-card:hover {
 
-    color:#0F2747;
+    transform:
+        translateY(
+            -2px
+        );
 
-}
+    border-color:
+        #C5D2DF;
 
-.process-content p{
-
-    margin-top:6px;
-
-    color:#64748B;
-
-    line-height:1.6;
-
-}
-
-.process-status{
-
-    width:34px;
-
-    height:34px;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    border-radius:50%;
-
-    background:#15803D;
-    
-    color:#FFFFFF;
-
-    font-weight:700;
+    box-shadow:
+        0 12px 28px
+        rgba(
+            23,
+            55,
+            94,
+            .065
+        );
 
 }
 
-/* ===========================
+
+/* =========================================================
+   CABECERA DE TARJETA
+========================================================= */
+
+.card-header {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 16px;
+
+    padding:
+        17px
+        19px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #FFFFFF 0%,
+            #FCFDFE 100%
+        );
+
+    border-bottom:
+        1px solid
+        #E8EDF2;
+
+}
+
+
+.card-heading {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    min-width: 0;
+
+}
+
+
+.card-number {
+
+    width: 34px;
+
+    height: 34px;
+
+    flex:
+        0 0
+        34px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background:
+        #FCFDFE;
+
+    border:
+        1px solid
+        rgba(
+            176,
+            138,
+            76,
+            .38
+        );
+
+    border-radius: 50%;
+
+    color: #7A6440;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: .72rem;
+
+    font-weight: 600;
+
+}
+
+
+.card-title-group {
+
+    min-width: 0;
+
+}
+
+
+.card-kicker {
+
+    display: block;
+
+    margin-bottom: 3px;
+
+    color: #8B98A6;
+
+    font-size: .55rem;
+
+    font-weight: 800;
+
+    letter-spacing: .9px;
+
+}
+
+
+.card-title-group h3 {
+
+    overflow: hidden;
+
+    margin: 0;
+
+    color: #17375E;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: 1rem;
+
+    font-weight: 600;
+
+    line-height: 1.4;
+
+    text-overflow: ellipsis;
+
+}
+
+
+/* =========================================================
+   ESTADO DE TARJETA
+========================================================= */
+
+.card-status {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    flex-shrink: 0;
+
+    color: #71817A;
+
+    font-size: .59rem;
+
+    font-weight: 750;
+
+}
+
+
+.card-status-icon {
+
+    width: 17px;
+
+    height: 17px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border:
+        1px solid
+        #D8E7DD;
+
+    border-radius: 50%;
+
+    background: #F5F9F6;
+
+    color: #64806D;
+
+}
+
+
+.card-status-icon svg {
+
+    width: 10px;
+
+    height: 10px;
+
+}
+
+
+/* =========================================================
+   CUERPO
+========================================================= */
+
+.card-body {
+
+    flex: 1;
+
+    min-width: 0;
+
+    padding:
+        19px
+        20px;
+
+}
+
+
+/* =========================================================
+   MARKDOWN RENDERER
+========================================================= */
+
+.card-body :deep(p) {
+
+    margin:
+        0
+        0
+        11px;
+
+    color: #536273;
+
+    font-size: .85rem;
+
+    line-height: 1.8;
+
+}
+
+
+.card-body :deep(p:last-child) {
+
+    margin-bottom: 0;
+
+}
+
+
+.card-body :deep(h1),
+.card-body :deep(h2),
+.card-body :deep(h3),
+.card-body :deep(h4) {
+
+    margin:
+        18px
+        0
+        8px;
+
+    color: #17375E;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-weight: 600;
+
+    line-height: 1.4;
+
+}
+
+
+.card-body :deep(h1:first-child),
+.card-body :deep(h2:first-child),
+.card-body :deep(h3:first-child),
+.card-body :deep(h4:first-child) {
+
+    margin-top: 0;
+
+}
+
+
+.card-body :deep(ul),
+.card-body :deep(ol) {
+
+    margin:
+        8px
+        0
+        12px;
+
+    padding-left: 21px;
+
+    color: #536273;
+
+}
+
+
+.card-body :deep(li) {
+
+    margin-bottom: 6px;
+
+    font-size: .84rem;
+
+    line-height: 1.7;
+
+}
+
+
+.card-body :deep(li:last-child) {
+
+    margin-bottom: 0;
+
+}
+
+
+.card-body :deep(strong) {
+
+    color: #304C6C;
+
+    font-weight: 750;
+
+}
+
+
+.card-body :deep(em) {
+
+    color: #667585;
+
+}
+
+
+.card-body :deep(a) {
+
+    color: #315C97;
+
+    text-decoration:
+        underline;
+
+    text-decoration-color:
+        rgba(
+            49,
+            92,
+            151,
+            .28
+        );
+
+    text-underline-offset: 3px;
+
+}
+
+
+.card-body :deep(blockquote) {
+
+    margin:
+        14px
+        0;
+
+    padding:
+        11px
+        14px;
+
+    background:
+        #F8FAFC;
+
+    border-left:
+        2px solid
+        #B08A4C;
+
+    border-radius:
+        0
+        7px
+        7px
+        0;
+
+    color: #5B6876;
+
+}
+
+
+.card-body :deep(code) {
+
+    padding:
+        2px
+        5px;
+
+    background:
+        #F3F6F9;
+
+    border:
+        1px solid
+        #E2E8EF;
+
+    border-radius: 4px;
+
+    color: #315C97;
+
+    font-size: .78rem;
+
+}
+
+
+.card-body :deep(hr) {
+
+    margin:
+        18px
+        0;
+
+    border: 0;
+
+    border-top:
+        1px solid
+        #E7EDF2;
+
+}
+
+
+/* =========================================================
+   FOOTER DE TARJETA
+========================================================= */
+
+.card-footer {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    min-height: 35px;
+
+    padding:
+        0
+        19px;
+
+    background:
+        #FAFBFC;
+
+    border-top:
+        1px solid
+        #EDF1F4;
+
+    color: #9AA5B0;
+
+    font-size: .56rem;
+
+    font-weight: 700;
+
+    letter-spacing: .25px;
+
+}
+
+
+.card-footer-mark {
+
+    color: #B08A4C;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+}
+
+
+/* =========================================================
+   PROCESO DE ANÁLISIS
+========================================================= */
+
+.analysis-process {
+
+    padding-top: 4px;
+
+}
+
+
+.process-header {
+
+    display: flex;
+
+    align-items: flex-end;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding:
+        0
+        4px
+        18px;
+
+    border-bottom:
+        1px solid
+        #DCE5EE;
+
+}
+
+
+.process-header h3 {
+
+    margin:
+        0
+        0
+        7px;
+
+    color: #17375E;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: 1.28rem;
+
+    font-weight: 600;
+
+}
+
+
+.process-header p {
+
+    max-width: 680px;
+
+    margin: 0;
+
+    color: #718090;
+
+    font-size: .82rem;
+
+    line-height: 1.65;
+
+}
+
+
+/* =========================================================
+   CONTADOR
+========================================================= */
+
+.process-count {
+
+    min-width: 67px;
+
+    padding:
+        8px
+        11px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #FFFFFF;
+
+    border:
+        1px solid
+        #D7E0E9;
+
+    border-radius: 8px;
+
+}
+
+
+.process-count strong {
+
+    color: #17375E;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: .95rem;
+
+    font-weight: 700;
+
+}
+
+
+.process-count span {
+
+    color: #8C98A5;
+
+    font-size: .56rem;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: .7px;
+
+}
+
+
+/* =========================================================
+   TIMELINE
+========================================================= */
+
+.process-timeline {
+
+    display: flex;
+
+    flex-direction: column;
+
+    margin-top: 20px;
+
+}
+
+
+.process-step {
+
+    position: relative;
+
+    display: grid;
+
+    grid-template-columns:
+        46px
+        minmax(
+            0,
+            1fr
+        );
+
+    column-gap: 16px;
+
+    padding-bottom: 20px;
+
+    animation:
+        novaCaseStepEnter
+        .38s
+        ease-out
+        both;
+
+    animation-delay:
+        calc(
+            var(--step-index)
+            * .055s
+        );
+
+}
+
+
+.process-step:last-child {
+
+    padding-bottom: 0;
+
+}
+
+
+/* =========================================================
+   LÍNEA
+========================================================= */
+
+.timeline-line {
+
+    position: absolute;
+
+    top: 46px;
+
+    bottom: 0;
+
+    left: 22px;
+
+    width: 1px;
+
+    background:
+        linear-gradient(
+            to bottom,
+            #C9D5E1,
+            #E8EDF2
+        );
+
+}
+
+
+/* =========================================================
+   MARCADOR
+========================================================= */
+
+.process-marker {
+
+    position: relative;
+
+    z-index: 2;
+
+    width: 44px;
+
+    height: 44px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background:
+        linear-gradient(
+            135deg,
+            #FFFFFF 0%,
+            #F9FBFD 100%
+        );
+
+    border:
+        1px solid
+        #D4DFE9;
+
+    border-radius: 50%;
+
+    box-shadow:
+        0 3px 10px
+        rgba(
+            23,
+            55,
+            94,
+            .045
+        );
+
+}
+
+
+.process-marker::after {
+
+    content: "";
+
+    position: absolute;
+
+    inset: 4px;
+
+    border:
+        1px solid
+        rgba(
+            176,
+            138,
+            76,
+            .16
+        );
+
+    border-radius: 50%;
+
+}
+
+
+.process-marker span {
+
+    position: relative;
+
+    z-index: 1;
+
+    color: #315C97;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: .72rem;
+
+    font-weight: 600;
+
+}
+
+
+/* =========================================================
+   CONTENIDO DEL PROCESO
+========================================================= */
+
+.process-content {
+
+    min-width: 0;
+
+    padding:
+        2px
+        0
+        4px;
+
+}
+
+
+.process-content-top {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 14px;
+
+    margin-bottom: 5px;
+
+}
+
+
+.process-label {
+
+    color: #9AA5B0;
+
+    font-size: .56rem;
+
+    font-weight: 800;
+
+    letter-spacing: .9px;
+
+}
+
+
+.process-completed {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    color: #71817A;
+
+    font-size: .58rem;
+
+    font-weight: 700;
+
+}
+
+
+.process-completed svg {
+
+    width: 12px;
+
+    height: 12px;
+
+    color: #66806D;
+
+}
+
+
+.process-content h4 {
+
+    margin: 0;
+
+    color: #17375E;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: .94rem;
+
+    font-weight: 600;
+
+    line-height: 1.45;
+
+}
+
+
+.process-content p {
+
+    max-width: 780px;
+
+    margin:
+        5px
+        0
+        0;
+
+    color: #718090;
+
+    font-size: .78rem;
+
+    line-height: 1.65;
+
+}
+
+
+/* =========================================================
    ANIMACIONES
-=========================== */
+========================================================= */
 
-.analysis-view{
+@keyframes novaCaseAnalysisEnter {
 
-    animation:
+    from {
 
-        analysisFadeIn
+        opacity: 0;
 
-        .45s ease;
-
-}
-
-.analysis-card{
-
-    animation:
-
-        cardAppear
-
-        .5s ease;
-
-}
-
-.analysis-card:nth-child(2){
-
-    animation-delay:.05s;
-
-}
-
-.analysis-card:nth-child(3){
-
-    animation-delay:.10s;
-
-}
-
-.analysis-card:nth-child(4){
-
-    animation-delay:.15s;
-
-}
-
-.analysis-card:nth-child(5){
-
-    animation-delay:.20s;
-
-}
-
-.analysis-card:nth-child(6){
-
-    animation-delay:.25s;
-
-}
-
-@keyframes analysisFadeIn{
-
-    from{
-
-        opacity:0;
-
-        transform:translateY(18px);
+        transform:
+            translateY(
+                10px
+            );
 
     }
 
-    to{
+    to {
 
-        opacity:1;
+        opacity: 1;
 
-        transform:translateY(0);
+        transform:
+            translateY(
+                0
+            );
 
     }
 
 }
 
-@keyframes cardAppear{
 
-    from{
+@keyframes novaCaseCardEnter {
 
-        opacity:0;
+    from {
 
-        transform:translateY(15px);
+        opacity: 0;
 
-    }
-
-    to{
-
-        opacity:1;
-
-        transform:translateY(0);
+        transform:
+            translateY(
+                10px
+            );
 
     }
 
-}
+    to {
 
-/* ===========================
-   RESPONSIVE
-=========================== */
+        opacity: 1;
 
-@media (max-width:1100px){
-
-    .analysis-grid{
-
-        grid-template-columns:1fr;
+        transform:
+            translateY(
+                0
+            );
 
     }
 
 }
 
-@media (max-width:768px){
 
-    .analysis-view{
+@keyframes novaCaseStepEnter {
 
-        padding:22px;
+    from {
 
-        gap:24px;
+        opacity: 0;
 
-    }
-
-    .analysis-header{
-
-        flex-direction:column;
-
-        align-items:flex-start;
+        transform:
+            translateX(
+                8px
+            );
 
     }
 
-    .card-header{
+    to {
 
-        flex-direction:column;
+        opacity: 1;
 
-        align-items:flex-start;
-
-        gap:14px;
-
-    }
-
-    .process-step{
-
-        grid-template-columns:1fr;
-
-        text-align:center;
-
-    }
-
-    .process-icon{
-
-        margin:auto;
-
-    }
-
-    .process-status{
-
-        margin:auto;
+        transform:
+            translateX(
+                0
+            );
 
     }
 
 }
 
-@media (max-width:480px){
 
-    .analysis-view{
+/* =========================================================
+   REDUCIR MOVIMIENTO
+========================================================= */
 
-        padding:16px;
+@media(
+    prefers-reduced-motion: reduce
+) {
+
+    .nova-case-analysis,
+    .analysis-card,
+    .process-step {
+
+        animation: none;
 
     }
 
-    .analysis-header h2{
+    .analysis-card {
 
-        font-size:1.45rem;
+        transition: none;
 
     }
 
-    .card-body{
+}
 
-        padding:18px;
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media(max-width:1000px) {
+
+    .analysis-grid {
+
+        grid-template-columns: 1fr;
+
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(max-width:700px) {
+
+    .nova-case-analysis {
+
+        padding: 22px;
+
+        gap: 24px;
+
+    }
+
+
+    .analysis-header {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 15px;
+
+    }
+
+
+    .analysis-status {
+
+        align-self: flex-start;
+
+    }
+
+
+    .analysis-heading h2 {
+
+        font-size: 1.4rem;
+
+    }
+
+
+    .analysis-heading p {
+
+        font-size: .83rem;
+
+    }
+
+
+    .card-header {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 11px;
+
+    }
+
+
+    .card-status {
+
+        margin-left: 46px;
+
+    }
+
+
+    .process-header {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+    }
+
+
+    .process-count {
+
+        align-self: flex-start;
+
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE PEQUEÑO
+========================================================= */
+
+@media(max-width:480px) {
+
+    .nova-case-analysis {
+
+        padding: 17px;
+
+        border-radius: 11px;
+
+    }
+
+
+    .analysis-grid {
+
+        gap: 13px;
+
+    }
+
+
+    .card-header {
+
+        padding:
+            15px
+            16px;
+
+    }
+
+
+    .card-body {
+
+        padding:
+            17px;
+
+    }
+
+
+    .card-footer {
+
+        padding:
+            0
+            16px;
+
+    }
+
+
+    .card-status {
+
+        margin-left: 46px;
+
+    }
+
+
+    .process-step {
+
+        grid-template-columns:
+            40px
+            minmax(
+                0,
+                1fr
+            );
+
+        column-gap: 13px;
+
+    }
+
+
+    .process-marker {
+
+        width: 38px;
+
+        height: 38px;
+
+    }
+
+
+    .process-marker::after {
+
+        inset: 3px;
+
+    }
+
+
+    .timeline-line {
+
+        left: 19px;
+
+        top: 40px;
+
+    }
+
+
+    .process-content-top {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 5px;
+
+    }
+
+
+    .process-content h4 {
+
+        font-size: .9rem;
+
+    }
+
+
+    .process-content p {
+
+        font-size: .75rem;
 
     }
 
 }
 
 </style>
-

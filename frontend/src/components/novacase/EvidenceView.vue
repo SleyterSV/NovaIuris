@@ -1,130 +1,207 @@
 <template>
 
-<section class="evidence-view">
+    <section class="evidence-view">
 
-    <header class="evidence-header">
+        <!-- =====================================================
+             CABECERA
+        ====================================================== -->
 
-        <div>
+        <header class="evidence-header">
 
-            <h2>
+            <div class="evidence-heading">
 
-                Análisis Probatorio
+                <div class="section-eyebrow">
 
-            </h2>
+                    <span class="eyebrow-line"></span>
 
-            <p>
+                    NOVACASE · EVIDENCIA
 
-                Evaluación de las pruebas identificadas durante el análisis jurídico.
+                </div>
 
-            </p>
+                <h2>
+                    Análisis Probatorio
+                </h2>
 
-        </div>
+                <p>
+                    Evaluación de las pruebas identificadas durante
+                    el análisis jurídico del caso.
+                </p>
 
-    </header>
+            </div>
 
-    <div class="evidence-grid">
+        </header>
 
-        <AnalysisSection
 
-            v-for="item in evidences"
+        <!-- =====================================================
+             EVIDENCIAS
+        ====================================================== -->
 
-            :key="item.id"
+        <div class="evidence-grid">
 
-            :title="item.title"
+            <AnalysisSection
 
-            :subtitle="item.subtitle"
+                v-for="item in evidences"
 
-            :icon="item.icon"
+                :key="item.id"
 
-            :content="item.content"
+                :title="item.title"
 
-            :confidence="item.confidence"
+                :subtitle="item.subtitle"
 
-            :status="item.status"
+                :icon="item.icon"
 
-        />
+                :content="item.content"
 
-    </div>
+                :confidence="item.confidence"
 
-    <section class="evidence-stats">
+                :status="item.status"
 
-        <div class="stat-card">
-
-            <span class="stat-label">
-
-                Evidencias Analizadas
-
-            </span>
-
-            <strong class="stat-value">
-
-                {{ evidences.length }}
-
-            </strong>
+            />
 
         </div>
 
-        <div class="stat-card">
 
-            <span class="stat-label">
+        <!-- =====================================================
+             ESTADÍSTICAS
+        ====================================================== -->
 
-                Nivel Promedio
+        <section class="evidence-stats">
 
-            </span>
+            <div class="stat-card">
 
-            <strong class="stat-value">
+                <div class="stat-icon">
 
-                {{ averageConfidence }}%
+                    <span>01</span>
 
-            </strong>
+                </div>
 
-        </div>
+                <div class="stat-content">
 
-        <div class="stat-card">
+                    <span class="stat-label">
+                        Evidencias analizadas
+                    </span>
 
-            <span class="stat-label">
+                    <strong class="stat-value">
+                        {{ evidences.length }}
+                    </strong>
 
-                Estado General
+                </div>
 
-            </span>
+            </div>
 
-            <strong class="stat-success">
 
-                Validado
+            <div class="stat-card">
 
-            </strong>
+                <div class="stat-icon">
 
-        </div>
+                    <span>02</span>
+
+                </div>
+
+                <div class="stat-content">
+
+                    <span class="stat-label">
+                        Nivel promedio
+                    </span>
+
+                    <strong class="stat-value">
+                        {{ averageConfidence }}%
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon success-icon">
+
+                    <span>✓</span>
+
+                </div>
+
+                <div class="stat-content">
+
+                    <span class="stat-label">
+                        Estado general
+                    </span>
+
+                    <strong class="stat-success">
+                        Validado
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             CONCLUSIÓN PROBATORIA
+        ====================================================== -->
+
+        <section class="evidence-summary">
+
+            <div class="summary-header">
+
+                <div>
+
+                    <div class="summary-eyebrow">
+
+                        <span class="summary-line"></span>
+
+                        CONCLUSIÓN PROBATORIA
+
+                    </div>
+
+                    <h3>
+                        Evaluación general de la evidencia
+                    </h3>
+
+                </div>
+
+                <div class="summary-badge">
+
+                    <span class="summary-dot"></span>
+
+                    Análisis completado
+
+                </div>
+
+            </div>
+
+
+            <div class="summary-content">
+
+                <MarkdownRenderer
+                    :content="summary"
+                />
+
+            </div>
+
+        </section>
 
     </section>
-
-    <section class="evidence-summary">
-
-        <h3>
-
-            Conclusión Probatoria
-
-        </h3>
-
-        <MarkdownRenderer
-
-            :content="summary"
-
-        />
-
-    </section>
-
-</section>
 
 </template>
+
 
 <script setup>
 
 import { computed } from "vue"
 
-import AnalysisSection from "@/components/common/AnalysisSection.vue"
+import AnalysisSection
+    from "@/components/common/AnalysisSection.vue"
 
-import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue"
+import MarkdownRenderer
+    from "@/components/common/MarkdownRenderer.vue"
+
+
+/* =========================================================
+   PROPS
+========================================================= */
 
 const props = defineProps({
 
@@ -137,6 +214,11 @@ const props = defineProps({
     }
 
 })
+
+
+/* =========================================================
+   EVIDENCIAS
+========================================================= */
 
 const evidences = computed(() => [
 
@@ -151,7 +233,6 @@ const evidences = computed(() => [
         icon: "📄",
 
         content:
-
             props.evidence.documents ||
 
             "No se identificaron documentos relevantes.",
@@ -161,6 +242,7 @@ const evidences = computed(() => [
         status: "completed"
 
     },
+
 
     {
 
@@ -173,7 +255,6 @@ const evidences = computed(() => [
         icon: "👤",
 
         content:
-
             props.evidence.testimonies ||
 
             "No se identificaron testimonios relevantes.",
@@ -183,6 +264,7 @@ const evidences = computed(() => [
         status: "completed"
 
     },
+
 
     {
 
@@ -195,7 +277,6 @@ const evidences = computed(() => [
         icon: "🧪",
 
         content:
-
             props.evidence.expertReports ||
 
             "No existen informes periciales.",
@@ -206,18 +287,18 @@ const evidences = computed(() => [
 
     },
 
+
     {
 
         id: "digital",
 
-        title: "Evidencia Digital",
+        title: "Evidencia digital",
 
         subtitle: "Mensajes, correos y archivos",
 
         icon: "💻",
 
         content:
-
             props.evidence.digitalEvidence ||
 
             "No se encontró evidencia digital.",
@@ -230,6 +311,11 @@ const evidences = computed(() => [
 
 ])
 
+
+/* =========================================================
+   RESUMEN
+========================================================= */
+
 const summary = computed(() =>
 
     props.evidence.summary ||
@@ -240,36 +326,41 @@ NovaCase no encontró una conclusión probatoria disponible.`
 
 )
 
+
+/* =========================================================
+   PROMEDIO
+========================================================= */
+
 const averageConfidence = computed(() => {
 
-    if(
-
+    if (
         evidences.value.length === 0
-
-    ){
+    ) {
 
         return 0
 
     }
 
-    const total = evidences.value.reduce(
 
-        (
+    const total =
+        evidences.value.reduce(
 
-            sum,
+            (
+                sum,
+                item
+            ) =>
 
-            item
+                sum +
+                item.confidence,
 
-        ) => sum + item.confidence,
+            0
 
-        0
+        )
 
-    )
 
     return Math.round(
 
         total /
-
         evidences.value.length
 
     )
@@ -278,525 +369,829 @@ const averageConfidence = computed(() => {
 
 </script>
 
+
 <style scoped>
 
-.evidence-view{
+/* =========================================================
+   EVIDENCE VIEW
+========================================================= */
 
-    display:flex;
+.evidence-view {
 
-    flex-direction:column;
+    display: flex;
 
-    gap:32px;
+    flex-direction: column;
 
-    padding:32px;
+    gap: 28px;
 
-    border-radius:24px;
+    padding: 30px;
 
     background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    box-shadow: 0 8px 24px rgba(15, 39, 71, 0.06);
 
-}
+    border:
+        1px solid
+        #DCE5EE;
 
-.evidence-header{
+    border-radius: 14px;
 
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:flex-start;
-
-    gap:20px;
-
-    border-bottom:1px solid rgba(255,255,255,.08);
-
-    padding-bottom:24px;
-
-}
-
-.evidence-header h2{
-
-    margin:0;
-
-    color:#F8FAFC;
-
-    font-size:1.8rem;
-
-    font-weight:700;
-
-}
-
-.evidence-header p{
-
-    margin-top:8px;
-
-    color:#94A3B8;
-
-    line-height:1.7;
-
-}
-
-.evidence-grid{
-
-    display:grid;
-
-    grid-template-columns:
-
-        repeat(
-
-            auto-fit,
-
-            minmax(
-
-                420px,
-
-                1fr
-
-            )
-
+    box-shadow:
+        0 8px 24px
+        rgba(
+            23,
+            55,
+            94,
+            .055
         );
 
-    gap:24px;
+    animation:
+        evidenceAppear
+        .45s
+        ease-out;
 
 }
 
-.evidence-stats{
 
-    display:grid;
+/* =========================================================
+   CABECERA
+========================================================= */
+
+.evidence-header {
+
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+
+    padding-bottom: 22px;
+
+    border-bottom:
+        1px solid
+        #E2E8F0;
+
+}
+
+
+.evidence-heading {
+
+    min-width: 0;
+
+}
+
+
+.section-eyebrow {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    margin-bottom: 10px;
+
+    color: #8A6A36;
+
+    font-size: .57rem;
+
+    font-weight: 800;
+
+    letter-spacing: 1.4px;
+
+}
+
+
+.eyebrow-line {
+
+    width: 20px;
+
+    height: 1px;
+
+    background: #B08A4C;
+
+}
+
+
+.evidence-header h2 {
+
+    margin: 0;
+
+    color: #17375E;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: 1.55rem;
+
+    font-weight: 600;
+
+    line-height: 1.3;
+
+}
+
+
+.evidence-header p {
+
+    max-width: 720px;
+
+    margin:
+        7px
+        0
+        0;
+
+    color: #718090;
+
+    font-size: .79rem;
+
+    line-height: 1.7;
+
+}
+
+
+/* =========================================================
+   GRID DE EVIDENCIAS
+========================================================= */
+
+.evidence-grid {
+
+    display: grid;
 
     grid-template-columns:
-
         repeat(
-
-            auto-fit,
-
+            2,
             minmax(
-
-                220px,
-
+                0,
                 1fr
-
             )
-
         );
 
-    gap:18px;
+    gap: 18px;
 
 }
 
-.stat-card{
 
-    display:flex;
+/* =========================================================
+   ESTADÍSTICAS
+========================================================= */
 
-    flex-direction:column;
+.evidence-stats {
 
-    gap:10px;
+    display: grid;
 
-    padding:22px;
+    grid-template-columns:
+        repeat(
+            3,
+            minmax(
+                0,
+                1fr
+            )
+        );
 
-    border-radius:18px;
+    gap: 14px;
 
-    background:rgba(255,255,255,.03);
+}
 
-    border:1px solid rgba(255,255,255,.05);
+
+.stat-card {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+
+    min-width: 0;
+
+    padding: 17px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #FFFFFF 0%,
+            #FBFCFD 100%
+        );
+
+    border:
+        1px solid
+        #E1E7ED;
+
+    border-radius: 11px;
+
+    box-shadow:
+        0 4px 14px
+        rgba(
+            23,
+            55,
+            94,
+            .035
+        );
 
     transition:
-
-        all .25s ease;
-
-}
-
-.stat-card:hover{
-
-    transform:translateY(-4px);
-
-    border-color:rgba(37,99,235,.35);
+        transform .22s ease,
+        border-color .22s ease,
+        box-shadow .22s ease;
 
 }
 
-.stat-label{
 
-    color:#94A3B8;
+.stat-card:hover {
 
-    font-size:.78rem;
+    transform:
+        translateY(-2px);
 
-    text-transform:uppercase;
+    border-color:
+        #C8D6E4;
 
-    letter-spacing:.6px;
-
-}
-
-.stat-value{
-
-    color:#F8FAFC;
-
-    font-size:1.5rem;
-
-    font-weight:700;
+    box-shadow:
+        0 8px 20px
+        rgba(
+            23,
+            55,
+            94,
+            .07
+        );
 
 }
 
-.stat-success{
 
-    color:#22C55E;
+/* =========================================================
+   ICONOS DE ESTADÍSTICAS
+========================================================= */
 
-    font-size:1.1rem;
+.stat-icon {
 
-    font-weight:700;
+    width: 35px;
 
-}
+    height: 35px;
 
-.evidence-summary{
+    flex:
+        0 0
+        35px;
 
-    padding:26px;
+    display: flex;
 
-    border-radius:20px;
+    align-items: center;
 
-    background:rgba(255,255,255,.03);
+    justify-content: center;
 
-    border:1px solid rgba(255,255,255,.06);
+    border:
+        1px solid
+        rgba(
+            176,
+            138,
+            76,
+            .32
+        );
 
-}
+    border-radius: 8px;
 
-.evidence-summary h3{
+    background:
+        #FCF9F4;
 
-    margin:0 0 18px;
+    color: #8A6A36;
 
-    color:#F8FAFC;
+    font-size: .58rem;
 
-    font-size:1.2rem;
-
-    font-weight:700;
-
-}
-
-/* =====================================================
-   RESPONSIVE
-===================================================== */
-
-@media (max-width:1200px){
-
-    .evidence-grid{
-
-        grid-template-columns:1fr;
-
-    }
+    font-weight: 800;
 
 }
 
-@media (max-width:992px){
 
-    .evidence-view{
+.stat-icon span {
 
-        padding:26px;
+    display: block;
 
-    }
+}
 
-    .evidence-stats{
+
+.success-icon {
+
+    border-color:
+        #D8E7DD;
+
+    background:
+        #F7FAF8;
+
+    color: #668B70;
+
+    font-size: .9rem;
+
+}
+
+
+/* =========================================================
+   CONTENIDO DE ESTADÍSTICAS
+========================================================= */
+
+.stat-content {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 4px;
+
+    min-width: 0;
+
+}
+
+
+.stat-label {
+
+    color: #7C8997;
+
+    font-size: .57rem;
+
+    font-weight: 750;
+
+    letter-spacing: .65px;
+
+    text-transform: uppercase;
+
+}
+
+
+.stat-value {
+
+    color: #17375E;
+
+    font-size: 1.18rem;
+
+    font-weight: 750;
+
+    line-height: 1.2;
+
+}
+
+
+.stat-success {
+
+    color: #587161;
+
+    font-size: .9rem;
+
+    font-weight: 750;
+
+    line-height: 1.3;
+
+}
+
+
+/* =========================================================
+   RESUMEN
+========================================================= */
+
+.evidence-summary {
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            180deg,
+            #FFFFFF 0%,
+            #FBFCFD 100%
+        );
+
+    border:
+        1px solid
+        #DCE5EE;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 5px 18px
+        rgba(
+            23,
+            55,
+            94,
+            .035
+        );
+
+    transition:
+        border-color .25s ease,
+        box-shadow .25s ease;
+
+}
+
+
+.evidence-summary:hover {
+
+    border-color:
+        #C8D6E4;
+
+    box-shadow:
+        0 8px 22px
+        rgba(
+            23,
+            55,
+            94,
+            .06
+        );
+
+}
+
+
+/* =========================================================
+   CABECERA DEL RESUMEN
+========================================================= */
+
+.summary-header {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding:
+        20px
+        22px;
+
+    border-bottom:
+        1px solid
+        #E5EAF0;
+
+}
+
+
+.summary-eyebrow {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    margin-bottom: 6px;
+
+    color: #8A6A36;
+
+    font-size: .54rem;
+
+    font-weight: 800;
+
+    letter-spacing: 1.25px;
+
+}
+
+
+.summary-line {
+
+    width: 17px;
+
+    height: 1px;
+
+    background:
+        #B08A4C;
+
+}
+
+
+.summary-header h3 {
+
+    margin: 0;
+
+    color: #17375E;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: 1.05rem;
+
+    font-weight: 600;
+
+}
+
+
+/* =========================================================
+   BADGE DEL RESUMEN
+========================================================= */
+
+.summary-badge {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    flex-shrink: 0;
+
+    min-height: 27px;
+
+    padding:
+        0
+        10px;
+
+    border:
+        1px solid
+        #D8E7DD;
+
+    border-radius: 999px;
+
+    background:
+        #F7FAF8;
+
+    color: #587161;
+
+    font-size: .57rem;
+
+    font-weight: 750;
+
+}
+
+
+.summary-dot {
+
+    width: 5px;
+
+    height: 5px;
+
+    border-radius: 50%;
+
+    background:
+        #668B70;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(
+            102,
+            139,
+            112,
+            .10
+        );
+
+}
+
+
+/* =========================================================
+   CONTENIDO DEL RESUMEN
+========================================================= */
+
+.summary-content {
+
+    padding:
+        20px
+        22px;
+
+    color: #526477;
+
+    font-size: .79rem;
+
+    line-height: 1.75;
+
+}
+
+
+:deep(.summary-content) {
+
+    color: #526477;
+
+}
+
+
+:deep(.markdown-container) {
+
+    margin: 0;
+
+}
+
+
+:deep(.markdown-container h1),
+:deep(.markdown-container h2),
+:deep(.markdown-container h3) {
+
+    color: #17375E;
+
+}
+
+
+:deep(.markdown-container p) {
+
+    color: #526477;
+
+}
+
+
+/* =========================================================
+   RESPONSIVE — 1100 PX
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .evidence-grid {
 
         grid-template-columns:
+            1fr;
 
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE — 900 PX
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .evidence-view {
+
+        padding: 24px;
+
+    }
+
+
+    .evidence-stats {
+
+        grid-template-columns:
             repeat(
-
                 2,
-
-                1fr
-
+                minmax(
+                    0,
+                    1fr
+                )
             );
 
     }
 
 }
 
-@media (max-width:768px){
 
-    .evidence-view{
+/* =========================================================
+   RESPONSIVE — 700 PX
+========================================================= */
 
-        padding:20px;
+@media (max-width: 700px) {
 
-        gap:24px;
+    .evidence-view {
 
-    }
+        gap: 22px;
 
-    .evidence-header{
-
-        flex-direction:column;
-
-        align-items:flex-start;
-
-        gap:16px;
+        padding: 20px;
 
     }
 
-    .evidence-grid{
 
-        grid-template-columns:1fr;
+    .evidence-header {
 
-        gap:20px;
-
-    }
-
-    .evidence-stats{
-
-        grid-template-columns:1fr;
-
-        gap:16px;
+        padding-bottom: 18px;
 
     }
 
-    .stat-card{
 
-        padding:18px;
+    .evidence-header h2 {
 
-    }
-
-    .evidence-summary{
-
-        padding:20px;
+        font-size: 1.35rem;
 
     }
 
-}
 
-@media (max-width:576px){
+    .evidence-header p {
 
-    .evidence-view{
-
-        padding:16px;
+        font-size: .76rem;
 
     }
 
-    .evidence-header h2{
 
-        font-size:1.45rem;
+    .evidence-stats {
 
-    }
-
-    .evidence-header p{
-
-        font-size:.9rem;
+        grid-template-columns:
+            1fr;
 
     }
 
-    .stat-value{
 
-        font-size:1.25rem;
+    .summary-header {
 
-    }
+        align-items: flex-start;
 
-    .stat-success{
-
-        font-size:1rem;
+        flex-direction: column;
 
     }
 
-    .evidence-summary{
 
-        padding:18px;
+    .summary-badge {
+
+        align-self: flex-start;
 
     }
 
 }
 
-/* =====================================================
+
+/* =========================================================
+   RESPONSIVE — 480 PX
+========================================================= */
+
+@media (max-width: 480px) {
+
+    .evidence-view {
+
+        padding: 16px;
+
+        border-radius: 11px;
+
+    }
+
+
+    .evidence-header h2 {
+
+        font-size: 1.22rem;
+
+    }
+
+
+    .evidence-header p {
+
+        font-size: .73rem;
+
+    }
+
+
+    .stat-card {
+
+        padding: 15px;
+
+    }
+
+
+    .summary-header {
+
+        padding:
+            17px
+            18px;
+
+    }
+
+
+    .summary-content {
+
+        padding:
+            17px
+            18px;
+
+    }
+
+
+    .summary-header h3 {
+
+        font-size: .96rem;
+
+    }
+
+}
+
+
+/* =========================================================
    ANIMACIONES
-===================================================== */
+========================================================= */
 
-.evidence-view{
+@keyframes evidenceAppear {
 
-    animation:
+    from {
 
-        evidenceFadeIn
+        opacity: 0;
 
-        .45s ease;
-
-}
-
-.evidence-header{
-
-    animation:
-
-        headerSlideDown
-
-        .45s ease;
-
-}
-
-.evidence-summary{
-
-    animation:
-
-        summaryAppear
-
-        .70s ease;
-
-}
-
-.stat-card{
-
-    animation:
-
-        statAppear
-
-        .55s ease;
-
-}
-
-.stat-card:nth-child(2){
-
-    animation-delay:.08s;
-
-}
-
-.stat-card:nth-child(3){
-
-    animation-delay:.16s;
-
-}
-
-.evidence-grid > *{
-
-    animation:
-
-        cardAppear
-
-        .55s ease;
-
-}
-
-.evidence-grid > *:nth-child(2){
-
-    animation-delay:.05s;
-
-}
-
-.evidence-grid > *:nth-child(3){
-
-    animation-delay:.10s;
-
-}
-
-.evidence-grid > *:nth-child(4){
-
-    animation-delay:.15s;
-
-}
-
-.stat-card:hover{
-
-    box-shadow:
-
-        0 12px 28px rgba(37,99,235,.14);
-
-}
-
-.evidence-summary:hover{
-
-    border-color:rgba(37,99,235,.35);
-
-    transition:border-color .25s ease;
-
-}
-
-@keyframes evidenceFadeIn{
-
-    from{
-
-        opacity:0;
-
-        transform:translateY(18px);
+        transform:
+            translateY(10px);
 
     }
 
-    to{
+    to {
 
-        opacity:1;
+        opacity: 1;
 
-        transform:translateY(0);
+        transform:
+            translateY(0);
 
     }
 
 }
 
-@keyframes headerSlideDown{
 
-    from{
+/* =========================================================
+   REDUCIR MOVIMIENTO
+========================================================= */
 
-        opacity:0;
+@media (
+    prefers-reduced-motion: reduce
+) {
 
-        transform:translateY(-12px);
+    .evidence-view,
+    .stat-card {
 
-    }
+        animation: none;
 
-    to{
-
-        opacity:1;
-
-        transform:translateY(0);
-
-    }
-
-}
-
-@keyframes cardAppear{
-
-    from{
-
-        opacity:0;
-
-        transform:translateY(16px);
-
-    }
-
-    to{
-
-        opacity:1;
-
-        transform:translateY(0);
-
-    }
-
-}
-
-@keyframes statAppear{
-
-    from{
-
-        opacity:0;
-
-        transform:scale(.96);
-
-    }
-
-    to{
-
-        opacity:1;
-
-        transform:scale(1);
-
-    }
-
-}
-
-@keyframes summaryAppear{
-
-    from{
-
-        opacity:0;
-
-        transform:translateY(20px);
-
-    }
-
-    to{
-
-        opacity:1;
-
-        transform:translateY(0);
+        transition: none;
 
     }
 
 }
 
 </style>
-

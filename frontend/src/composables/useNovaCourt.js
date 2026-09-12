@@ -7,6 +7,10 @@ import {
 
 export function useNovaCourt(){
 
+    /* =========================================================
+       ESTADO
+    ========================================================= */
+
     const caseText = ref("")
 
     const isAnalyzing = ref(false)
@@ -20,19 +24,48 @@ export function useNovaCourt(){
     const result = ref(null)
 
 
-    async function analyzeCase(){
+    /* =========================================================
+       ANALIZAR CASO
+    ========================================================= */
 
-        if(
-            !caseText.value.trim()
-        ){
+    async function analyzeCase(text = caseText.value){
+
+        /*
+            Recibimos el texto directamente desde NovaCourtView.
+            Esto evita que existan dos fuentes diferentes para
+            la descripción del caso.
+        */
+
+        const normalizedText = String(
+            text ?? ""
+        ).trim()
+
+
+        /* =====================================================
+           VALIDACIÓN
+        ===================================================== */
+
+        if(!normalizedText){
 
             error.value =
                 "Ingresa la descripción del caso antes de iniciar el análisis."
 
-            return
+            return null
 
         }
 
+
+        /*
+            Guardamos el texto utilizado para el análisis.
+        */
+
+        caseText.value =
+            normalizedText
+
+
+        /* =====================================================
+           INICIO DEL PROCESAMIENTO
+        ===================================================== */
 
         isAnalyzing.value = true
 
@@ -48,16 +81,24 @@ export function useNovaCourt(){
 
         try{
 
+            /* =================================================
+               ETAPA 1
+            ================================================= */
+
             progress.value = 25
 
             currentStage.value =
                 "Analizando los hechos del caso..."
 
 
+            /* =================================================
+               LLAMADA AL BACKEND
+            ================================================= */
+
             const response =
                 await analyzeNovaCourtCase(
 
-                    caseText.value,
+                    normalizedText,
 
                     {
                         language: "es"
@@ -66,35 +107,63 @@ export function useNovaCourt(){
                 )
 
 
+            /* =================================================
+               ETAPA 2
+            ================================================= */
+
             progress.value = 75
 
             currentStage.value =
                 "Procesando el análisis judicial..."
 
 
-            result.value = response
+            /*
+                Guardamos la respuesta completa.
+            */
 
+            result.value =
+                response
+
+
+            /* =================================================
+               FINALIZACIÓN
+            ================================================= */
 
             progress.value = 100
 
             currentStage.value =
                 "Análisis judicial completado"
 
+
+            return response
+
         }
+
 
         catch(e){
 
+            console.error(
+                "[NovaCourt] Error durante el análisis:",
+                e
+            )
+
+
             error.value =
 
-                e.message ||
+                e?.message ||
 
                 "Ocurrió un error durante el análisis judicial."
+
 
             progress.value = 0
 
             currentStage.value = ""
 
+
+            return null
+
         }
+
 
         finally{
 
@@ -104,6 +173,10 @@ export function useNovaCourt(){
 
     }
 
+
+    /* =========================================================
+       REINICIAR
+    ========================================================= */
 
     function resetAnalysis(){
 
@@ -122,6 +195,10 @@ export function useNovaCourt(){
     }
 
 
+    /* =========================================================
+       LIMPIAR ERROR
+    ========================================================= */
+
     function clearError(){
 
         error.value = ""
@@ -129,7 +206,11 @@ export function useNovaCourt(){
     }
 
 
-    return{
+    /* =========================================================
+       API PÚBLICA DEL COMPOSABLE
+    ========================================================= */
+
+    return {
 
         caseText,
 

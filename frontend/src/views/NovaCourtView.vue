@@ -2,42 +2,42 @@
 
     <main class="novacourt-view">
 
-        <!-- =========================================
-             CABECERA PRINCIPAL
-        ========================================== -->
+        <!-- =====================================================
+             CABECERA
+        ====================================================== -->
 
         <NovaCourtHeader />
 
 
-        <!-- =========================================
+        <!-- =====================================================
              ENTRADA DEL CASO
-        ========================================== -->
+        ====================================================== -->
 
         <section class="novacourt-section novacourt-section-input">
 
             <NovaCourtInput
                 v-model="caseText"
-                :loading="loading"
+                :loading="isLoading"
                 @simulate="handleSimulation"
             />
 
         </section>
 
 
-        <!-- =========================================
-             ESTADO GENERAL DEL PROCESO
-        ========================================== -->
+        <!-- =====================================================
+             ESTADO DEL PROCESAMIENTO
+        ====================================================== -->
 
         <section
-            v-if="loading || error"
+            v-if="isLoading || errorMessage"
             class="novacourt-feedback"
             aria-live="polite"
         >
 
-            <!-- PROCESAMIENTO -->
+            <!-- PROCESANDO -->
 
             <div
-                v-if="loading"
+                v-if="isLoading"
                 class="feedback-card feedback-processing"
             >
 
@@ -51,25 +51,17 @@
                 <div class="feedback-content">
 
                     <span class="feedback-label">
-
                         PROCESAMIENTO JUDICIAL
-
                     </span>
 
-
                     <strong>
-
                         NovaCourt está analizando el caso
-
                     </strong>
 
-
                     <p>
-
                         El sistema está organizando los hechos,
                         identificando los elementos jurídicos relevantes
-                        y estructurando la evaluación del escenario.
-
+                        y estructurando los posibles escenarios judiciales.
                     </p>
 
                 </div>
@@ -80,37 +72,27 @@
             <!-- ERROR -->
 
             <div
-                v-if="error"
+                v-if="errorMessage"
                 class="feedback-card feedback-error"
             >
 
                 <div class="feedback-error-icon">
-
                     !
-
                 </div>
 
 
                 <div class="feedback-content">
 
                     <span class="feedback-label">
-
                         ERROR DE PROCESAMIENTO
-
                     </span>
 
-
                     <strong>
-
                         No fue posible completar el análisis
-
                     </strong>
 
-
                     <p>
-
-                        {{ error }}
-
+                        {{ errorMessage }}
                     </p>
 
                 </div>
@@ -120,9 +102,9 @@
         </section>
 
 
-        <!-- =========================================
+        <!-- =====================================================
              RESULTADOS
-        ========================================== -->
+        ====================================================== -->
 
         <section
             v-if="hasResult"
@@ -131,32 +113,32 @@
 
             <NovaCourtTabs
                 :default-tab="activeTab"
-                @change="activeTab = $event"
+                @change="handleTabChange"
             >
 
-                <!-- =====================================
+                <!-- =================================================
                      RESUMEN
-                ====================================== -->
+                ================================================== -->
 
                 <template #overview>
 
                     <CourtSummary
                         :content="summaryContent"
-                        :loading="loading"
+                        :loading="isLoading"
                     />
 
                 </template>
 
 
-                <!-- =====================================
+                <!-- =================================================
                      ANÁLISIS
-                ====================================== -->
+                ================================================== -->
 
                 <template #arguments>
 
                     <CourtAnalysis
                         :content="analysisContent"
-                        :loading="loading"
+                        :loading="isLoading"
                         :status="analysisStatus"
                         :status-type="analysisStatusType"
                     />
@@ -164,15 +146,15 @@
                 </template>
 
 
-                <!-- =====================================
+                <!-- =================================================
                      EVIDENCIA
-                ====================================== -->
+                ================================================== -->
 
                 <template #evidence>
 
                     <CourtAnalysis
                         :content="evidenceContent"
-                        :loading="loading"
+                        :loading="isLoading"
                         :status="evidenceStatus"
                         :status-type="evidenceStatusType"
                     />
@@ -180,15 +162,15 @@
                 </template>
 
 
-                <!-- =====================================
+                <!-- =================================================
                      RIESGOS
-                ====================================== -->
+                ================================================== -->
 
                 <template #risks>
 
                     <CourtAnalysis
                         :content="riskContent"
-                        :loading="loading"
+                        :loading="isLoading"
                         :status="riskStatus"
                         :status-type="riskStatusType"
                     />
@@ -196,15 +178,15 @@
                 </template>
 
 
-                <!-- =====================================
-                     SIMULACIÓN / ESTRATEGIA
-                ====================================== -->
+                <!-- =================================================
+                     SIMULACIÓN MULTIAGENTE
+                ================================================== -->
 
                 <template #strategy>
 
-                    <CourtSimulation
+                    <StrategyView
                         :simulation="simulationData"
-                        :loading="loading"
+                        :loading="isLoading"
                         :status="simulationStatus"
                         :status-type="simulationStatusType"
                     />
@@ -212,15 +194,15 @@
                 </template>
 
 
-                <!-- =====================================
-                     PROYECCIÓN / INFORME
-                ====================================== -->
+                <!-- =================================================
+                     INFORME FINAL
+                ================================================== -->
 
                 <template #prediction>
 
                     <CourtReport
                         :content="reportContent"
-                        :loading="loading"
+                        :loading="isLoading"
                         :status="reportStatus"
                         :status-type="reportStatusType"
                     />
@@ -228,15 +210,15 @@
                 </template>
 
 
-                <!-- =====================================
+                <!-- =================================================
                      GRAFO JURÍDICO
-                ====================================== -->
+                ================================================== -->
 
                 <template #graph>
 
                     <GraphPanel
                         :data="graphData"
-                        :loading="loading"
+                        :loading="isLoading"
                     />
 
                 </template>
@@ -246,12 +228,12 @@
         </section>
 
 
-        <!-- =========================================
+        <!-- =====================================================
              ESTADO INICIAL
-        ========================================== -->
+        ====================================================== -->
 
         <section
-            v-else-if="!loading && !error"
+            v-else-if="!isLoading && !errorMessage"
             class="novacourt-initial-state"
         >
 
@@ -261,27 +243,21 @@
             <div class="initial-state-content">
 
                 <span class="initial-state-eyebrow">
-
                     SISTEMA DE ANÁLISIS JUDICIAL
-
                 </span>
 
 
                 <h2>
-
                     Preparado para evaluar un nuevo caso
-
                 </h2>
 
 
                 <p>
-
                     Describe los hechos relevantes, las partes
                     involucradas, las pretensiones y los argumentos
                     principales. NovaCourt organizará la información
-                    para desarrollar una evaluación estructurada del
-                    escenario judicial.
-
+                    para desarrollar una evaluación estructurada
+                    del escenario judicial.
                 </p>
 
             </div>
@@ -293,9 +269,7 @@
             >
 
                 <span>
-
                     NC
-
                 </span>
 
             </div>
@@ -314,9 +288,19 @@ import {
     ref
 } from "vue"
 
+
+/* =========================================================
+   COMPOSABLE
+========================================================= */
+
 import {
     useNovaCourt
 } from "../composables/useNovaCourt"
+
+
+/* =========================================================
+   COMPONENTES
+========================================================= */
 
 import NovaCourtHeader
     from "../components/novacourt/NovaCourtHeader.vue"
@@ -333,9 +317,6 @@ import CourtSummary
 import CourtAnalysis
     from "../components/novacourt/CourtAnalysis.vue"
 
-import CourtSimulation
-    from "../components/novacourt/CourtSimulation.vue"
-
 import CourtReport
     from "../components/novacourt/CourtReport.vue"
 
@@ -343,61 +324,177 @@ import GraphPanel
     from "../components/novacourt/GraphPanel.vue"
 
 
-/* =========================================
-   NOVACOURT COMPOSABLE
-========================================= */
+/* =========================================================
+   NOVACOURT
+========================================================= */
 
-const {
-    loading,
-    error,
-    result,
-    analyzeCase
-} = useNovaCourt()
+const novaCourt = useNovaCourt()
 
 
-/* =========================================
-   ESTADO LOCAL
-========================================= */
+/*
+    Utilizamos directamente las referencias
+    proporcionadas por el composable.
+*/
 
-const caseText = ref("")
+const caseText =
+    novaCourt.caseText
 
-const activeTab = ref(
-    "overview"
-)
+const isLoading =
+    novaCourt.isAnalyzing
+
+const error =
+    novaCourt.error
+
+const result =
+    novaCourt.result
+
+const analyzeCase =
+    novaCourt.analyzeCase
 
 
-/* =========================================
+/* =========================================================
+   ESTADO LOCAL DE LA VISTA
+========================================================= */
+
+const activeTab =
+    ref("overview")
+
+
+/* =========================================================
+   MENSAJE DE ERROR
+========================================================= */
+
+const errorMessage = computed(() => {
+
+    const value =
+        error.value
+
+    if (!value) {
+        return ""
+    }
+
+    if (typeof value === "string") {
+        return value
+    }
+
+    if (value?.message) {
+        return value.message
+    }
+
+    return "Se produjo un error durante el procesamiento del caso."
+
+})
+
+
+/* =========================================================
    EJECUTAR SIMULACIÓN
-========================================= */
+========================================================= */
 
-async function handleSimulation(){
+async function handleSimulation(text) {
+
+    /*
+        El NovaCourtInput emite el texto
+        directamente mediante @simulate.
+    */
 
     const normalizedText =
-        caseText.value.trim()
+        String(text ?? "").trim()
 
 
-    if(
-        !normalizedText ||
-        loading.value
-    ){
+    /*
+        Validación básica.
+    */
+
+    if (!normalizedText) {
+
+        error.value =
+            "Ingresa la descripción del caso antes de iniciar el análisis."
+
         return
     }
 
+
+    /*
+        Evitar doble ejecución.
+    */
+
+    if (isLoading.value) {
+        return
+    }
+
+
+    /*
+        Mantener sincronizado el texto
+        con el composable.
+    */
+
+    caseText.value =
+        normalizedText
+
+
+    /*
+        Reiniciar pestaña.
+    */
 
     activeTab.value =
         "overview"
 
 
-    await analyzeCase(
-        normalizedText
-    )
+    /*
+        Ejecutar análisis.
+    */
+
+    try {
+
+        await analyzeCase()
+
+    }
+    catch (err) {
+
+        console.error(
+            "[NovaCourt] Error durante el análisis:",
+            err
+        )
+
+        /*
+            El composable normalmente
+            ya gestiona este error.
+            Este bloque funciona como
+            protección adicional.
+        */
+
+        if (!error.value) {
+
+            error.value =
+                err?.message ||
+                "No fue posible completar el análisis judicial."
+
+        }
+
+    }
 
 }
 
 
-/* =========================================
+/* =========================================================
+   CAMBIO DE PESTAÑA
+========================================================= */
+
+function handleTabChange(tab) {
+
+    if (!tab) {
+        return
+    }
+
+    activeTab.value =
+        tab
+
+}
+
+
+/* =========================================================
    RESULTADO DISPONIBLE
-========================================= */
+========================================================= */
 
 const hasResult = computed(() => {
 
@@ -408,99 +505,108 @@ const hasResult = computed(() => {
 })
 
 
-/* =========================================
+/* =========================================================
    RESUMEN
-========================================= */
+========================================================= */
 
 const summaryContent = computed(() => {
 
+    const data =
+        result.value || {}
+
     return (
-        result.value?.summary ||
-        result.value?.overview ||
+        data.summary ||
+        data.overview ||
+        data.case_summary ||
         ""
     )
 
 })
 
 
-/* =========================================
+/* =========================================================
    ANÁLISIS JURÍDICO
-========================================= */
+========================================================= */
 
 const analysisContent = computed(() => {
 
+    const data =
+        result.value || {}
+
     return (
-        result.value?.analysis ||
-        result.value?.arguments ||
+        data.analysis ||
+        data.arguments ||
+        data.legal_analysis ||
         ""
     )
 
 })
 
 
-/* =========================================
+/* =========================================================
    EVIDENCIA
-========================================= */
+========================================================= */
 
 const evidenceContent = computed(() => {
 
+    const data =
+        result.value || {}
+
     return (
-        result.value?.evidence ||
-        result.value?.probative_analysis ||
+        data.evidence ||
+        data.probative_analysis ||
+        data.evidence_analysis ||
         ""
     )
 
 })
 
 
-/* =========================================
+/* =========================================================
    RIESGOS
-========================================= */
+========================================================= */
 
 const riskContent = computed(() => {
 
+    const data =
+        result.value || {}
+
     return (
-        result.value?.risks ||
-        result.value?.risk_analysis ||
+        data.risks ||
+        data.risk_analysis ||
+        data.legal_risks ||
         ""
     )
 
 })
 
 
-/* =========================================
-   SIMULACIÓN
-========================================= */
-
-/*
-   CourtSimulation recibe un OBJETO.
-
-   Se evita enviar strategyContent como String,
-   porque el componente trabaja con propiedades como:
-
-   - resultado
-   - probabilidad
-   - riesgo
-   - escenarios
-   - argumentos
-   - conclusion
-*/
+/* =========================================================
+   SIMULACIÓN MULTIAGENTE
+========================================================= */
 
 const simulationData = computed(() => {
 
+    const data =
+        result.value || {}
+
+
     const simulation =
-        result.value?.simulation ||
-        result.value?.strategy ||
-        result.value?.court_simulation ||
-        {}
+        data.simulation ||
+        data.strategy ||
+        data.court_simulation ||
+        data.multiagent_simulation ||
+        null
 
 
-    if(
+    if (
         simulation &&
         typeof simulation === "object" &&
         !Array.isArray(simulation)
-    ){
+    ) {
+
         return simulation
+
     }
 
 
@@ -509,52 +615,58 @@ const simulationData = computed(() => {
 })
 
 
-/* =========================================
-   INFORME / PROYECCIÓN
-========================================= */
+/* =========================================================
+   INFORME FINAL
+========================================================= */
 
 const reportContent = computed(() => {
 
+    const data =
+        result.value || {}
+
     return (
-        result.value?.report ||
-        result.value?.final_report ||
-        result.value?.conclusion ||
+        data.report ||
+        data.final_report ||
+        data.prediction ||
+        data.conclusion ||
         ""
     )
 
 })
 
 
-/* =========================================
+/* =========================================================
    GRAFO JURÍDICO
-========================================= */
+========================================================= */
 
 const graphData = computed(() => {
 
+    const data =
+        result.value || {}
+
     return (
-        result.value?.graph ||
-        result.value?.graph_data ||
+        data.graph ||
+        data.graph_data ||
+        data.knowledge_graph ||
         null
     )
 
 })
 
 
-/* =========================================
-   ESTADOS DE ANÁLISIS
-========================================= */
+/* =========================================================
+   ESTADO — ANÁLISIS
+========================================================= */
 
 const analysisStatus = computed(() => {
 
-    if(loading.value){
+    if (isLoading.value) {
         return "Procesando análisis"
     }
 
-
-    if(analysisContent.value){
+    if (analysisContent.value) {
         return "Análisis disponible"
     }
-
 
     return ""
 
@@ -563,36 +675,32 @@ const analysisStatus = computed(() => {
 
 const analysisStatusType = computed(() => {
 
-    if(loading.value){
+    if (isLoading.value) {
         return "processing"
     }
 
-
-    if(analysisContent.value){
+    if (analysisContent.value) {
         return "completed"
     }
-
 
     return "processing"
 
 })
 
 
-/* =========================================
-   ESTADOS DE EVIDENCIA
-========================================= */
+/* =========================================================
+   ESTADO — EVIDENCIA
+========================================================= */
 
 const evidenceStatus = computed(() => {
 
-    if(loading.value){
+    if (isLoading.value) {
         return "Evaluando elementos probatorios"
     }
 
-
-    if(evidenceContent.value){
+    if (evidenceContent.value) {
         return "Evaluación disponible"
     }
-
 
     return ""
 
@@ -601,36 +709,32 @@ const evidenceStatus = computed(() => {
 
 const evidenceStatusType = computed(() => {
 
-    if(loading.value){
+    if (isLoading.value) {
         return "processing"
     }
 
-
-    if(evidenceContent.value){
+    if (evidenceContent.value) {
         return "completed"
     }
-
 
     return "processing"
 
 })
 
 
-/* =========================================
-   ESTADOS DE RIESGO
-========================================= */
+/* =========================================================
+   ESTADO — RIESGOS
+========================================================= */
 
 const riskStatus = computed(() => {
 
-    if(loading.value){
+    if (isLoading.value) {
         return "Evaluando riesgos jurídicos"
     }
 
-
-    if(riskContent.value){
+    if (riskContent.value) {
         return "Evaluación disponible"
     }
-
 
     return ""
 
@@ -639,38 +743,39 @@ const riskStatus = computed(() => {
 
 const riskStatusType = computed(() => {
 
-    if(loading.value){
+    if (isLoading.value) {
         return "processing"
     }
 
-
-    if(riskContent.value){
+    if (riskContent.value) {
         return "completed"
     }
-
 
     return "processing"
 
 })
 
 
-/* =========================================
-   ESTADOS DE SIMULACIÓN
-========================================= */
+/* =========================================================
+   ESTADO — SIMULACIÓN
+========================================================= */
 
 const simulationStatus = computed(() => {
 
-    if(loading.value){
-        return "Simulando escenarios"
+    if (isLoading.value) {
+        return "Simulando escenarios judiciales"
     }
 
 
-    if(
+    if (
+        simulationData.value &&
         Object.keys(
             simulationData.value
-        ).length
-    ){
+        ).length > 0
+    ) {
+
         return "Simulación disponible"
+
     }
 
 
@@ -681,17 +786,20 @@ const simulationStatus = computed(() => {
 
 const simulationStatusType = computed(() => {
 
-    if(loading.value){
+    if (isLoading.value) {
         return "processing"
     }
 
 
-    if(
+    if (
+        simulationData.value &&
         Object.keys(
             simulationData.value
-        ).length
-    ){
+        ).length > 0
+    ) {
+
         return "completed"
+
     }
 
 
@@ -700,21 +808,19 @@ const simulationStatusType = computed(() => {
 })
 
 
-/* =========================================
-   ESTADOS DEL INFORME
-========================================= */
+/* =========================================================
+   ESTADO — INFORME
+========================================================= */
 
 const reportStatus = computed(() => {
 
-    if(loading.value){
-        return "Generando proyección"
+    if (isLoading.value) {
+        return "Generando proyección judicial"
     }
 
-
-    if(reportContent.value){
+    if (reportContent.value) {
         return "Informe disponible"
     }
-
 
     return ""
 
@@ -723,15 +829,13 @@ const reportStatus = computed(() => {
 
 const reportStatusType = computed(() => {
 
-    if(loading.value){
+    if (isLoading.value) {
         return "processing"
     }
 
-
-    if(reportContent.value){
+    if (reportContent.value) {
         return "completed"
     }
-
 
     return "processing"
 
@@ -742,14 +846,14 @@ const reportStatusType = computed(() => {
 
 <style scoped>
 
-/* =========================================
-   NOVACOURT VIEW
+/* =========================================================
    CONTENEDOR PRINCIPAL
-========================================= */
+========================================================= */
 
 .novacourt-view{
 
     width:100%;
+
     max-width:1440px;
 
     margin:0 auto;
@@ -764,9 +868,9 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
+/* =========================================================
    SECCIONES
-========================================= */
+========================================================= */
 
 .novacourt-section{
 
@@ -782,9 +886,9 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
+/* =========================================================
    RESULTADOS
-========================================= */
+========================================================= */
 
 .novacourt-results{
 
@@ -800,9 +904,9 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
+/* =========================================================
    FEEDBACK
-========================================= */
+========================================================= */
 
 .novacourt-feedback{
 
@@ -821,7 +925,9 @@ const reportStatusType = computed(() => {
 
     gap:16px;
 
-    padding:20px 22px;
+    padding:
+        20px
+        22px;
 
     border-radius:10px;
 
@@ -860,18 +966,20 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
-   INDICADOR DE PROCESAMIENTO
-========================================= */
+/* =========================================================
+   INDICADOR
+========================================================= */
 
 .feedback-indicator{
 
     width:40px;
+
     height:40px;
 
     display:flex;
 
     align-items:center;
+
     justify-content:center;
 
     flex-shrink:0;
@@ -890,6 +998,7 @@ const reportStatusType = computed(() => {
 .feedback-dot{
 
     width:8px;
+
     height:8px;
 
     border-radius:50%;
@@ -905,18 +1014,20 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
-   INDICADOR DE ERROR
-========================================= */
+/* =========================================================
+   ERROR ICON
+========================================================= */
 
 .feedback-error-icon{
 
     width:40px;
+
     height:40px;
 
     display:flex;
 
     align-items:center;
+
     justify-content:center;
 
     flex-shrink:0;
@@ -932,14 +1043,15 @@ const reportStatusType = computed(() => {
     border-radius:6px;
 
     font-size:1rem;
+
     font-weight:700;
 
 }
 
 
-/* =========================================
-   CONTENIDO FEEDBACK
-========================================= */
+/* =========================================================
+   FEEDBACK CONTENT
+========================================================= */
 
 .feedback-content{
 
@@ -957,6 +1069,7 @@ const reportStatusType = computed(() => {
     color:#315C97;
 
     font-size:.66rem;
+
     font-weight:800;
 
     letter-spacing:1.2px;
@@ -982,6 +1095,7 @@ const reportStatusType = computed(() => {
         serif;
 
     font-size:1rem;
+
     font-weight:600;
 
     line-height:1.4;
@@ -1004,9 +1118,9 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
+/* =========================================================
    ESTADO INICIAL
-========================================= */
+========================================================= */
 
 .novacourt-initial-state{
 
@@ -1056,9 +1170,9 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
-   DETALLE DECORATIVO
-========================================= */
+/* =========================================================
+   DETALLE SUPERIOR
+========================================================= */
 
 .novacourt-initial-state::before{
 
@@ -1067,9 +1181,11 @@ const reportStatusType = computed(() => {
     position:absolute;
 
     top:0;
+
     left:0;
 
     width:100%;
+
     height:2px;
 
     background:
@@ -1096,9 +1212,11 @@ const reportStatusType = computed(() => {
     position:absolute;
 
     width:260px;
+
     height:260px;
 
     right:-145px;
+
     bottom:-185px;
 
     border:
@@ -1117,9 +1235,9 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
+/* =========================================================
    LÍNEA INSTITUCIONAL
-========================================= */
+========================================================= */
 
 .initial-state-line{
 
@@ -1147,9 +1265,9 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
+/* =========================================================
    CONTENIDO
-========================================= */
+========================================================= */
 
 .initial-state-content{
 
@@ -1173,6 +1291,7 @@ const reportStatusType = computed(() => {
     color:#7A6440;
 
     font-size:.67rem;
+
     font-weight:800;
 
     letter-spacing:1.45px;
@@ -1182,7 +1301,10 @@ const reportStatusType = computed(() => {
 
 .initial-state-content h2{
 
-    margin:0 0 10px;
+    margin:
+        0
+        0
+        10px;
 
     color:#17375E;
 
@@ -1192,6 +1314,7 @@ const reportStatusType = computed(() => {
         serif;
 
     font-size:1.55rem;
+
     font-weight:600;
 
     line-height:1.3;
@@ -1214,9 +1337,9 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
-   SELLO NOVACOURT
-========================================= */
+/* =========================================================
+   SELLO
+========================================================= */
 
 .initial-state-seal{
 
@@ -1225,11 +1348,13 @@ const reportStatusType = computed(() => {
     z-index:2;
 
     width:82px;
+
     height:82px;
 
     display:flex;
 
     align-items:center;
+
     justify-content:center;
 
     flex-shrink:0;
@@ -1284,6 +1409,7 @@ const reportStatusType = computed(() => {
         serif;
 
     font-size:1rem;
+
     font-weight:600;
 
     letter-spacing:2px;
@@ -1291,9 +1417,9 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
+/* =========================================================
    ANIMACIONES
-========================================= */
+========================================================= */
 
 @keyframes sectionAppear{
 
@@ -1305,7 +1431,6 @@ const reportStatusType = computed(() => {
             translateY(10px);
 
     }
-
 
     to{
 
@@ -1331,7 +1456,6 @@ const reportStatusType = computed(() => {
 
     }
 
-
     50%{
 
         transform:
@@ -1344,9 +1468,9 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
-   RESPONSIVE - TABLET
-========================================= */
+/* =========================================================
+   TABLET
+========================================================= */
 
 @media(max-width:900px){
 
@@ -1371,9 +1495,9 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
-   RESPONSIVE - MOBILE GRANDE
-========================================= */
+/* =========================================================
+   MOBILE GRANDE
+========================================================= */
 
 @media(max-width:700px){
 
@@ -1398,6 +1522,7 @@ const reportStatusType = computed(() => {
     .initial-state-seal{
 
         width:64px;
+
         height:64px;
 
     }
@@ -1412,9 +1537,9 @@ const reportStatusType = computed(() => {
 }
 
 
-/* =========================================
-   RESPONSIVE - MOBILE
-========================================= */
+/* =========================================================
+   MOBILE
+========================================================= */
 
 @media(max-width:576px){
 
@@ -1464,6 +1589,7 @@ const reportStatusType = computed(() => {
     .feedback-error-icon{
 
         width:36px;
+
         height:36px;
 
     }
@@ -1503,6 +1629,7 @@ const reportStatusType = computed(() => {
     .initial-state-line{
 
         width:42px;
+
         height:3px;
 
         min-height:3px;

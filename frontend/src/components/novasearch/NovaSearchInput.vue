@@ -27,10 +27,34 @@
             </div>
 
 
+            <!-- SELLO NOVA SEARCH -->
+
             <div
                 class="nova-search-seal"
                 aria-hidden="true"
             >
+
+                <div class="nova-search-seal-inner">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+
+                        <circle
+                            cx="10.5"
+                            cy="10.5"
+                            r="6"
+                        />
+
+                        <path
+                            d="M15 15L20 20"
+                        />
+
+                    </svg>
+
+                </div>
 
                 <span>
                     NS
@@ -52,27 +76,37 @@
 
             <div class="nova-search-field">
 
-                <svg
-                    class="nova-search-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
+                <!-- ICONO -->
+
+                <div
+                    class="nova-search-icon-wrapper"
                     aria-hidden="true"
                 >
 
-                    <circle
-                        cx="11"
-                        cy="11"
-                        r="6.5"
-                    />
+                    <svg
+                        class="nova-search-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                    >
 
-                    <path
-                        d="M16 16L21 21"
-                    />
+                        <circle
+                            cx="11"
+                            cy="11"
+                            r="6.5"
+                        />
 
-                </svg>
+                        <path
+                            d="M16 16L21 21"
+                        />
 
+                    </svg>
+
+                </div>
+
+
+                <!-- INPUT -->
 
                 <input
                     :value="modelValue"
@@ -85,6 +119,8 @@
                 />
 
 
+                <!-- BOTÓN -->
+
                 <button
                     type="submit"
                     class="nova-search-button"
@@ -96,17 +132,11 @@
                         class="nova-search-spinner"
                     ></span>
 
-
-                    <span
-                        v-if="loading"
-                    >
+                    <span v-if="loading">
                         Analizando
                     </span>
 
-
-                    <span
-                        v-else
-                    >
+                    <span v-else>
                         Buscar
                     </span>
 
@@ -121,18 +151,20 @@
 
             <div class="nova-search-footer">
 
-                <span class="nova-search-help">
+                <div class="nova-search-help">
 
-                    Busca jurisprudencia, legislación y contenido
-                    jurídico relevante.
+                    <span class="help-dot"></span>
 
-                </span>
+                    <span>
+                        Busca jurisprudencia, legislación y contenido
+                        jurídico relevante.
+                    </span>
+
+                </div>
 
 
                 <span class="nova-search-shortcut">
-
                     Enter para buscar
-
                 </span>
 
             </div>
@@ -191,11 +223,8 @@ const emit = defineEmits([
 function updateValue(event){
 
     emit(
-
         "update:modelValue",
-
         event.target.value
-
     )
 
 }
@@ -212,11 +241,8 @@ function handleSubmit(){
 
 
     if(
-
         props.loading ||
-
         !normalizedQuery
-
     ){
 
         return
@@ -224,11 +250,7 @@ function handleSubmit(){
     }
 
 
-    emit(
-
-        "search"
-
-    )
+    emit("search")
 
 }
 
@@ -237,53 +259,119 @@ function handleSubmit(){
 
 <style scoped>
 
-/* =========================================
+/* =========================================================
    NOVA SEARCH INPUT
-   CONTENEDOR PRINCIPAL
-========================================= */
+   IDENTIDAD VISUAL NOVA IURIS
+========================================================= */
 
 .nova-search-input{
 
+    position:relative;
+
     width:100%;
 
-    padding:32px;
+    padding:36px;
 
     overflow:hidden;
 
     background:
-
         linear-gradient(
-            135deg,
+            145deg,
             #FFFFFF 0%,
-            #FBFCFE 62%,
-            #F7F9FC 100%
+            #FFFFFF 55%,
+            #F5F8FC 100%
         );
 
     border:
-
         1px solid
-        #D6DFEA;
+        #D7E0EA;
 
-    border-radius:12px;
+    border-radius:16px;
 
     box-shadow:
-
-        0 12px 30px
+        0 18px 45px
         rgba(
-            23,
-            55,
-            94,
+            11,
+            22,
+            40,
             .055
         );
 
 }
 
 
-/* =========================================
+/* =========================================================
+   LÍNEA SUPERIOR INSTITUCIONAL
+========================================================= */
+
+.nova-search-input::before{
+
+    content:"";
+
+    position:absolute;
+
+    top:0;
+
+    left:0;
+
+    right:0;
+
+    height:3px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #17375E 0%,
+            #315C97 60%,
+            #C9A45C 100%
+        );
+
+}
+
+
+/* =========================================================
+   DECORACIÓN SUTIL
+========================================================= */
+
+.nova-search-input::after{
+
+    content:"";
+
+    position:absolute;
+
+    width:220px;
+
+    height:220px;
+
+    top:-150px;
+
+    right:-100px;
+
+    border-radius:50%;
+
+    border:
+        1px solid
+        rgba(
+            49,
+            92,
+            151,
+            .055
+        );
+
+    pointer-events:none;
+
+}
+
+
+/* =========================================================
    CABECERA
-========================================= */
+========================================================= */
 
 .nova-search-input-header{
+
+    position:relative;
+
+    z-index:1;
 
     display:flex;
 
@@ -291,9 +379,9 @@ function handleSubmit(){
 
     justify-content:space-between;
 
-    gap:28px;
+    gap:32px;
 
-    margin-bottom:26px;
+    margin-bottom:28px;
 
 }
 
@@ -307,82 +395,109 @@ function handleSubmit(){
 }
 
 
-/* =========================================
+/* =========================================================
    EYEBROW
-========================================= */
+========================================================= */
 
 .nova-search-eyebrow{
 
-    display:block;
+    display:inline-flex;
 
-    margin-bottom:9px;
+    align-items:center;
 
-    color:#7A6440;
+    gap:9px;
 
-    font-size:.68rem;
+    margin-bottom:10px;
+
+    color:#9A7A42;
+
+    font-size:.66rem;
 
     font-weight:800;
 
-    letter-spacing:1.45px;
+    letter-spacing:1.65px;
+
+    line-height:1.2;
+
+    text-transform:uppercase;
 
 }
 
 
-/* =========================================
+.nova-search-eyebrow::before{
+
+    content:"";
+
+    width:22px;
+
+    height:1px;
+
+    background:#C9A45C;
+
+}
+
+
+/* =========================================================
    TÍTULO
-========================================= */
+========================================================= */
 
 .nova-search-input-heading h2{
 
-    margin:0 0 10px;
+    margin:
+        0
+        0
+        10px;
 
     color:#17375E;
 
     font-family:
-
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size:1.55rem;
+    font-size:1.65rem;
 
     font-weight:600;
 
-    line-height:1.3;
+    line-height:1.25;
+
+    letter-spacing:-.35px;
 
 }
 
 
-/* =========================================
+/* =========================================================
    DESCRIPCIÓN
-========================================= */
+========================================================= */
 
 .nova-search-input-heading p{
 
-    max-width:800px;
+    max-width:790px;
 
     margin:0;
 
-    color:#5E6D7E;
+    color:#64748B;
 
-    font-size:.94rem;
+    font-size:.91rem;
 
-    line-height:1.75;
+    line-height:1.72;
 
 }
 
 
-/* =========================================
-   SELLO NS
-========================================= */
+/* =========================================================
+   SELLO NOVA SEARCH
+========================================================= */
 
 .nova-search-seal{
 
     position:relative;
 
-    width:72px;
+    width:76px;
 
-    height:72px;
+    height:76px;
+
+    flex:0 0 76px;
 
     display:flex;
 
@@ -390,15 +505,52 @@ function handleSubmit(){
 
     justify-content:center;
 
-    flex-shrink:0;
-
     border:
-
         1px solid
         rgba(
-            176,
-            138,
-            76,
+            23,
+            55,
+            94,
+            .20
+        );
+
+    border-radius:50%;
+
+    background:
+        linear-gradient(
+            145deg,
+            #FFFFFF,
+            #F4F7FB
+        );
+
+    box-shadow:
+        0 8px 22px
+        rgba(
+            23,
+            55,
+            94,
+            .07
+        );
+
+}
+
+
+/* ANILLO INTERIOR */
+
+.nova-search-seal::before{
+
+    content:"";
+
+    position:absolute;
+
+    inset:6px;
+
+    border:
+        1px solid
+        rgba(
+            201,
+            164,
+            92,
             .55
         );
 
@@ -407,66 +559,88 @@ function handleSubmit(){
 }
 
 
-.nova-search-seal::before{
+/* DETALLE CENTRAL */
 
-    content:"";
+.nova-search-seal-inner{
 
     position:absolute;
 
-    inset:7px;
+    top:18px;
 
-    border:
+    left:50%;
 
-        1px solid
-        rgba(
-            176,
-            138,
-            76,
-            .32
-        );
+    transform:
+        translateX(-50%);
 
-    border-radius:50%;
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
 
 }
 
 
+.nova-search-seal-inner svg{
+
+    width:22px;
+
+    height:22px;
+
+    color:#315C97;
+
+    stroke:currentColor;
+
+}
+
+
+/* NS */
+
 .nova-search-seal span{
 
-    position:relative;
+    position:absolute;
 
-    z-index:1;
+    bottom:12px;
 
-    color:#7A6440;
+    left:50%;
+
+    transform:
+        translateX(-50%);
+
+    color:#17375E;
 
     font-family:
-
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size:.95rem;
+    font-size:.64rem;
 
-    font-weight:600;
+    font-weight:700;
 
-    letter-spacing:1.8px;
+    letter-spacing:1.5px;
 
 }
 
 
-/* =========================================
+/* =========================================================
    FORMULARIO
-========================================= */
+========================================================= */
 
 .nova-search-form{
+
+    position:relative;
+
+    z-index:2;
 
     width:100%;
 
 }
 
 
-/* =========================================
+/* =========================================================
    CAMPO PRINCIPAL
-========================================= */
+========================================================= */
 
 .nova-search-field{
 
@@ -476,28 +650,29 @@ function handleSubmit(){
 
     width:100%;
 
-    min-height:66px;
+    min-height:68px;
 
     padding:7px;
 
     background:#FFFFFF;
 
     border:
-
         1px solid
-        #C9D5E3;
+        #C8D4E2;
 
-    border-radius:10px;
+    border-radius:11px;
 
     transition:
+        border-color .2s ease,
+        box-shadow .2s ease,
+        transform .2s ease;
 
-        border-color
-        .2s
-        ease,
+}
 
-        box-shadow
-        .2s
-        ease;
+
+.nova-search-field:hover{
+
+    border-color:#AEBFD2;
 
 }
 
@@ -507,40 +682,59 @@ function handleSubmit(){
     border-color:#315C97;
 
     box-shadow:
-
         0 0 0 4px
         rgba(
             49,
             92,
             151,
-            .09
+            .085
         );
 
 }
 
 
-/* =========================================
-   ICONO
-========================================= */
+/* =========================================================
+   CONTENEDOR DEL ICONO
+========================================================= */
 
-.nova-search-icon{
+.nova-search-icon-wrapper{
 
-    width:22px;
+    width:44px;
 
-    height:22px;
+    height:44px;
 
-    flex-shrink:0;
+    flex:0 0 44px;
 
-    margin-left:16px;
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    margin-left:4px;
+
+    border-radius:8px;
+
+    background:
+        #F2F6FA;
 
     color:#315C97;
 
 }
 
 
-/* =========================================
+.nova-search-icon{
+
+    width:21px;
+
+    height:21px;
+
+}
+
+
+/* =========================================================
    INPUT
-========================================= */
+========================================================= */
 
 .nova-search-control{
 
@@ -550,7 +744,9 @@ function handleSubmit(){
 
     min-width:0;
 
-    padding:17px 16px;
+    padding:
+        17px
+        15px;
 
     border:none;
 
@@ -560,11 +756,9 @@ function handleSubmit(){
 
     color:#17375E;
 
-    font-family:
+    font-family:inherit;
 
-        inherit;
-
-    font-size:.95rem;
+    font-size:.94rem;
 
     line-height:1.5;
 
@@ -573,7 +767,7 @@ function handleSubmit(){
 
 .nova-search-control::placeholder{
 
-    color:#93A0AE;
+    color:#98A5B4;
 
 }
 
@@ -582,18 +776,18 @@ function handleSubmit(){
 
     cursor:not-allowed;
 
-    opacity:.75;
+    opacity:.68;
 
 }
 
 
-/* =========================================
-   BOTÓN DE BÚSQUEDA
-========================================= */
+/* =========================================================
+   BOTÓN BUSCAR
+========================================================= */
 
 .nova-search-button{
 
-    min-width:130px;
+    min-width:128px;
 
     min-height:52px;
 
@@ -605,61 +799,62 @@ function handleSubmit(){
 
     gap:9px;
 
-    padding:0 25px;
+    padding:
+        0
+        24px;
 
-    border:none;
+    border:
+        1px solid
+        #17375E;
 
     border-radius:8px;
 
-    background:#17375E;
+    background:
+        linear-gradient(
+            135deg,
+            #17375E 0%,
+            #234B7C 100%
+        );
 
     color:#FFFFFF;
 
-    font-family:
+    font-family:inherit;
 
-        inherit;
-
-    font-size:.88rem;
+    font-size:.86rem;
 
     font-weight:700;
+
+    letter-spacing:.1px;
 
     cursor:pointer;
 
     transition:
-
-        transform
-        .2s
-        ease,
-
-        background
-        .2s
-        ease,
-
-        box-shadow
-        .2s
-        ease;
+        transform .2s ease,
+        background .2s ease,
+        box-shadow .2s ease;
 
 }
 
 
 .nova-search-button:hover:not(:disabled){
 
-    background:#234B7C;
-
-    transform:
-
-        translateY(
-            -1px
+    background:
+        linear-gradient(
+            135deg,
+            #1B416D 0%,
+            #315C97 100%
         );
 
-    box-shadow:
+    transform:
+        translateY(-1px);
 
-        0 8px 18px
+    box-shadow:
+        0 9px 20px
         rgba(
             23,
             55,
             94,
-            .16
+            .18
         );
 
 }
@@ -668,26 +863,25 @@ function handleSubmit(){
 .nova-search-button:active:not(:disabled){
 
     transform:
+        translateY(0);
 
-        translateY(
-            0
-        );
+    box-shadow:none;
 
 }
 
 
 .nova-search-button:disabled{
 
-    opacity:.55;
+    opacity:.5;
 
     cursor:not-allowed;
 
 }
 
 
-/* =========================================
+/* =========================================================
    SPINNER
-========================================= */
+========================================================= */
 
 .nova-search-spinner{
 
@@ -698,7 +892,6 @@ function handleSubmit(){
     flex-shrink:0;
 
     border:
-
         2px solid
         rgba(
             255,
@@ -712,7 +905,6 @@ function handleSubmit(){
     border-radius:50%;
 
     animation:
-
         novaSearchSpin
         .8s
         linear
@@ -721,9 +913,28 @@ function handleSubmit(){
 }
 
 
-/* =========================================
+@keyframes novaSearchSpin{
+
+    from{
+
+        transform:
+            rotate(0deg);
+
+    }
+
+    to{
+
+        transform:
+            rotate(360deg);
+
+    }
+
+}
+
+
+/* =========================================================
    FOOTER
-========================================= */
+========================================================= */
 
 .nova-search-footer{
 
@@ -739,89 +950,86 @@ function handleSubmit(){
 
     color:#7B8998;
 
-    font-size:.78rem;
+    font-size:.76rem;
 
     line-height:1.5;
 
 }
 
 
+/* AYUDA */
+
 .nova-search-help{
 
     min-width:0;
 
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
+
 }
 
+
+.help-dot{
+
+    width:5px;
+
+    height:5px;
+
+    flex:0 0 5px;
+
+    border-radius:50%;
+
+    background:#C9A45C;
+
+}
+
+
+/* ATAJO */
 
 .nova-search-shortcut{
 
     flex-shrink:0;
 
-    padding:4px 9px;
+    padding:
+        5px
+        10px;
 
     color:#7A6440;
 
-    font-size:.72rem;
+    font-size:.68rem;
 
     font-weight:700;
 
-    border:
+    letter-spacing:.15px;
 
+    border:
         1px solid
         rgba(
             176,
             138,
             76,
-            .22
+            .25
         );
 
-    border-radius:5px;
+    border-radius:6px;
 
     background:
-
         rgba(
-            176,
-            138,
-            76,
-            .045
+            201,
+            164,
+            92,
+            .055
         );
 
 }
 
 
-/* =========================================
-   ANIMACIÓN
-========================================= */
-
-@keyframes novaSearchSpin{
-
-    from{
-
-        transform:
-
-            rotate(
-                0deg
-            );
-
-    }
-
-
-    to{
-
-        transform:
-
-            rotate(
-                360deg
-            );
-
-    }
-
-}
-
-
-/* =========================================
-   RESPONSIVE
-========================================= */
+/* =========================================================
+   TABLET
+========================================================= */
 
 @media(max-width:900px){
 
@@ -831,14 +1039,24 @@ function handleSubmit(){
 
     }
 
+    .nova-search-input-heading h2{
+
+        font-size:1.5rem;
+
+    }
+
 }
 
+
+/* =========================================================
+   TABLET PEQUEÑO
+========================================================= */
 
 @media(max-width:700px){
 
     .nova-search-input{
 
-        padding:26px 24px;
+        padding:28px 24px;
 
     }
 
@@ -852,9 +1070,11 @@ function handleSubmit(){
 
     .nova-search-seal{
 
-        width:60px;
+        width:64px;
 
-        height:60px;
+        height:64px;
+
+        flex-basis:64px;
 
     }
 
@@ -877,13 +1097,9 @@ function handleSubmit(){
     }
 
 
-    .nova-search-icon{
+    .nova-search-icon-wrapper{
 
-        margin:
-
-            14px
-            8px
-            0;
+        margin:4px 0 4px 4px;
 
     }
 
@@ -908,13 +1124,17 @@ function handleSubmit(){
 }
 
 
+/* =========================================================
+   MOBILE
+========================================================= */
+
 @media(max-width:576px){
 
     .nova-search-input{
 
-        padding:22px 18px;
+        padding:23px 18px;
 
-        border-radius:10px;
+        border-radius:12px;
 
     }
 
@@ -944,7 +1164,7 @@ function handleSubmit(){
 
     .nova-search-input-heading p{
 
-        font-size:.88rem;
+        font-size:.86rem;
 
         line-height:1.7;
 
@@ -955,10 +1175,12 @@ function handleSubmit(){
 
         flex-direction:column;
 
+        align-items:stretch;
+
     }
 
 
-    .nova-search-icon{
+    .nova-search-icon-wrapper{
 
         display:none;
 
@@ -967,7 +1189,9 @@ function handleSubmit(){
 
     .nova-search-control{
 
-        padding:14px 12px;
+        padding:
+            14px
+            12px;
 
     }
 
@@ -985,7 +1209,7 @@ function handleSubmit(){
 
         align-items:flex-start;
 
-        gap:7px;
+        gap:8px;
 
     }
 

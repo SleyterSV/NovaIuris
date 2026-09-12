@@ -409,46 +409,36 @@ const formattedSearchTime = computed(() => {
 
 /* =========================================================
    NOVA SEARCH — ANSWER
-   Diseño institucional Nova Iuris / NovaCourt
+   SISTEMA VISUAL NOVA IURIS
 ========================================================= */
 
-.nova-search-answer{
-
-    width:100%;
-
-    overflow:hidden;
+.nova-search-answer {
+    width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
 
     background:
-
         linear-gradient(
-            135deg,
+            145deg,
             #FFFFFF 0%,
-            #FCFDFE 65%,
+            #FDFDFE 58%,
             #F8FAFC 100%
         );
 
     border:
         1px solid
-        #D6DFEA;
+        #D8E0E9;
 
-    border-radius:12px;
+    border-radius: 10px;
 
     box-shadow:
-
-        0 14px 34px
-        rgba(
-            23,
-            55,
-            94,
-            .06
-        );
+        0 10px 30px
+        rgba(11, 22, 40, .055);
 
     animation:
-
         novaSearchAnswerEnter
         .4s
         ease-out;
-
 }
 
 
@@ -456,636 +446,749 @@ const formattedSearchTime = computed(() => {
    CABECERA
 ========================================================= */
 
-.nova-search-answer-header{
+.nova-search-answer-header {
+    display: flex;
 
-    display:flex;
+    align-items: center;
+    justify-content: space-between;
 
-    align-items:center;
+    gap: 28px;
 
-    justify-content:space-between;
-
-    gap:28px;
-
-    padding:26px 30px;
+    padding:
+        25px
+        28px;
 
     border-bottom:
-
         1px solid
-        #E2E8F0;
+        #E3E8EE;
 
     background:
-
         linear-gradient(
             90deg,
             #FFFFFF 0%,
-            #FBFCFE 100%
+            #FBFCFD 100%
         );
-
 }
 
 
-.nova-search-answer-brand{
+.nova-search-answer-brand {
+    display: flex;
 
-    display:flex;
+    align-items: center;
 
-    align-items:center;
+    gap: 15px;
 
-    gap:16px;
-
-    min-width:0;
-
-}
-
-
-.nova-search-answer-icon{
-
-    width:52px;
-
-    height:52px;
-
-    flex:
-        0 0 52px;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    border-radius:12px;
-
-    background:
-        #17375E;
-
-    color:
-        #FFFFFF;
-
-    box-shadow:
-
-        0 8px 20px
-        rgba(
-            23,
-            55,
-            94,
-            .14
-        );
-
-}
-
-
-.nova-search-answer-icon svg{
-
-    width:25px;
-
-    height:25px;
-
-}
-
-
-.nova-search-answer-heading{
-
-    min-width:0;
-
-}
-
-
-.nova-search-answer-eyebrow{
-
-    display:block;
-
-    margin-bottom:5px;
-
-    color:
-        #7A6440;
-
-    font-size:.67rem;
-
-    font-weight:800;
-
-    letter-spacing:1.35px;
-
-}
-
-
-.nova-search-answer-heading h2{
-
-    margin:0;
-
-    color:
-        #17375E;
-
-    font-family:
-
-        Georgia,
-        "Times New Roman",
-        serif;
-
-    font-size:1.45rem;
-
-    font-weight:600;
-
-    line-height:1.3;
-
-}
-
-
-.nova-search-answer-heading p{
-
-    margin:
-
-        5px
-        0
-        0;
-
-    color:
-        #6B7A8B;
-
-    font-size:.83rem;
-
-    line-height:1.55;
-
+    min-width: 0;
 }
 
 
 /* =========================================================
-   ESTADO
+   ICONO PRINCIPAL
 ========================================================= */
 
-.nova-search-answer-status{
+.nova-search-answer-icon {
+    position: relative;
 
-    display:inline-flex;
+    width: 52px;
+    height: 52px;
 
-    align-items:center;
+    flex:
+        0 0 52px;
 
-    gap:8px;
+    display: flex;
 
-    flex-shrink:0;
-
-    padding:
-
-        8px
-        12px;
-
-    border:
-
-        1px solid
-        #D9E8DF;
-
-    border-radius:999px;
+    align-items: center;
+    justify-content: center;
 
     background:
-        #F5FAF7;
+        #0B1628;
 
     color:
-        #35624B;
+        #FFFFFF;
 
-    font-size:.72rem;
+    border:
+        1px solid
+        rgba(201, 164, 92, .42);
 
-    font-weight:700;
+    border-radius: 8px;
 
+    box-shadow:
+        0 7px 18px
+        rgba(11, 22, 40, .12);
 }
 
 
-.nova-search-answer-status-dot{
+.nova-search-answer-icon::after {
+    content: "";
 
-    width:7px;
+    position: absolute;
 
-    height:7px;
+    inset: 5px;
 
-    border-radius:50%;
+    border:
+        1px solid
+        rgba(201, 164, 92, .48);
+
+    border-radius: 6px;
+
+    pointer-events: none;
+}
+
+
+.nova-search-answer-icon svg {
+    position: relative;
+
+    z-index: 1;
+
+    width: 25px;
+    height: 25px;
+}
+
+
+/* =========================================================
+   IDENTIDAD
+========================================================= */
+
+.nova-search-answer-heading {
+    min-width: 0;
+}
+
+
+.nova-search-answer-eyebrow {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color:
+        #9A7A42;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size:
+        .60rem;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        1.4px;
+
+    line-height:
+        1.3;
+
+    text-transform:
+        uppercase;
+}
+
+
+.nova-search-answer-heading h2 {
+    margin: 0;
+
+    color:
+        #0B1628;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size:
+        1.45rem;
+
+    font-weight:
+        500;
+
+    line-height:
+        1.25;
+
+    letter-spacing:
+        -.15px;
+}
+
+
+.nova-search-answer-heading p {
+    margin:
+        6px
+        0
+        0;
+
+    color:
+        #687386;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size:
+        .82rem;
+
+    line-height:
+        1.55;
+}
+
+
+/* =========================================================
+   ESTADO — ANÁLISIS COMPLETADO
+========================================================= */
+
+.nova-search-answer-status {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    flex-shrink: 0;
+
+    padding:
+        7px
+        11px;
+
+    border:
+        1px solid
+        rgba(78, 138, 104, .24);
+
+    border-radius:
+        6px;
+
+    background:
+        rgba(78, 138, 104, .045);
+
+    color:
+        #47735A;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size:
+        .62rem;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        .55px;
+
+    text-transform:
+        uppercase;
+}
+
+
+.nova-search-answer-status-dot {
+    width: 6px;
+    height: 6px;
+
+    flex:
+        0 0 6px;
+
+    border-radius: 50%;
 
     background:
         #4E8A68;
 
     box-shadow:
-
-        0 0 0 4px
-        rgba(
-            78,
-            138,
-            104,
-            .10
-        );
-
+        0 0 0 3px
+        rgba(78, 138, 104, .10);
 }
 
 
 /* =========================================================
-   CUERPO
+   CUERPO DE LA RESPUESTA
 ========================================================= */
 
-.nova-search-answer-body{
+.nova-search-answer-body {
+    padding:
+        28px
+        30px
+        30px;
 
-    padding:30px;
-
+    background:
+        #FFFFFF;
 }
 
 
-.nova-search-answer-content{
+.nova-search-answer-content {
+    position: relative;
 
-    max-width:1000px;
+    max-width: 1000px;
 
+    padding-left:
+        17px;
+
+    border-left:
+        2px solid
+        rgba(201, 164, 92, .48);
 }
 
 
-.nova-search-answer-content p{
-
-    margin:0;
+.nova-search-answer-content p {
+    margin: 0;
 
     color:
-        #344457;
+        #334255;
 
-    font-size:.96rem;
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 
-    line-height:1.9;
+    font-size:
+        .94rem;
+
+    font-weight:
+        400;
+
+    line-height:
+        1.9;
 
     white-space:
         pre-wrap;
-
 }
 
 
 /* =========================================================
-   FOOTER — MÉTRICAS
+   MÉTRICAS
 ========================================================= */
 
-.nova-search-answer-footer{
+.nova-search-answer-footer {
+    display: flex;
 
-    display:flex;
-
-    align-items:stretch;
+    align-items: stretch;
 
     border-top:
-
         1px solid
-        #E2E8F0;
+        #E3E8EE;
 
     background:
-        #F8FAFC;
-
+        #F9FAFC;
 }
 
 
-.nova-search-answer-metric{
+.nova-search-answer-metric {
+    display: flex;
 
-    display:flex;
+    align-items: center;
 
-    align-items:center;
+    gap: 10px;
 
-    gap:11px;
+    flex: 1;
 
-    flex:1;
-
-    min-width:0;
+    min-width: 0;
 
     padding:
-
-        16px
-        22px;
+        15px
+        21px;
 
     border-right:
-
         1px solid
-        #E2E8F0;
+        #E3E8EE;
 
+    transition:
+        background
+        .2s
+        ease;
 }
 
 
-.nova-search-answer-metric:last-child{
-
-    border-right:none;
-
+.nova-search-answer-metric:hover {
+    background:
+        #FFFFFF;
 }
 
 
-.nova-search-answer-metric-icon{
+.nova-search-answer-metric:last-child {
+    border-right:
+        none;
+}
 
-    width:34px;
 
-    height:34px;
+/* =========================================================
+   ICONOS DE MÉTRICAS
+========================================================= */
+
+.nova-search-answer-metric-icon {
+    width: 33px;
+    height: 33px;
 
     flex:
-        0 0 34px;
+        0 0 33px;
 
-    display:flex;
+    display: flex;
 
-    align-items:center;
+    align-items: center;
+    justify-content: center;
 
-    justify-content:center;
+    box-sizing: border-box;
 
     border:
-
         1px solid
-        #D6DFEA;
+        #D9E1EA;
 
-    border-radius:9px;
+    border-radius:
+        7px;
 
     background:
         #FFFFFF;
 
     color:
         #315C97;
-
 }
 
 
-.nova-search-answer-metric-icon svg{
-
-    width:16px;
-
-    height:16px;
-
-}
-
-
-.nova-search-answer-metric-label{
-
-    display:block;
-
-    margin-bottom:3px;
-
-    color:
-        #8794A3;
-
-    font-size:.62rem;
-
-    font-weight:800;
-
-    letter-spacing:.7px;
-
-    text-transform:uppercase;
-
-}
-
-
-.nova-search-answer-metric strong{
-
-    display:block;
-
-    overflow:hidden;
-
-    color:
-        #17375E;
-
-    font-size:.82rem;
-
-    font-weight:700;
-
-    white-space:nowrap;
-
-    text-overflow:ellipsis;
-
+.nova-search-answer-metric-icon svg {
+    width: 16px;
+    height: 16px;
 }
 
 
 /* =========================================================
-   DISCLAIMER
+   TEXTO DE MÉTRICAS
 ========================================================= */
 
-.nova-search-answer-disclaimer{
+.nova-search-answer-metric-label {
+    display: block;
 
-    display:flex;
+    margin-bottom:
+        3px;
 
-    align-items:flex-start;
+    color:
+        #8995A3;
 
-    gap:10px;
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size:
+        .58rem;
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        .75px;
+
+    line-height:
+        1.3;
+
+    text-transform:
+        uppercase;
+}
+
+
+.nova-search-answer-metric strong {
+    display: block;
+
+    overflow: hidden;
+
+    color:
+        #24354F;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size:
+        .78rem;
+
+    font-weight:
+        700;
+
+    line-height:
+        1.35;
+
+    white-space:
+        nowrap;
+
+    text-overflow:
+        ellipsis;
+}
+
+
+/* =========================================================
+   DISCLAIMER JURÍDICO
+========================================================= */
+
+.nova-search-answer-disclaimer {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 10px;
 
     padding:
-
-        15px
-        30px;
+        14px
+        28px;
 
     border-top:
-
         1px solid
-        rgba(
-            176,
-            138,
-            76,
-            .16
-        );
+        rgba(201, 164, 92, .16);
 
     background:
         #FCFAF6;
-
 }
 
 
-.nova-search-answer-disclaimer svg{
+.nova-search-answer-disclaimer svg {
+    width: 16px;
+    height: 16px;
 
-    width:17px;
+    flex-shrink: 0;
 
-    height:17px;
-
-    flex-shrink:0;
-
-    margin-top:2px;
+    margin-top:
+        2px;
 
     color:
         #9A7A42;
-
 }
 
 
-.nova-search-answer-disclaimer p{
-
-    margin:0;
+.nova-search-answer-disclaimer p {
+    margin: 0;
 
     color:
-        #7A6A4C;
+        #786A50;
 
-    font-size:.73rem;
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 
-    line-height:1.65;
+    font-size:
+        .70rem;
 
+    line-height:
+        1.65;
 }
 
 
 /* =========================================================
-   ANIMACIÓN
+   ANIMACIÓN DE ENTRADA
 ========================================================= */
 
-@keyframes novaSearchAnswerEnter{
+@keyframes novaSearchAnswerEnter {
 
-    from{
-
-        opacity:0;
+    from {
+        opacity: 0;
 
         transform:
-            translateY(10px);
-
+            translateY(8px);
     }
 
-    to{
-
-        opacity:1;
+    to {
+        opacity: 1;
 
         transform:
             translateY(0);
-
     }
 
 }
 
 
 /* =========================================================
-   RESPONSIVE
+   TABLET
 ========================================================= */
 
-@media(max-width:850px){
+@media (max-width: 850px) {
 
-    .nova-search-answer-header{
+    .nova-search-answer-header {
+        align-items:
+            flex-start;
 
-        align-items:flex-start;
+        flex-direction:
+            column;
 
-        flex-direction:column;
-
-        padding:24px;
-
+        padding:
+            23px
+            24px;
     }
 
 
-    .nova-search-answer-status{
-
-        align-self:flex-start;
-
+    .nova-search-answer-status {
+        align-self:
+            flex-start;
     }
 
 
-    .nova-search-answer-body{
-
-        padding:24px;
-
+    .nova-search-answer-body {
+        padding:
+            24px;
     }
 
 
-    .nova-search-answer-disclaimer{
-
-        padding:15px 24px;
-
+    .nova-search-answer-disclaimer {
+        padding:
+            14px
+            24px;
     }
 
 
-    .nova-search-answer-footer{
-
-        flex-wrap:wrap;
-
+    .nova-search-answer-footer {
+        flex-wrap:
+            wrap;
     }
 
 
-    .nova-search-answer-metric{
-
+    .nova-search-answer-metric {
         flex:
-
             1 1 45%;
 
         border-bottom:
-
             1px solid
-            #E2E8F0;
+            #E3E8EE;
+    }
 
+
+    .nova-search-answer-metric:nth-last-child(-n + 2) {
+        border-bottom:
+            none;
     }
 
 }
 
 
-@media(max-width:600px){
+/* =========================================================
+   MOBILE
+========================================================= */
 
-    .nova-search-answer{
+@media (max-width: 600px) {
 
-        border-radius:10px;
-
+    .nova-search-answer {
+        border-radius:
+            9px;
     }
 
 
-    .nova-search-answer-header{
-
-        padding:22px 18px;
-
+    .nova-search-answer-header {
+        padding:
+            21px
+            18px;
     }
 
 
-    .nova-search-answer-brand{
+    .nova-search-answer-brand {
+        align-items:
+            flex-start;
 
-        align-items:flex-start;
-
+        gap:
+            12px;
     }
 
 
-    .nova-search-answer-icon{
+    .nova-search-answer-icon {
+        width:
+            45px;
 
-        width:46px;
+        height:
+            45px;
 
-        height:46px;
+        flex-basis:
+            45px;
 
-        flex-basis:46px;
-
-        border-radius:10px;
-
+        border-radius:
+            7px;
     }
 
 
-    .nova-search-answer-icon svg{
+    .nova-search-answer-icon svg {
+        width:
+            21px;
 
-        width:22px;
-
-        height:22px;
-
+        height:
+            21px;
     }
 
 
-    .nova-search-answer-heading h2{
-
-        font-size:1.25rem;
-
+    .nova-search-answer-heading h2 {
+        font-size:
+            1.23rem;
     }
 
 
-    .nova-search-answer-heading p{
-
-        font-size:.78rem;
-
+    .nova-search-answer-heading p {
+        font-size:
+            .77rem;
     }
 
 
-    .nova-search-answer-body{
+    .nova-search-answer-eyebrow {
+        font-size:
+            .55rem;
 
-        padding:22px 18px;
-
+        letter-spacing:
+            1.1px;
     }
 
 
-    .nova-search-answer-content p{
-
-        font-size:.91rem;
-
-        line-height:1.82;
-
+    .nova-search-answer-body {
+        padding:
+            21px
+            18px
+            23px;
     }
 
 
-    .nova-search-answer-footer{
-
-        flex-direction:column;
-
+    .nova-search-answer-content {
+        padding-left:
+            13px;
     }
 
 
-    .nova-search-answer-metric{
+    .nova-search-answer-content p {
+        font-size:
+            .90rem;
 
-        width:100%;
-
-        padding:15px 18px;
-
-        border-right:none;
-
+        line-height:
+            1.82;
     }
 
 
-    .nova-search-answer-disclaimer{
+    .nova-search-answer-footer {
+        flex-direction:
+            column;
+    }
 
-        padding:14px 18px;
 
+    .nova-search-answer-metric {
+        width:
+            100%;
+
+        padding:
+            14px
+            18px;
+
+        border-right:
+            none;
+
+        border-bottom:
+            1px solid
+            #E3E8EE;
+    }
+
+
+    .nova-search-answer-metric:last-child {
+        border-bottom:
+            none;
+    }
+
+
+    .nova-search-answer-disclaimer {
+        padding:
+            13px
+            18px;
+    }
+
+
+    .nova-search-answer-disclaimer p {
+        font-size:
+            .68rem;
     }
 
 }

@@ -85,8 +85,7 @@ const modulosDisponibles = [
 function handleFiltersUpdate(newFilters) {
 
     if (
-        newFilters?.modulo !== undefined
-        &&
+        newFilters?.modulo !== undefined &&
         newFilters.modulo !== filters.modulo
     ) {
 
@@ -99,8 +98,7 @@ function handleFiltersUpdate(newFilters) {
 
 
     if (
-        newFilters?.tipoDocumento !== undefined
-        &&
+        newFilters?.tipoDocumento !== undefined &&
         newFilters.tipoDocumento !== filters.tipoDocumento
     ) {
 
@@ -113,8 +111,7 @@ function handleFiltersUpdate(newFilters) {
 
 
     if (
-        newFilters?.fecha !== undefined
-        &&
+        newFilters?.fecha !== undefined &&
         newFilters.fecha !== filters.fecha
     ) {
 
@@ -268,35 +265,51 @@ function handleFiltersUpdate(newFilters) {
 <style scoped>
 
 /* =========================================
-   NOVA SEARCH VIEW
+   NOVA SEARCH
+   ESTRUCTURA PRINCIPAL
 ========================================= */
 
 .novasearch-view {
 
     width: 100%;
-    max-width: 1440px;
+    min-height: 100vh;
 
-    margin: 0 auto;
+    margin: 0;
 
-    padding:
-        32px
-        28px
-        56px;
+    color: #0B1628;
 
-    color: #17375E;
+    background:
+        #F5F7F9;
 
 }
 
 
 /* =========================================
-   SECCIÓN DE BÚSQUEDA
+   HEADER
+========================================= */
+
+.novasearch-view > .nova-search-header {
+
+    width: 100%;
+
+}
+
+
+/* =========================================
+   BUSCADOR
 ========================================= */
 
 .novasearch-search-section {
 
     width: 100%;
+    max-width: 1280px;
 
-    margin-top: 24px;
+    margin: 0 auto;
+
+    padding:
+        36px
+        32px
+        0;
 
 }
 
@@ -307,32 +320,39 @@ function handleFiltersUpdate(newFilters) {
 
 .novasearch-workspace {
 
+    width: 100%;
+    max-width: 1280px;
+
+    margin:
+        28px auto 0;
+
+    padding:
+        0
+        32px
+        60px;
+
     display: grid;
 
     grid-template-columns:
-        270px
+        260px
         minmax(0, 1fr);
 
     align-items: start;
 
     gap: 28px;
 
-    width: 100%;
-
-    margin-top: 28px;
-
 }
 
 
 /* =========================================
-   SIDEBAR DE FILTROS
+   SIDEBAR
 ========================================= */
 
 .novasearch-sidebar {
 
     position: sticky;
 
-    top: 24px;
+    top: 96px;
 
     align-self: start;
 
@@ -340,7 +360,7 @@ function handleFiltersUpdate(newFilters) {
 
 
 /* =========================================
-   ÁREA DE RESULTADOS
+   RESULTADOS
 ========================================= */
 
 .novasearch-results {
@@ -353,26 +373,32 @@ function handleFiltersUpdate(newFilters) {
 
 
 /* =========================================
-   RESPONSIVE - TABLET
+   TABLET
 ========================================= */
 
 @media (max-width: 900px) {
 
-    .novasearch-view {
+    .novasearch-search-section {
 
         padding:
+            30px
             24px
-            20px
-            44px;
+            0;
 
     }
 
 
     .novasearch-workspace {
 
-        grid-template-columns: 1fr;
+        grid-template-columns:
+            1fr;
 
         gap: 20px;
+
+        padding:
+            0
+            24px
+            50px;
 
     }
 
@@ -389,33 +415,33 @@ function handleFiltersUpdate(newFilters) {
 
 
 /* =========================================
-   RESPONSIVE - MOBILE
+   MOBILE
 ========================================= */
 
 @media (max-width: 576px) {
 
-    .novasearch-view {
-
-        padding:
-            16px
-            14px
-            36px;
-
-    }
-
-
     .novasearch-search-section {
 
-        margin-top: 16px;
+        padding:
+            24px
+            18px
+            0;
 
     }
 
 
     .novasearch-workspace {
 
-        margin-top: 20px;
+        margin-top:
+            20px;
 
-        gap: 16px;
+        padding:
+            0
+            18px
+            40px;
+
+        gap:
+            16px;
 
     }
 

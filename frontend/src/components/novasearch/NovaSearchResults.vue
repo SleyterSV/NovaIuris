@@ -1,36 +1,47 @@
 <template>
+
     <section
         v-if="results?.length"
         class="nova-search-results"
     >
 
-        <!-- =========================================
-             HEADER DE RESULTADOS
-        ========================================== -->
+        <!-- =====================================================
+             CABECERA DE RESULTADOS
+        ====================================================== -->
 
         <header class="results-header">
 
             <div class="results-heading">
 
-                <span class="results-eyebrow">
-                    RESULTADOS RECUPERADOS
-                </span>
+                <div class="results-heading-accent"></div>
 
-                <h2>
-                    Fuentes jurídicas relevantes
-                </h2>
+                <div>
 
-                <p>
-                    Se encontraron
-                    <strong>{{ results.length }}</strong>
-                    {{ results.length === 1
-                        ? 'resultado relevante para tu consulta.'
-                        : 'resultados relevantes para tu consulta.'
-                    }}
-                </p>
+                    <span class="results-eyebrow">
+                        NOVA SEARCH · RECUPERACIÓN JURÍDICA
+                    </span>
+
+                    <h2>
+                        Fuentes jurídicas relevantes
+                    </h2>
+
+                    <p>
+                        Se encontraron
+                        <strong>{{ results.length }}</strong>
+                        {{
+                            results.length === 1
+                                ? 'resultado relevante'
+                                : 'resultados relevantes'
+                        }}
+                        para tu consulta.
+                    </p>
+
+                </div>
 
             </div>
 
+
+            <!-- TOTAL -->
 
             <div
                 v-if="totalResults !== null"
@@ -50,9 +61,9 @@
         </header>
 
 
-        <!-- =========================================
+        <!-- =====================================================
              LISTA DE RESULTADOS
-        ========================================== -->
+        ====================================================== -->
 
         <TransitionGroup
             name="nova-result"
@@ -66,20 +77,34 @@
                 class="nova-result-card"
             >
 
-                <!-- =====================================
-                     CABECERA
-                ====================================== -->
+                <!-- =================================================
+                     INDICADOR SUPERIOR
+                ================================================== -->
+
+                <div class="result-top-line"></div>
+
+
+                <!-- =================================================
+                     CABECERA DEL RESULTADO
+                ================================================== -->
 
                 <header class="result-card-header">
 
                     <div class="result-main-heading">
 
-                        <div class="result-position">
+                        <!-- POSICIÓN -->
+
+                        <div
+                            class="result-position"
+                            :aria-label="`Resultado ${index + 1}`"
+                        >
 
                             {{ formatPosition(index) }}
 
                         </div>
 
+
+                        <!-- TÍTULO -->
 
                         <div class="result-title-wrapper">
 
@@ -108,6 +133,7 @@
 
                                 <span
                                     v-if="result.rama"
+                                    class="result-meta-item"
                                 >
                                     {{ result.rama }}
                                 </span>
@@ -120,12 +146,13 @@
                                     "
                                     class="meta-separator"
                                 >
-                                    ·
+                                    /
                                 </span>
 
 
                                 <span
                                     v-if="result.organo_emisor"
+                                    class="result-meta-item"
                                 >
                                     {{ result.organo_emisor }}
                                 </span>
@@ -137,7 +164,9 @@
                     </div>
 
 
-                    <!-- SCORE -->
+                    <!-- =================================================
+                         SCORE DE RELEVANCIA
+                    ================================================== -->
 
                     <div
                         v-if="hasScore(result)"
@@ -157,9 +186,9 @@
                 </header>
 
 
-                <!-- =====================================
+                <!-- =================================================
                      INFORMACIÓN DEL DOCUMENTO
-                ====================================== -->
+                ================================================== -->
 
                 <div
                     v-if="
@@ -220,9 +249,9 @@
                 </div>
 
 
-                <!-- =====================================
+                <!-- =================================================
                      CLASIFICACIÓN
-                ====================================== -->
+                ================================================== -->
 
                 <div
                     v-if="
@@ -231,6 +260,8 @@
                     "
                     class="result-classification"
                 >
+
+                    <!-- MATERIA -->
 
                     <span
                         v-if="result.materia"
@@ -241,52 +272,67 @@
                             Materia
                         </span>
 
-                        {{ result.materia }}
+                        <span class="chip-value">
+                            {{ result.materia }}
+                        </span>
 
                     </span>
 
 
+                    <!-- PRECEDENTE -->
+
                     <span
-                        v-if="isBindingPrecedent(
-                            result.precedente_vinculante
-                        )"
+                        v-if="
+                            isBindingPrecedent(
+                                result.precedente_vinculante
+                            )
+                        "
                         class="precedent-chip"
                     >
 
-                        <span class="precedent-star">
+                        <span class="precedent-mark">
                             ★
                         </span>
 
-                        Precedente vinculante
+                        <span>
+                            Precedente vinculante
+                        </span>
 
                     </span>
 
                 </div>
 
 
-                <!-- =====================================
-                     RESUMEN
-                ====================================== -->
+                <!-- =================================================
+                     SÍNTESIS JURÍDICA
+                ================================================== -->
 
-                <div
+                <section
                     v-if="result.resumen_ia"
                     class="result-summary-section"
                 >
 
-                    <span class="summary-label">
-                        SÍNTESIS JURÍDICA
-                    </span>
+                    <div class="section-heading">
+
+                        <span class="section-heading-mark"></span>
+
+                        <span class="summary-label">
+                            SÍNTESIS JURÍDICA
+                        </span>
+
+                    </div>
+
 
                     <p class="result-summary">
                         {{ result.resumen_ia }}
                     </p>
 
-                </div>
+                </section>
 
 
-                <!-- =====================================
+                <!-- =================================================
                      EXTRACTO
-                ====================================== -->
+                ================================================== -->
 
                 <details
                     v-if="result.extracto_exacto"
@@ -295,11 +341,49 @@
 
                     <summary>
 
-                        <span>
-                            Ver fundamento o extracto relevante
+                        <span class="details-label">
+
+                            <span class="details-label-icon">
+
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.7"
+                                    aria-hidden="true"
+                                >
+
+                                    <path
+                                        d="M5 4.5h14v15H5z"
+                                    />
+
+                                    <path
+                                        d="M8 8h8"
+                                    />
+
+                                    <path
+                                        d="M8 12h8"
+                                    />
+
+                                    <path
+                                        d="M8 16h5"
+                                    />
+
+                                </svg>
+
+                            </span>
+
+                            <span>
+                                Ver fundamento o extracto relevante
+                            </span>
+
                         </span>
 
-                        <span class="details-icon">
+
+                        <span
+                            class="details-icon"
+                            aria-hidden="true"
+                        >
                             +
                         </span>
 
@@ -308,10 +392,12 @@
 
                     <div class="extract-wrapper">
 
-                        <div class="extract-line"></div>
+                        <div class="extract-accent"></div>
 
                         <div class="extract-content">
+
                             {{ result.extracto_exacto }}
+
                         </div>
 
                     </div>
@@ -319,19 +405,24 @@
                 </details>
 
 
-                <!-- =====================================
+                <!-- =================================================
                      FOOTER
-                ====================================== -->
+                ================================================== -->
 
                 <footer class="result-card-footer">
 
-                    <span>
+                    <span class="footer-result">
+
+                        <span class="footer-result-dot"></span>
+
                         Resultado {{ index + 1 }}
+
                     </span>
 
 
                     <span
                         v-if="result.tipo_documento"
+                        class="footer-document-type"
                     >
                         {{ result.tipo_documento }}
                     </span>
@@ -343,14 +434,15 @@
         </TransitionGroup>
 
     </section>
+
 </template>
 
 
 <script setup>
 
-/* =========================================
+/* =========================================================
    PROPS
-========================================= */
+========================================================= */
 
 const props = defineProps({
 
@@ -373,9 +465,9 @@ const props = defineProps({
 })
 
 
-/* =========================================
+/* =========================================================
    UTILIDADES
-========================================= */
+========================================================= */
 
 function formatPosition(index){
 
@@ -384,6 +476,10 @@ function formatPosition(index){
 }
 
 
+/* =========================================================
+   SCORE
+========================================================= */
+
 function hasScore(result){
 
     return (
@@ -391,6 +487,8 @@ function hasScore(result){
         result.score !== null &&
 
         result.score !== undefined &&
+
+        result.score !== "" &&
 
         !Number.isNaN(
             Number(result.score)
@@ -405,13 +503,11 @@ function formatScore(score){
 
     const numericScore = Number(score)
 
-    /*
-       El backend actual trabaja normalmente
-       con valores entre 0 y 1.
+    if(Number.isNaN(numericScore)){
 
-       Si en el futuro devuelve valores de 0 a 100,
-       el componente también podrá mostrarlos.
-    */
+        return "—"
+
+    }
 
     const percentage =
 
@@ -421,11 +517,14 @@ function formatScore(score){
 
             : numericScore
 
-
     return `${Math.round(percentage)}%`
 
 }
 
+
+/* =========================================================
+   PRECEDENTE VINCULANTE
+========================================================= */
 
 function isBindingPrecedent(value){
 
@@ -445,9 +544,7 @@ function isBindingPrecedent(value){
 
 
     if(
-
         typeof value === "string"
-
     ){
 
         return [
@@ -462,7 +559,9 @@ function isBindingPrecedent(value){
 
         ].includes(
 
-            value.toLowerCase().trim()
+            value
+                .toLowerCase()
+                .trim()
 
         )
 
@@ -474,6 +573,10 @@ function isBindingPrecedent(value){
 }
 
 
+/* =========================================================
+   FECHA
+========================================================= */
+
 function formatDate(dateValue){
 
     if(!dateValue){
@@ -482,11 +585,6 @@ function formatDate(dateValue){
 
     }
 
-
-    /*
-       Si el backend ya entrega la fecha
-       como texto legible, evitamos modificarla.
-    */
 
     const date = new Date(dateValue)
 
@@ -510,11 +608,11 @@ function formatDate(dateValue){
 
         {
 
-            day:"2-digit",
+            day: "2-digit",
 
-            month:"long",
+            month: "long",
 
-            year:"numeric"
+            year: "numeric"
 
         }
 
@@ -527,9 +625,10 @@ function formatDate(dateValue){
 
 <style scoped>
 
-/* =========================================
+/* =========================================================
    NOVA SEARCH — RESULTS
-========================================= */
+   Sistema visual institucional Nova Iuris
+========================================================= */
 
 .nova-search-results{
 
@@ -538,9 +637,9 @@ function formatDate(dateValue){
 }
 
 
-/* =========================================
+/* =========================================================
    HEADER
-========================================= */
+========================================================= */
 
 .results-header{
 
@@ -550,27 +649,62 @@ function formatDate(dateValue){
 
     justify-content:space-between;
 
-    gap:24px;
+    gap:28px;
 
     padding:
-
         0
         4px
-        20px;
+        22px;
 
-    margin-bottom:20px;
+    margin-bottom:22px;
 
     border-bottom:
-
         1px solid
-        #DCE5EE;
+        #DCE4ED;
 
 }
 
 
+/* =========================================================
+   HEADING
+========================================================= */
+
 .results-heading{
 
+    display:flex;
+
+    align-items:flex-start;
+
+    gap:13px;
+
     min-width:0;
+
+}
+
+
+.results-heading-accent{
+
+    width:3px;
+
+    min-height:55px;
+
+    margin-top:3px;
+
+    flex-shrink:0;
+
+    border-radius:999px;
+
+    background:
+        linear-gradient(
+            to bottom,
+            #B08A4C,
+            rgba(
+                176,
+                138,
+                76,
+                .25
+            )
+        );
 
 }
 
@@ -583,7 +717,7 @@ function formatDate(dateValue){
 
     color:#7A6440;
 
-    font-size:.68rem;
+    font-size:.65rem;
 
     font-weight:800;
 
@@ -599,12 +733,11 @@ function formatDate(dateValue){
     color:#17375E;
 
     font-family:
-
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size:1.55rem;
+    font-size:1.5rem;
 
     font-weight:600;
 
@@ -617,9 +750,9 @@ function formatDate(dateValue){
 
     margin:0;
 
-    color:#6A7888;
+    color:#687789;
 
-    font-size:.88rem;
+    font-size:.86rem;
 
     line-height:1.6;
 
@@ -635,15 +768,17 @@ function formatDate(dateValue){
 }
 
 
-/* =========================================
+/* =========================================================
    TOTAL
-========================================= */
+========================================================= */
 
 .results-total{
 
-    min-width:70px;
+    min-width:72px;
 
-    padding:10px 13px;
+    padding:
+        9px
+        14px;
 
     display:flex;
 
@@ -653,27 +788,39 @@ function formatDate(dateValue){
 
     justify-content:center;
 
+    flex-shrink:0;
+
     background:#FFFFFF;
 
     border:
-
         1px solid
-        #D6DFEA;
+        #D5DFE9;
 
     border-radius:9px;
+
+    box-shadow:
+        0
+        4px
+        12px
+        rgba(
+            23,
+            55,
+            94,
+            .035
+        );
 
 }
 
 
 .results-total-label{
 
-    color:#8A96A4;
+    color:#8B97A5;
 
-    font-size:.58rem;
+    font-size:.55rem;
 
     font-weight:800;
 
-    letter-spacing:1px;
+    letter-spacing:1.1px;
 
 }
 
@@ -691,9 +838,9 @@ function formatDate(dateValue){
 }
 
 
-/* =========================================
+/* =========================================================
    LISTA
-========================================= */
+========================================================= */
 
 .results-list{
 
@@ -701,14 +848,14 @@ function formatDate(dateValue){
 
     flex-direction:column;
 
-    gap:16px;
+    gap:15px;
 
 }
 
 
-/* =========================================
+/* =========================================================
    TARJETA
-========================================= */
+========================================================= */
 
 .nova-result-card{
 
@@ -716,38 +863,40 @@ function formatDate(dateValue){
 
     overflow:hidden;
 
-    padding:25px 26px 0;
+    padding:
+        25px
+        26px
+        0;
 
     background:#FFFFFF;
 
     border:
-
         1px solid
         #D9E2EC;
 
-    border-radius:12px;
+    border-radius:11px;
 
     box-shadow:
-
-        0 8px 24px
+        0
+        7px
+        22px
         rgba(
             23,
             55,
             94,
-            .045
+            .042
         );
 
     transition:
-
         transform
         .22s
         ease,
 
-        box-shadow
+        border-color
         .22s
         ease,
 
-        border-color
+        box-shadow
         .22s
         ease;
 
@@ -757,29 +906,63 @@ function formatDate(dateValue){
 .nova-result-card:hover{
 
     transform:
-
         translateY(
             -2px
         );
 
-    border-color:#BECBDC;
+    border-color:#BDCAD8;
 
     box-shadow:
-
-        0 14px 30px
+        0
+        13px
+        30px
         rgba(
             23,
             55,
             94,
-            .075
+            .07
         );
 
 }
 
 
-/* =========================================
-   CABECERA CARD
-========================================= */
+/* =========================================================
+   LÍNEA SUPERIOR
+========================================================= */
+
+.result-top-line{
+
+    position:absolute;
+
+    top:0;
+
+    left:0;
+
+    width:100%;
+
+    height:2px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #17375E 0%,
+            #315C97 65%,
+            rgba(
+                176,
+                138,
+                76,
+                .55
+            ) 100%
+        );
+
+    opacity:.85;
+
+}
+
+
+/* =========================================================
+   CABECERA
+========================================================= */
 
 .result-card-header{
 
@@ -809,14 +992,13 @@ function formatDate(dateValue){
 
 .result-position{
 
-    width:34px;
+    width:35px;
 
-    height:34px;
+    height:35px;
 
     flex:
-
         0 0
-        34px;
+        35px;
 
     display:flex;
 
@@ -824,29 +1006,34 @@ function formatDate(dateValue){
 
     justify-content:center;
 
-    margin-top:2px;
-
-    border-radius:50%;
+    margin-top:1px;
 
     border:
-
         1px solid
         rgba(
             176,
             138,
             76,
-            .45
+            .40
         );
 
-    color:#7A6440;
+    border-radius:50%;
+
+    background:
+        linear-gradient(
+            135deg,
+            #FFFFFF,
+            #FAF8F4
+        );
+
+    color:#80683F;
 
     font-family:
-
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size:.78rem;
+    font-size:.76rem;
 
     font-weight:600;
 
@@ -862,19 +1049,21 @@ function formatDate(dateValue){
 
 .document-type{
 
-    display:inline-block;
+    display:block;
 
-    margin-bottom:7px;
+    margin-bottom:6px;
 
     color:#315C97;
 
-    font-size:.68rem;
+    font-size:.63rem;
 
     font-weight:800;
 
-    text-transform:uppercase;
+    letter-spacing:.95px;
 
-    letter-spacing:.9px;
+    line-height:1.4;
+
+    text-transform:uppercase;
 
 }
 
@@ -886,16 +1075,17 @@ function formatDate(dateValue){
     color:#17375E;
 
     font-family:
-
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size:1.16rem;
+    font-size:1.13rem;
 
     font-weight:600;
 
     line-height:1.5;
+
+    word-break:break-word;
 
 }
 
@@ -908,15 +1098,22 @@ function formatDate(dateValue){
 
     align-items:center;
 
-    gap:6px;
+    gap:7px;
 
     margin-top:8px;
 
-    color:#748294;
+    color:#718093;
 
-    font-size:.78rem;
+    font-size:.76rem;
 
     line-height:1.5;
+
+}
+
+
+.result-meta-item{
+
+    font-weight:500;
 
 }
 
@@ -925,18 +1122,22 @@ function formatDate(dateValue){
 
     color:#B08A4C;
 
+    font-weight:700;
+
 }
 
 
-/* =========================================
+/* =========================================================
    SCORE
-========================================= */
+========================================================= */
 
 .relevance-score{
 
-    min-width:78px;
+    min-width:76px;
 
-    padding:9px 11px;
+    padding:
+        8px
+        11px;
 
     display:flex;
 
@@ -946,27 +1147,22 @@ function formatDate(dateValue){
 
     flex-shrink:0;
 
-    border-left:
+    border:
+        1px solid
+        rgba(
+            176,
+            138,
+            76,
+            .30
+        );
 
-        2px solid
-        #B08A4C;
+    border-radius:8px;
 
     background:
-
         linear-gradient(
-            90deg,
-            rgba(
-                176,
-                138,
-                76,
-                .03
-            ),
-            rgba(
-                176,
-                138,
-                76,
-                .08
-            )
+            135deg,
+            #FFFCF8,
+            #FFF9F0
         );
 
 }
@@ -974,56 +1170,62 @@ function formatDate(dateValue){
 
 .score-label{
 
-    color:#8A96A4;
+    color:#94764A;
 
-    font-size:.56rem;
+    font-size:.53rem;
 
     font-weight:800;
 
-    letter-spacing:.9px;
+    letter-spacing:.85px;
 
 }
 
 
 .relevance-score strong{
 
-    margin-top:3px;
+    margin-top:2px;
 
     color:#17375E;
 
-    font-size:1rem;
+    font-size:.98rem;
 
     font-weight:800;
+
+    line-height:1.2;
 
 }
 
 
-/* =========================================
-   INFORMACIÓN
-========================================= */
+/* =========================================================
+   INFORMACIÓN DEL DOCUMENTO
+========================================================= */
 
 .result-information{
 
-    display:flex;
+    display:grid;
 
-    flex-wrap:wrap;
+    grid-template-columns:
+        repeat(
+            3,
+            minmax(
+                0,
+                1fr
+            )
+        );
 
-    gap:24px;
+    gap:0;
 
     margin-top:20px;
 
     padding:
-
-        15px
+        14px
         0;
 
     border-top:
-
         1px solid
         #EDF1F5;
 
     border-bottom:
-
         1px solid
         #EDF1F5;
 
@@ -1032,11 +1234,37 @@ function formatDate(dateValue){
 
 .result-info-item{
 
+    min-width:0;
+
     display:flex;
 
     flex-direction:column;
 
-    gap:3px;
+    gap:4px;
+
+    padding:
+        0
+        18px;
+
+    border-right:
+        1px solid
+        #E8EDF2;
+
+}
+
+
+.result-info-item:first-child{
+
+    padding-left:0;
+
+}
+
+
+.result-info-item:last-child{
+
+    padding-right:0;
+
+    border-right:none;
 
 }
 
@@ -1045,31 +1273,39 @@ function formatDate(dateValue){
 
     color:#8B97A5;
 
-    font-size:.62rem;
+    font-size:.58rem;
 
     font-weight:800;
 
-    text-transform:uppercase;
-
     letter-spacing:.85px;
+
+    text-transform:uppercase;
 
 }
 
 
 .result-info-item strong{
 
+    overflow:hidden;
+
     color:#30465F;
 
-    font-size:.82rem;
+    font-size:.79rem;
 
     font-weight:650;
+
+    line-height:1.45;
+
+    text-overflow:ellipsis;
+
+    word-break:break-word;
 
 }
 
 
-/* =========================================
+/* =========================================================
    CLASIFICACIÓN
-========================================= */
+========================================================= */
 
 .result-classification{
 
@@ -1077,9 +1313,11 @@ function formatDate(dateValue){
 
     flex-wrap:wrap;
 
-    gap:9px;
+    align-items:center;
 
-    margin-top:18px;
+    gap:8px;
+
+    margin-top:17px;
 
 }
 
@@ -1092,25 +1330,25 @@ function formatDate(dateValue){
 
     gap:7px;
 
-    min-height:30px;
+    min-height:29px;
+
+    max-width:100%;
 
     padding:
-
         5px
-        11px;
-
-    background:#F5F8FB;
+        10px;
 
     border:
-
         1px solid
-        #DDE6EF;
+        #DCE5EE;
 
     border-radius:999px;
 
+    background:#F6F8FB;
+
     color:#315C97;
 
-    font-size:.74rem;
+    font-size:.71rem;
 
     font-weight:650;
 
@@ -1119,11 +1357,22 @@ function formatDate(dateValue){
 
 .chip-label{
 
-    color:#7C8997;
+    color:#7D8997;
 
-    font-size:.65rem;
+    font-size:.61rem;
 
-    font-weight:700;
+    font-weight:800;
+
+    letter-spacing:.25px;
+
+}
+
+
+.chip-value{
+
+    overflow:hidden;
+
+    text-overflow:ellipsis;
 
 }
 
@@ -1136,55 +1385,52 @@ function formatDate(dateValue){
 
     gap:7px;
 
-    min-height:30px;
+    min-height:29px;
 
     padding:
-
         5px
-        11px;
-
-    border-radius:999px;
-
-    background:
-
-        rgba(
-            176,
-            138,
-            76,
-            .09
-        );
+        10px;
 
     border:
-
         1px solid
         rgba(
             176,
             138,
             76,
-            .30
+            .28
         );
 
-    color:#7A6440;
+    border-radius:999px;
 
-    font-size:.74rem;
+    background:
+        rgba(
+            176,
+            138,
+            76,
+            .075
+        );
+
+    color:#78613C;
+
+    font-size:.71rem;
 
     font-weight:700;
 
 }
 
 
-.precedent-star{
+.precedent-mark{
 
     color:#B08A4C;
 
-    font-size:.78rem;
+    font-size:.7rem;
 
 }
 
 
-/* =========================================
+/* =========================================================
    SÍNTESIS
-========================================= */
+========================================================= */
 
 .result-summary-section{
 
@@ -1193,19 +1439,41 @@ function formatDate(dateValue){
 }
 
 
-.summary-label{
+.section-heading{
 
-    display:block;
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
 
     margin-bottom:8px;
 
+}
+
+
+.section-heading-mark{
+
+    width:15px;
+
+    height:2px;
+
+    border-radius:999px;
+
+    background:#B08A4C;
+
+}
+
+
+.summary-label{
+
     color:#7A6440;
 
-    font-size:.64rem;
+    font-size:.61rem;
 
     font-weight:800;
 
-    letter-spacing:1px;
+    letter-spacing:1.05px;
 
 }
 
@@ -1214,27 +1482,26 @@ function formatDate(dateValue){
 
     margin:0;
 
-    color:#4F5F70;
+    color:#4C5D6E;
 
-    font-size:.9rem;
+    font-size:.88rem;
 
-    line-height:1.8;
+    line-height:1.82;
 
 }
 
 
-/* =========================================
+/* =========================================================
    DETALLES / EXTRACTO
-========================================= */
+========================================================= */
 
 .result-details{
 
     margin-top:20px;
 
-    padding-top:17px;
+    padding-top:16px;
 
     border-top:
-
         1px solid
         #E8EDF2;
 
@@ -1251,15 +1518,17 @@ function formatDate(dateValue){
 
     gap:16px;
 
-    color:#315C97;
-
-    font-size:.82rem;
-
-    font-weight:700;
-
     cursor:pointer;
 
     list-style:none;
+
+    color:#315C97;
+
+    font-size:.78rem;
+
+    font-weight:700;
+
+    user-select:none;
 
 }
 
@@ -1271,11 +1540,22 @@ function formatDate(dateValue){
 }
 
 
-.details-icon{
+.details-label{
 
-    width:25px;
+    display:inline-flex;
 
-    height:25px;
+    align-items:center;
+
+    gap:8px;
+
+}
+
+
+.details-label-icon{
+
+    width:27px;
+
+    height:27px;
 
     display:flex;
 
@@ -1285,22 +1565,70 @@ function formatDate(dateValue){
 
     flex-shrink:0;
 
-    border-radius:50%;
-
     border:
-
         1px solid
-        #D7E0EA;
+        #D8E1EB;
+
+    border-radius:7px;
+
+    background:#F8FAFC;
 
     color:#315C97;
 
-    font-size:1rem;
+}
+
+
+.details-label-icon svg{
+
+    width:14px;
+
+    height:14px;
+
+}
+
+
+.details-icon{
+
+    width:26px;
+
+    height:26px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    flex-shrink:0;
+
+    border:
+        1px solid
+        #D5DFE9;
+
+    border-radius:50%;
+
+    color:#315C97;
+
+    font-size:.95rem;
+
+    font-weight:500;
 
     transition:
-
         transform
         .2s
+        ease,
+
+        background
+        .2s
         ease;
+
+}
+
+
+.result-details summary:hover
+.details-icon{
+
+    background:#F5F8FB;
 
 }
 
@@ -1309,7 +1637,6 @@ function formatDate(dateValue){
 .details-icon{
 
     transform:
-
         rotate(
             45deg
         );
@@ -1317,31 +1644,35 @@ function formatDate(dateValue){
 }
 
 
+/* =========================================================
+   EXTRACTO
+========================================================= */
+
 .extract-wrapper{
 
     display:flex;
 
-    gap:14px;
+    gap:13px;
 
-    margin-top:17px;
+    margin-top:15px;
 
     padding:
-
-        18px
+        16px
         0
-        3px;
+        4px;
 
 }
 
 
-.extract-line{
+.extract-accent{
 
     width:2px;
 
     flex-shrink:0;
 
-    background:
+    border-radius:999px;
 
+    background:
         linear-gradient(
             to bottom,
             #B08A4C,
@@ -1349,31 +1680,33 @@ function formatDate(dateValue){
                 176,
                 138,
                 76,
-                .20
+                .18
             )
         );
-
-    border-radius:999px;
 
 }
 
 
 .extract-content{
 
+    min-width:0;
+
     color:#526273;
 
-    font-size:.88rem;
+    font-size:.85rem;
 
     line-height:1.85;
 
     white-space:pre-wrap;
 
+    word-break:break-word;
+
 }
 
 
-/* =========================================
+/* =========================================================
    FOOTER
-========================================= */
+========================================================= */
 
 .result-card-footer{
 
@@ -1385,39 +1718,73 @@ function formatDate(dateValue){
 
     gap:16px;
 
-    margin-top:22px;
+    margin-top:21px;
 
     margin-left:-26px;
 
     margin-right:-26px;
 
     padding:
-
-        12px
+        11px
         26px;
 
     background:#FAFBFC;
 
     border-top:
-
         1px solid
         #E9EEF3;
 
-    color:#94A0AD;
+    color:#98A3AF;
 
-    font-size:.68rem;
+    font-size:.64rem;
 
 }
 
 
-/* =========================================
+.footer-result{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:7px;
+
+}
+
+
+.footer-result-dot{
+
+    width:5px;
+
+    height:5px;
+
+    border-radius:50%;
+
+    background:#B08A4C;
+
+}
+
+
+.footer-document-type{
+
+    overflow:hidden;
+
+    max-width:50%;
+
+    text-overflow:ellipsis;
+
+    white-space:nowrap;
+
+}
+
+
+/* =========================================================
    TRANSICIONES
-========================================= */
+========================================================= */
 
 .nova-result-enter-active{
 
     transition:
-
         opacity
         .35s
         ease,
@@ -1434,9 +1801,8 @@ function formatDate(dateValue){
     opacity:0;
 
     transform:
-
         translateY(
-            12px
+            10px
         );
 
 }
@@ -1447,7 +1813,6 @@ function formatDate(dateValue){
     position:absolute;
 
     transition:
-
         opacity
         .2s
         ease;
@@ -1462,17 +1827,64 @@ function formatDate(dateValue){
 }
 
 
-/* =========================================
-   RESPONSIVE
-========================================= */
+/* =========================================================
+   RESPONSIVE — TABLET
+========================================================= */
 
-@media(max-width:760px){
+@media(max-width:800px){
 
     .results-header{
 
         align-items:flex-start;
 
+    }
+
+
+    .result-information{
+
+        grid-template-columns:
+            repeat(
+                3,
+                minmax(
+                    0,
+                    1fr
+                )
+            );
+
+    }
+
+
+    .result-info-item{
+
+        padding:
+            0
+            12px;
+
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE — MOBILE
+========================================================= */
+
+@media(max-width:640px){
+
+    .results-header{
+
         flex-direction:column;
+
+        gap:16px;
+
+        padding-bottom:18px;
+
+    }
+
+
+    .results-heading{
+
+        width:100%;
 
     }
 
@@ -1493,52 +1905,103 @@ function formatDate(dateValue){
     }
 
 
-    .relevance-score{
+    .result-main-heading{
 
-        align-items:flex-start;
+        gap:12px;
+
+    }
+
+
+    .relevance-score{
 
         width:100%;
 
-        border-left:
+        align-items:flex-start;
 
-            2px solid
-            #B08A4C;
+        padding:
+            9px
+            11px;
 
     }
 
 
     .result-information{
 
-        gap:16px;
+        grid-template-columns:1fr;
+
+        gap:0;
+
+    }
+
+
+    .result-info-item{
+
+        padding:
+            10px
+            0;
+
+        border-right:none;
+
+        border-bottom:
+            1px solid
+            #EDF1F5;
+
+    }
+
+
+    .result-info-item:first-child{
+
+        padding-top:0;
+
+    }
+
+
+    .result-info-item:last-child{
+
+        padding-bottom:0;
+
+        border-bottom:none;
 
     }
 
 }
 
 
-@media(max-width:576px){
+/* =========================================================
+   RESPONSIVE — SMALL MOBILE
+========================================================= */
 
-    .results-heading h2{
-
-        font-size:1.3rem;
-
-    }
-
+@media(max-width:480px){
 
     .nova-result-card{
 
         padding:
-
-            20px
+            21px
             18px
             0;
+
+        border-radius:10px;
 
     }
 
 
-    .result-main-heading{
+    .results-heading-accent{
 
-        gap:11px;
+        min-height:50px;
+
+    }
+
+
+    .results-heading h2{
+
+        font-size:1.27rem;
+
+    }
+
+
+    .results-heading p{
+
+        font-size:.82rem;
 
     }
 
@@ -1551,23 +2014,53 @@ function formatDate(dateValue){
 
         flex-basis:30px;
 
-        font-size:.72rem;
+        font-size:.7rem;
 
     }
 
 
     .result-title{
 
-        font-size:1.02rem;
+        font-size:1.01rem;
+
+        line-height:1.48;
 
     }
 
 
-    .result-information{
+    .document-type{
 
-        flex-direction:column;
+        font-size:.59rem;
 
-        gap:13px;
+    }
+
+
+    .result-meta{
+
+        font-size:.72rem;
+
+    }
+
+
+    .result-summary{
+
+        font-size:.85rem;
+
+        line-height:1.78;
+
+    }
+
+
+    .result-details{
+
+        margin-top:18px;
+
+    }
+
+
+    .details-label{
+
+        font-size:.74rem;
 
     }
 
@@ -1579,14 +2072,13 @@ function formatDate(dateValue){
         margin-right:-18px;
 
         padding:
-
-            12px
+            11px
             18px;
 
     }
 
 
-    .result-card-footer span:last-child{
+    .footer-document-type{
 
         display:none;
 

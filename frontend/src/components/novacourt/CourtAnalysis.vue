@@ -2,9 +2,9 @@
 
     <section class="court-analysis">
 
-        <!-- =========================================
+        <!-- =================================================
              ENCABEZADO
-        ========================================== -->
+        ================================================== -->
 
         <header class="analysis-header">
 
@@ -14,14 +14,11 @@
                     ANÁLISIS JUDICIAL
                 </span>
 
-
                 <h2>
                     Análisis del caso
                 </h2>
 
-
                 <div class="title-accent"></div>
-
 
                 <p>
                     Evaluación estructurada de los hechos,
@@ -32,15 +29,21 @@
             </div>
 
 
+            <!-- ESTADO -->
+
             <div
                 v-if="status"
                 class="analysis-status"
                 :class="statusClass"
             >
 
-                <span class="status-dot"></span>
+                <span class="status-indicator">
 
-                <span>
+                    <span class="status-dot"></span>
+
+                </span>
+
+                <span class="status-label">
                     {{ status }}
                 </span>
 
@@ -49,47 +52,53 @@
         </header>
 
 
-        <!-- =========================================
-             LOADING
-        ========================================== -->
+        <!-- =================================================
+             ESTADO DE CARGA
+        ================================================== -->
 
         <div
             v-if="loading"
             class="analysis-loading"
         >
 
-            <div class="loading-indicator">
+            <div class="loading-symbol">
 
-                <div class="loading-spinner"></div>
+                <div class="loading-ring"></div>
 
             </div>
 
 
             <div class="loading-content">
 
+                <span class="loading-eyebrow">
+                    NOVACOURT
+                </span>
+
                 <strong>
                     Analizando el escenario judicial
                 </strong>
 
-                <span>
+                <p>
                     NovaCourt está organizando los hechos,
                     evaluando los elementos jurídicos y
                     estructurando el análisis del caso.
-                </span>
+                </p>
 
             </div>
 
         </div>
 
 
-        <!-- =========================================
-             CONTENIDO
-        ========================================== -->
+        <!-- =================================================
+             CONTENIDO DEL ANÁLISIS
+        ================================================== -->
 
         <div
             v-else-if="content"
             class="analysis-content"
         >
+
+            <div class="content-rule"></div>
 
             <MarkdownRenderer
                 :content="content"
@@ -98,9 +107,9 @@
         </div>
 
 
-        <!-- =========================================
+        <!-- =================================================
              ESTADO VACÍO
-        ========================================== -->
+        ================================================== -->
 
         <div
             v-else
@@ -108,11 +117,21 @@
         >
 
             <div class="empty-mark">
-                ANALYSIS
+
+                <span class="empty-line"></span>
+
+                <span class="empty-code">
+                    NC
+                </span>
+
             </div>
 
 
             <div class="empty-content">
+
+                <span class="empty-eyebrow">
+                    RESULTADO DEL ANÁLISIS
+                </span>
 
                 <h3>
                     Análisis pendiente
@@ -142,59 +161,44 @@ import {
 import MarkdownRenderer from "../common/MarkdownRenderer.vue"
 
 
-/* =========================================
+/* =================================================
    PROPS
-========================================= */
+================================================= */
 
 const props = defineProps({
 
     content: {
-
         type: String,
-
         default: ""
-
     },
-
 
     loading: {
-
         type: Boolean,
-
         default: false
-
     },
-
 
     status: {
-
         type: String,
-
         default: ""
-
     },
 
-
     statusType: {
-
         type: String,
-
         default: "processing"
-
     }
 
 })
 
 
-/* =========================================
-   ESTADO
-========================================= */
+/* =================================================
+   ESTADO VISUAL
+================================================= */
 
-const statusClass = computed(() =>
+const statusClass = computed(() => {
 
-    `status-${props.statusType}`
+    return `status-${props.statusType}`
 
-)
+})
 
 </script>
 
@@ -204,12 +208,27 @@ const statusClass = computed(() =>
 /* =====================================================
    COURT ANALYSIS
 
-   IDENTIDAD:
-   JURÍDICA · INSTITUCIONAL · SOBRIA · EDITORIAL
+   IDENTIDAD VISUAL:
+
+   JURÍDICA
+   INSTITUCIONAL
+   SOBRIA
+   EDITORIAL
+   PREMIUM
+
+   PALETA:
+
+   Azul profundo  #17375E
+   Azul           #315C97
+   Dorado         #B08A4C
+   Texto          #24364A
+   Gris           #647487
+   Bordes         #D9E0E8
 
    PRINCIPIO:
-   EL CONTENEDOR NO ES UNA CARD.
-   ES UNA SECCIÓN INTEGRADA DENTRO DEL SISTEMA.
+
+   La sección forma parte del sistema
+   de NovaCourt y NO debe parecer una card.
 ===================================================== */
 
 
@@ -219,13 +238,47 @@ const statusClass = computed(() =>
 
 .court-analysis {
 
+    position: relative;
+
     width: 100%;
 
     margin: 0;
 
-    padding: 42px 48px 44px;
+    padding:
+        44px
+        48px
+        48px;
 
     background: #FFFFFF;
+
+    box-sizing: border-box;
+
+}
+
+
+/* =====================================================
+   LÍNEA SUPERIOR DE IDENTIDAD
+===================================================== */
+
+.court-analysis::before {
+
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    width: 92px;
+    height: 2px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #17375E 0%,
+            #315C97 72%,
+            transparent 100%
+        );
 
 }
 
@@ -242,9 +295,9 @@ const statusClass = computed(() =>
 
     justify-content: space-between;
 
-    gap: 32px;
+    gap: 36px;
 
-    padding-bottom: 28px;
+    padding-bottom: 30px;
 
     border-bottom:
         1px solid
@@ -259,28 +312,28 @@ const statusClass = computed(() =>
 
     min-width: 0;
 
-    max-width: 880px;
+    max-width: 900px;
 
 }
 
 
 /* =====================================================
-   ETIQUETA SUPERIOR
+   EYEBROW
 ===================================================== */
 
 .section-eyebrow {
 
     display: block;
 
-    margin-bottom: 16px;
+    margin-bottom: 15px;
 
     color: #315C97;
 
-    font-size: .68rem;
+    font-size: .67rem;
 
     font-weight: 700;
 
-    letter-spacing: 1.45px;
+    letter-spacing: 1.55px;
 
     line-height: 1.2;
 
@@ -302,19 +355,19 @@ const statusClass = computed(() =>
         "Times New Roman",
         serif;
 
-    font-size: 2rem;
+    font-size: 2.05rem;
 
     font-weight: 500;
 
     line-height: 1.25;
 
-    letter-spacing: -.2px;
+    letter-spacing: -.25px;
 
 }
 
 
 /* =====================================================
-   LÍNEA DE IDENTIDAD
+   ACENTO
 ===================================================== */
 
 .title-accent {
@@ -323,7 +376,10 @@ const statusClass = computed(() =>
 
     height: 2px;
 
-    margin: 18px 0;
+    margin:
+        17px
+        0
+        18px;
 
     background: #315C97;
 
@@ -336,28 +392,25 @@ const statusClass = computed(() =>
 
 .analysis-heading p {
 
-    max-width: 820px;
+    max-width: 830px;
 
     margin: 0;
 
-    color: #5E6D7E;
+    color: #647487;
 
-    font-size: .97rem;
+    font-size: .95rem;
 
     font-weight: 400;
 
     line-height: 1.85;
 
-    letter-spacing: .01em;
+    letter-spacing: .008em;
 
 }
 
 
 /* =====================================================
-   ESTADO DEL ANÁLISIS
-
-   Se mantiene compacto para informar sin convertirlo
-   en una tarjeta independiente.
+   ESTADO
 ===================================================== */
 
 .analysis-status {
@@ -370,34 +423,56 @@ const statusClass = computed(() =>
 
     flex-shrink: 0;
 
-    margin-top: 3px;
+    margin-top: 4px;
 
-    padding: 9px 0;
+    min-height: 34px;
 
-    color: #647487;
+    padding:
+        0
+        0
+        8px;
 
     border-bottom:
         1px solid
         #D9E0E8;
 
-    font-size: .76rem;
+    color: #647487;
+
+    font-size: .73rem;
 
     font-weight: 700;
 
-    letter-spacing: .01em;
+    letter-spacing: .035em;
 
     white-space: nowrap;
 
 }
 
 
+/* =====================================================
+   INDICADOR DEL ESTADO
+===================================================== */
+
+.status-indicator {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 16px;
+    height: 16px;
+
+}
+
+
 .status-dot {
 
+    display: block;
+
     width: 7px;
-
     height: 7px;
-
-    flex-shrink: 0;
 
     border-radius: 50%;
 
@@ -419,9 +494,18 @@ const statusClass = computed(() =>
 
     background: #315C97;
 
+    box-shadow:
+        0 0 0 3px
+        rgba(
+            49,
+            92,
+            151,
+            .10
+        );
+
     animation:
-        pulse
-        1.5s
+        statusPulse
+        1.7s
         ease-in-out
         infinite;
 
@@ -465,6 +549,17 @@ const statusClass = computed(() =>
 
 
 /* =====================================================
+   ETIQUETA DE ESTADO
+===================================================== */
+
+.status-label {
+
+    line-height: 1.2;
+
+}
+
+
+/* =====================================================
    CONTENIDO
 ===================================================== */
 
@@ -478,10 +573,26 @@ const statusClass = computed(() =>
 
 
 /* =====================================================
-   LOADING
+   REGLA EDITORIAL DEL CONTENIDO
+===================================================== */
 
-   Estado integrado a la sección.
-   Sin apariencia de card.
+.content-rule {
+
+    width: 28px;
+
+    height: 1px;
+
+    margin-bottom: 24px;
+
+    background: #B08A4C;
+
+    opacity: .75;
+
+}
+
+
+/* =====================================================
+   ESTADO DE CARGA
 ===================================================== */
 
 .analysis-loading {
@@ -490,11 +601,14 @@ const statusClass = computed(() =>
 
     align-items: flex-start;
 
-    gap: 20px;
+    gap: 21px;
 
     min-height: 150px;
 
-    padding: 30px 0;
+    padding:
+        34px
+        0
+        32px;
 
     border-bottom:
         1px solid
@@ -503,17 +617,22 @@ const statusClass = computed(() =>
 }
 
 
-.loading-indicator {
+/* =====================================================
+   SÍMBOLO DE CARGA
+===================================================== */
 
-    width: 44px;
+.loading-symbol {
 
-    height: 44px;
+    position: relative;
 
     display: flex;
 
     align-items: center;
 
     justify-content: center;
+
+    width: 46px;
+    height: 46px;
 
     flex-shrink: 0;
 
@@ -524,11 +643,31 @@ const statusClass = computed(() =>
 }
 
 
-.loading-spinner {
+/* Línea decorativa */
 
-    width: 21px;
+.loading-symbol::before {
 
-    height: 21px;
+    content: "";
+
+    position: absolute;
+
+    top: -1px;
+    left: -1px;
+
+    width: 15px;
+    height: 1px;
+
+    background: #B08A4C;
+
+}
+
+
+/* Anillo */
+
+.loading-ring {
+
+    width: 20px;
+    height: 20px;
 
     border:
         2px solid
@@ -548,15 +687,34 @@ const statusClass = computed(() =>
 }
 
 
+/* =====================================================
+   CONTENIDO DE CARGA
+===================================================== */
+
 .loading-content {
 
     display: flex;
 
     flex-direction: column;
 
-    gap: 7px;
+    gap: 6px;
 
-    padding-top: 2px;
+    padding-top: 1px;
+
+}
+
+
+.loading-eyebrow {
+
+    color: #315C97;
+
+    font-size: .61rem;
+
+    font-weight: 700;
+
+    letter-spacing: 1.35px;
+
+    line-height: 1.3;
 
 }
 
@@ -574,13 +732,15 @@ const statusClass = computed(() =>
 }
 
 
-.loading-content span {
+.loading-content p {
 
-    max-width: 620px;
+    max-width: 650px;
+
+    margin: 2px 0 0;
 
     color: #647487;
 
-    font-size: .91rem;
+    font-size: .9rem;
 
     line-height: 1.75;
 
@@ -589,8 +749,6 @@ const statusClass = computed(() =>
 
 /* =====================================================
    ESTADO VACÍO
-
-   Diseño editorial y sobrio.
 ===================================================== */
 
 .analysis-empty {
@@ -599,11 +757,14 @@ const statusClass = computed(() =>
 
     align-items: flex-start;
 
-    gap: 28px;
+    gap: 27px;
 
-    min-height: 220px;
+    min-height: 215px;
 
-    padding: 38px 0;
+    padding:
+        40px
+        0
+        34px;
 
     border-bottom:
         1px solid
@@ -612,30 +773,86 @@ const statusClass = computed(() =>
 }
 
 
+/* =====================================================
+   MARCA DEL ESTADO VACÍO
+===================================================== */
+
 .empty-mark {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 9px;
+
+    width: 28px;
 
     flex-shrink: 0;
 
     padding-top: 3px;
 
+}
+
+
+.empty-line {
+
+    width: 1px;
+
+    height: 32px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #315C97,
+            #B08A4C
+        );
+
+}
+
+
+.empty-code {
+
     color: #315C97;
+
+    font-size: .58rem;
+
+    font-weight: 700;
+
+    letter-spacing: 1.2px;
+
+    line-height: 1;
+
+}
+
+
+/* =====================================================
+   CONTENIDO VACÍO
+===================================================== */
+
+.empty-content {
+
+    max-width: 600px;
+
+}
+
+
+.empty-eyebrow {
+
+    display: block;
+
+    margin-bottom: 10px;
+
+    color: #7A8795;
 
     font-size: .62rem;
 
     font-weight: 700;
 
-    letter-spacing: 1.6px;
+    letter-spacing: 1.3px;
 
-    writing-mode: vertical-rl;
-
-    transform: rotate(180deg);
-
-}
-
-
-.empty-content {
-
-    max-width: 570px;
+    line-height: 1.3;
 
 }
 
@@ -651,7 +868,7 @@ const statusClass = computed(() =>
         "Times New Roman",
         serif;
 
-    font-size: 1.25rem;
+    font-size: 1.3rem;
 
     font-weight: 500;
 
@@ -666,7 +883,7 @@ const statusClass = computed(() =>
 
     color: #647487;
 
-    font-size: .94rem;
+    font-size: .93rem;
 
     line-height: 1.8;
 
@@ -689,7 +906,7 @@ const statusClass = computed(() =>
 }
 
 
-@keyframes pulse {
+@keyframes statusPulse {
 
     0%,
     100% {
@@ -701,11 +918,10 @@ const statusClass = computed(() =>
 
     }
 
-
     50% {
 
         transform:
-            scale(1.35);
+            scale(1.3);
 
         opacity: .55;
 
@@ -715,7 +931,60 @@ const statusClass = computed(() =>
 
 
 /* =====================================================
-   RESPONSIVE - TABLET
+   TABLET
+===================================================== */
+
+@media (max-width: 900px) {
+
+    .court-analysis {
+
+        padding:
+            38px
+            32px
+            42px;
+
+    }
+
+
+    .court-analysis::before {
+
+        width: 78px;
+
+    }
+
+
+    .analysis-header {
+
+        gap: 26px;
+
+    }
+
+
+    .analysis-heading h2 {
+
+        font-size: 1.9rem;
+
+    }
+
+
+    .analysis-heading p {
+
+        font-size: .93rem;
+
+    }
+
+
+    .analysis-content {
+
+        padding-top: 30px;
+
+    }
+
+}
+
+
+/* =====================================================
+   TABLET PEQUEÑA
 ===================================================== */
 
 @media (max-width: 768px) {
@@ -725,7 +994,7 @@ const statusClass = computed(() =>
         padding:
             34px
             30px
-            36px;
+            38px;
 
     }
 
@@ -735,6 +1004,8 @@ const statusClass = computed(() =>
         flex-direction: column;
 
         gap: 20px;
+
+        padding-bottom: 26px;
 
     }
 
@@ -755,9 +1026,9 @@ const statusClass = computed(() =>
     }
 
 
-    .analysis-content {
+    .analysis-loading {
 
-        padding-top: 28px;
+        min-height: 140px;
 
     }
 
@@ -765,7 +1036,7 @@ const statusClass = computed(() =>
 
 
 /* =====================================================
-   RESPONSIVE - MOBILE
+   MOBILE
 ===================================================== */
 
 @media (max-width: 576px) {
@@ -773,9 +1044,16 @@ const statusClass = computed(() =>
     .court-analysis {
 
         padding:
-            28px
+            29px
             20px
-            30px;
+            32px;
+
+    }
+
+
+    .court-analysis::before {
+
+        width: 58px;
 
     }
 
@@ -791,7 +1069,9 @@ const statusClass = computed(() =>
 
         margin-bottom: 13px;
 
-        font-size: .64rem;
+        font-size: .63rem;
+
+        letter-spacing: 1.35px;
 
     }
 
@@ -799,6 +1079,8 @@ const statusClass = computed(() =>
     .analysis-heading h2 {
 
         font-size: 1.55rem;
+
+        letter-spacing: -.15px;
 
     }
 
@@ -808,24 +1090,39 @@ const statusClass = computed(() =>
         width: 38px;
 
         margin:
-            16px
-            0;
+            15px
+            0
+            16px;
 
     }
 
 
     .analysis-heading p {
 
-        font-size: .9rem;
+        font-size: .89rem;
 
         line-height: 1.75;
 
     }
 
 
+    .analysis-status {
+
+        font-size: .69rem;
+
+    }
+
+
     .analysis-content {
 
-        padding-top: 24px;
+        padding-top: 25px;
+
+    }
+
+
+    .content-rule {
+
+        margin-bottom: 20px;
 
     }
 
@@ -836,39 +1133,40 @@ const statusClass = computed(() =>
 
         min-height: 130px;
 
-        padding: 24px 0;
+        padding:
+            27px
+            0
+            25px;
 
     }
 
 
-    .loading-indicator {
+    .loading-symbol {
 
         width: 40px;
-
         height: 40px;
 
     }
 
 
-    .loading-spinner {
+    .loading-ring {
 
-        width: 19px;
-
-        height: 19px;
+        width: 18px;
+        height: 18px;
 
     }
 
 
     .loading-content strong {
 
-        font-size: .92rem;
+        font-size: .9rem;
 
     }
 
 
-    .loading-content span {
+    .loading-content p {
 
-        font-size: .88rem;
+        font-size: .86rem;
 
         line-height: 1.7;
 
@@ -877,25 +1175,42 @@ const statusClass = computed(() =>
 
     .analysis-empty {
 
-        gap: 20px;
+        gap: 19px;
 
-        min-height: 190px;
+        min-height: 185px;
 
-        padding: 30px 0;
+        padding:
+            31px
+            0
+            28px;
+
+    }
+
+
+    .empty-mark {
+
+        width: 23px;
+
+    }
+
+
+    .empty-line {
+
+        height: 27px;
 
     }
 
 
     .empty-content h3 {
 
-        font-size: 1.15rem;
+        font-size: 1.16rem;
 
     }
 
 
     .empty-content p {
 
-        font-size: .89rem;
+        font-size: .87rem;
 
         line-height: 1.75;
 

@@ -18,46 +18,31 @@
             >
 
                 <button
-
                     v-for="tab in tabs"
-
                     :key="tab.id"
-
                     type="button"
-
                     class="tab-button"
-
                     :class="{
-
-                        active:
-                        activeTab === tab.id
-
+                        active: activeTab === tab.id
                     }"
-
-                    :aria-selected="
-                        activeTab === tab.id
-                    "
-
+                    :aria-selected="activeTab === tab.id"
+                    :aria-controls="`panel-${tab.id}`"
+                    :tabindex="activeTab === tab.id ? 0 : -1"
                     role="tab"
-
                     @click="selectTab(tab.id)"
-
+                    @keydown.right.prevent="focusNextTab(tab.id)"
+                    @keydown.left.prevent="focusPreviousTab(tab.id)"
                 >
 
                     <span
                         class="tab-icon"
                         aria-hidden="true"
                     >
-
                         {{ tab.icon }}
-
                     </span>
 
-
                     <span class="tab-label">
-
                         {{ tab.label }}
-
                     </span>
 
                 </button>
@@ -74,6 +59,8 @@
         <div
             class="tabs-content"
             role="tabpanel"
+            :id="`panel-${activeTab}`"
+            :aria-labelledby="`tab-${activeTab}`"
         >
 
             <Transition
@@ -88,7 +75,7 @@
 
                     <slot
                         :name="activeTab"
-                    />
+                    ></slot>
 
                 </div>
 
@@ -104,11 +91,8 @@
 <script setup>
 
 import {
-
     ref,
-
     watch
-
 } from "vue"
 
 
@@ -225,33 +209,134 @@ const tabs = [
 
 const activeTab = ref(
 
-    props.defaultTab
+    isValidTab(props.defaultTab)
+
+        ? props.defaultTab
+
+        : "overview"
 
 )
+
+
+/* =========================================
+   VALIDAR PESTAÑA
+========================================= */
+
+function isValidTab(tabId) {
+
+    return tabs.some(
+
+        tab => tab.id === tabId
+
+    )
+
+}
 
 
 /* =========================================
    SELECCIONAR PESTAÑA
 ========================================= */
 
-function selectTab(
+function selectTab(tabId) {
 
-    tabId
-
-){
-
-    if(
-
-        activeTab.value === tabId
-
-    ){
+    if (!isValidTab(tabId)) {
 
         return
 
     }
 
+    if (activeTab.value === tabId) {
+
+        return
+
+    }
 
     activeTab.value = tabId
+
+}
+
+
+/* =========================================
+   NAVEGACIÓN CON TECLADO
+========================================= */
+
+function focusTab(tabId) {
+
+    const index = tabs.findIndex(
+
+        tab => tab.id === tabId
+
+    )
+
+    if (index === -1) {
+
+        return
+
+    }
+
+    const nextTab = tabs[index]
+
+    activeTab.value = nextTab.id
+
+    emit(
+
+        "change",
+
+        nextTab.id
+
+    )
+
+}
+
+
+function focusNextTab(tabId) {
+
+    const index = tabs.findIndex(
+
+        tab => tab.id === tabId
+
+    )
+
+    if (index === -1) {
+
+        return
+
+    }
+
+    const nextIndex =
+
+        (index + 1) % tabs.length
+
+    const nextTab = tabs[nextIndex]
+
+    focusTab(nextTab.id)
+
+}
+
+
+function focusPreviousTab(tabId) {
+
+    const index = tabs.findIndex(
+
+        tab => tab.id === tabId
+
+    )
+
+    if (index === -1) {
+
+        return
+
+    }
+
+    const previousIndex =
+
+        (index - 1 + tabs.length) %
+
+        tabs.length
+
+    const previousTab = tabs[previousIndex]
+
+    focusTab(previousTab.id)
 
 }
 
@@ -264,11 +349,7 @@ watch(
 
     activeTab,
 
-    (
-
-        value
-
-    ) => {
+    value => {
 
         emit(
 
@@ -291,18 +372,17 @@ watch(
 
     () => props.defaultTab,
 
-    (
+    value => {
 
-        value
-
-    ) => {
-
-        if(
+        if (
 
             value &&
+
+            isValidTab(value) &&
+
             value !== activeTab.value
 
-        ){
+        ) {
 
             activeTab.value = value
 
@@ -317,48 +397,53 @@ watch(
 
 <style scoped>
 
-/* =========================================
+/* =====================================================
    NOVACOURT TABS
 
    IDENTIDAD:
-   JURÍDICA · INSTITUCIONAL · SOBRIA
+   JURÍDICA · INSTITUCIONAL · SOBRIA · PREMIUM
 
-   PRINCIPAL:
-   AZUL PROFUNDO
+   PALETA:
+   AZUL PROFUNDO  #17375E
+   AZUL            #315C97
+   DORADO          #B08A4C
+   TEXTO           #24364A
+   GRIS            #687789
 
-   ACENTO:
-   DORADO DISCRETO
-========================================= */
+   OBJETIVO:
+   Las pestañas deben sentirse como navegación
+   institucional de una plataforma jurídica profesional,
+   no como botones genéricos.
+===================================================== */
 
 
-/* =========================================
+/* =====================================================
    CONTENEDOR PRINCIPAL
-========================================= */
+===================================================== */
 
-.novacourt-tabs{
+.novacourt-tabs {
 
-    width:100%;
+    width: 100%;
 
-    margin-top:34px;
+    margin-top: 34px;
 
 }
 
 
-/* =========================================
+/* =====================================================
    CABECERA
-========================================= */
+===================================================== */
 
-.tabs-header{
+.tabs-header {
 
-    position:relative;
+    position: relative;
 
-    width:100%;
+    width: 100%;
 
     background:
-
         linear-gradient(
             180deg,
-            #FCFDFE 0%,
+            #FFFFFF 0%,
             #F8FAFC 100%
         );
 
@@ -373,90 +458,89 @@ watch(
 }
 
 
-/* Línea institucional superior */
+/* =====================================================
+   LÍNEA INSTITUCIONAL SUPERIOR
+===================================================== */
 
-.tabs-header::before{
+.tabs-header::before {
 
-    content:"";
+    content: "";
 
-    position:absolute;
+    position: absolute;
 
-    top:-1px;
+    top: -1px;
 
-    left:0;
+    left: 0;
 
-    width:108px;
+    width: 118px;
 
-    height:2px;
+    height: 2px;
 
     background:
-
         linear-gradient(
             90deg,
             #17375E 0%,
-            #315C97 72%,
-            transparent 100%
+            #315C97 70%,
+            rgba(49,92,151,0) 100%
         );
 
-    z-index:2;
+    z-index: 2;
 
 }
 
 
-/* =========================================
+/* =====================================================
    NAVEGACIÓN
-========================================= */
+===================================================== */
 
-.tabs-nav{
+.tabs-nav {
 
-    display:flex;
+    display: flex;
 
-    align-items:stretch;
+    align-items: stretch;
 
-    width:100%;
+    width: 100%;
 
-    overflow-x:auto;
+    overflow-x: auto;
 
-    scrollbar-width:none;
+    scrollbar-width: none;
 
-    -webkit-overflow-scrolling:touch;
+    -webkit-overflow-scrolling: touch;
+
+}
+
+.tabs-nav::-webkit-scrollbar {
+
+    display: none;
 
 }
 
 
-.tabs-nav::-webkit-scrollbar{
-
-    display:none;
-
-}
-
-
-/* =========================================
+/* =====================================================
    BOTÓN
-========================================= */
+===================================================== */
 
-.tab-button{
+.tab-button {
 
-    position:relative;
+    position: relative;
 
-    display:inline-flex;
+    display: inline-flex;
 
-    align-items:center;
+    align-items: center;
 
-    justify-content:center;
+    justify-content: center;
 
-    gap:9px;
+    gap: 9px;
 
-    flex-shrink:0;
+    flex: 0 0 auto;
 
-    min-height:62px;
+    min-height: 62px;
 
-    padding:0 21px;
+    padding: 0 22px;
 
-    border:none;
+    border: none;
 
     border-right:
-
         1px solid
         rgba(
             201,
@@ -465,37 +549,33 @@ watch(
             .62
         );
 
-    cursor:pointer;
+    cursor: pointer;
 
-    white-space:nowrap;
+    white-space: nowrap;
 
-    background:transparent;
+    background: transparent;
 
-    color:#697687;
+    color: #748092;
 
-    font-family:inherit;
+    font-family: inherit;
 
-    font-size:.72rem;
+    font-size: .71rem;
 
-    font-weight:700;
+    font-weight: 700;
 
-    letter-spacing:.065em;
+    letter-spacing: .065em;
 
-    text-transform:uppercase;
+    text-transform: uppercase;
 
     transition:
-
         color .22s ease,
-
-        background .22s ease;
+        background-color .22s ease;
 
 }
 
-
-.tab-button:first-child{
+.tab-button:first-child {
 
     border-left:
-
         1px solid
         rgba(
             201,
@@ -507,49 +587,47 @@ watch(
 }
 
 
-/* =========================================
-   INDICADOR ACTIVO
-========================================= */
+/* =====================================================
+   INDICADOR INACTIVO
+===================================================== */
 
-.tab-button::after{
+.tab-button::after {
 
-    content:"";
+    content: "";
 
-    position:absolute;
+    position: absolute;
 
-    left:19px;
+    left: 20px;
 
-    right:19px;
+    right: 20px;
 
-    bottom:-1px;
+    bottom: -1px;
 
-    height:2px;
+    height: 2px;
 
-    background:transparent;
+    background: transparent;
 
-    transform:scaleX(.45);
+    transform:
+        scaleX(.35);
 
-    transform-origin:center;
+    transform-origin: center;
 
     transition:
-
-        background .22s ease,
-
+        background-color .22s ease,
         transform .22s ease;
 
 }
 
 
-/* =========================================
+/* =====================================================
    HOVER
-========================================= */
+===================================================== */
 
-.tab-button:hover{
+.tab-button:hover {
 
-    color:#17375E;
+    color: #17375E;
 
     background:
-
         rgba(
             49,
             92,
@@ -559,111 +637,115 @@ watch(
 
 }
 
+.tab-button:hover .tab-icon {
 
-.tab-button:hover .tab-icon{
+    color: #315C97;
 
-    color:#315C97;
-
-    opacity:1;
+    opacity: 1;
 
 }
 
 
-/* =========================================
+/* =====================================================
    ESTADO ACTIVO
-========================================= */
+===================================================== */
 
-.tab-button.active{
+.tab-button.active {
 
-    color:#17375E;
+    color: #17375E;
 
-    background:#FFFFFF;
+    background: #FFFFFF;
+
+}
+
+.tab-button.active::after {
+
+    background: #B08A4C;
+
+    transform:
+        scaleX(1);
+
+}
+
+.tab-button.active .tab-icon {
+
+    color: #315C97;
+
+    opacity: 1;
 
 }
 
 
-.tab-button.active::after{
-
-    background:#B08A4C;
-
-    transform:scaleX(1);
-
-}
-
-
-/* =========================================
+/* =====================================================
    ICONO
-========================================= */
+===================================================== */
 
-.tab-icon{
+.tab-icon {
 
-    display:flex;
+    display: inline-flex;
 
-    align-items:center;
+    align-items: center;
 
-    justify-content:center;
+    justify-content: center;
 
-    width:18px;
+    width: 18px;
 
-    height:18px;
+    height: 18px;
 
-    flex-shrink:0;
+    flex-shrink: 0;
 
-    color:#7A8795;
+    color: #8995A3;
 
     font-family:
-
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size:1rem;
+    font-size: .98rem;
 
-    font-weight:600;
+    font-weight: 600;
 
-    line-height:1;
+    line-height: 1;
 
-    opacity:.78;
+    opacity: .78;
 
     transition:
-
         color .22s ease,
-
         opacity .22s ease;
 
 }
 
 
-.tab-button.active .tab-icon{
-
-    color:#315C97;
-
-    opacity:1;
-
-}
-
-
-/* =========================================
+/* =====================================================
    TEXTO
-========================================= */
+===================================================== */
 
-.tab-label{
+.tab-label {
 
-    line-height:1;
+    display: inline-flex;
+
+    align-items: center;
+
+    line-height: 1;
 
 }
 
 
-/* =========================================
-   FOCUS
-========================================= */
+/* =====================================================
+   FOCUS ACCESIBLE
+===================================================== */
 
-.tab-button:focus-visible{
+.tab-button:focus {
 
-    z-index:3;
+    outline: none;
+
+}
+
+.tab-button:focus-visible {
+
+    z-index: 4;
 
     outline:
-
         2px solid
         rgba(
             49,
@@ -672,178 +754,238 @@ watch(
             .45
         );
 
-    outline-offset:-2px;
+    outline-offset: -2px;
 
 }
 
 
-/* =========================================
+/* =====================================================
    CONTENIDO
-========================================= */
+===================================================== */
 
-.tabs-content{
+.tabs-content {
 
-    width:100%;
+    width: 100%;
 
-    min-height:320px;
+    min-height: 320px;
 
-    padding-top:30px;
+    padding-top: 30px;
+
+}
+
+.tab-panel {
+
+    width: 100%;
 
 }
 
 
-.tab-panel{
-
-    width:100%;
-
-}
-
-
-/* =========================================
-   TRANSICIÓN DE CONTENIDO
-========================================= */
+/* =====================================================
+   TRANSICIÓN
+===================================================== */
 
 .tab-content-enter-active,
-
-.tab-content-leave-active{
+.tab-content-leave-active {
 
     transition:
-
         opacity .22s ease,
-
         transform .22s ease;
 
 }
 
+.tab-content-enter-from {
 
-.tab-content-enter-from{
-
-    opacity:0;
-
-    transform:
-
-        translateY(
-            8px
-        );
-
-}
-
-
-.tab-content-leave-to{
-
-    opacity:0;
+    opacity: 0;
 
     transform:
+        translateY(8px);
 
-        translateY(
-            -4px
-        );
+}
+
+.tab-content-leave-to {
+
+    opacity: 0;
+
+    transform:
+        translateY(-4px);
 
 }
 
 
-/* =========================================
-   RESPONSIVE - TABLET
-========================================= */
+/* =====================================================
+   RESPONSIVE — TABLET
+===================================================== */
 
-@media(max-width:900px){
+@media (max-width: 900px) {
 
-    .novacourt-tabs{
+    .novacourt-tabs {
 
-        margin-top:30px;
-
-    }
-
-
-    .tabs-header::before{
-
-        width:88px;
+        margin-top: 30px;
 
     }
 
 
-    .tab-button{
+    .tabs-header::before {
 
-        min-height:59px;
-
-        padding:0 18px;
-
-        font-size:.7rem;
+        width: 92px;
 
     }
 
 
-    .tabs-content{
+    .tab-button {
 
-        min-height:280px;
+        min-height: 59px;
 
-        padding-top:26px;
+        padding:
+            0 18px;
+
+        font-size: .69rem;
+
+    }
+
+
+    .tab-button::after {
+
+        left: 17px;
+
+        right: 17px;
+
+    }
+
+
+    .tabs-content {
+
+        min-height: 280px;
+
+        padding-top: 26px;
 
     }
 
 }
 
 
-/* =========================================
-   RESPONSIVE - MOBILE
-========================================= */
+/* =====================================================
+   RESPONSIVE — MOBILE
+===================================================== */
 
-@media(max-width:576px){
+@media (max-width: 576px) {
 
-    .novacourt-tabs{
+    .novacourt-tabs {
 
-        margin-top:24px;
-
-    }
-
-
-    .tabs-header::before{
-
-        width:62px;
+        margin-top: 24px;
 
     }
 
 
-    .tab-button{
+    .tabs-header::before {
 
-        min-height:55px;
-
-        gap:7px;
-
-        padding:0 15px;
-
-        font-size:.66rem;
-
-        letter-spacing:.045em;
+        width: 66px;
 
     }
 
 
-    .tab-button::after{
+    .tab-button {
 
-        left:14px;
+        min-height: 55px;
 
-        right:14px;
+        gap: 7px;
 
-    }
+        padding:
+            0 15px;
 
+        font-size: .64rem;
 
-    .tab-icon{
-
-        width:16px;
-
-        height:16px;
-
-        font-size:.88rem;
+        letter-spacing: .045em;
 
     }
 
 
-    .tabs-content{
+    .tab-button::after {
 
-        min-height:250px;
+        left: 14px;
 
-        padding-top:22px;
+        right: 14px;
+
+    }
+
+
+    .tab-icon {
+
+        width: 16px;
+
+        height: 16px;
+
+        font-size: .88rem;
+
+    }
+
+
+    .tabs-content {
+
+        min-height: 250px;
+
+        padding-top: 22px;
+
+    }
+
+}
+
+
+/* =====================================================
+   RESPONSIVE — TELÉFONOS PEQUEÑOS
+===================================================== */
+
+@media (max-width: 400px) {
+
+    .tab-button {
+
+        min-height: 52px;
+
+        gap: 6px;
+
+        padding:
+            0 13px;
+
+        font-size: .61rem;
+
+    }
+
+
+    .tab-button::after {
+
+        left: 12px;
+
+        right: 12px;
+
+    }
+
+
+    .tab-icon {
+
+        width: 15px;
+
+        height: 15px;
+
+        font-size: .82rem;
+
+    }
+
+}
+
+
+/* =====================================================
+   REDUCCIÓN DE MOVIMIENTO
+===================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .tab-button,
+    .tab-button::after,
+    .tab-icon,
+    .tab-content-enter-active,
+    .tab-content-leave-active {
+
+        transition: none;
 
     }
 

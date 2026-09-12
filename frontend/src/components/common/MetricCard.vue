@@ -1,15 +1,37 @@
 <template>
 
-    <div class="metric-card">
+    <article
+        class="metric-card"
+        :style="cardStyle"
+    >
+
+        <!-- =====================================================
+             INDICADOR SUPERIOR
+        ====================================================== -->
+
+        <div class="metric-accent"></div>
+
+
+        <!-- =====================================================
+             ICONO
+        ====================================================== -->
 
         <div
             class="metric-icon"
             :style="iconStyle"
+            aria-hidden="true"
         >
 
-            {{ icon }}
+            <span>
+                {{ icon }}
+            </span>
 
         </div>
+
+
+        <!-- =====================================================
+             INFORMACIÓN
+        ====================================================== -->
 
         <div class="metric-info">
 
@@ -19,6 +41,7 @@
 
             </span>
 
+
             <strong class="metric-value">
 
                 {{ animatedValue }}
@@ -27,7 +50,20 @@
 
         </div>
 
-    </div>
+
+        <!-- =====================================================
+             DETALLE VISUAL
+        ====================================================== -->
+
+        <div class="metric-indicator">
+
+            <span></span>
+            <span></span>
+            <span></span>
+
+        </div>
+
+    </article>
 
 </template>
 
@@ -38,9 +74,14 @@ import {
     computed,
     ref,
     onMounted,
+    onBeforeUnmount,
     watch
 } from "vue"
 
+
+/* ============================================================
+   PROPS
+============================================================ */
 
 const props = defineProps({
 
@@ -82,123 +123,252 @@ const props = defineProps({
 })
 
 
+/* ============================================================
+   ESTILOS DINÁMICOS
+============================================================ */
+
 const iconStyle = computed(() => ({
 
-    background: `${props.color}18`,
+    background: `${props.color}12`,
 
-    color: props.color
+    color: props.color,
+
+    borderColor: `${props.color}24`
 
 }))
 
 
+const cardStyle = computed(() => ({
+
+    "--metric-accent": props.color,
+
+    "--metric-color": props.color,
+
+    "--metric-soft": `${props.color}10`,
+
+    "--metric-border": `${props.color}28`
+
+}))
+
+
+/* ============================================================
+   VALOR ANIMADO
+============================================================ */
+
 const animatedValue = ref(props.value)
 
+let animationFrame = null
 
-function animateNumber(){
 
-    if(
+function cancelAnimation() {
 
-        typeof props.value !== "number"
+    if (animationFrame !== null) {
 
-    ){
+        cancelAnimationFrame(
+            animationFrame
+        )
 
-        animatedValue.value = props.value
+        animationFrame = null
+
+    }
+
+}
+
+
+/* ============================================================
+   ANIMACIÓN NUMÉRICA
+============================================================ */
+
+function animateNumber() {
+
+    cancelAnimation()
+
+
+    if (
+        typeof props.value !== "number" ||
+        !Number.isFinite(props.value)
+    ) {
+
+        animatedValue.value =
+            props.value
 
         return
 
     }
 
 
-    let current = 0
-
-    const end = props.value
-
-
-    const step = Math.max(
-
-        1,
-
-        Math.ceil(end / 30)
-
-    )
+    const end =
+        props.value
 
 
-    const interval = setInterval(() => {
+    if (end === 0) {
 
-        current += step
+        animatedValue.value = 0
+
+        return
+
+    }
 
 
-        if(current >= end){
+    const duration = 650
 
-            animatedValue.value = end
+    const startTime =
+        performance.now()
 
-            clearInterval(interval)
 
-        }else{
+    function update(currentTime) {
 
-            animatedValue.value = current
+        const elapsed =
+            currentTime - startTime
+
+
+        const progress =
+            Math.min(
+                elapsed / duration,
+                1
+            )
+
+
+        /*
+         * Curva de desaceleración
+         * para una animación más natural.
+         */
+
+        const eased =
+            1 -
+            Math.pow(
+                1 - progress,
+                3
+            )
+
+
+        const current =
+            end * eased
+
+
+        animatedValue.value =
+            Math.round(current)
+
+
+        if (progress < 1) {
+
+            animationFrame =
+                requestAnimationFrame(
+                    update
+                )
+
+        } else {
+
+            animatedValue.value =
+                end
+
+            animationFrame = null
 
         }
 
-    }, 20)
+    }
+
+
+    animationFrame =
+        requestAnimationFrame(
+            update
+        )
 
 }
 
 
-onMounted(
+/* ============================================================
+   CICLO DE VIDA
+============================================================ */
 
-    animateNumber
+onMounted(() => {
 
-)
+    animateNumber()
+
+})
 
 
 watch(
-
     () => props.value,
+    () => {
 
-    animateNumber
+        animateNumber()
 
+    }
 )
+
+
+onBeforeUnmount(() => {
+
+    cancelAnimation()
+
+})
 
 </script>
 
 
 <style scoped>
 
+/* ============================================================
+   VARIABLES
+============================================================ */
+
 .metric-card {
 
-    position: relative;
+    --metric-accent: #2563EB;
+    --metric-color: #2563EB;
+    --metric-soft: #EFF6FF;
+    --metric-border: #DBEAFE;
 
-    overflow: hidden;
+    position: relative;
 
     display: flex;
 
     align-items: center;
 
-    gap: 18px;
+    gap: 17px;
 
-    padding: 22px;
+    min-width: 0;
 
-    border-radius: 18px;
+    padding: 21px 22px;
+
+    overflow: hidden;
 
     background: #FFFFFF;
 
-    border: 1px solid #E2E8F0;
+    border:
+        1px solid #E2E8F0;
+
+    border-radius: 18px;
 
     box-shadow:
-        0 6px 20px rgba(15, 39, 71, 0.05);
+        0 6px 18px
+        rgba(
+            15,
+            39,
+            71,
+            .045
+        );
 
     transition:
-        transform .25s ease,
-        box-shadow .25s ease,
-        border-color .25s ease;
+        transform .28s ease,
+        box-shadow .28s ease,
+        border-color .28s ease;
+
+    animation:
+        metricAppear
+        .45s
+        ease
+        both;
 
 }
 
 
-.metric-card::before {
+/* ============================================================
+   ACENTO LATERAL
+============================================================ */
 
-    content: "";
+.metric-accent {
 
     position: absolute;
 
@@ -206,32 +376,84 @@ watch(
 
     left: 0;
 
-    width: 4px;
+    width: 3px;
 
     height: 100%;
 
-    background: #2563EB;
+    background:
+        var(--metric-accent);
+
+    border-radius:
+        3px 0 0 3px;
+
+    opacity: .9;
 
 }
 
+
+/* ============================================================
+   EFECTO SUPERIOR SUTIL
+============================================================ */
+
+.metric-card::after {
+
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+
+    right: 0;
+
+    width: 110px;
+
+    height: 110px;
+
+    background:
+        radial-gradient(
+            circle,
+            var(--metric-soft) 0%,
+            transparent 70%
+        );
+
+    pointer-events: none;
+
+}
+
+
+/* ============================================================
+   HOVER
+============================================================ */
 
 .metric-card:hover {
 
-    transform: translateY(-3px);
+    transform:
+        translateY(-3px);
 
-    border-color: #BFDBFE;
+    border-color:
+        var(--metric-border);
 
     box-shadow:
-        0 12px 28px rgba(15, 39, 71, 0.08);
+        0 12px 28px
+        rgba(
+            15,
+            39,
+            71,
+            .075
+        );
 
 }
 
 
+/* ============================================================
+   ICONO
+============================================================ */
+
 .metric-icon {
 
-    width: 58px;
+    position: relative;
 
-    height: 58px;
+    z-index: 1;
 
     display: flex;
 
@@ -239,27 +461,74 @@ watch(
 
     justify-content: center;
 
-    border-radius: 15px;
+    width: 56px;
 
-    font-size: 1.65rem;
-
-    border: 1px solid #DBEAFE;
+    height: 56px;
 
     flex-shrink: 0;
 
-    transition: transform .25s ease;
+    border:
+        1px solid
+        var(--metric-border);
+
+    border-radius: 15px;
+
+    font-size: 1.5rem;
+
+    line-height: 1;
+
+    box-shadow:
+        0 4px 10px
+        rgba(
+            15,
+            39,
+            71,
+            .035
+        );
+
+    transition:
+        transform .28s ease,
+        box-shadow .28s ease;
 
 }
 
 
-.metric-card:hover .metric-icon {
+.metric-icon span {
 
-    transform: scale(1.05);
+    display: block;
+
+    line-height: 1;
 
 }
 
+
+.metric-card:hover
+.metric-icon {
+
+    transform:
+        scale(1.06);
+
+    box-shadow:
+        0 7px 16px
+        rgba(
+            37,
+            99,
+            235,
+            .12
+        );
+
+}
+
+
+/* ============================================================
+   INFORMACIÓN
+============================================================ */
 
 .metric-info {
+
+    position: relative;
+
+    z-index: 1;
 
     display: flex;
 
@@ -267,7 +536,7 @@ watch(
 
     justify-content: center;
 
-    gap: 6px;
+    gap: 5px;
 
     min-width: 0;
 
@@ -276,43 +545,151 @@ watch(
 }
 
 
+/* ============================================================
+   TÍTULO
+============================================================ */
+
 .metric-title {
+
+    display: block;
+
+    overflow: hidden;
 
     color: #64748B;
 
-    font-size: .78rem;
+    font-size: .69rem;
 
-    font-weight: 600;
+    font-weight: 750;
+
+    line-height: 1.35;
 
     text-transform: uppercase;
 
-    letter-spacing: .7px;
+    letter-spacing: .085em;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
 
 }
 
+
+/* ============================================================
+   VALOR
+============================================================ */
 
 .metric-value {
 
+    display: block;
+
+    overflow-wrap: anywhere;
+
     color: #0F2747;
 
-    font-size: 1.25rem;
+    font-size: 1.24rem;
 
-    font-weight: 700;
+    font-weight: 750;
 
-    line-height: 1.4;
+    line-height: 1.3;
 
-    word-break: break-word;
+    letter-spacing: -.018em;
+
+    transition:
+        color .25s ease;
+
+}
+
+
+.metric-card:hover
+.metric-value {
+
+    color:
+        var(--metric-color);
 
 }
 
 
-.metric-card {
+/* ============================================================
+   INDICADOR VISUAL
+============================================================ */
 
-    animation:
-        metricAppear .45s ease;
+.metric-indicator {
+
+    position: relative;
+
+    z-index: 1;
+
+    display: flex;
+
+    align-items: flex-end;
+
+    gap: 3px;
+
+    align-self: flex-end;
+
+    height: 20px;
+
+    padding-bottom: 1px;
+
+    opacity: .55;
+
+    transition:
+        opacity .25s ease,
+        transform .25s ease;
 
 }
 
+
+.metric-indicator span {
+
+    display: block;
+
+    width: 3px;
+
+    border-radius:
+        999px;
+
+    background:
+        var(--metric-color);
+
+}
+
+
+.metric-indicator span:nth-child(1) {
+
+    height: 7px;
+
+}
+
+
+.metric-indicator span:nth-child(2) {
+
+    height: 12px;
+
+}
+
+
+.metric-indicator span:nth-child(3) {
+
+    height: 17px;
+
+}
+
+
+.metric-card:hover
+.metric-indicator {
+
+    opacity: .85;
+
+    transform:
+        translateX(-2px);
+
+}
+
+
+/* ============================================================
+   ANIMACIÓN
+============================================================ */
 
 @keyframes metricAppear {
 
@@ -320,7 +697,8 @@ watch(
 
         opacity: 0;
 
-        transform: translateY(18px);
+        transform:
+            translateY(14px);
 
     }
 
@@ -328,20 +706,49 @@ watch(
 
         opacity: 1;
 
-        transform: translateY(0);
+        transform:
+            translateY(0);
 
     }
 
 }
 
 
+/* ============================================================
+   ACCESIBILIDAD
+============================================================ */
+
+@media (
+    prefers-reduced-motion: reduce
+) {
+
+    .metric-card,
+    .metric-icon,
+    .metric-value,
+    .metric-indicator {
+
+        animation: none;
+
+        transition: none;
+
+    }
+
+}
+
+
+/* ============================================================
+   RESPONSIVE — TABLET
+============================================================ */
+
 @media (max-width: 768px) {
 
     .metric-card {
 
+        gap: 14px;
+
         padding: 18px;
 
-        gap: 14px;
+        border-radius: 17px;
 
     }
 
@@ -352,14 +759,115 @@ watch(
 
         height: 52px;
 
-        font-size: 1.45rem;
+        border-radius: 14px;
+
+        font-size: 1.38rem;
+
+    }
+
+
+    .metric-title {
+
+        font-size: .66rem;
 
     }
 
 
     .metric-value {
 
-        font-size: 1.1rem;
+        font-size: 1.12rem;
+
+    }
+
+
+    .metric-indicator {
+
+        display: none;
+
+    }
+
+}
+
+
+/* ============================================================
+   RESPONSIVE — MOBILE
+============================================================ */
+
+@media (max-width: 576px) {
+
+    .metric-card {
+
+        gap: 13px;
+
+        padding: 17px;
+
+        border-radius: 16px;
+
+    }
+
+
+    .metric-icon {
+
+        width: 48px;
+
+        height: 48px;
+
+        border-radius: 13px;
+
+        font-size: 1.25rem;
+
+    }
+
+
+    .metric-title {
+
+        font-size: .63rem;
+
+        letter-spacing: .065em;
+
+    }
+
+
+    .metric-value {
+
+        font-size: 1.04rem;
+
+        line-height: 1.35;
+
+    }
+
+}
+
+
+/* ============================================================
+   MOBILE MUY PEQUEÑO
+============================================================ */
+
+@media (max-width: 380px) {
+
+    .metric-card {
+
+        gap: 11px;
+
+        padding: 15px;
+
+    }
+
+
+    .metric-icon {
+
+        width: 44px;
+
+        height: 44px;
+
+        font-size: 1.15rem;
+
+    }
+
+
+    .metric-value {
+
+        font-size: .98rem;
 
     }
 

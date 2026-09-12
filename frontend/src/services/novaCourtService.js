@@ -1,5 +1,6 @@
 /* =========================================================
    NOVACOURT SERVICE
+
    Comunicación entre el frontend y el backend de NovaCourt.
 ========================================================= */
 
@@ -9,22 +10,15 @@
 ========================================================= */
 
 const API_BASE_URL = (
-
     import.meta.env.VITE_API_URL ||
-
-    "http://localhost:8000"
-
+    "http://localhost:5001"
 ).replace(
-
-    /\/$/,
-
+    /\/+$/,
     ""
-
 )
 
 
 const NOVACOURT_ENDPOINT =
-
     `${API_BASE_URL}/api/novacourt`
 
 
@@ -35,22 +29,21 @@ const NOVACOURT_ENDPOINT =
 class NovaCourtServiceError extends Error {
 
     constructor(
-
         message,
-
         status = null,
-
         data = null
-
     ) {
 
         super(message)
 
-        this.name = "NovaCourtServiceError"
+        this.name =
+            "NovaCourtServiceError"
 
-        this.status = status
+        this.status =
+            status
 
-        this.data = data
+        this.data =
+            data
 
     }
 
@@ -63,62 +56,39 @@ class NovaCourtServiceError extends Error {
 ========================================================= */
 
 function getErrorMessage(
-
     data,
-
     fallback = "No fue posible procesar la solicitud."
-
 ) {
 
-    if (
-
-        !data
-
-    ) {
+    if(!data){
 
         return fallback
 
     }
 
 
-    if (
-
-        typeof data === "string"
-
-    ) {
+    if(typeof data === "string"){
 
         return data
 
     }
 
 
-    if (
-
-        typeof data.detail === "string"
-
-    ) {
+    if(typeof data.detail === "string"){
 
         return data.detail
 
     }
 
 
-    if (
-
-        typeof data.message === "string"
-
-    ) {
+    if(typeof data.message === "string"){
 
         return data.message
 
     }
 
 
-    if (
-
-        typeof data.error === "string"
-
-    ) {
+    if(typeof data.error === "string"){
 
         return data.error
 
@@ -135,69 +105,51 @@ function getErrorMessage(
    PROCESAR RESPUESTA HTTP
 ========================================================= */
 
-async function parseResponse(
-
-    response
-
-) {
+async function parseResponse(response){
 
     let data = null
 
 
     const contentType =
-
         response.headers.get(
-
             "content-type"
-
         ) || ""
 
 
-    try {
+    try{
 
-        if (
-
+        if(
             contentType.includes(
-
                 "application/json"
-
             )
+        ){
 
-        ) {
-
-            data = await response.json()
+            data =
+                await response.json()
 
         }
+        else{
 
-        else {
-
-            data = await response.text()
+            data =
+                await response.text()
 
         }
 
     }
-
-    catch {
+    catch{
 
         data = null
 
     }
 
 
-    if (
-
-        !response.ok
-
-    ) {
+    if(!response.ok){
 
         throw new NovaCourtServiceError(
 
             getErrorMessage(
-
                 data,
-
                 `Error del servidor (${response.status}).`
-
             ),
 
             response.status,
@@ -219,120 +171,128 @@ async function parseResponse(
 ========================================================= */
 
 export async function analyzeNovaCourtCase(
-
     caseText,
-
     options = {}
+){
 
-) {
-
-    if (
-
+    if(
         typeof caseText !== "string" ||
-
         !caseText.trim()
-
-    ) {
+    ){
 
         throw new NovaCourtServiceError(
-
             "Debes ingresar una descripción válida del caso."
-
         )
 
     }
 
 
     const {
-
         signal = null,
-
         language = "es"
-
     } = options
 
 
-    try {
+    try{
 
-        const response = await fetch(
+        const url =
+            `${NOVACOURT_ENDPOINT}/analyze`
 
-            `${NOVACOURT_ENDPOINT}/analyze`,
 
-            {
+        console.log(
+            "[NovaCourt Service] POST:",
+            url
+        )
 
-                method: "POST",
 
-                headers: {
+        const payload = {
 
-                    "Content-Type":
+            case_text:
+                caseText.trim(),
 
-                        "application/json",
+            language
 
-                    "Accept":
+        }
 
-                        "application/json"
 
-                },
+        console.log(
+            "[NovaCourt Service] Payload:",
+            payload
+        )
 
-                body: JSON.stringify(
 
-                    {
+        const response =
+            await fetch(
 
-                        case_text:
+                url,
 
-                            caseText.trim(),
+                {
 
-                        language
+                    method: "POST",
 
-                    }
+                    headers: {
 
-                ),
+                        "Content-Type":
+                            "application/json",
 
-                signal
+                        "Accept":
+                            "application/json"
 
-            }
+                    },
 
+                    body:
+                        JSON.stringify(
+                            payload
+                        ),
+
+                    signal
+
+                }
+
+            )
+
+
+        console.log(
+            "[NovaCourt Service] HTTP:",
+            response.status
         )
 
 
         return await parseResponse(
-
             response
-
         )
 
     }
 
-    catch (
 
-        error
+    catch(error){
 
-    ) {
-
-        if (
-
-            error.name === "AbortError"
-
-        ) {
+        if(
+            error.name ===
+            "AbortError"
+        ){
 
             throw new NovaCourtServiceError(
-
                 "El análisis fue cancelado."
-
             )
 
         }
 
 
-        if (
-
-            error instanceof NovaCourtServiceError
-
-        ) {
+        if(
+            error instanceof
+            NovaCourtServiceError
+        ){
 
             throw error
 
         }
+
+
+        console.error(
+            "[NovaCourt Service] Error de conexión:",
+            error
+        )
 
 
         throw new NovaCourtServiceError(
@@ -353,94 +313,74 @@ export async function analyzeNovaCourtCase(
 ========================================================= */
 
 export async function getNovaCourtResult(
-
     analysisId,
-
     options = {}
+){
 
-) {
-
-    if (
-
-        !analysisId
-
-    ) {
+    if(!analysisId){
 
         throw new NovaCourtServiceError(
-
             "No se proporcionó un identificador de análisis."
-
         )
 
     }
 
 
     const {
-
         signal = null
-
     } = options
 
 
-    try {
+    try{
 
-        const response = await fetch(
+        const response =
+            await fetch(
 
-            `${NOVACOURT_ENDPOINT}/results/${encodeURIComponent(analysisId)}`,
+                `${NOVACOURT_ENDPOINT}/results/${encodeURIComponent(analysisId)}`,
 
-            {
+                {
 
-                method: "GET",
+                    method: "GET",
 
-                headers: {
+                    headers: {
 
-                    "Accept":
+                        "Accept":
+                            "application/json"
 
-                        "application/json"
+                    },
 
-                },
+                    signal
 
-                signal
+                }
 
-            }
-
-        )
+            )
 
 
         return await parseResponse(
-
             response
-
         )
 
     }
 
-    catch (
 
-        error
+    catch(error){
 
-    ) {
-
-        if (
-
-            error.name === "AbortError"
-
-        ) {
+        if(
+            error.name ===
+            "AbortError"
+        ){
 
             throw new NovaCourtServiceError(
-
                 "La consulta fue cancelada."
-
             )
 
         }
 
 
-        if (
-
-            error instanceof NovaCourtServiceError
-
-        ) {
+        if(
+            error instanceof
+            NovaCourtServiceError
+        ){
 
             throw error
 
@@ -467,20 +407,16 @@ export async function getNovaCourtResult(
 const novaCourtService = {
 
     analyzeCase:
-
         analyzeNovaCourtCase,
 
     getResult:
-
         getNovaCourtResult
 
 }
 
 
 export {
-
     NovaCourtServiceError
-
 }
 
 

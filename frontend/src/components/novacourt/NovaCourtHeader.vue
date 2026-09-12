@@ -2,22 +2,96 @@
 
     <section class="novacourt-header">
 
+        <!-- =====================================================
+             DECORACIÓN DE FONDO
+        ====================================================== -->
+
+        <div
+            class="header-glow header-glow-right"
+            aria-hidden="true"
+        ></div>
+
+        <div
+            class="header-glow header-glow-left"
+            aria-hidden="true"
+        ></div>
+
+
+        <div
+            class="header-grid"
+            aria-hidden="true"
+        ></div>
+
+
+        <!-- =====================================================
+             LÍNEA SUPERIOR INSTITUCIONAL
+        ====================================================== -->
+
+        <div
+            class="header-top-line"
+            aria-hidden="true"
+        ></div>
+
+
+        <!-- =====================================================
+             CONTENIDO PRINCIPAL
+        ====================================================== -->
+
         <div class="header-content">
 
 
-            <!-- TÍTULO PRINCIPAL -->
+            <!-- =================================================
+                 EYEBROW INSTITUCIONAL
+            ================================================== -->
+
+            <div class="header-eyebrow">
+
+                <span class="eyebrow-line"></span>
+
+                <span class="eyebrow-primary">
+                    INTELIGENCIA JUDICIAL
+                </span>
+
+                <span class="eyebrow-dot"></span>
+
+                <span class="eyebrow-secondary">
+                    NOVA IURIS
+                </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 TÍTULO PRINCIPAL
+            ================================================== -->
+
             <h1>
-
                 NovaCourt
-
             </h1>
 
 
-            <!-- ACENTO -->
-            <div class="title-accent"></div>
+            <!-- =================================================
+                 ACENTO DEL TÍTULO
+            ================================================== -->
+
+            <div
+                class="title-accent"
+                aria-hidden="true"
+            >
+
+                <span class="accent-side"></span>
+
+                <span class="accent-center"></span>
+
+                <span class="accent-side"></span>
+
+            </div>
 
 
-            <!-- DESCRIPCIÓN PRINCIPAL -->
+            <!-- =================================================
+                 SUBTÍTULO
+            ================================================== -->
+
             <p class="header-subtitle">
 
                 Analizador Judicial Inteligente para evaluación
@@ -26,7 +100,10 @@
             </p>
 
 
-            <!-- DESCRIPCIÓN SECUNDARIA -->
+            <!-- =================================================
+                 DESCRIPCIÓN
+            ================================================== -->
+
             <p class="header-description">
 
                 Evalúa escenarios jurídicos, contrasta argumentos,
@@ -35,23 +112,120 @@
 
             </p>
 
+
+            <!-- =================================================
+                 CAPACIDADES
+            ================================================== -->
+
+            <div class="header-features">
+
+
+                <div class="feature-item">
+
+                    <span class="feature-icon">
+                        ⚖
+                    </span>
+
+                    <span class="feature-text">
+                        Análisis jurídico
+                    </span>
+
+                </div>
+
+
+                <span
+                    class="feature-divider"
+                    aria-hidden="true"
+                ></span>
+
+
+                <div class="feature-item">
+
+                    <span class="feature-icon">
+                        ◈
+                    </span>
+
+                    <span class="feature-text">
+                        Simulación de escenarios
+                    </span>
+
+                </div>
+
+
+                <span
+                    class="feature-divider"
+                    aria-hidden="true"
+                ></span>
+
+
+                <div class="feature-item">
+
+                    <span class="feature-icon">
+                        ✓
+                    </span>
+
+                    <span class="feature-text">
+                        Evaluación estratégica
+                    </span>
+
+                </div>
+
+            </div>
+
+
         </div>
 
 
-        <!-- DECORACIÓN JUDICIAL -->
-        <div class="header-symbol">
+        <!-- =====================================================
+             SÍMBOLO JUDICIAL
+        ====================================================== -->
 
-            <div class="symbol-ring symbol-ring-large"></div>
+        <div
+            class="header-symbol"
+            aria-hidden="true"
+        >
 
-            <div class="symbol-ring symbol-ring-medium"></div>
+            <div class="symbol-orbit symbol-orbit-outer"></div>
 
-            <div class="symbol-ring symbol-ring-small"></div>
+            <div class="symbol-orbit symbol-orbit-large"></div>
+
+            <div class="symbol-orbit symbol-orbit-medium"></div>
+
+            <div class="symbol-orbit symbol-orbit-small"></div>
+
+
+            <div class="symbol-axis symbol-axis-horizontal"></div>
+
+            <div class="symbol-axis symbol-axis-vertical"></div>
+
 
             <div class="symbol-center">
-                ⚖
+
+                <span class="symbol-scale">
+                    ⚖
+                </span>
+
             </div>
 
         </div>
+
+
+        <!-- =====================================================
+             MARCA INFERIOR
+        ====================================================== -->
+
+        <div class="header-footer-mark">
+
+            <span class="footer-mark-line"></span>
+
+            <span>
+                SISTEMA DE EVALUACIÓN JUDICIAL
+            </span>
+
+            <span class="footer-mark-line"></span>
+
+        </div>
+
 
     </section>
 
@@ -65,51 +239,122 @@
 
 <style scoped>
 
-/* =====================================================
-   NOVACOURT HEADER
-   IDENTIDAD: JURÍDICA · INSTITUCIONAL · INTELIGENTE
-===================================================== */
+/* ============================================================
+   NOVACOURT
+   IDENTIDAD VISUAL
+   JURÍDICA · INSTITUCIONAL · PREMIUM · INTELIGENTE
+============================================================ */
 
 .novacourt-header {
+
+    /* ========================================================
+       PALETA NOVA IURIS
+    ======================================================== */
+
+    --court-navy: #0F2747;
+
+    --court-navy-deep: #102238;
+
+    --court-blue: #2563EB;
+
+    --court-blue-dark: #1D4ED8;
+
+    --court-blue-soft: #EFF6FF;
+
+    --court-blue-border: #BFDBFE;
+
+    --court-gold: #B08A4C;
+
+    --court-gold-dark: #9A753E;
+
+    --court-gold-soft: #F8F4EC;
+
+    --court-text: #334155;
+
+    --court-text-soft: #52647A;
+
+    --court-muted: #64748B;
+
+    --court-light: #94A3B8;
+
+    --court-border: #DDE5EE;
+
+    --court-border-soft: #E8EDF3;
+
+    --court-background: #FFFFFF;
+
+
     position: relative;
-    overflow: hidden;
 
     display: flex;
-    flex-direction: column;
+
     align-items: center;
+
     justify-content: center;
 
-    min-height: 240px;
+    min-height: 350px;
 
-    padding: 32px 48px 30px;
+    padding:
+        54px
+        190px
+        48px
+        54px;
 
-    text-align: center;
+    overflow: hidden;
+
+    isolation: isolate;
 
     background:
+
         linear-gradient(
             135deg,
-            #FDFDFC 0%,
-            #F8FAFC 52%,
-            #F3F6FA 100%
+            #FFFFFF 0%,
+            #FDFEFF 44%,
+            #F7FAFE 100%
         );
 
-    border: 1px solid #D9E0E8;
-    border-radius: 8px;
+    border:
+        1px solid
+        var(--court-border);
+
+    border-radius: 22px;
 
     box-shadow:
-        0 16px 40px rgba(15, 34, 56, .07);
+
+        0 10px 30px
+        rgba(
+            15,
+            39,
+            71,
+            .055
+        ),
+
+        0 2px 6px
+        rgba(
+            15,
+            39,
+            71,
+            .025
+        );
+
+    animation:
+        courtHeaderAppear
+        .55s
+        ease
+        both;
+
 }
 
 
-/* =====================================================
+/* ============================================================
    LÍNEA SUPERIOR
-===================================================== */
+============================================================ */
 
-.novacourt-header::before {
-
-    content: "";
+.header-top-line {
 
     position: absolute;
+
+    z-index: 10;
 
     top: 0;
 
@@ -123,65 +368,167 @@
 
         linear-gradient(
             90deg,
-            #102A43 0%,
-            #1F4F82 38%,
-            #5E7FA3 68%,
-            rgba(
-                185,
-                151,
-                91,
-                .45
-            ) 100%
+            #0F2747 0%,
+            #1D4ED8 36%,
+            #2563EB 58%,
+            #B08A4C 100%
         );
 
 }
 
 
-/* =====================================================
-   DECORACIÓN DE FONDO
-===================================================== */
+/* ============================================================
+   DECORACIÓN SUPERIOR IZQUIERDA
+============================================================ */
 
-.novacourt-header::after {
-
-    content: "";
+.header-glow {
 
     position: absolute;
 
-    width: 430px;
-
-    height: 430px;
-
-    right: -190px;
-
-    bottom: -260px;
-
-    border: 1px solid rgba(
-        31,
-        79,
-        130,
-        .07
-    );
+    pointer-events: none;
 
     border-radius: 50%;
-
-    pointer-events: none;
 
 }
 
 
-/* =====================================================
+/* ============================================================
+   CÍRCULO AZUL DERECHO
+============================================================ */
+
+.header-glow-right {
+
+    z-index: -2;
+
+    width: 480px;
+
+    height: 480px;
+
+    right: -285px;
+
+    bottom: -315px;
+
+    border:
+        1px solid
+        rgba(
+            37,
+            99,
+            235,
+            .08
+        );
+
+    box-shadow:
+
+        0 0 0 65px
+        rgba(
+            37,
+            99,
+            235,
+            .018
+        ),
+
+        0 0 0 130px
+        rgba(
+            37,
+            99,
+            235,
+            .009
+        );
+
+}
+
+
+/* ============================================================
+   CÍRCULO DORADO IZQUIERDO
+============================================================ */
+
+.header-glow-left {
+
+    z-index: -2;
+
+    width: 290px;
+
+    height: 290px;
+
+    left: -210px;
+
+    top: -215px;
+
+    border:
+        1px solid
+        rgba(
+            176,
+            138,
+            76,
+            .10
+        );
+
+}
+
+
+/* ============================================================
+   GRID DECORATIVO SUTIL
+============================================================ */
+
+.header-grid {
+
+    position: absolute;
+
+    z-index: -1;
+
+    inset: 0;
+
+    opacity: .28;
+
+    pointer-events: none;
+
+    background-image:
+
+        linear-gradient(
+            rgba(
+                37,
+                99,
+                235,
+                .018
+            ) 1px,
+            transparent 1px
+        ),
+
+        linear-gradient(
+            90deg,
+            rgba(
+                37,
+                99,
+                235,
+                .018
+            ) 1px,
+            transparent 1px
+        );
+
+    background-size:
+        46px 46px;
+
+    mask-image:
+
+        linear-gradient(
+            to bottom,
+            transparent 0%,
+            rgba(0,0,0,.7) 40%,
+            transparent 100%
+        );
+
+}
+
+
+/* ============================================================
    CONTENIDO
-===================================================== */
+============================================================ */
 
 .header-content {
 
     position: relative;
 
-    z-index: 3;
-
-    width: 100%;
-
-    max-width: 820px;
+    z-index: 5;
 
     display: flex;
 
@@ -189,16 +536,30 @@
 
     align-items: center;
 
+    width: 100%;
+
+    max-width: 850px;
+
+    text-align: center;
+
+    animation:
+
+        contentAppear
+        .6s
+        .05s
+        ease
+        both;
+
 }
 
 
-/* =====================================================
-   BADGE
-===================================================== */
+/* ============================================================
+   EYEBROW
+============================================================ */
 
-.header-badge {
+.header-eyebrow {
 
-    display: inline-flex;
+    display: flex;
 
     align-items: center;
 
@@ -206,200 +567,122 @@
 
     gap: 9px;
 
-    padding: 8px 13px;
+    margin-bottom: 15px;
 
-    margin-bottom: 20px;
+    color:
+        var(--court-muted);
 
-    color: #1F4F82;
-
-    background: rgba(
-        255,
-        255,
-        255,
-        .72
-    );
-
-    border: 1px solid #CDD8E5;
-
-    border-radius: 3px;
-
-    box-shadow:
-
-        0 5px 14px rgba(
-            15,
-            34,
-            56,
-            .035
-        );
-
-    font-size: .67rem;
+    font-size: .64rem;
 
     font-weight: 800;
 
-    letter-spacing: 1.35px;
-
-}
-
-
-.badge-icon {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    color: #B08A4C;
-
-    font-size: .95rem;
-
     line-height: 1;
 
-}
-
-
-.badge-name {
-
-    color: #102A43;
+    letter-spacing: .145em;
 
 }
 
 
-.badge-divider {
+/* Línea azul */
 
-    width: 1px;
+.eyebrow-line {
 
-    height: 14px;
+    width: 25px;
 
-    background: #CCD6E0;
+    height: 2px;
 
-}
+    background:
+        var(--court-blue);
 
-
-.badge-text {
-
-    color: #607286;
-
-    font-size: .63rem;
-
-    font-weight: 700;
-
-    letter-spacing: 1.1px;
+    border-radius: 999px;
 
 }
 
 
-/* =====================================================
+/* Inteligencia judicial */
+
+.eyebrow-primary {
+
+    color:
+        #667991;
+
+}
+
+
+/* Punto dorado */
+
+.eyebrow-dot {
+
+    width: 4px;
+
+    height: 4px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background:
+        var(--court-gold);
+
+    box-shadow:
+
+        0 0 0 2px
+        rgba(
+            176,
+            138,
+            76,
+            .08
+        );
+
+}
+
+
+/* Nova Iuris */
+
+.eyebrow-secondary {
+
+    color:
+        var(--court-gold-dark);
+
+}
+
+
+/* ============================================================
    TÍTULO PRINCIPAL
-===================================================== */
+============================================================ */
 
 .novacourt-header h1 {
 
     margin: 0;
 
-    color: #102A43;
+    color:
+        var(--court-navy);
 
     font-family:
-
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size: 3rem;
+    font-size: 3.35rem;
 
-    font-weight: 500;
+    font-weight: 600;
 
-    line-height: 1.1;
+    line-height: 1.05;
 
-    letter-spacing: -.7px;
+    letter-spacing:
+        -.045em;
+
+    text-rendering:
+        optimizeLegibility;
 
 }
 
 
-/* =====================================================
-   ACENTO
-===================================================== */
+/* ============================================================
+   ACENTO DEL TÍTULO
+============================================================ */
 
 .title-accent {
-
-    width: 44px;
-
-    height: 2px;
-
-    margin: 18px 0 16px;
-
-    background:
-
-        linear-gradient(
-            90deg,
-            #1F4F82,
-            #5C82AC
-        );
-
-}
-
-
-/* =====================================================
-   SUBTÍTULO
-===================================================== */
-
-.header-subtitle {
-
-    margin: 0;
-
-    color: #40566E;
-
-    font-size: 1.05rem;
-
-    font-weight: 500;
-
-    line-height: 1.7;
-
-    letter-spacing: .01em;
-
-}
-
-
-/* =====================================================
-   DESCRIPCIÓN
-===================================================== */
-
-.header-description {
-
-    max-width: 720px;
-
-    margin: 10px 0 0;
-
-    color: #6B7A8C;
-
-    font-size: .94rem;
-
-    font-weight: 400;
-
-    line-height: 1.8;
-
-}
-
-
-/* =====================================================
-   SÍMBOLO JUDICIAL DECORATIVO
-===================================================== */
-
-.header-symbol {
-
-    position: absolute;
-
-    z-index: 1;
-
-    right: 58px;
-
-    top: 50%;
-
-    width: 132px;
-
-    height: 132px;
-
-    transform: translateY(-50%);
 
     display: flex;
 
@@ -407,10 +690,285 @@
 
     justify-content: center;
 
+    gap: 4px;
+
+    width: 58px;
+
+    height: 4px;
+
+    margin:
+        17px
+        0
+        16px;
+
 }
 
 
-.symbol-ring {
+.title-accent span {
+
+    display: block;
+
+    height: 2px;
+
+    border-radius: 999px;
+
+}
+
+
+.accent-side {
+
+    width: 11px;
+
+    background:
+        var(--court-blue);
+
+    opacity: .42;
+
+}
+
+
+.accent-center {
+
+    width: 27px;
+
+    background:
+        var(--court-gold);
+
+}
+
+
+/* ============================================================
+   SUBTÍTULO
+============================================================ */
+
+.header-subtitle {
+
+    max-width: 740px;
+
+    margin: 0;
+
+    color:
+        #40566E;
+
+    font-size: 1.07rem;
+
+    font-weight: 600;
+
+    line-height: 1.65;
+
+    letter-spacing:
+        .002em;
+
+}
+
+
+/* ============================================================
+   DESCRIPCIÓN
+============================================================ */
+
+.header-description {
+
+    max-width: 750px;
+
+    margin:
+        10px
+        0
+        0;
+
+    color:
+        var(--court-muted);
+
+    font-size: .9rem;
+
+    font-weight: 400;
+
+    line-height: 1.78;
+
+}
+
+
+/* ============================================================
+   CARACTERÍSTICAS
+============================================================ */
+
+.header-features {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 16px;
+
+    margin-top: 24px;
+
+    padding:
+        9px
+        15px;
+
+    background:
+
+        rgba(
+            255,
+            255,
+            255,
+            .72
+        );
+
+    border:
+        1px solid
+        var(--court-border);
+
+    border-radius: 10px;
+
+    box-shadow:
+
+        0 4px 14px
+        rgba(
+            15,
+            39,
+            71,
+            .028
+        );
+
+    backdrop-filter:
+        blur(8px);
+
+}
+
+
+/* ============================================================
+   FEATURE
+============================================================ */
+
+.feature-item {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    color:
+        #52647A;
+
+    font-size: .66rem;
+
+    font-weight: 700;
+
+    line-height: 1;
+
+    letter-spacing:
+        .01em;
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   ICONOS
+============================================================ */
+
+.feature-icon {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 23px;
+
+    height: 23px;
+
+    color:
+        var(--court-blue);
+
+    background:
+        var(--court-blue-soft);
+
+    border:
+        1px solid
+        var(--court-blue-border);
+
+    border-radius: 6px;
+
+    font-size: .72rem;
+
+    line-height: 1;
+
+    transition:
+
+        background .2s ease,
+
+        border-color .2s ease,
+
+        transform .2s ease;
+
+}
+
+
+/* ============================================================
+   DIVISORES
+============================================================ */
+
+.feature-divider {
+
+    width: 1px;
+
+    height: 19px;
+
+    background:
+        #D9E1EA;
+
+}
+
+
+/* ============================================================
+   SÍMBOLO JUDICIAL
+============================================================ */
+
+.header-symbol {
+
+    position: absolute;
+
+    z-index: 4;
+
+    top: 50%;
+
+    right: 45px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 142px;
+
+    height: 142px;
+
+    transform:
+        translateY(-50%);
+
+    animation:
+
+        symbolAppear
+        .75s
+        .15s
+        ease
+        both;
+
+}
+
+
+/* ============================================================
+   ÓRBITAS
+============================================================ */
+
+.symbol-orbit {
 
     position: absolute;
 
@@ -421,63 +979,134 @@
 }
 
 
-.symbol-ring-large {
+/* Órbita exterior */
 
-    width: 128px;
+.symbol-orbit-outer {
 
-    height: 128px;
+    width: 140px;
 
-    border: 1px solid rgba(
-        31,
-        79,
-        130,
-        .12
-    );
+    height: 140px;
 
-}
-
-
-.symbol-ring-medium {
-
-    width: 104px;
-
-    height: 104px;
-
-    border: 1px solid rgba(
-        31,
-        79,
-        130,
-        .16
-    );
+    border:
+        1px solid
+        rgba(
+            37,
+            99,
+            235,
+            .055
+        );
 
 }
 
 
-.symbol-ring-small {
+/* Órbita principal */
 
-    width: 82px;
+.symbol-orbit-large {
 
-    height: 82px;
+    width: 122px;
 
-    border: 1px solid rgba(
-        176,
-        138,
-        76,
-        .32
-    );
+    height: 122px;
+
+    border:
+        1px solid
+        rgba(
+            37,
+            99,
+            235,
+            .11
+        );
 
 }
 
+
+/* Órbita intermedia */
+
+.symbol-orbit-medium {
+
+    width: 98px;
+
+    height: 98px;
+
+    border:
+        1px solid
+        rgba(
+            37,
+            99,
+            235,
+            .15
+        );
+
+}
+
+
+/* Órbita dorada */
+
+.symbol-orbit-small {
+
+    width: 74px;
+
+    height: 74px;
+
+    border:
+        1px solid
+        rgba(
+            176,
+            138,
+            76,
+            .34
+        );
+
+}
+
+
+/* ============================================================
+   EJES
+============================================================ */
+
+.symbol-axis {
+
+    position: absolute;
+
+    pointer-events: none;
+
+    background:
+        rgba(
+            176,
+            138,
+            76,
+            .17
+        );
+
+}
+
+
+.symbol-axis-horizontal {
+
+    width: 102px;
+
+    height: 1px;
+
+}
+
+
+.symbol-axis-vertical {
+
+    width: 1px;
+
+    height: 102px;
+
+}
+
+
+/* ============================================================
+   CENTRO DEL SÍMBOLO
+============================================================ */
 
 .symbol-center {
 
     position: relative;
 
-    z-index: 2;
-
-    width: 58px;
-
-    height: 58px;
+    z-index: 5;
 
     display: flex;
 
@@ -485,91 +1114,276 @@
 
     justify-content: center;
 
-    color: #B08A4C;
+    width: 58px;
 
-    background: rgba(
-        255,
-        255,
-        255,
-        .78
-    );
+    height: 58px;
 
-    border: 1px solid #D7E0E9;
+    background:
+
+        rgba(
+            255,
+            255,
+            255,
+            .96
+        );
+
+    border:
+        1px solid
+        #D9E1EA;
 
     border-radius: 50%;
 
     box-shadow:
 
-        0 8px 20px rgba(
+        0 8px 22px
+        rgba(
             15,
-            34,
-            56,
-            .06
-        );
+            39,
+            71,
+            .075
+        ),
 
-    font-size: 1.75rem;
+        0 0 0 5px
+        rgba(
+            255,
+            255,
+            255,
+            .55
+        );
 
 }
 
 
-/* =====================================================
-   RESPONSIVE - TABLET
-===================================================== */
+/* ============================================================
+   BALANZA
+============================================================ */
 
-@media (max-width: 1050px) {
+.symbol-scale {
+
+    color:
+        var(--court-gold);
+
+    font-size: 1.72rem;
+
+    line-height: 1;
+
+    filter:
+
+        drop-shadow(
+            0
+            2px
+            3px
+            rgba(
+                176,
+                138,
+                76,
+                .14
+            )
+        );
+
+}
+
+
+/* ============================================================
+   MARCA INFERIOR
+============================================================ */
+
+.header-footer-mark {
+
+    position: absolute;
+
+    z-index: 5;
+
+    left: 50%;
+
+    bottom: 14px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    transform:
+        translateX(-50%);
+
+    color:
+        #98A7B8;
+
+    font-size: .53rem;
+
+    font-weight: 800;
+
+    line-height: 1;
+
+    letter-spacing:
+        .145em;
+
+    white-space: nowrap;
+
+}
+
+
+.footer-mark-line {
+
+    width: 18px;
+
+    height: 1px;
+
+    background:
+        #CBD5E1;
+
+}
+
+
+/* ============================================================
+   HOVER
+============================================================ */
+
+.novacourt-header:hover
+.symbol-orbit-small {
+
+    border-color:
+        rgba(
+            176,
+            138,
+            76,
+            .48
+        );
+
+}
+
+
+.novacourt-header:hover
+.symbol-center {
+
+    box-shadow:
+
+        0 10px 26px
+        rgba(
+            15,
+            39,
+            71,
+            .095
+        ),
+
+        0 0 0 5px
+        rgba(
+            255,
+            255,
+            255,
+            .62
+        );
+
+}
+
+
+.novacourt-header:hover
+.feature-icon {
+
+    background:
+        #EAF2FF;
+
+    border-color:
+        #B8D1F8;
+
+}
+
+
+.novacourt-header:hover
+.accent-center {
+
+    background:
+        var(--court-gold-dark);
+
+}
+
+
+/* ============================================================
+   RESPONSIVE — 1100px
+============================================================ */
+
+@media (max-width: 1100px) {
 
     .novacourt-header {
 
-        min-height: 300px;
+        padding-right:
+            170px;
 
     }
 
+
     .header-symbol {
 
-        right: 32px;
+        right: 28px;
 
-        opacity: .85;
+        transform:
+            translateY(-50%)
+            scale(.9);
 
     }
 
 }
 
+
+/* ============================================================
+   RESPONSIVE — 900px
+============================================================ */
 
 @media (max-width: 900px) {
 
     .novacourt-header {
 
-        min-height: 290px;
+        min-height: 335px;
 
-        padding: 42px 36px;
+        padding:
+            48px
+            145px
+            46px
+            36px;
 
     }
+
 
     .novacourt-header h1 {
 
-        font-size: 2.6rem;
+        font-size:
+            2.85rem;
 
     }
 
+
     .header-symbol {
 
-        right: 24px;
+        right: 14px;
 
         transform:
-
             translateY(-50%)
-            scale(.85);
+            scale(.78);
 
-        transform-origin: right center;
+    }
+
+
+    .header-features {
+
+        gap: 12px;
+
+    }
+
+
+    .feature-item {
+
+        font-size:
+            .61rem;
 
     }
 
 }
 
 
-/* =====================================================
-   RESPONSIVE - MOBILE
-===================================================== */
+/* ============================================================
+   RESPONSIVE — 768px
+============================================================ */
 
 @media (max-width: 768px) {
 
@@ -577,9 +1391,16 @@
 
         min-height: auto;
 
-        padding: 38px 28px;
+        padding:
+            40px
+            28px
+            50px;
+
+        border-radius:
+            20px;
 
     }
+
 
     .header-symbol {
 
@@ -587,78 +1408,365 @@
 
     }
 
+
     .novacourt-header h1 {
 
-        font-size: 2.25rem;
+        font-size:
+            2.4rem;
 
     }
 
+
     .header-subtitle {
 
-        font-size: 1rem;
+        font-size:
+            .98rem;
+
+    }
+
+
+    .header-description {
+
+        max-width:
+            650px;
+
+        font-size:
+            .87rem;
+
+    }
+
+
+    .header-features {
+
+        max-width:
+            100%;
+
+        flex-wrap:
+            wrap;
+
+        padding:
+            9px
+            12px;
 
     }
 
 }
 
 
+/* ============================================================
+   RESPONSIVE — 576px
+============================================================ */
+
 @media (max-width: 576px) {
 
     .novacourt-header {
 
-        padding: 32px 20px;
+        padding:
+            34px
+            18px
+            46px;
 
-        border-radius: 6px;
-
-    }
-
-    .header-badge {
-
-        gap: 7px;
-
-        padding: 7px 10px;
-
-        margin-bottom: 18px;
+        border-radius:
+            17px;
 
     }
 
-    .badge-text {
 
-        display: none;
+    .header-eyebrow {
+
+        gap:
+            7px;
+
+        font-size:
+            .56rem;
+
+        letter-spacing:
+            .10em;
 
     }
 
-    .badge-divider {
 
-        display: none;
+    .eyebrow-line {
+
+        width:
+            18px;
 
     }
+
 
     .novacourt-header h1 {
 
-        font-size: 1.9rem;
+        font-size:
+            2.05rem;
 
     }
+
 
     .title-accent {
 
-        margin: 15px 0 13px;
+        margin:
+            14px
+            0
+            13px;
 
     }
+
 
     .header-subtitle {
 
-        font-size: .92rem;
+        font-size:
+            .9rem;
 
-        line-height: 1.65;
+        line-height:
+            1.6;
 
     }
 
+
     .header-description {
 
-        font-size: .86rem;
+        margin-top:
+            8px;
 
-        line-height: 1.7;
+        font-size:
+            .82rem;
+
+        line-height:
+            1.7;
+
+    }
+
+
+    .header-features {
+
+        width:
+            100%;
+
+        flex-direction:
+            column;
+
+        align-items:
+            flex-start;
+
+        gap:
+            9px;
+
+        margin-top:
+            19px;
+
+        padding:
+            11px
+            12px;
+
+    }
+
+
+    .feature-divider {
+
+        display:
+            none;
+
+    }
+
+
+    .feature-item {
+
+        width:
+            100%;
+
+        font-size:
+            .64rem;
+
+    }
+
+
+    .header-footer-mark {
+
+        gap:
+            6px;
+
+        font-size:
+            .46rem;
+
+        letter-spacing:
+            .085em;
+
+    }
+
+
+    .footer-mark-line {
+
+        width:
+            11px;
+
+    }
+
+}
+
+
+/* ============================================================
+   RESPONSIVE — 380px
+============================================================ */
+
+@media (max-width: 380px) {
+
+    .novacourt-header {
+
+        padding:
+            29px
+            15px
+            43px;
+
+    }
+
+
+    .header-eyebrow {
+
+        font-size:
+            .51rem;
+
+    }
+
+
+    .novacourt-header h1 {
+
+        font-size:
+            1.82rem;
+
+    }
+
+
+    .header-subtitle {
+
+        font-size:
+            .85rem;
+
+    }
+
+
+    .header-description {
+
+        font-size:
+            .77rem;
+
+    }
+
+
+    .header-footer-mark {
+
+        font-size:
+            .42rem;
+
+    }
+
+}
+
+
+/* ============================================================
+   ANIMACIONES
+============================================================ */
+
+@keyframes courtHeaderAppear {
+
+    from {
+
+        opacity:
+            0;
+
+        transform:
+            translateY(14px);
+
+    }
+
+    to {
+
+        opacity:
+            1;
+
+        transform:
+            translateY(0);
+
+    }
+
+}
+
+
+@keyframes contentAppear {
+
+    from {
+
+        opacity:
+            0;
+
+        transform:
+            translateY(10px);
+
+    }
+
+    to {
+
+        opacity:
+            1;
+
+        transform:
+            translateY(0);
+
+    }
+
+}
+
+
+@keyframes symbolAppear {
+
+    from {
+
+        opacity:
+            0;
+
+        transform:
+            translateY(-50%)
+            scale(.9);
+
+    }
+
+    to {
+
+        opacity:
+            1;
+
+        transform:
+            translateY(-50%)
+            scale(1);
+
+    }
+
+}
+
+
+/* ============================================================
+   REDUCED MOTION
+============================================================ */
+
+@media (
+    prefers-reduced-motion: reduce
+) {
+
+    .novacourt-header,
+    .header-content,
+    .header-symbol {
+
+        animation:
+            none;
+
+    }
+
+
+    .novacourt-header *,
+    .novacourt-header *::before,
+    .novacourt-header *::after {
+
+        transition:
+            none;
 
     }
 

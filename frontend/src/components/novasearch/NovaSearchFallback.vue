@@ -1,42 +1,47 @@
 <template>
+
     <section
         v-if="visible"
         class="nova-search-fallback"
     >
 
         <!-- ===================================================
-             INDICADOR VISUAL
+             INDICADOR
         ==================================================== -->
 
-        <div class="nova-search-fallback-icon">
+        <div class="fallback-indicator">
 
-            <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.7"
-                aria-hidden="true"
-            >
+            <div class="fallback-indicator-inner">
 
-                <circle
-                    cx="12"
-                    cy="12"
-                    r="9"
-                />
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    aria-hidden="true"
+                >
 
-                <path
-                    d="M12 8V12"
-                />
+                    <circle
+                        cx="12"
+                        cy="12"
+                        r="8.5"
+                    />
 
-                <circle
-                    cx="12"
-                    cy="16"
-                    r=".8"
-                    fill="currentColor"
-                    stroke="none"
-                />
+                    <path
+                        d="M12 10.5v5"
+                    />
 
-            </svg>
+                    <circle
+                        cx="12"
+                        cy="7.2"
+                        r=".75"
+                        fill="currentColor"
+                        stroke="none"
+                    />
+
+                </svg>
+
+            </div>
 
         </div>
 
@@ -45,51 +50,60 @@
              CONTENIDO
         ==================================================== -->
 
-        <div class="nova-search-fallback-content">
+        <div class="fallback-content">
 
-            <div class="nova-search-fallback-heading">
+            <div class="fallback-header">
 
-                <div>
+                <div class="fallback-heading">
 
-                    <span class="nova-search-fallback-eyebrow">
-                        NOVA SEARCH · MODO ALTERNATIVO
+                    <span class="fallback-eyebrow">
+                        NOVA SEARCH · CONTEXTO COMPLEMENTARIO
                     </span>
 
                     <h3>
-                        Respuesta generada con contexto complementario
+                        Respuesta generada con contexto adicional
                     </h3>
 
                 </div>
 
-                <span class="nova-search-fallback-badge">
+
+                <span class="fallback-badge">
                     INFORMACIÓN
                 </span>
 
             </div>
 
 
-            <p class="nova-search-fallback-message">
-
-                {{ message }}
-
+            <p class="fallback-message">
+                {{ fallbackMessage }}
             </p>
 
 
-            <p class="nova-search-fallback-note">
+            <div class="fallback-disclaimer">
 
-                Esta respuesta debe interpretarse como una orientación
-                jurídica asistida por inteligencia artificial y no sustituye
-                la revisión profesional de las fuentes jurídicas aplicables.
+                <span class="fallback-disclaimer-mark"></span>
 
-            </p>
+                <p>
+                    Esta respuesta constituye una orientación jurídica
+                    asistida por inteligencia artificial y debe contrastarse
+                    con las fuentes jurídicas aplicables y la revisión
+                    profesional correspondiente.
+                </p>
+
+            </div>
 
         </div>
 
     </section>
+
 </template>
 
 
 <script setup>
+
+/* =========================================================
+   PROPS
+========================================================= */
 
 import { computed } from "vue"
 
@@ -115,11 +129,25 @@ const props = defineProps({
 })
 
 
+/* =========================================================
+   MENSAJE
+========================================================= */
+
 const fallbackMessage = computed(() => {
 
-    return props.message.trim() ||
+    const message = props.message?.trim()
 
-        "NovaSearch utilizó un mecanismo alternativo para elaborar la respuesta debido a que el contexto jurídico recuperado no fue suficiente para completar el análisis habitual."
+    if (message) {
+
+        return message
+
+    }
+
+    return (
+        "NovaSearch utilizó un mecanismo alternativo para elaborar "
+        + "esta respuesta debido a que el contexto jurídico recuperado "
+        + "no fue suficiente para completar el análisis habitual."
+    )
 
 })
 
@@ -129,10 +157,13 @@ const fallbackMessage = computed(() => {
 <style scoped>
 
 /* =======================================================
-   NOVA SEARCH — FALLBACK STATE
+   NOVA SEARCH — FALLBACK
+   Línea visual institucional
 ======================================================= */
 
 .nova-search-fallback{
+
+    position:relative;
 
     width:100%;
 
@@ -142,7 +173,7 @@ const fallbackMessage = computed(() => {
 
     gap:18px;
 
-    padding:24px 26px;
+    padding:22px 24px;
 
     margin-bottom:22px;
 
@@ -150,51 +181,55 @@ const fallbackMessage = computed(() => {
 
         linear-gradient(
             135deg,
-            #FFFCF7 0%,
-            #FFF9EF 100%
+            #FFFFFF 0%,
+            #FCFDFE 100%
         );
 
     border:
+
         1px solid
-        #E9DCC5;
+        #DCE4EC;
 
     border-left:
+
         3px solid
         #B08A4C;
 
-    border-radius:12px;
+    border-radius:11px;
 
     box-shadow:
 
-        0 10px 26px
+        0 8px 24px
         rgba(
-            92,
-            68,
-            30,
+            23,
+            55,
+            94,
             .045
         );
 
     animation:
 
         novaSearchFallbackEnter
-        .35s
+        .32s
         ease-out;
 
 }
 
 
 /* =======================================================
-   ICONO
+   INDICADOR
 ======================================================= */
 
-.nova-search-fallback-icon{
+.fallback-indicator{
 
-    width:46px;
+    width:44px;
 
-    height:46px;
+    height:44px;
 
     flex:
-        0 0 46px;
+
+        0 0
+        44px;
 
     display:flex;
 
@@ -204,22 +239,42 @@ const fallbackMessage = computed(() => {
 
     border-radius:50%;
 
-    background:#FFF7E8;
+    background:#F7F9FC;
 
     border:
-        1px solid
-        #E8D4B2;
 
-    color:#9A753B;
+        1px solid
+        #DCE5EE;
 
 }
 
 
-.nova-search-fallback-icon svg{
+.fallback-indicator-inner{
 
-    width:23px;
+    width:34px;
 
-    height:23px;
+    height:34px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    border-radius:50%;
+
+    background:#F1F5F9;
+
+    color:#315C97;
+
+}
+
+
+.fallback-indicator svg{
+
+    width:19px;
+
+    height:19px;
 
 }
 
@@ -228,7 +283,7 @@ const fallbackMessage = computed(() => {
    CONTENIDO
 ======================================================= */
 
-.nova-search-fallback-content{
+.fallback-content{
 
     flex:1;
 
@@ -237,7 +292,11 @@ const fallbackMessage = computed(() => {
 }
 
 
-.nova-search-fallback-heading{
+/* =======================================================
+   CABECERA
+======================================================= */
+
+.fallback-header{
 
     display:flex;
 
@@ -245,31 +304,38 @@ const fallbackMessage = computed(() => {
 
     justify-content:space-between;
 
-    gap:18px;
+    gap:20px;
 
     margin-bottom:9px;
 
 }
 
 
-.nova-search-fallback-eyebrow{
+.fallback-heading{
+
+    min-width:0;
+
+}
+
+
+.fallback-eyebrow{
 
     display:block;
 
     margin-bottom:5px;
 
-    color:#8A6A37;
+    color:#7A6440;
 
-    font-size:.66rem;
+    font-size:.61rem;
 
     font-weight:800;
 
-    letter-spacing:1.3px;
+    letter-spacing:1.25px;
 
 }
 
 
-.nova-search-fallback h3{
+.fallback-heading h3{
 
     margin:0;
 
@@ -278,52 +344,16 @@ const fallbackMessage = computed(() => {
     font-family:
 
         Georgia,
+
         "Times New Roman",
+
         serif;
 
-    font-size:1.08rem;
+    font-size:1.03rem;
 
     font-weight:600;
 
-    line-height:1.4;
-
-}
-
-
-.nova-search-fallback-message{
-
-    margin:0;
-
-    color:#625847;
-
-    font-size:.9rem;
-
-    line-height:1.7;
-
-}
-
-
-.nova-search-fallback-note{
-
-    margin:12px 0 0;
-
-    padding-top:12px;
-
-    border-top:
-
-        1px solid
-        rgba(
-            176,
-            138,
-            76,
-            .18
-        );
-
-    color:#857A68;
-
-    font-size:.78rem;
-
-    line-height:1.65;
+    line-height:1.45;
 
 }
 
@@ -332,7 +362,7 @@ const fallbackMessage = computed(() => {
    BADGE
 ======================================================= */
 
-.nova-search-fallback-badge{
+.fallback-badge{
 
     flex-shrink:0;
 
@@ -342,33 +372,105 @@ const fallbackMessage = computed(() => {
 
     justify-content:center;
 
-    min-height:26px;
+    min-height:25px;
 
     padding:
+
         0
         10px;
 
+    background:#F7F9FC;
+
     border:
+
         1px solid
-        #DFC89E;
+        #D8E2EC;
 
     border-radius:999px;
 
-    background:
-        rgba(
-            255,
-            255,
-            255,
-            .6
-        );
+    color:#315C97;
 
-    color:#8A6A37;
-
-    font-size:.62rem;
+    font-size:.57rem;
 
     font-weight:800;
 
-    letter-spacing:.7px;
+    letter-spacing:.8px;
+
+}
+
+
+/* =======================================================
+   MENSAJE
+======================================================= */
+
+.fallback-message{
+
+    max-width:900px;
+
+    margin:0;
+
+    color:#536273;
+
+    font-size:.86rem;
+
+    line-height:1.75;
+
+}
+
+
+/* =======================================================
+   AVISO / DISCLAIMER
+======================================================= */
+
+.fallback-disclaimer{
+
+    display:flex;
+
+    align-items:flex-start;
+
+    gap:9px;
+
+    margin-top:14px;
+
+    padding-top:12px;
+
+    border-top:
+
+        1px solid
+        #E8EDF2;
+
+}
+
+
+.fallback-disclaimer-mark{
+
+    width:5px;
+
+    height:5px;
+
+    flex:
+
+        0 0
+        5px;
+
+    margin-top:7px;
+
+    border-radius:50%;
+
+    background:#B08A4C;
+
+}
+
+
+.fallback-disclaimer p{
+
+    margin:0;
+
+    color:#84909D;
+
+    font-size:.72rem;
+
+    line-height:1.65;
 
 }
 
@@ -418,12 +520,12 @@ const fallbackMessage = computed(() => {
 
         gap:14px;
 
-        padding:22px;
+        padding:20px;
 
     }
 
 
-    .nova-search-fallback-icon{
+    .fallback-indicator{
 
         width:42px;
 
@@ -434,20 +536,73 @@ const fallbackMessage = computed(() => {
     }
 
 
-    .nova-search-fallback-heading{
+    .fallback-indicator-inner{
 
-        flex-direction:column;
+        width:32px;
 
-        gap:10px;
+        height:32px;
 
     }
 
 
-    .nova-search-fallback-badge{
+    .fallback-header{
+
+        flex-direction:column;
+
+        gap:9px;
+
+    }
+
+
+    .fallback-badge{
 
         align-self:flex-start;
 
     }
 
+
+    .fallback-heading h3{
+
+        font-size:.98rem;
+
+    }
+
+
+    .fallback-message{
+
+        font-size:.84rem;
+
+    }
+
 }
+
+
+@media(max-width:420px){
+
+    .nova-search-fallback{
+
+        padding:18px;
+
+        border-radius:10px;
+
+    }
+
+
+    .fallback-eyebrow{
+
+        font-size:.57rem;
+
+        letter-spacing:1px;
+
+    }
+
+
+    .fallback-disclaimer{
+
+        gap:8px;
+
+    }
+
+}
+
 </style>

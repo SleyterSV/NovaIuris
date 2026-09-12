@@ -6,19 +6,21 @@
              EMBLEMA
         ==================================================== -->
 
-        <div class="nova-search-empty-emblem">
+        <div class="empty-emblem">
 
-            <div class="nova-search-empty-emblem-inner">
+            <div class="empty-emblem-ring"></div>
+
+            <div class="empty-emblem-inner">
 
                 <svg
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="1.5"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
                     aria-hidden="true"
                 >
-
-                    <!-- Lupa -->
 
                     <circle
                         cx="10.8"
@@ -30,6 +32,14 @@
                         d="M15.2 15.2L20 20"
                     />
 
+                    <path
+                        d="M8.2 10.8h5.2"
+                    />
+
+                    <path
+                        d="M10.8 8.2v5.2"
+                    />
+
                 </svg>
 
             </div>
@@ -38,12 +48,12 @@
 
 
         <!-- ===================================================
-             CONTENIDO
+             CONTENIDO PRINCIPAL
         ==================================================== -->
 
-        <div class="nova-search-empty-content">
+        <div class="empty-content">
 
-            <span class="nova-search-empty-eyebrow">
+            <span class="empty-eyebrow">
 
                 {{ eyebrowText }}
 
@@ -72,52 +82,257 @@
 
         <div
             v-if="showSuggestions"
-            class="nova-search-suggestions"
+            class="empty-suggestions"
         >
 
-            <span class="nova-search-suggestions-label">
-                PUEDES BUSCAR POR
-            </span>
+            <div class="suggestions-heading">
+
+                <span class="suggestions-line"></span>
+
+                <span class="suggestions-label">
+                    PUEDES BUSCAR POR
+                </span>
+
+                <span class="suggestions-line"></span>
+
+            </div>
 
 
-            <div class="nova-search-suggestions-list">
+            <div class="suggestions-list">
 
                 <button
                     type="button"
-                    class="nova-search-suggestion"
-                    @click="$emit('suggestion', 'Jurisprudencia sobre despido arbitrario')"
+                    class="suggestion-button"
+                    @click="
+                        $emit(
+                            'suggestion',
+                            'Jurisprudencia sobre despido arbitrario'
+                        )
+                    "
                 >
-                    Jurisprudencia
+
+                    <span class="suggestion-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            aria-hidden="true"
+                        >
+
+                            <path
+                                d="M6 3h12"
+                            />
+
+                            <path
+                                d="M6 3v4"
+                            />
+
+                            <path
+                                d="M18 3v4"
+                            />
+
+                            <path
+                                d="M4 7h16"
+                            />
+
+                            <path
+                                d="M7 11h4"
+                            />
+
+                            <path
+                                d="M7 15h7"
+                            />
+
+                            <path
+                                d="M7 19h5"
+                            />
+
+                        </svg>
+
+                    </span>
+
+                    <span>
+                        Jurisprudencia
+                    </span>
+
                 </button>
 
 
                 <button
                     type="button"
-                    class="nova-search-suggestion"
-                    @click="$emit('suggestion', 'Nulidad de acto jurídico')"
+                    class="suggestion-button"
+                    @click="
+                        $emit(
+                            'suggestion',
+                            'Nulidad de acto jurídico'
+                        )
+                    "
                 >
-                    Actos jurídicos
+
+                    <span class="suggestion-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            aria-hidden="true"
+                        >
+
+                            <rect
+                                x="5"
+                                y="4"
+                                width="14"
+                                height="16"
+                                rx="2"
+                            />
+
+                            <path
+                                d="M8 8h8"
+                            />
+
+                            <path
+                                d="M8 12h5"
+                            />
+
+                            <path
+                                d="M8 16h7"
+                            />
+
+                        </svg>
+
+                    </span>
+
+                    <span>
+                        Actos jurídicos
+                    </span>
+
                 </button>
 
 
                 <button
                     type="button"
-                    class="nova-search-suggestion"
-                    @click="$emit('suggestion', 'Casación laboral')"
+                    class="suggestion-button"
+                    @click="
+                        $emit(
+                            'suggestion',
+                            'Casación laboral'
+                        )
+                    "
                 >
-                    Casaciones
+
+                    <span class="suggestion-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            aria-hidden="true"
+                        >
+
+                            <path
+                                d="M5 4h14"
+                            />
+
+                            <path
+                                d="M7 4v4"
+                            />
+
+                            <path
+                                d="M17 4v4"
+                            />
+
+                            <path
+                                d="M7 8h10"
+                            />
+
+                            <path
+                                d="M9 12h6"
+                            />
+
+                            <path
+                                d="M8 16h8"
+                            />
+
+                            <path
+                                d="M10 20h4"
+                            />
+
+                        </svg>
+
+                    </span>
+
+                    <span>
+                        Casaciones
+                    </span>
+
                 </button>
 
 
                 <button
                     type="button"
-                    class="nova-search-suggestion"
-                    @click="$emit('suggestion', 'Derechos fundamentales')"
+                    class="suggestion-button"
+                    @click="
+                        $emit(
+                            'suggestion',
+                            'Derechos fundamentales'
+                        )
+                    "
                 >
-                    Derechos fundamentales
+
+                    <span class="suggestion-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            aria-hidden="true"
+                        >
+
+                            <circle
+                                cx="12"
+                                cy="12"
+                                r="8"
+                            />
+
+                            <path
+                                d="M12 8v8"
+                            />
+
+                            <path
+                                d="M8 12h8"
+                            />
+
+                        </svg>
+
+                    </span>
+
+                    <span>
+                        Derechos fundamentales
+                    </span>
+
                 </button>
 
             </div>
+
+        </div>
+
+
+        <!-- ===================================================
+             FIRMA INSTITUCIONAL
+        ==================================================== -->
+
+        <div class="empty-footer">
+
+            <span class="footer-mark"></span>
+
+            <span>
+                Búsqueda jurídica inteligente
+            </span>
 
         </div>
 
@@ -130,6 +345,10 @@
 
 import { computed } from "vue"
 
+
+/* =========================================================
+   PROPS
+========================================================= */
 
 const props = defineProps({
 
@@ -172,12 +391,20 @@ const props = defineProps({
 })
 
 
+/* =========================================================
+   EVENTOS
+========================================================= */
+
 defineEmits([
 
     "suggestion"
 
 ])
 
+
+/* =========================================================
+   TEXTOS DINÁMICOS
+========================================================= */
 
 const eyebrowText = computed(() => {
 
@@ -244,9 +471,11 @@ const descriptionText = computed(() => {
 
 .nova-search-empty-state{
 
+    position:relative;
+
     width:100%;
 
-    min-height:430px;
+    min-height:450px;
 
     display:flex;
 
@@ -256,28 +485,31 @@ const descriptionText = computed(() => {
 
     justify-content:center;
 
-    padding:52px 32px;
+    padding:56px 34px 42px;
 
     text-align:center;
+
+    overflow:hidden;
 
     background:
 
         linear-gradient(
-            135deg,
+            145deg,
             #FFFFFF 0%,
-            #FBFCFE 100%
+            #FCFDFE 58%,
+            #F7F9FC 100%
         );
 
     border:
 
         1px solid
-        #DCE4EC;
+        #D8E1EB;
 
     border-radius:14px;
 
     box-shadow:
 
-        0 10px 28px
+        0 10px 30px
         rgba(
             23,
             55,
@@ -289,14 +521,50 @@ const descriptionText = computed(() => {
 
 
 /* =======================================================
+   DETALLE SUPERIOR
+======================================================= */
+
+.nova-search-empty-state::before{
+
+    content:"";
+
+    position:absolute;
+
+    top:0;
+
+    left:50%;
+
+    width:180px;
+
+    height:1px;
+
+    transform:translateX(-50%);
+
+    background:
+
+        linear-gradient(
+            90deg,
+            transparent,
+            #B08A4C,
+            transparent
+        );
+
+    opacity:.65;
+
+}
+
+
+/* =======================================================
    EMBLEMA
 ======================================================= */
 
-.nova-search-empty-emblem{
+.empty-emblem{
 
-    width:82px;
+    position:relative;
 
-    height:82px;
+    width:88px;
+
+    height:88px;
 
     display:flex;
 
@@ -304,7 +572,7 @@ const descriptionText = computed(() => {
 
     justify-content:center;
 
-    margin-bottom:24px;
+    margin-bottom:25px;
 
     border-radius:50%;
 
@@ -315,21 +583,54 @@ const descriptionText = computed(() => {
             176,
             138,
             76,
-            .42
+            .38
         );
 
     background:
 
-        #FCFDFE;
+        radial-gradient(
+            circle,
+            rgba(
+                176,
+                138,
+                76,
+                .055
+            ) 0%,
+            transparent 68%
+        );
 
 }
 
 
-.nova-search-empty-emblem-inner{
+/* Anillo interior */
 
-    width:64px;
+.empty-emblem-ring{
 
-    height:64px;
+    position:absolute;
+
+    inset:7px;
+
+    border-radius:50%;
+
+    border:
+
+        1px solid
+        #E7EDF3;
+
+}
+
+
+/* Centro */
+
+.empty-emblem-inner{
+
+    position:relative;
+
+    z-index:1;
+
+    width:62px;
+
+    height:62px;
 
     display:flex;
 
@@ -339,18 +640,39 @@ const descriptionText = computed(() => {
 
     border-radius:50%;
 
-    background:#F4F7FA;
+    background:
+
+        linear-gradient(
+            145deg,
+            #F7F9FB,
+            #F1F5F9
+        );
+
+    border:
+
+        1px solid
+        #DFE7EF;
 
     color:#315C97;
+
+    box-shadow:
+
+        0 4px 12px
+        rgba(
+            23,
+            55,
+            94,
+            .045
+        );
 
 }
 
 
-.nova-search-empty-emblem-inner svg{
+.empty-emblem-inner svg{
 
-    width:29px;
+    width:28px;
 
-    height:29px;
+    height:28px;
 
 }
 
@@ -359,31 +681,33 @@ const descriptionText = computed(() => {
    CONTENIDO
 ======================================================= */
 
-.nova-search-empty-content{
+.empty-content{
 
-    max-width:620px;
+    width:100%;
+
+    max-width:670px;
 
 }
 
 
-.nova-search-empty-eyebrow{
+.empty-eyebrow{
 
     display:block;
 
-    margin-bottom:10px;
+    margin-bottom:9px;
 
     color:#7A6440;
 
-    font-size:.66rem;
+    font-size:.65rem;
 
     font-weight:800;
 
-    letter-spacing:1.5px;
+    letter-spacing:1.55px;
 
 }
 
 
-.nova-search-empty-content h2{
+.empty-content h2{
 
     margin:0 0 12px;
 
@@ -392,10 +716,12 @@ const descriptionText = computed(() => {
     font-family:
 
         Georgia,
+
         "Times New Roman",
+
         serif;
 
-    font-size:1.55rem;
+    font-size:1.58rem;
 
     font-weight:600;
 
@@ -404,15 +730,17 @@ const descriptionText = computed(() => {
 }
 
 
-.nova-search-empty-content p{
+.empty-content p{
 
-    margin:0;
+    max-width:620px;
 
-    color:#697888;
+    margin:0 auto;
 
-    font-size:.92rem;
+    color:#687889;
 
-    line-height:1.8;
+    font-size:.91rem;
+
+    line-height:1.82;
 
 }
 
@@ -421,15 +749,15 @@ const descriptionText = computed(() => {
    SUGERENCIAS
 ======================================================= */
 
-.nova-search-suggestions{
+.empty-suggestions{
 
     width:100%;
 
-    max-width:650px;
+    max-width:700px;
 
-    margin-top:30px;
+    margin-top:31px;
 
-    padding-top:24px;
+    padding-top:22px;
 
     border-top:
 
@@ -439,24 +767,50 @@ const descriptionText = computed(() => {
 }
 
 
-.nova-search-suggestions-label{
+/* Encabezado */
 
-    display:block;
+.suggestions-heading{
 
-    margin-bottom:13px;
+    display:flex;
 
-    color:#95A1AD;
+    align-items:center;
 
-    font-size:.6rem;
+    justify-content:center;
 
-    font-weight:800;
+    gap:10px;
 
-    letter-spacing:1px;
+    margin-bottom:14px;
 
 }
 
 
-.nova-search-suggestions-list{
+.suggestions-label{
+
+    color:#8B98A6;
+
+    font-size:.59rem;
+
+    font-weight:800;
+
+    letter-spacing:1.15px;
+
+}
+
+
+.suggestions-line{
+
+    width:24px;
+
+    height:1px;
+
+    background:#D6DFE8;
+
+}
+
+
+/* Lista */
+
+.suggestions-list{
 
     display:flex;
 
@@ -469,23 +823,38 @@ const descriptionText = computed(() => {
 }
 
 
-.nova-search-suggestion{
+/* =======================================================
+   BOTONES DE SUGERENCIA
+======================================================= */
+
+.suggestion-button{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:7px;
+
+    min-height:35px;
 
     padding:
 
-        8px
-        13px;
+        7px
 
-    background:#FFFFFF;
+        13px;
 
     border:
 
         1px solid
-        #D7E0E9;
+        #D7E1EA;
 
-    border-radius:999px;
+    border-radius:8px;
+
+    background:#FFFFFF;
 
     color:#315C97;
+
+    font-family:inherit;
 
     font-size:.72rem;
 
@@ -493,9 +862,19 @@ const descriptionText = computed(() => {
 
     cursor:pointer;
 
+    box-shadow:
+
+        0 2px 7px
+        rgba(
+            23,
+            55,
+            94,
+            .025
+        );
+
     transition:
 
-        background
+        transform
         .2s
         ease,
 
@@ -503,24 +882,22 @@ const descriptionText = computed(() => {
         .2s
         ease,
 
+        background
+        .2s
+        ease,
+
         color
         .2s
         ease,
 
-        transform
+        box-shadow
         .2s
         ease;
 
 }
 
 
-.nova-search-suggestion:hover{
-
-    background:#F6F8FB;
-
-    border-color:#B08A4C;
-
-    color:#17375E;
+.suggestion-button:hover{
 
     transform:
 
@@ -528,63 +905,338 @@ const descriptionText = computed(() => {
             -1px
         );
 
+    background:#F8FAFC;
+
+    border-color:#B8C9DB;
+
+    color:#17375E;
+
+    box-shadow:
+
+        0 5px 13px
+        rgba(
+            23,
+            55,
+            94,
+            .055
+        );
+
+}
+
+
+.suggestion-button:focus-visible{
+
+    outline:
+
+        2px solid
+        rgba(
+            49,
+            92,
+            151,
+            .28
+        );
+
+    outline-offset:2px;
+
 }
 
 
 /* =======================================================
-   RESPONSIVE
+   ICONOS DE SUGERENCIAS
 ======================================================= */
 
-@media(max-width:640px){
+.suggestion-icon{
+
+    width:22px;
+
+    height:22px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    border-radius:6px;
+
+    background:#F4F7FA;
+
+    border:
+
+        1px solid
+        #E1E8EF;
+
+    color:#315C97;
+
+}
+
+
+.suggestion-icon svg{
+
+    width:13px;
+
+    height:13px;
+
+}
+
+
+/* =======================================================
+   FOOTER
+======================================================= */
+
+.empty-footer{
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    gap:8px;
+
+    margin-top:27px;
+
+    color:#9AA5B1;
+
+    font-size:.64rem;
+
+    font-weight:600;
+
+    letter-spacing:.15px;
+
+}
+
+
+.footer-mark{
+
+    width:16px;
+
+    height:1px;
+
+    background:#B08A4C;
+
+    opacity:.75;
+
+}
+
+
+/* =======================================================
+   MODO SIN RESULTADOS
+======================================================= */
+
+.nova-search-empty-state:has(
+    .empty-eyebrow
+){
+
+    /* Mantiene la misma identidad visual
+       para estado inicial y no-results */
+
+}
+
+
+/* =======================================================
+   RESPONSIVE — TABLET
+======================================================= */
+
+@media(max-width:760px){
 
     .nova-search-empty-state{
 
-        min-height:380px;
+        min-height:420px;
 
-        padding:42px 22px;
+        padding:
+
+            48px
+            26px
+            38px;
 
     }
 
 
-    .nova-search-empty-emblem{
+    .empty-emblem{
+
+        width:80px;
+
+        height:80px;
+
+        margin-bottom:22px;
+
+    }
+
+
+    .empty-emblem-inner{
+
+        width:57px;
+
+        height:57px;
+
+    }
+
+
+    .empty-emblem-inner svg{
+
+        width:26px;
+
+        height:26px;
+
+    }
+
+
+    .empty-content h2{
+
+        font-size:1.4rem;
+
+    }
+
+
+    .empty-content p{
+
+        font-size:.88rem;
+
+    }
+
+
+    .empty-suggestions{
+
+        margin-top:27px;
+
+    }
+
+}
+
+
+/* =======================================================
+   RESPONSIVE — MÓVIL
+======================================================= */
+
+@media(max-width:576px){
+
+    .nova-search-empty-state{
+
+        min-height:390px;
+
+        padding:
+
+            40px
+            18px
+            32px;
+
+        border-radius:11px;
+
+    }
+
+
+    .empty-emblem{
 
         width:72px;
 
         height:72px;
 
-    }
-
-
-    .nova-search-empty-emblem-inner{
-
-        width:56px;
-
-        height:56px;
+        margin-bottom:20px;
 
     }
 
 
-    .nova-search-empty-content h2{
+    .empty-emblem-ring{
 
-        font-size:1.3rem;
+        inset:6px;
 
     }
 
 
-    .nova-search-suggestions-list{
+    .empty-emblem-inner{
+
+        width:52px;
+
+        height:52px;
+
+    }
+
+
+    .empty-emblem-inner svg{
+
+        width:23px;
+
+        height:23px;
+
+    }
+
+
+    .empty-eyebrow{
+
+        font-size:.6rem;
+
+        letter-spacing:1.3px;
+
+    }
+
+
+    .empty-content h2{
+
+        margin-bottom:10px;
+
+        font-size:1.24rem;
+
+        line-height:1.4;
+
+    }
+
+
+    .empty-content p{
+
+        font-size:.84rem;
+
+        line-height:1.75;
+
+    }
+
+
+    .empty-suggestions{
+
+        margin-top:24px;
+
+        padding-top:19px;
+
+    }
+
+
+    .suggestions-heading{
+
+        margin-bottom:12px;
+
+    }
+
+
+    .suggestions-list{
 
         flex-direction:column;
 
         align-items:stretch;
 
+        gap:7px;
+
     }
 
 
-    .nova-search-suggestion{
+    .suggestion-button{
 
         width:100%;
+
+        justify-content:center;
+
+        min-height:38px;
+
+    }
+
+
+    .empty-footer{
+
+        margin-top:22px;
+
+        font-size:.6rem;
 
     }
 
 }
+
 </style>

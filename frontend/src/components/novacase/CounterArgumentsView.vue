@@ -1,92 +1,299 @@
 <template>
 
-<section class="counter-view">
+    <section class="counter-view">
 
-    <header class="counter-header">
+        <!-- =====================================================
+             CABECERA
+        ====================================================== -->
 
-        <div>
+        <header class="counter-header">
 
-            <h2>
+            <div class="counter-heading">
 
-                Contraargumentos
+                <div class="counter-eyebrow">
 
-            </h2>
+                    <span class="eyebrow-line"></span>
 
-            <p>
+                    ANÁLISIS ADVERSARIAL
 
-                Posibles argumentos que podría plantear la parte contraria durante el proceso.
+                </div>
 
-            </p>
-
-        </div>
-
-    </header>
-
-    <div class="counter-grid">
-
-        <AnalysisSection
-
-            v-for="argument in counterArguments"
-
-            :key="argument.id"
-
-            :title="argument.title"
-
-            :subtitle="argument.subtitle"
-
-            :icon="argument.icon"
-
-            :content="argument.content"
-
-            :confidence="argument.confidence"
-
-            :status="argument.status"
-
-        />
-
-    </div>
-
-    <section class="counter-summary">
-
-        <header class="summary-header">
-
-            <div>
-
-                <h3>
-
-                    Evaluación Estratégica
-
-                </h3>
+                <h2>
+                    Contraargumentos
+                </h2>
 
                 <p>
-
-                    Síntesis de los principales escenarios de defensa que podrían presentarse.
-
+                    Identificación de posibles argumentos, objeciones y
+                    posiciones que podría plantear la parte contraria
+                    durante el proceso.
                 </p>
+
+            </div>
+
+            <div class="counter-status">
+
+                <span class="status-dot"></span>
+
+                <span>
+                    Análisis completado
+                </span>
 
             </div>
 
         </header>
 
-        <MarkdownRenderer
 
-            :content="summary"
+        <!-- =====================================================
+             INTRODUCCIÓN
+        ====================================================== -->
 
-        />
+        <section class="counter-intro">
+
+            <div class="intro-icon">
+
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    aria-hidden="true"
+                >
+
+                    <path d="M12 3v18" />
+
+                    <path d="M5 6h14" />
+
+                    <path
+                        d="M7 6l-3 6a3 3 0 0 0 6 0L7 6Z"
+                    />
+
+                    <path
+                        d="M17 6l-3 6a3 3 0 0 0 6 0l-3-6Z"
+                    />
+
+                    <path d="M8 21h8" />
+
+                </svg>
+
+            </div>
+
+            <div class="intro-content">
+
+                <strong>
+                    Perspectiva de la contraparte
+                </strong>
+
+                <span>
+                    NovaCase analiza posibles posiciones adversas para
+                    anticipar argumentos y fortalecer la estrategia jurídica.
+                </span>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             MATRIZ DE CONTRAARGUMENTOS
+        ====================================================== -->
+
+        <section class="counter-analysis">
+
+            <header class="counter-section-header">
+
+                <div>
+
+                    <span class="section-kicker">
+                        MATRIZ DE ANÁLISIS
+                    </span>
+
+                    <h3>
+                        Principales posiciones adversariales
+                    </h3>
+
+                </div>
+
+                <div class="analysis-count">
+
+                    <strong>
+                        {{ counterArguments.length }}
+                    </strong>
+
+                    <span>
+                        áreas analizadas
+                    </span>
+
+                </div>
+
+            </header>
+
+
+            <div class="counter-grid">
+
+                <AnalysisSection
+                    v-for="argument in counterArguments"
+                    :key="argument.id"
+                    :title="argument.title"
+                    :subtitle="argument.subtitle"
+                    :icon="argument.icon"
+                    :content="argument.content"
+                    :confidence="argument.confidence"
+                    :status="argument.status"
+                />
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             RESUMEN ESTRATÉGICO
+        ====================================================== -->
+
+        <section class="counter-summary">
+
+            <header class="summary-header">
+
+                <div class="summary-heading">
+
+                    <div class="summary-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            aria-hidden="true"
+                        >
+
+                            <circle
+                                cx="12"
+                                cy="12"
+                                r="8"
+                            />
+
+                            <path d="M8 12h8" />
+
+                            <path d="M12 8v8" />
+
+                        </svg>
+
+                    </div>
+
+                    <div>
+
+                        <span class="section-kicker">
+                            SÍNTESIS DEL ANÁLISIS
+                        </span>
+
+                        <h3>
+                            Evaluación Estratégica
+                        </h3>
+
+                        <p>
+                            Síntesis de los principales escenarios de defensa
+                            que podrían presentarse frente al caso analizado.
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="summary-label">
+
+                    <span class="summary-label-dot"></span>
+
+                    NOVACASE
+
+                </div>
+
+            </header>
+
+
+            <div class="summary-body">
+
+                <MarkdownRenderer
+                    :content="summary"
+                />
+
+            </div>
+
+
+            <footer class="summary-footer">
+
+                <div class="summary-footer-label">
+
+                    <span class="footer-line"></span>
+
+                    LECTURA ESTRATÉGICA
+
+                </div>
+
+                <span class="footer-note">
+                    Evaluación generada a partir de la información
+                    disponible del caso.
+                </span>
+
+            </footer>
+
+        </section>
+
+
+        <!-- =====================================================
+             AVISO PROFESIONAL
+        ====================================================== -->
+
+        <aside class="counter-disclaimer">
+
+            <div class="disclaimer-icon">
+
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    aria-hidden="true"
+                >
+
+                    <circle
+                        cx="12"
+                        cy="12"
+                        r="9"
+                    />
+
+                    <path d="M12 10v6" />
+
+                    <path d="M12 7.5h.01" />
+
+                </svg>
+
+            </div>
+
+            <p>
+                Los contraargumentos identificados representan escenarios
+                posibles y deben ser evaluados junto con las circunstancias
+                específicas del caso y el criterio profesional.
+            </p>
+
+        </aside>
 
     </section>
 
-</section>
-
 </template>
+
 
 <script setup>
 
 import { computed } from "vue"
 
-import AnalysisSection from "@/components/common/AnalysisSection.vue"
 
-import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue"
+import AnalysisSection
+    from "@/components/common/AnalysisSection.vue"
+
+
+import MarkdownRenderer
+    from "@/components/common/MarkdownRenderer.vue"
+
 
 const props = defineProps({
 
@@ -100,6 +307,11 @@ const props = defineProps({
 
 })
 
+
+/* ============================================================
+   CONTRAARGUMENTOS
+============================================================ */
+
 const counterArguments = computed(() => [
 
     {
@@ -108,7 +320,8 @@ const counterArguments = computed(() => [
 
         title: "Excepciones Procesales",
 
-        subtitle: "Posibles cuestionamientos al procedimiento",
+        subtitle:
+            "Posibles cuestionamientos al procedimiento",
 
         icon: "⚖️",
 
@@ -124,13 +337,15 @@ const counterArguments = computed(() => [
 
     },
 
+
     {
 
         id: "evidence",
 
         title: "Cuestionamiento Probatorio",
 
-        subtitle: "Debilidades que podrían alegarse sobre la evidencia",
+        subtitle:
+            "Debilidades que podrían alegarse sobre la evidencia",
 
         icon: "📄",
 
@@ -146,13 +361,15 @@ const counterArguments = computed(() => [
 
     },
 
+
     {
 
         id: "legal",
 
         title: "Interpretación Jurídica",
 
-        subtitle: "Normas que podrían ser interpretadas en contra",
+        subtitle:
+            "Normas que podrían ser interpretadas en contra",
 
         icon: "📚",
 
@@ -168,13 +385,15 @@ const counterArguments = computed(() => [
 
     },
 
+
     {
 
         id: "jurisprudence",
 
         title: "Jurisprudencia Contraria",
 
-        subtitle: "Precedentes favorables a la contraparte",
+        subtitle:
+            "Precedentes favorables a la contraparte",
 
         icon: "🏛️",
 
@@ -192,6 +411,11 @@ const counterArguments = computed(() => [
 
 ])
 
+
+/* ============================================================
+   RESUMEN
+============================================================ */
+
 const summary = computed(() =>
 
     props.counterArguments.summary ||
@@ -204,413 +428,1153 @@ NovaCase no encontró una evaluación estratégica disponible para este caso.`
 
 </script>
 
+
 <style scoped>
 
-.counter-view{
+/* =========================================================
+   NOVACASE — CONTRAARGUMENTOS
+========================================================= */
 
-    display:flex;
+.counter-view {
 
-    flex-direction:column;
+    display: flex;
 
-    gap:32px;
+    flex-direction: column;
 
-    padding:32px;
+    gap: 28px;
 
-    border-radius:24px;
+    padding: 32px;
+
+    box-sizing: border-box;
 
     background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    box-shadow: 0 8px 24px rgba(15, 39, 71, 0.06);
 
-}
+    border: 1px solid #DCE5EE;
 
-.counter-header{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:flex-start;
-
-    gap:20px;
-
-    border-bottom:1px solid rgba(255,255,255,.08);
-
-    padding-bottom:24px;
-
-}
-
-.counter-header h2{
-
-    margin:0;
-
-    color:#F8FAFC;
-
-    font-size:1.8rem;
-
-    font-weight:700;
-
-}
-
-.counter-header p{
-
-    margin-top:8px;
-
-    color:#94A3B8;
-
-    line-height:1.7;
-
-}
-
-.counter-grid{
-
-    display:grid;
-
-    grid-template-columns:
-
-        repeat(
-
-            auto-fit,
-
-            minmax(
-
-                420px,
-
-                1fr
-
-            )
-
-        );
-
-    gap:24px;
-
-}
-
-.counter-summary{
-
-    border-radius:20px;
-
-    background:rgba(255,255,255,.03);
-
-    border:1px solid rgba(255,255,255,.06);
-
-    overflow:hidden;
-
-}
-
-.summary-header{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:flex-start;
-
-    gap:20px;
-
-    padding:24px;
-
-    border-bottom:1px solid rgba(255,255,255,.06);
-
-}
-
-.summary-header h3{
-
-    margin:0;
-
-    color:#F8FAFC;
-
-    font-size:1.2rem;
-
-    font-weight:700;
-
-}
-
-.summary-header p{
-
-    margin-top:8px;
-
-    color:#94A3B8;
-
-    line-height:1.6;
-
-}
-
-.counter-summary :deep(.markdown-body){
-
-    padding:24px;
-
-}
-
-.counter-summary:hover{
-
-    border-color:rgba(37,99,235,.35);
+    border-radius: 18px;
 
     box-shadow:
+        0 8px 24px
+        rgba(23, 55, 94, .055);
 
-        0 12px 28px rgba(37,99,235,.12);
+    color: #17375E;
 
-    transition:
-
-        all .25s ease;
+    animation:
+        counterAppear
+        .45s
+        ease-out;
 
 }
 
-.counter-grid > *{
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.counter-header {
+
+    display: flex;
+
+    align-items: flex-end;
+
+    justify-content: space-between;
+
+    gap: 24px;
+
+    padding-bottom: 22px;
+
+    border-bottom:
+        1px solid #DCE5EE;
+
+}
+
+
+.counter-heading {
+
+    min-width: 0;
+
+}
+
+
+.counter-eyebrow {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    margin-bottom: 9px;
+
+    color: #8A6A36;
+
+    font-size: .58rem;
+
+    font-weight: 800;
+
+    letter-spacing: 1.35px;
+
+}
+
+
+.eyebrow-line {
+
+    width: 22px;
+
+    height: 1px;
+
+    flex-shrink: 0;
+
+    background: #B08A4C;
+
+}
+
+
+.counter-header h2 {
+
+    margin: 0;
+
+    color: #17375E;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: 1.55rem;
+
+    font-weight: 600;
+
+    line-height: 1.3;
+
+    letter-spacing: -.25px;
+
+}
+
+
+.counter-header p {
+
+    max-width: 780px;
+
+    margin: 8px 0 0;
+
+    color: #718090;
+
+    font-size: .81rem;
+
+    line-height: 1.7;
+
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.counter-status {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    flex-shrink: 0;
+
+    min-height: 31px;
+
+    padding:
+        0
+        12px;
+
+    background: #F7FAF8;
+
+    border:
+        1px solid #D8E7DD;
+
+    border-radius: 999px;
+
+    color: #587161;
+
+    font-size: .61rem;
+
+    font-weight: 800;
+
+    letter-spacing: .05em;
+
+}
+
+
+.status-dot {
+
+    width: 6px;
+
+    height: 6px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #668B70;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(102, 139, 112, .10);
+
+}
+
+
+/* =========================================================
+   INTRODUCCIÓN
+========================================================= */
+
+.counter-intro {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 14px;
+
+    padding:
+        16px
+        18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #FCFDFE 0%,
+            #F6F9FC 100%
+        );
+
+    border:
+        1px solid #DCE5EE;
+
+    border-left:
+        3px solid #B08A4C;
+
+    border-radius: 11px;
+
+}
+
+
+.intro-icon {
+
+    width: 38px;
+
+    height: 38px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    background: #FCF9F4;
+
+    border:
+        1px solid
+        rgba(176, 138, 76, .30);
+
+    border-radius: 9px;
+
+    color: #8A6A36;
+
+}
+
+
+.intro-icon svg {
+
+    width: 19px;
+
+    height: 19px;
+
+}
+
+
+.intro-content {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+
+}
+
+
+.intro-content strong {
+
+    color: #304C6C;
+
+    font-size: .78rem;
+
+    font-weight: 800;
+
+}
+
+
+.intro-content span {
+
+    color: #718090;
+
+    font-size: .75rem;
+
+    line-height: 1.6;
+
+}
+
+
+/* =========================================================
+   SECCIÓN DE ANÁLISIS
+========================================================= */
+
+.counter-analysis {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 17px;
+
+}
+
+
+.counter-section-header {
+
+    display: flex;
+
+    align-items: flex-end;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+}
+
+
+.section-kicker {
+
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #8A6A36;
+
+    font-size: .56rem;
+
+    font-weight: 800;
+
+    letter-spacing: 1.25px;
+
+}
+
+
+.counter-section-header h3 {
+
+    margin: 0;
+
+    color: #17375E;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: 1.05rem;
+
+    font-weight: 600;
+
+    line-height: 1.35;
+
+}
+
+
+/* =========================================================
+   CONTADOR
+========================================================= */
+
+.analysis-count {
+
+    display: inline-flex;
+
+    align-items: baseline;
+
+    gap: 5px;
+
+    padding:
+        7px
+        10px;
+
+    background: #F7F9FB;
+
+    border:
+        1px solid #DCE5EE;
+
+    border-radius: 8px;
+
+    color: #8A97A5;
+
+    font-size: .62rem;
+
+    white-space: nowrap;
+
+}
+
+
+.analysis-count strong {
+
+    color: #315C97;
+
+    font-size: .76rem;
+
+    font-weight: 800;
+
+}
+
+
+/* =========================================================
+   GRID
+========================================================= */
+
+.counter-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+
+    gap: 18px;
+
+}
+
+
+.counter-grid > * {
+
+    min-width: 0;
 
     transition:
-
         transform .25s ease,
-
         box-shadow .25s ease;
 
-}
-
-.counter-grid > *:hover{
-
-    transform:translateY(-4px);
-
-}
-
-/* =====================================================
-   RESPONSIVE
-===================================================== */
-
-@media (max-width:1200px){
-
-    .counter-grid{
-
-        grid-template-columns:1fr;
-
-    }
-
-}
-
-@media (max-width:992px){
-
-    .counter-view{
-
-        padding:26px;
-
-    }
-
-}
-
-@media (max-width:768px){
-
-    .counter-view{
-
-        padding:20px;
-
-        gap:24px;
-
-    }
-
-    .counter-header{
-
-        flex-direction:column;
-
-        align-items:flex-start;
-
-        gap:18px;
-
-    }
-
-    .summary-header{
-
-        flex-direction:column;
-
-        align-items:flex-start;
-
-        gap:16px;
-
-    }
-
-    .counter-summary :deep(.markdown-body){
-
-        padding:20px;
-
-    }
-
-}
-
-@media (max-width:576px){
-
-    .counter-view{
-
-        padding:16px;
-
-    }
-
-    .counter-header h2{
-
-        font-size:1.45rem;
-
-    }
-
-    .counter-header p{
-
-        font-size:.9rem;
-
-    }
-
-    .summary-header{
-
-        padding:18px;
-
-    }
-
-    .counter-summary :deep(.markdown-body){
-
-        padding:18px;
-
-    }
-
-}
-
-/* =====================================================
-   ANIMACIONES
-===================================================== */
-
-.counter-view{
-
     animation:
-
-        counterFadeIn
-
-        .45s ease;
-
-}
-
-.counter-header{
-
-    animation:
-
-        headerSlideDown
-
-        .45s ease;
-
-}
-
-.counter-grid > *{
-
-    animation:
-
         cardAppear
-
-        .55s ease;
-
-}
-
-.counter-grid > *:nth-child(2){
-
-    animation-delay:.05s;
+        .5s
+        ease-out
+        both;
 
 }
 
-.counter-grid > *:nth-child(3){
 
-    animation-delay:.10s;
+.counter-grid > *:nth-child(2) {
 
-}
-
-.counter-grid > *:nth-child(4){
-
-    animation-delay:.15s;
+    animation-delay: .06s;
 
 }
 
-.counter-summary{
+
+.counter-grid > *:nth-child(3) {
+
+    animation-delay: .12s;
+
+}
+
+
+.counter-grid > *:nth-child(4) {
+
+    animation-delay: .18s;
+
+}
+
+
+.counter-grid > *:hover {
+
+    transform:
+        translateY(-2px);
+
+}
+
+
+/* =========================================================
+   RESUMEN ESTRATÉGICO
+========================================================= */
+
+.counter-summary {
+
+    overflow: hidden;
+
+    background: #FFFFFF;
+
+    border:
+        1px solid #DCE5EE;
+
+    border-radius: 14px;
+
+    box-shadow:
+        0 5px 16px
+        rgba(23, 55, 94, .035);
 
     animation:
-
         summaryAppear
-
-        .70s ease;
-
-}
-
-.counter-summary:hover{
-
-    transform:translateY(-2px);
+        .55s
+        ease-out
+        both;
 
 }
 
-@keyframes counterFadeIn{
 
-    from{
+.summary-header {
 
-        opacity:0;
+    display: flex;
 
-        transform:translateY(18px);
+    align-items: center;
 
-    }
+    justify-content: space-between;
 
-    to{
+    gap: 20px;
 
-        opacity:1;
+    padding:
+        18px
+        20px;
 
-        transform:translateY(0);
+    background:
+        linear-gradient(
+            180deg,
+            #FFFFFF 0%,
+            #FBFCFD 100%
+        );
+
+    border-bottom:
+        1px solid #DCE5EE;
+
+}
+
+
+.summary-heading {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    min-width: 0;
+
+}
+
+
+.summary-icon {
+
+    width: 36px;
+
+    height: 36px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    background: #FCF9F4;
+
+    border:
+        1px solid
+        rgba(176, 138, 76, .30);
+
+    border-radius: 9px;
+
+    color: #8A6A36;
+
+}
+
+
+.summary-icon svg {
+
+    width: 18px;
+
+    height: 18px;
+
+}
+
+
+.summary-header h3 {
+
+    margin: 0;
+
+    color: #17375E;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: 1.05rem;
+
+    font-weight: 600;
+
+}
+
+
+.summary-header p {
+
+    max-width: 700px;
+
+    margin: 4px 0 0;
+
+    color: #718090;
+
+    font-size: .75rem;
+
+    line-height: 1.55;
+
+}
+
+
+.summary-label {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    flex-shrink: 0;
+
+    color: #8A97A5;
+
+    font-size: .57rem;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+
+}
+
+
+.summary-label-dot {
+
+    width: 5px;
+
+    height: 5px;
+
+    border-radius: 50%;
+
+    background: #B08A4C;
+
+}
+
+
+/* =========================================================
+   CUERPO DEL RESUMEN
+========================================================= */
+
+.summary-body {
+
+    padding:
+        23px
+        24px;
+
+}
+
+
+.counter-summary :deep(.markdown-body) {
+
+    color: #334C66;
+
+}
+
+
+.counter-summary :deep(.markdown-body h1),
+.counter-summary :deep(.markdown-body h2),
+.counter-summary :deep(.markdown-body h3) {
+
+    color: #17375E;
+
+}
+
+
+.counter-summary :deep(.markdown-body strong) {
+
+    color: #304C6C;
+
+}
+
+
+/* =========================================================
+   FOOTER DEL RESUMEN
+========================================================= */
+
+.summary-footer {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding:
+        12px
+        20px;
+
+    background: #F7F9FB;
+
+    border-top:
+        1px solid #DCE5EE;
+
+}
+
+
+.summary-footer-label {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    color: #304C6C;
+
+    font-size: .57rem;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+
+}
+
+
+.footer-line {
+
+    width: 17px;
+
+    height: 1px;
+
+    background: #B08A4C;
+
+}
+
+
+.footer-note {
+
+    color: #8A97A5;
+
+    font-size: .62rem;
+
+}
+
+
+/* =========================================================
+   DISCLAIMER
+========================================================= */
+
+.counter-disclaimer {
+
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 10px;
+
+    padding:
+        12px
+        14px;
+
+    background: #FAFBFC;
+
+    border:
+        1px solid #E1E7ED;
+
+    border-radius: 9px;
+
+}
+
+
+.disclaimer-icon {
+
+    width: 20px;
+
+    height: 20px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    color: #8A97A5;
+
+}
+
+
+.disclaimer-icon svg {
+
+    width: 17px;
+
+    height: 17px;
+
+}
+
+
+.counter-disclaimer p {
+
+    margin: 0;
+
+    color: #7A8794;
+
+    font-size: .65rem;
+
+    line-height: 1.6;
+
+}
+
+
+/* =========================================================
+   RESPONSIVE — 1100 PX
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .counter-grid {
+
+        grid-template-columns: 1fr;
 
     }
 
 }
 
-@keyframes headerSlideDown{
 
-    from{
+/* =========================================================
+   RESPONSIVE — 900 PX
+========================================================= */
 
-        opacity:0;
+@media (max-width: 900px) {
 
-        transform:translateY(-12px);
+    .counter-view {
 
-    }
-
-    to{
-
-        opacity:1;
-
-        transform:translateY(0);
+        padding: 26px;
 
     }
 
-}
 
-@keyframes cardAppear{
+    .counter-header {
 
-    from{
+        align-items: flex-start;
 
-        opacity:0;
-
-        transform:translateY(16px);
+        flex-direction: column;
 
     }
 
-    to{
 
-        opacity:1;
+    .counter-status {
 
-        transform:translateY(0);
+        align-self: flex-start;
 
     }
 
 }
 
-@keyframes summaryAppear{
 
-    from{
+/* =========================================================
+   RESPONSIVE — 700 PX
+========================================================= */
 
-        opacity:0;
+@media (max-width: 700px) {
 
-        transform:translateY(20px);
+    .counter-view {
+
+        gap: 24px;
+
+        padding: 21px;
+
+        border-radius: 15px;
 
     }
 
-    to{
 
-        opacity:1;
+    .counter-header h2 {
 
-        transform:translateY(0);
+        font-size: 1.4rem;
+
+    }
+
+
+    .counter-header p {
+
+        font-size: .77rem;
+
+    }
+
+
+    .counter-intro {
+
+        align-items: flex-start;
+
+    }
+
+
+    .counter-section-header {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 10px;
+
+    }
+
+
+    .summary-header {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        padding: 18px;
+
+    }
+
+
+    .summary-label {
+
+        margin-left: 48px;
+
+    }
+
+
+    .summary-body {
+
+        padding: 20px;
+
+    }
+
+
+    .summary-footer {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 8px;
+
+        padding:
+            13px
+            18px;
+
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE — 480 PX
+========================================================= */
+
+@media (max-width: 480px) {
+
+    .counter-view {
+
+        padding: 17px;
+
+        gap: 20px;
+
+    }
+
+
+    .counter-header {
+
+        padding-bottom: 19px;
+
+    }
+
+
+    .counter-header h2 {
+
+        font-size: 1.3rem;
+
+    }
+
+
+    .counter-header p {
+
+        font-size: .74rem;
+
+    }
+
+
+    .counter-intro {
+
+        padding:
+            14px;
+
+    }
+
+
+    .intro-icon {
+
+        width: 35px;
+
+        height: 35px;
+
+    }
+
+
+    .intro-content strong {
+
+        font-size: .74rem;
+
+    }
+
+
+    .intro-content span {
+
+        font-size: .71rem;
+
+    }
+
+
+    .counter-grid {
+
+        gap: 14px;
+
+    }
+
+
+    .summary-heading {
+
+        align-items: flex-start;
+
+    }
+
+
+    .summary-header h3 {
+
+        font-size: .98rem;
+
+    }
+
+
+    .summary-label {
+
+        margin-left: 0;
+
+    }
+
+
+    .summary-body {
+
+        padding: 17px;
+
+    }
+
+
+    .counter-disclaimer {
+
+        padding:
+            11px
+            12px;
+
+    }
+
+}
+
+
+/* =========================================================
+   ANIMACIONES
+========================================================= */
+
+@keyframes counterAppear {
+
+    from {
+
+        opacity: 0;
+
+        transform:
+            translateY(10px);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform:
+            translateY(0);
+
+    }
+
+}
+
+
+@keyframes cardAppear {
+
+    from {
+
+        opacity: 0;
+
+        transform:
+            translateY(12px);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform:
+            translateY(0);
+
+    }
+
+}
+
+
+@keyframes summaryAppear {
+
+    from {
+
+        opacity: 0;
+
+        transform:
+            translateY(12px);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform:
+            translateY(0);
+
+    }
+
+}
+
+
+/* =========================================================
+   REDUCIR MOVIMIENTO
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .counter-view,
+    .counter-grid > *,
+    .counter-summary {
+
+        animation: none;
+
+        transition: none;
 
     }
 

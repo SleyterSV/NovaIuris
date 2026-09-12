@@ -10,26 +10,16 @@
 
             <div class="simulation-heading">
 
-                <div class="section-eyebrow">
+                <span class="section-eyebrow">
 
-                    <span class="eyebrow-icon">
+                    NOVACOURT · SIMULACIÓN JUDICIAL
 
-                        ⚖️
-
-                    </span>
-
-                    <span>
-
-                        NOVACOURT · SIMULACIÓN JUDICIAL
-
-                    </span>
-
-                </div>
+                </span>
 
 
                 <h2>
 
-                    Escenarios y Proyección Judicial
+                    Escenarios y proyección judicial
 
                 </h2>
 
@@ -39,9 +29,9 @@
 
                 <p>
 
-                    Evaluación de los posibles escenarios del caso,
-                    sus argumentos principales y la proyección estimada
-                    del desarrollo judicial.
+                    Evaluación estructurada de los posibles escenarios
+                    del caso, sus factores determinantes y la proyección
+                    estimada de su desarrollo judicial.
 
                 </p>
 
@@ -56,7 +46,9 @@
 
                 <span class="status-dot"></span>
 
-                {{ status }}
+                <span>
+                    {{ status }}
+                </span>
 
             </div>
 
@@ -72,10 +64,21 @@
             class="simulation-loading"
         >
 
-            <div class="loading-spinner"></div>
+            <div class="loading-indicator">
+
+                <div class="loading-spinner"></div>
+
+            </div>
 
 
-            <div>
+            <div class="loading-content">
+
+                <span class="loading-label">
+
+                    PROCESAMIENTO JUDICIAL
+
+                </span>
+
 
                 <strong>
 
@@ -84,12 +87,13 @@
                 </strong>
 
 
-                <span>
+                <p>
 
                     NovaCourt está evaluando posibles argumentos,
-                    respuestas y resultados del escenario jurídico.
+                    respuestas y resultados dentro del escenario
+                    jurídico planteado.
 
-                </span>
+                </p>
 
             </div>
 
@@ -104,12 +108,12 @@
 
 
             <!-- =================================================
-                 RESUMEN GENERAL
+                 RESULTADO GENERAL
             ================================================== -->
 
             <section class="simulation-overview">
 
-                <div class="overview-main">
+                <div class="overview-result">
 
                     <span class="overview-label">
 
@@ -120,7 +124,11 @@
 
                     <strong class="overview-value">
 
-                        {{ simulation.resultado || "En evaluación" }}
+                        {{
+                            simulation.resultado
+                            ||
+                            "En evaluación"
+                        }}
 
                     </strong>
 
@@ -140,7 +148,11 @@
 
                         <strong>
 
-                            {{ simulation.probabilidad || "--" }}
+                            {{
+                                simulation.probabilidad
+                                ||
+                                "--"
+                            }}
 
                         </strong>
 
@@ -158,7 +170,11 @@
 
                         <strong>
 
-                            {{ simulation.riesgo || "--" }}
+                            {{
+                                simulation.riesgo
+                                ||
+                                "--"
+                            }}
 
                         </strong>
 
@@ -175,16 +191,23 @@
 
             <section
                 v-if="scenarios.length"
-                class="scenarios-section"
+                class="simulation-section"
             >
 
-                <div class="section-header">
+                <header class="section-header">
 
-                    <div>
+                    <span class="section-index">
+
+                        I
+
+                    </span>
+
+
+                    <div class="section-heading-content">
 
                         <h3>
 
-                            Escenarios Evaluados
+                            Escenarios evaluados
 
                         </h3>
 
@@ -201,7 +224,7 @@
 
                     </div>
 
-                </div>
+                </header>
 
 
                 <div class="scenarios-list">
@@ -217,14 +240,16 @@
 
                         <div class="scenario-number">
 
-                            {{ index + 1 }}
+                            {{
+                                String(index + 1).padStart(2, "0")
+                            }}
 
                         </div>
 
 
                         <div class="scenario-content">
 
-                            <div class="scenario-top">
+                            <div class="scenario-heading">
 
                                 <h4>
 
@@ -298,21 +323,28 @@
 
 
             <!-- =================================================
-                 ARGUMENTOS PRINCIPALES
+                 FACTORES Y ARGUMENTOS
             ================================================== -->
 
             <section
                 v-if="argumentsList.length"
-                class="arguments-section"
+                class="simulation-section"
             >
 
-                <div class="section-header">
+                <header class="section-header">
 
-                    <div>
+                    <span class="section-index">
+
+                        II
+
+                    </span>
+
+
+                    <div class="section-heading-content">
 
                         <h3>
 
-                            Factores y Argumentos Relevantes
+                            Factores y argumentos relevantes
 
                         </h3>
 
@@ -329,7 +361,7 @@
 
                     </div>
 
-                </div>
+                </header>
 
 
                 <div class="arguments-list">
@@ -343,14 +375,16 @@
                         class="argument-item"
                     >
 
-                        <div class="argument-icon">
+                        <div class="argument-number">
 
-                            ⚖️
+                            {{
+                                String(index + 1).padStart(2, "0")
+                            }}
 
                         </div>
 
 
-                        <div>
+                        <div class="argument-content">
 
                             <strong>
 
@@ -392,23 +426,23 @@
 
             <section
                 v-if="simulation.conclusion"
-                class="simulation-conclusion"
+                class="simulation-section conclusion-section"
             >
 
-                <div class="conclusion-header">
+                <header class="section-header">
 
-                    <div class="conclusion-number">
+                    <span class="section-index">
 
-                        V
+                        III
 
-                    </div>
+                    </span>
 
 
-                    <div>
+                    <div class="section-heading-content">
 
                         <h3>
 
-                            Conclusión de la Simulación
+                            Conclusión de la simulación
 
                         </h3>
 
@@ -425,7 +459,7 @@
 
                     </div>
 
-                </div>
+                </header>
 
 
                 <div class="conclusion-content">
@@ -442,13 +476,20 @@
 
 
         <!-- =====================================================
-             EMPTY STATE
+             ESTADO VACÍO
         ====================================================== -->
 
         <div
             v-else
             class="simulation-empty"
         >
+
+            <span class="empty-eyebrow">
+
+                NOVACOURT · PROYECCIÓN JUDICIAL
+
+            </span>
+
 
             <div class="empty-symbol">
 
@@ -471,7 +512,7 @@
 
                 Cuando ejecutes el análisis del caso, NovaCourt
                 mostrará aquí los escenarios judiciales, factores
-                relevantes y posibles resultados.
+                relevantes y posibles resultados de la simulación.
 
             </p>
 
@@ -485,12 +526,11 @@
 <script setup>
 
 import {
-
     computed
-
 } from "vue"
 
-import MarkdownRenderer from "../common/MarkdownRenderer.vue"
+import MarkdownRenderer
+    from "../common/MarkdownRenderer.vue"
 
 
 /* =====================================================
@@ -507,6 +547,7 @@ const props = defineProps({
 
     },
 
+
     loading: {
 
         type: Boolean,
@@ -515,6 +556,7 @@ const props = defineProps({
 
     },
 
+
     status: {
 
         type: String,
@@ -522,6 +564,7 @@ const props = defineProps({
         default: ""
 
     },
+
 
     statusType: {
 
@@ -541,9 +584,7 @@ const props = defineProps({
 const hasSimulation = computed(() => {
 
     return Object.keys(
-
         props.simulation
-
     ).length > 0
 
 })
@@ -551,7 +592,9 @@ const hasSimulation = computed(() => {
 
 const scenarios = computed(() => {
 
-    return props.simulation.escenarios
+    return (
+
+        props.simulation.escenarios
 
         ||
 
@@ -561,12 +604,16 @@ const scenarios = computed(() => {
 
         []
 
+    )
+
 })
 
 
 const argumentsList = computed(() => {
 
-    return props.simulation.argumentos
+    return (
+
+        props.simulation.argumentos
 
         ||
 
@@ -576,14 +623,16 @@ const argumentsList = computed(() => {
 
         []
 
+    )
+
 })
 
 
-const statusClass = computed(() =>
+const statusClass = computed(() => {
 
-    `status-${props.statusType}`
+    return `status-${props.statusType}`
 
-)
+})
 
 </script>
 
@@ -591,9 +640,22 @@ const statusClass = computed(() =>
 <style scoped>
 
 /* =====================================================
-   NOVACOURT SIMULATION
-   ESTILO JURÍDICO · EDITORIAL · INSTITUCIONAL
-   AZUL SOBRIO · JERARQUÍA · SIN EFECTO DASHBOARD
+   NOVACOURT · SIMULACIÓN JUDICIAL
+
+   IDENTIDAD VISUAL
+
+   JURÍDICA
+   INSTITUCIONAL
+   EDITORIAL
+   SOBRIA
+
+   PALETA
+
+   Azul principal  #17375E
+   Azul secundario #315C97
+   Dorado          #B08A4C
+   Fondo           #FFFFFF
+   Texto           #24364A
 ===================================================== */
 
 
@@ -607,19 +669,20 @@ const statusClass = computed(() =>
 
     box-sizing: border-box;
 
-    padding: 42px 48px 48px;
+    margin: 0;
 
-    background: transparent;
+    padding:
+        42px
+        48px
+        48px;
 
-    border: none;
-
-    box-shadow: none;
+    background: #FFFFFF;
 
 }
 
 
 /* =====================================================
-   HEADER
+   ENCABEZADO
 ===================================================== */
 
 .simulation-header {
@@ -634,14 +697,20 @@ const statusClass = computed(() =>
 
     padding-bottom: 30px;
 
-    border-bottom: 1px solid #D7DEE6;
+    border-bottom:
+        1px solid
+        #D9E0E8;
 
 }
 
 
 .simulation-heading {
 
+    flex: 1;
+
     min-width: 0;
+
+    max-width: 900px;
 
 }
 
@@ -652,54 +721,34 @@ const statusClass = computed(() =>
 
 .section-eyebrow {
 
-    display: inline-flex;
+    display: block;
 
-    align-items: center;
-
-    gap: 8px;
-
-    margin-bottom: 18px;
+    margin-bottom: 16px;
 
     color: #315C97;
 
-    font-size: .69rem;
+    font-size: .68rem;
 
     font-weight: 700;
 
-    letter-spacing: 1.2px;
+    letter-spacing: 1.45px;
 
-}
-
-
-.eyebrow-icon {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    color: #315C97;
-
-    font-size: .9rem;
-
-    line-height: 1;
+    line-height: 1.2;
 
 }
 
 
 /* =====================================================
-   TÍTULO
+   TÍTULO PRINCIPAL
 ===================================================== */
 
 .simulation-heading h2 {
 
     margin: 0;
 
-    color: #102238;
+    color: #17375E;
 
     font-family:
-
         Georgia,
         "Times New Roman",
         serif;
@@ -710,22 +759,24 @@ const statusClass = computed(() =>
 
     line-height: 1.25;
 
-    letter-spacing: -.3px;
+    letter-spacing: -.25px;
 
 }
 
 
 /* =====================================================
-   ACENTO EDITORIAL
+   ACENTO
 ===================================================== */
 
 .title-accent {
 
-    width: 44px;
+    width: 46px;
 
     height: 2px;
 
-    margin: 19px 0 17px;
+    margin:
+        18px
+        0;
 
     background: #315C97;
 
@@ -738,11 +789,11 @@ const statusClass = computed(() =>
 
 .simulation-heading p {
 
-    max-width: 800px;
+    max-width: 820px;
 
     margin: 0;
 
-    color: #596575;
+    color: #5E6D7E;
 
     font-size: .97rem;
 
@@ -756,7 +807,7 @@ const statusClass = computed(() =>
 
 
 /* =====================================================
-   STATUS
+   ESTADO
 ===================================================== */
 
 .simulation-status {
@@ -765,21 +816,27 @@ const statusClass = computed(() =>
 
     align-items: center;
 
-    gap: 8px;
+    gap: 9px;
 
     flex-shrink: 0;
 
-    margin-top: 4px;
+    margin-top: 3px;
 
-    padding-bottom: 7px;
+    padding:
+        8px
+        0;
 
-    border-bottom: 1px solid currentColor;
+    border-bottom:
+        1px solid
+        currentColor;
 
     font-size: .75rem;
 
     font-weight: 700;
 
-    letter-spacing: .02em;
+    line-height: 1.4;
+
+    white-space: nowrap;
 
 }
 
@@ -790,12 +847,16 @@ const statusClass = computed(() =>
 
     height: 7px;
 
+    flex-shrink: 0;
+
     border-radius: 50%;
 
 }
 
 
-/* Procesando */
+/* =====================================================
+   STATUS · PROCESSING
+===================================================== */
 
 .status-processing {
 
@@ -808,39 +869,67 @@ const statusClass = computed(() =>
 
     background: #315C97;
 
-    animation: pulse 1.5s infinite;
+    animation:
+        pulse
+        1.5s
+        ease-in-out
+        infinite;
 
 }
 
 
-/* Completado */
+/* =====================================================
+   STATUS · COMPLETED
+===================================================== */
 
-.status-completed {
+.status-completed,
+.status-success {
 
-    color: #2E6B52;
-
-}
-
-
-.status-completed .status-dot {
-
-    background: #2E6B52;
+    color: #35664B;
 
 }
 
 
-/* Error */
+.status-completed .status-dot,
+.status-success .status-dot {
+
+    background: #4D8A66;
+
+}
+
+
+/* =====================================================
+   STATUS · WARNING
+===================================================== */
+
+.status-warning {
+
+    color: #8B6A2F;
+
+}
+
+
+.status-warning .status-dot {
+
+    background: #B08A4C;
+
+}
+
+
+/* =====================================================
+   STATUS · ERROR
+===================================================== */
 
 .status-error {
 
-    color: #9B3D3D;
+    color: #9B3A3A;
 
 }
 
 
 .status-error .status-dot {
 
-    background: #B94A48;
+    background: #B94A4A;
 
 }
 
@@ -853,70 +942,124 @@ const statusClass = computed(() =>
 
     display: flex;
 
-    align-items: center;
+    align-items: flex-start;
 
     gap: 20px;
 
-    min-height: 180px;
+    min-height: 150px;
 
-    padding: 34px 0;
+    padding:
+        30px
+        0;
 
-    border-bottom: 1px solid #D7DEE6;
+    border-bottom:
+        1px solid
+        #E1E6EC;
+
+}
+
+
+.loading-indicator {
+
+    width: 42px;
+
+    height: 42px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border:
+        1px solid
+        #D4DDE6;
 
 }
 
 
 .loading-spinner {
 
-    width: 30px;
+    width: 20px;
 
-    height: 30px;
+    height: 20px;
 
-    flex-shrink: 0;
+    border:
+        2px solid
+        #DCE4EC;
 
-    border: 2px solid #D7DEE6;
-
-    border-top-color: #315C97;
+    border-top-color:
+        #315C97;
 
     border-radius: 50%;
 
-    animation: spin .9s linear infinite;
+    animation:
+        spin
+        .85s
+        linear
+        infinite;
 
 }
 
 
-.simulation-loading strong {
+.loading-content {
 
-    display: block;
+    display: flex;
 
-    margin-bottom: 7px;
+    flex-direction: column;
 
-    color: #102238;
+    gap: 6px;
 
-    font-size: .98rem;
+    padding-top: 1px;
+
+}
+
+
+.loading-label {
+
+    color: #315C97;
+
+    font-size: .65rem;
 
     font-weight: 700;
 
+    letter-spacing: 1.25px;
+
 }
 
 
-.simulation-loading span {
+.loading-content strong {
 
-    display: block;
+    color: #17375E;
 
-    max-width: 600px;
+    font-size: .97rem;
 
-    color: #647080;
+    font-weight: 700;
 
-    font-size: .91rem;
+    line-height: 1.5;
 
-    line-height: 1.7;
+}
+
+
+.loading-content p {
+
+    max-width: 620px;
+
+    margin: 0;
+
+    color: #647487;
+
+    font-size: .9rem;
+
+    line-height: 1.75;
 
 }
 
 
 /* =====================================================
-   RESUMEN GENERAL
+   RESULTADO GENERAL
 ===================================================== */
 
 .simulation-overview {
@@ -924,9 +1067,8 @@ const statusClass = computed(() =>
     display: grid;
 
     grid-template-columns:
-
         minmax(0, 1.5fr)
-        minmax(260px, .8fr);
+        minmax(280px, .85fr);
 
     gap: 42px;
 
@@ -934,14 +1076,18 @@ const statusClass = computed(() =>
 
     padding-bottom: 36px;
 
-    border-bottom: 1px solid #D7DEE6;
+    border-bottom:
+        1px solid
+        #D9E0E8;
 
 }
 
 
-/* Resultado principal */
+/* =====================================================
+   RESULTADO PRINCIPAL
+===================================================== */
 
-.overview-main {
+.overview-result {
 
     position: relative;
 
@@ -950,7 +1096,7 @@ const statusClass = computed(() =>
 }
 
 
-.overview-main::before {
+.overview-result::before {
 
     content: "";
 
@@ -958,9 +1104,9 @@ const statusClass = computed(() =>
 
     top: 3px;
 
-    left: 0;
-
     bottom: 3px;
+
+    left: 0;
 
     width: 2px;
 
@@ -973,17 +1119,17 @@ const statusClass = computed(() =>
 
     display: block;
 
-    margin-bottom: 11px;
+    margin-bottom: 9px;
 
-    color: #6B7888;
+    color: #6F7C8B;
 
-    font-size: .71rem;
+    font-size: .69rem;
 
     font-weight: 700;
 
-    text-transform: uppercase;
+    letter-spacing: 1.15px;
 
-    letter-spacing: 1.1px;
+    text-transform: uppercase;
 
 }
 
@@ -992,46 +1138,56 @@ const statusClass = computed(() =>
 
     display: block;
 
-    color: #102238;
+    color: #17375E;
 
     font-family:
-
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size: 1.55rem;
+    font-size: 1.5rem;
 
     font-weight: 500;
 
-    line-height: 1.5;
+    line-height: 1.45;
 
 }
 
 
-/* Métricas */
+/* =====================================================
+   MÉTRICAS
+===================================================== */
 
 .overview-metrics {
 
     display: grid;
 
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns:
+        1fr
+        1fr;
 
-    border-left: 1px solid #D7DEE6;
+    border-left:
+        1px solid
+        #D9E0E8;
 
 }
 
 
 .overview-metric {
 
-    padding: 0 22px;
+    padding:
+        2px
+        22px;
 
 }
 
 
-.overview-metric + .overview-metric {
+.overview-metric
+    + .overview-metric {
 
-    border-left: 1px solid #D7DEE6;
+    border-left:
+        1px solid
+        #D9E0E8;
 
 }
 
@@ -1040,13 +1196,13 @@ const statusClass = computed(() =>
 
     display: block;
 
-    margin-bottom: 9px;
+    margin-bottom: 8px;
 
-    color: #7A8594;
+    color: #7A8795;
 
-    font-size: .71rem;
+    font-size: .68rem;
 
-    font-weight: 600;
+    font-weight: 700;
 
     line-height: 1.5;
 
@@ -1055,11 +1211,13 @@ const statusClass = computed(() =>
 
 .overview-metric strong {
 
-    color: #17375E;
+    color: #315C97;
 
     font-size: 1.08rem;
 
     font-weight: 700;
+
+    line-height: 1.4;
 
 }
 
@@ -1068,39 +1226,71 @@ const statusClass = computed(() =>
    SECCIONES
 ===================================================== */
 
-.scenarios-section,
-
-.arguments-section,
-
-.simulation-conclusion {
+.simulation-section {
 
     margin-top: 40px;
 
 }
 
 
+/* =====================================================
+   CABECERA DE SECCIÓN
+===================================================== */
+
 .section-header {
+
+    display: grid;
+
+    grid-template-columns:
+        48px
+        minmax(0, 1fr);
+
+    gap: 18px;
 
     margin-bottom: 24px;
 
 }
 
 
-.section-header h3,
+.section-index {
 
-.conclusion-header h3 {
-
-    margin: 0;
-
-    color: #102238;
+    color: #B08A4C;
 
     font-family:
-
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size: 1.45rem;
+    font-size: .82rem;
+
+    font-weight: 600;
+
+    letter-spacing: .1em;
+
+    line-height: 1.4;
+
+}
+
+
+.section-heading-content {
+
+    min-width: 0;
+
+}
+
+
+.section-header h3 {
+
+    margin: 0;
+
+    color: #17375E;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: 1.42rem;
 
     font-weight: 500;
 
@@ -1115,22 +1305,25 @@ const statusClass = computed(() =>
 
     height: 2px;
 
-    margin: 14px 0;
+    margin:
+        13px
+        0
+        12px;
 
     background: #315C97;
 
 }
 
 
-.section-header p,
+.section-header p {
 
-.conclusion-header p {
+    max-width: 760px;
 
     margin: 0;
 
-    color: #647080;
+    color: #647487;
 
-    font-size: .92rem;
+    font-size: .91rem;
 
     line-height: 1.75;
 
@@ -1139,12 +1332,13 @@ const statusClass = computed(() =>
 
 /* =====================================================
    ESCENARIOS
-   LISTADO EDITORIAL, NO CARDS
 ===================================================== */
 
 .scenarios-list {
 
-    border-top: 1px solid #D7DEE6;
+    border-top:
+        1px solid
+        #D9E0E8;
 
 }
 
@@ -1153,36 +1347,72 @@ const statusClass = computed(() =>
 
     display: grid;
 
-    grid-template-columns: 58px minmax(0, 1fr);
+    grid-template-columns:
+        58px
+        minmax(0, 1fr);
 
     gap: 20px;
 
-    padding: 28px 0;
+    padding:
+        27px
+        0;
 
-    border-bottom: 1px solid #D7DEE6;
+    border-bottom:
+        1px solid
+        #D9E0E8;
+
+    transition:
+        padding-left
+        .22s
+        ease,
+
+        background
+        .22s
+        ease;
+
+}
+
+
+.scenario-item:hover {
+
+    padding-left: 8px;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(
+                23,
+                55,
+                94,
+                .035
+            ),
+            rgba(
+                23,
+                55,
+                94,
+                0
+            ) 72%
+        );
 
 }
 
 
 .scenario-number {
 
-    width: 38px;
+    color: #B08A4C;
 
-    height: 38px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    color: #315C97;
-
-    border: 1px solid #AEBFD0;
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
 
     font-size: .82rem;
 
-    font-weight: 700;
+    font-weight: 600;
+
+    letter-spacing: .08em;
+
+    line-height: 1.5;
 
 }
 
@@ -1194,7 +1424,7 @@ const statusClass = computed(() =>
 }
 
 
-.scenario-top {
+.scenario-heading {
 
     display: flex;
 
@@ -1207,13 +1437,13 @@ const statusClass = computed(() =>
 }
 
 
-.scenario-top h4 {
+.scenario-heading h4 {
 
     margin: 0;
 
-    color: #102238;
+    color: #24364A;
 
-    font-size: 1.03rem;
+    font-size: 1rem;
 
     font-weight: 700;
 
@@ -1228,9 +1458,11 @@ const statusClass = computed(() =>
 
     color: #315C97;
 
-    font-size: .76rem;
+    font-size: .74rem;
 
     font-weight: 700;
+
+    letter-spacing: .02em;
 
     white-space: nowrap;
 
@@ -1241,11 +1473,14 @@ const statusClass = computed(() =>
 
     max-width: 850px;
 
-    margin: 11px 0 0;
+    margin:
+        10px
+        0
+        0;
 
-    color: #596575;
+    color: #5E6D7E;
 
-    font-size: .92rem;
+    font-size: .91rem;
 
     line-height: 1.8;
 
@@ -1258,24 +1493,24 @@ const statusClass = computed(() =>
 
     align-items: baseline;
 
-    gap: 12px;
+    gap: 11px;
 
-    margin-top: 16px;
+    margin-top: 14px;
 
 }
 
 
 .scenario-result span {
 
-    color: #7A8594;
+    color: #7A8795;
 
-    font-size: .69rem;
+    font-size: .65rem;
 
     font-weight: 700;
 
-    text-transform: uppercase;
+    letter-spacing: .85px;
 
-    letter-spacing: .8px;
+    text-transform: uppercase;
 
 }
 
@@ -1284,19 +1519,22 @@ const statusClass = computed(() =>
 
     color: #17375E;
 
-    font-size: .9rem;
+    font-size: .87rem;
+
+    font-weight: 700;
 
 }
 
 
 /* =====================================================
    ARGUMENTOS
-   LISTADO JURÍDICO
 ===================================================== */
 
 .arguments-list {
 
-    border-top: 1px solid #D7DEE6;
+    border-top:
+        1px solid
+        #D9E0E8;
 
 }
 
@@ -1305,60 +1543,107 @@ const statusClass = computed(() =>
 
     display: grid;
 
-    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-columns:
+        48px
+        minmax(0, 1fr);
 
-    gap: 17px;
+    gap: 18px;
 
-    padding: 22px 0;
+    padding:
+        22px
+        0;
 
-    border-bottom: 1px solid #D7DEE6;
+    border-bottom:
+        1px solid
+        #D9E0E8;
 
-}
+    transition:
+        padding-left
+        .22s
+        ease,
 
-
-.argument-icon {
-
-    width: 30px;
-
-    height: 30px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    color: #315C97;
-
-    font-size: 1rem;
+        background
+        .22s
+        ease;
 
 }
 
 
-.argument-item strong {
+.argument-item:hover {
+
+    padding-left: 8px;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(
+                23,
+                55,
+                94,
+                .035
+            ),
+            rgba(
+                23,
+                55,
+                94,
+                0
+            ) 72%
+        );
+
+}
+
+
+.argument-number {
+
+    color: #B08A4C;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: .8rem;
+
+    font-weight: 600;
+
+    letter-spacing: .08em;
+
+}
+
+
+.argument-content {
+
+    min-width: 0;
+
+}
+
+
+.argument-content strong {
 
     display: block;
 
     margin-bottom: 7px;
 
-    color: #102238;
+    color: #24364A;
 
-    font-size: .96rem;
+    font-size: .95rem;
 
     font-weight: 700;
+
+    line-height: 1.5;
 
 }
 
 
-.argument-item p {
+.argument-content p {
 
     max-width: 850px;
 
     margin: 0;
 
-    color: #647080;
+    color: #647487;
 
-    font-size: .9rem;
+    font-size: .89rem;
 
     line-height: 1.75;
 
@@ -1369,63 +1654,29 @@ const statusClass = computed(() =>
    CONCLUSIÓN
 ===================================================== */
 
-.simulation-conclusion {
+.conclusion-section {
 
-    padding-top: 4px;
-
-}
-
-
-.conclusion-header {
-
-    display: grid;
-
-    grid-template-columns: 54px minmax(0, 1fr);
-
-    gap: 18px;
-
-    padding-bottom: 26px;
-
-    border-bottom: 1px solid #D7DEE6;
-
-}
-
-
-.conclusion-number {
-
-    width: 40px;
-
-    height: 40px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    color: #315C97;
-
-    border: 1px solid #AEBFD0;
-
-    font-family:
-
-        Georgia,
-        "Times New Roman",
-        serif;
-
-    font-size: .95rem;
+    padding-top: 2px;
 
 }
 
 
 .conclusion-content {
 
-    padding-top: 26px;
+    padding:
+        26px
+        0
+        4px;
+
+    border-top:
+        1px solid
+        #D9E0E8;
 
 }
 
 
-.simulation-conclusion :deep(.markdown-container) {
+.conclusion-content
+    :deep(.markdown-container) {
 
     padding: 0;
 
@@ -1433,7 +1684,7 @@ const statusClass = computed(() =>
 
 
 /* =====================================================
-   EMPTY STATE
+   ESTADO VACÍO
 ===================================================== */
 
 .simulation-empty {
@@ -1446,32 +1697,52 @@ const statusClass = computed(() =>
 
     justify-content: center;
 
-    min-height: 320px;
+    min-height: 300px;
 
-    padding: 50px 30px;
+    padding:
+        48px
+        25px;
 
     text-align: center;
 
-    border-top: 1px solid #D7DEE6;
+    border-top:
+        1px solid
+        #D9E0E8;
 
-    border-bottom: 1px solid #D7DEE6;
+    border-bottom:
+        1px solid
+        #D9E0E8;
+
+}
+
+
+.empty-eyebrow {
+
+    margin-bottom: 17px;
+
+    color: #315C97;
+
+    font-size: .65rem;
+
+    font-weight: 700;
+
+    letter-spacing: 1.3px;
 
 }
 
 
 .empty-symbol {
 
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 
     color: #315C97;
 
     font-family:
-
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size: 2.1rem;
+    font-size: 2rem;
 
     line-height: 1;
 
@@ -1482,17 +1753,18 @@ const statusClass = computed(() =>
 
     margin: 0;
 
-    color: #102238;
+    color: #17375E;
 
     font-family:
-
         Georgia,
         "Times New Roman",
         serif;
 
-    font-size: 1.45rem;
+    font-size: 1.4rem;
 
     font-weight: 500;
+
+    line-height: 1.35;
 
 }
 
@@ -1503,7 +1775,9 @@ const statusClass = computed(() =>
 
     height: 2px;
 
-    margin: 16px 0;
+    margin:
+        15px
+        0;
 
     background: #315C97;
 
@@ -1516,9 +1790,9 @@ const statusClass = computed(() =>
 
     margin: 0;
 
-    color: #647080;
+    color: #647487;
 
-    font-size: .93rem;
+    font-size: .91rem;
 
     line-height: 1.8;
 
@@ -1533,7 +1807,8 @@ const statusClass = computed(() =>
 
     to {
 
-        transform: rotate(360deg);
+        transform:
+            rotate(360deg);
 
     }
 
@@ -1542,9 +1817,11 @@ const statusClass = computed(() =>
 
 @keyframes pulse {
 
-    0% {
+    0%,
+    100% {
 
-        transform: scale(1);
+        transform:
+            scale(1);
 
         opacity: 1;
 
@@ -1552,17 +1829,10 @@ const statusClass = computed(() =>
 
     50% {
 
-        transform: scale(1.25);
+        transform:
+            scale(1.35);
 
         opacity: .55;
-
-    }
-
-    100% {
-
-        transform: scale(1);
-
-        opacity: 1;
 
     }
 
@@ -1570,14 +1840,17 @@ const statusClass = computed(() =>
 
 
 /* =====================================================
-   RESPONSIVE
+   RESPONSIVE · TABLET
 ===================================================== */
 
 @media (max-width: 900px) {
 
     .court-simulation {
 
-        padding: 36px 28px 40px;
+        padding:
+            36px
+            30px
+            40px;
 
     }
 
@@ -1586,27 +1859,39 @@ const statusClass = computed(() =>
 
         flex-direction: column;
 
-        gap: 18px;
+        gap: 20px;
+
+    }
+
+
+    .simulation-status {
+
+        align-self: flex-start;
+
+        margin-top: 0;
 
     }
 
 
     .simulation-overview {
 
-        grid-template-columns: 1fr;
+        grid-template-columns:
+            1fr;
 
-        gap: 30px;
+        gap: 28px;
 
     }
 
 
     .overview-metrics {
 
-        border-top: 1px solid #D7DEE6;
+        padding-top: 24px;
+
+        border-top:
+            1px solid
+            #D9E0E8;
 
         border-left: none;
-
-        padding-top: 24px;
 
     }
 
@@ -1620,50 +1905,134 @@ const statusClass = computed(() =>
 }
 
 
-@media (max-width: 600px) {
+/* =====================================================
+   RESPONSIVE · MOBILE
+===================================================== */
+
+@media (max-width: 576px) {
 
     .court-simulation {
 
-        padding: 30px 20px 34px;
+        padding:
+            28px
+            20px
+            32px;
+
+    }
+
+
+    .simulation-header {
+
+        padding-bottom: 24px;
+
+    }
+
+
+    .section-eyebrow {
+
+        margin-bottom: 13px;
+
+        font-size: .63rem;
+
+        letter-spacing: 1.3px;
 
     }
 
 
     .simulation-heading h2 {
 
-        font-size: 1.6rem;
+        font-size: 1.55rem;
 
     }
 
 
     .simulation-heading p {
 
-        font-size: .91rem;
+        font-size: .9rem;
 
         line-height: 1.75;
 
     }
 
 
+    .simulation-status {
+
+        font-size: .71rem;
+
+    }
+
+
+    .simulation-loading {
+
+        gap: 15px;
+
+        min-height: 135px;
+
+        padding:
+            24px
+            0;
+
+    }
+
+
+    .loading-indicator {
+
+        width: 38px;
+
+        height: 38px;
+
+    }
+
+
+    .loading-spinner {
+
+        width: 18px;
+
+        height: 18px;
+
+    }
+
+
+    .loading-content strong {
+
+        font-size: .91rem;
+
+    }
+
+
+    .loading-content p {
+
+        font-size: .86rem;
+
+        line-height: 1.7;
+
+    }
+
+
     .simulation-overview {
 
-        margin-top: 30px;
+        margin-top: 28px;
+
+        padding-bottom: 28px;
 
     }
 
 
     .overview-value {
 
-        font-size: 1.3rem;
+        font-size: 1.28rem;
 
     }
 
 
     .overview-metrics {
 
-        grid-template-columns: 1fr;
+        grid-template-columns:
+            1fr;
 
-        gap: 20px;
+        gap: 18px;
+
+        padding-top: 20px;
 
     }
 
@@ -1675,62 +2044,181 @@ const statusClass = computed(() =>
     }
 
 
-    .overview-metric + .overview-metric {
+    .overview-metric
+        + .overview-metric {
 
-        padding-top: 20px;
+        padding-top: 18px;
 
-        border-top: 1px solid #D7DEE6;
+        border-top:
+            1px solid
+            #D9E0E8;
 
         border-left: none;
 
     }
 
 
-    .scenario-item {
+    .simulation-section {
 
-        grid-template-columns: 42px minmax(0, 1fr);
+        margin-top: 32px;
+
+    }
+
+
+    .section-header {
+
+        grid-template-columns:
+            36px
+            minmax(0, 1fr);
 
         gap: 14px;
 
-        padding: 24px 0;
+        margin-bottom: 20px;
 
     }
 
 
-    .scenario-top {
+    .section-header h3 {
+
+        font-size: 1.27rem;
+
+    }
+
+
+    .section-header p {
+
+        font-size: .87rem;
+
+        line-height: 1.7;
+
+    }
+
+
+    .section-accent {
+
+        width: 30px;
+
+        margin:
+            12px
+            0;
+
+    }
+
+
+    .scenario-item {
+
+        grid-template-columns:
+            36px
+            minmax(0, 1fr);
+
+        gap: 13px;
+
+        padding:
+            22px
+            0;
+
+    }
+
+
+    .scenario-heading {
 
         flex-direction: column;
 
-        gap: 7px;
+        align-items: flex-start;
+
+        gap: 6px;
 
     }
 
 
-    .section-header h3,
+    .scenario-heading h4 {
 
-    .conclusion-header h3 {
-
-        font-size: 1.28rem;
+        font-size: .94rem;
 
     }
 
 
-    .simulation-loading {
+    .scenario-content > p {
+
+        font-size: .87rem;
+
+        line-height: 1.72;
+
+    }
+
+
+    .scenario-result {
+
+        flex-direction: column;
 
         align-items: flex-start;
 
-        min-height: 150px;
+        gap: 4px;
 
-        padding: 28px 0;
+    }
+
+
+    .argument-item {
+
+        grid-template-columns:
+            36px
+            minmax(0, 1fr);
+
+        gap: 13px;
+
+        padding:
+            19px
+            0;
+
+    }
+
+
+    .argument-content strong {
+
+        font-size: .91rem;
+
+    }
+
+
+    .argument-content p {
+
+        font-size: .86rem;
+
+        line-height: 1.7;
+
+    }
+
+
+    .conclusion-content {
+
+        padding-top: 22px;
 
     }
 
 
     .simulation-empty {
 
-        min-height: 260px;
+        min-height: 250px;
 
-        padding: 40px 20px;
+        padding:
+            38px
+            20px;
+
+    }
+
+
+    .simulation-empty h3 {
+
+        font-size: 1.25rem;
+
+    }
+
+
+    .simulation-empty p {
+
+        font-size: .87rem;
+
+        line-height: 1.7;
 
     }
 

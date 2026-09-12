@@ -2,38 +2,31 @@
 
 <section class="analysis-section">
 
+    <!-- =====================================================
+         CABECERA
+    ====================================================== -->
+
     <header class="section-header">
 
         <div class="section-title">
 
             <div
-
                 class="section-icon"
-
                 :style="{
-
                     background: iconBackground
-
                 }"
-
             >
-
                 {{ icon }}
-
             </div>
 
-            <div>
+            <div class="section-heading-content">
 
                 <h3>
-
                     {{ title }}
-
                 </h3>
 
                 <small>
-
                     {{ subtitle }}
-
                 </small>
 
             </div>
@@ -41,12 +34,11 @@
         </div>
 
         <span
-
             class="section-status"
-
             :class="status"
-
         >
+
+            <span class="status-dot"></span>
 
             {{ statusLabel }}
 
@@ -54,61 +46,78 @@
 
     </header>
 
+
+    <!-- =====================================================
+         CONTENIDO
+    ====================================================== -->
+
     <section class="section-body">
 
         <MarkdownRenderer
-
             :content="content"
-
         />
 
     </section>
+
+
+    <!-- =====================================================
+         PIE DE INFORMACIÓN
+    ====================================================== -->
 
     <footer class="section-footer">
 
         <div class="footer-left">
 
-            <div class="confidence-block">
+            <!-- Confianza -->
+
+            <div class="footer-item">
 
                 <span class="footer-label">
-
                     Nivel de confianza
-
                 </span>
 
-                <strong
+                <div class="confidence-row">
 
-                    class="confidence-value"
+                    <strong
+                        class="confidence-value"
+                        :style="{
+                            color: confidenceColor
+                        }"
+                    >
+                        {{ confidence }}%
+                    </strong>
 
-                    :style="{
+                    <div class="confidence-track">
 
-                        color: confidenceColor
+                        <div
+                            class="confidence-progress"
+                            :style="{
+                                width: `${confidence}%`,
+                                background: confidenceColor
+                            }"
+                        ></div>
 
-                    }"
+                    </div>
 
-                >
-
-                    {{ confidence }}%
-
-                </strong>
+                </div>
 
             </div>
 
-            <div class="status-block">
+
+            <!-- Estado -->
+
+            <div class="footer-item status-item">
 
                 <span class="footer-label">
-
                     Estado
-
                 </span>
 
                 <strong
-
                     class="status-value"
-
                     :class="status"
-
                 >
+
+                    <span class="status-indicator"></span>
 
                     {{ statusLabel }}
 
@@ -118,18 +127,17 @@
 
         </div>
 
+
+        <!-- Motor IA -->
+
         <div class="footer-right">
 
             <span class="footer-label">
-
-                Motor IA
-
+                Motor de análisis
             </span>
 
             <strong>
-
                 {{ engineName }}
-
             </strong>
 
         </div>
@@ -140,20 +148,20 @@
 
 </template>
 
+
 <script setup>
 
 import { computed } from "vue"
 
-import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue"
+import MarkdownRenderer
+    from "@/components/common/MarkdownRenderer.vue"
+
 
 const props = defineProps({
 
     title: {
-
         type: String,
-
         required: true
-
     },
 
     subtitle: {
@@ -162,70 +170,66 @@ const props = defineProps({
     },
 
     engineName: {
-    type: String,
-    default: "Nova Iuris AI"
+        type: String,
+        default: "Nova Iuris AI"
     },
 
     icon: {
-
         type: String,
-
         default: "📄"
-
     },
 
     content: {
-
         type: String,
-
         default: ""
-
     },
 
     confidence: {
-
         type: Number,
-
         default: 90
-
     },
 
     status: {
-
         type: String,
-
         default: "completed"
-
     }
 
 })
 
+
+/* ============================================================
+   ESTADO
+============================================================ */
+
 const statusLabel = computed(() => {
 
-    switch(props.status){
+    switch (props.status) {
 
         case "processing":
-
             return "Procesando"
 
         case "pending":
-
             return "Pendiente"
 
         case "error":
-
             return "Error"
 
         default:
-
             return "Completado"
 
     }
 
 })
 
+
+/* ============================================================
+   COLOR DEL ICONO
+============================================================ */
+
 const iconBackground = computed(() => {
+
     switch (props.status) {
+
         case "processing":
             return "#EFF6FF"
 
@@ -236,9 +240,16 @@ const iconBackground = computed(() => {
             return "#FEF2F2"
 
         default:
-            return "#F0FDF4"
+            return "#EFF6FF"
+
     }
+
 })
+
+
+/* ============================================================
+   COLOR DE CONFIANZA
+============================================================ */
 
 const confidenceColor = computed(() => {
 
@@ -251,569 +262,776 @@ const confidenceColor = computed(() => {
     }
 
     return "#B91C1C"
+
 })
 
 </script>
 
+
 <style scoped>
 
+/* ============================================================
+   VARIABLES VISUALES
+============================================================ */
+
 .analysis-section {
+
+    --nova-navy: #0F2747;
+
+    --nova-blue: #2563EB;
+
+    --nova-blue-dark: #1D4ED8;
+
+    --nova-blue-light: #EFF6FF;
+
+    --nova-blue-border: #BFDBFE;
+
+    --nova-text: #334155;
+
+    --nova-muted: #64748B;
+
+    --nova-subtle: #94A3B8;
+
+    --nova-border: #E2E8F0;
+
+    --nova-soft: #F8FAFC;
+
+    --nova-white: #FFFFFF;
+
     display: flex;
+
     flex-direction: column;
 
-    background: #FFFFFF;
-
-    border: 1px solid #E2E8F0;
-
-    border-radius: 22px;
+    min-width: 0;
 
     overflow: hidden;
 
-    box-shadow:
-        0 8px 24px rgba(15, 39, 71, 0.06);
+    background: var(--nova-white);
 
-    transition:
-        all .28s ease;
-}
+    border: 1px solid var(--nova-border);
 
-.analysis-section:hover {
-    transform: translateY(-3px);
-
-    border-color: #BFDBFE;
+    border-radius: 20px;
 
     box-shadow:
-        0 12px 30px rgba(15, 39, 71, 0.08);
-}
-
-.section-header{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:center;
-
-    gap:18px;
-
-    padding:22px 24px;
-
-    border-bottom: 1px solid #E2E8F0;
-
-}
-
-.section-title{
-
-    display:flex;
-
-    align-items:center;
-
-    gap:16px;
-
-}
-
-.section-icon{
-
-    width:56px;
-
-    height:56px;
-
-    border-radius:16px;
-
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
-
-    font-size:1.45rem;
-
-    flex-shrink:0;
-
-}
-
-.section-title h3 {
-    margin: 0;
-
-    color: #0F2747;
-
-    font-size: 1.1rem;
-
-    font-weight: 700;
-}
-
-.section-title small {
-    display: block;
-
-    margin-top: 4px;
-
-    color: #64748B;
-
-    font-size: .85rem;
-}
-
-.section-status{
-
-    padding:8px 14px;
-
-    border-radius:999px;
-
-    font-size:.75rem;
-
-    font-weight:700;
-
-    text-transform:uppercase;
-
-    letter-spacing:.5px;
-
-}
-
-.section-status.completed {
-    background: #F0FDF4;
-    color: #15803D;
-    border: 1px solid #BBF7D0;
-}
-
-.section-status.processing {
-    background: #EFF6FF;
-    color: #2563EB;
-    border: 1px solid #BFDBFE;
-}
-
-.section-status.pending {
-    background: #FFFBEB;
-    color: #B45309;
-    border: 1px solid #FDE68A;
-}
-
-.section-status.error {
-    background: #FEF2F2;
-    color: #B91C1C;
-    border: 1px solid #FECACA;
-}
-
-.section-body {
-    padding: 26px;
-
-    background: #FFFFFF;
-}
-
-.section-footer{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:center;
-
-    gap:24px;
-
-    padding:18px 24px;
-
-    border-top: 1px solid #E2E8F0;
-
-    background: #F8FAFC;
-
-}
-
-.footer-left{
-
-    display:flex;
-
-    gap:32px;
-
-    align-items:center;
-
-}
-
-.confidence-block,
-
-.status-block,
-
-.footer-right{
-
-    display:flex;
-
-    flex-direction:column;
-
-    gap:4px;
-
-}
-
-.footer-label {
-    font-size: .72rem;
-
-    color: #64748B;
-
-    text-transform: uppercase;
-
-    letter-spacing: .5px;
-}
-
-.confidence-value{
-
-    font-size:1rem;
-
-    font-weight:700;
-
-}
-
-.status-value{
-
-    font-size:.95rem;
-
-    font-weight:700;
-
-}
-
-.status-value.completed {
-    color: #15803D;
-}
-
-.status-value.processing {
-    color: #2563EB;
-}
-
-.status-value.pending {
-    color: #B45309;
-}
-
-.status-value.error {
-    color: #B91C1C;
-}
-
-.footer-right strong {
-    color: #0F2747;
-
-    font-weight: 700;
-}
-
-/* =====================================================
-   RESPONSIVE
-===================================================== */
-
-@media (max-width:1200px){
-
-    .section-header{
-
-        align-items:flex-start;
-
-    }
-
-}
-
-@media (max-width:992px){
-
-    .section-footer{
-
-        flex-direction:column;
-
-        align-items:flex-start;
-
-        gap:20px;
-
-    }
-
-    .footer-left{
-
-        width:100%;
-
-        justify-content:space-between;
-
-    }
-
-}
-
-@media (max-width:768px){
-
-    .analysis-section{
-
-        border-radius:18px;
-
-    }
-
-    .section-header{
-
-        flex-direction:column;
-
-        align-items:flex-start;
-
-        gap:18px;
-
-        padding:20px;
-
-    }
-
-    .section-title{
-
-        width:100%;
-
-    }
-
-    .section-status{
-
-        align-self:flex-start;
-
-    }
-
-    .section-body{
-
-        padding:20px;
-
-    }
-
-    .section-footer{
-
-        padding:20px;
-
-    }
-
-    .footer-left{
-
-        flex-direction:column;
-
-        align-items:flex-start;
-
-        gap:18px;
-
-    }
-
-}
-
-@media (max-width:576px){
-
-    .analysis-section{
-
-        border-radius:16px;
-
-    }
-
-    .section-header{
-
-        padding:18px;
-
-    }
-
-    .section-icon{
-
-        width:48px;
-
-        height:48px;
-
-        font-size:1.2rem;
-
-        border-radius:14px;
-
-    }
-
-    .section-title h3{
-
-        font-size:1rem;
-
-    }
-
-    .section-title small{
-
-        font-size:.8rem;
-
-    }
-
-    .section-body{
-
-        padding:18px;
-
-    }
-
-    .section-footer{
-
-        padding:18px;
-
-    }
-
-    .confidence-value,
-
-    .status-value,
-
-    .footer-right strong{
-
-        font-size:.9rem;
-
-    }
-
-}
-
-/* =====================================================
-   ANIMACIONES
-===================================================== */
-
-.analysis-section{
-
-    animation:
-
-        sectionFadeIn
-
-        .45s ease;
-
-}
-
-.section-header{
-
-    animation:
-
-        headerSlideDown
-
-        .45s ease;
-
-}
-
-.section-body{
-
-    animation:
-
-        bodyFadeIn
-
-        .55s ease;
-
-}
-
-.section-footer{
-
-    animation:
-
-        footerFadeUp
-
-        .65s ease;
-
-}
-
-.section-icon{
+        0 4px 14px rgba(15, 39, 71, .045);
 
     transition:
-
         transform .25s ease,
-
+        border-color .25s ease,
         box-shadow .25s ease;
 
 }
 
-.analysis-section:hover .section-icon{
 
-    transform:scale(1.08);
+/* ============================================================
+   HOVER PRINCIPAL
+============================================================ */
+
+.analysis-section:hover {
+
+    transform: translateY(-3px);
+
+    border-color: var(--nova-blue-border);
 
     box-shadow:
-
-        0 0 18px rgba(37,99,235,.28);
+        0 10px 28px rgba(15, 39, 71, .08);
 
 }
 
-.section-status{
+
+/* ============================================================
+   CABECERA
+============================================================ */
+
+.section-header {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 20px 22px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #FFFFFF 0%,
+            #FCFDFF 100%
+        );
+
+    border-bottom:
+        1px solid var(--nova-border);
+
+}
+
+
+/* ============================================================
+   TÍTULO
+============================================================ */
+
+.section-title {
+
+    display: flex;
+
+    align-items: center;
+
+    min-width: 0;
+
+    gap: 14px;
+
+}
+
+
+.section-heading-content {
+
+    min-width: 0;
+
+}
+
+
+.section-title h3 {
+
+    margin: 0;
+
+    color: var(--nova-navy);
+
+    font-size: 1.02rem;
+
+    line-height: 1.35;
+
+    font-weight: 750;
+
+    letter-spacing: -.015em;
+
+}
+
+
+.section-title small {
+
+    display: block;
+
+    margin-top: 4px;
+
+    overflow: hidden;
+
+    color: var(--nova-muted);
+
+    font-size: .78rem;
+
+    line-height: 1.45;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+}
+
+
+/* ============================================================
+   ICONO
+============================================================ */
+
+.section-icon {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 46px;
+
+    height: 46px;
+
+    flex-shrink: 0;
+
+    border:
+        1px solid var(--nova-blue-border);
+
+    border-radius: 13px;
+
+    color: var(--nova-blue);
+
+    font-size: 1.15rem;
+
+    box-shadow:
+        0 3px 10px rgba(37, 99, 235, .07);
 
     transition:
-
         transform .25s ease,
-
-        opacity .25s ease;
-
-}
-
-.analysis-section:hover .section-status{
-
-    transform:scale(1.05);
+        box-shadow .25s ease;
 
 }
 
-.confidence-value{
+
+.analysis-section:hover .section-icon {
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 6px 14px rgba(37, 99, 235, .12);
+
+}
+
+
+/* ============================================================
+   ESTADO SUPERIOR
+============================================================ */
+
+.section-status {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    flex-shrink: 0;
+
+    padding: 6px 10px;
+
+    border-radius: 999px;
+
+    font-size: .65rem;
+
+    font-weight: 800;
+
+    letter-spacing: .055em;
+
+    text-transform: uppercase;
+
+}
+
+
+/* COMPLETADO */
+
+.section-status.completed {
+
+    color: #15803D;
+
+    background: #F0FDF4;
+
+    border:
+        1px solid #BBF7D0;
+
+}
+
+
+/* PROCESANDO */
+
+.section-status.processing {
+
+    color: var(--nova-blue);
+
+    background: var(--nova-blue-light);
+
+    border:
+        1px solid var(--nova-blue-border);
+
+}
+
+
+/* PENDIENTE */
+
+.section-status.pending {
+
+    color: #B45309;
+
+    background: #FFFBEB;
+
+    border:
+        1px solid #FDE68A;
+
+}
+
+
+/* ERROR */
+
+.section-status.error {
+
+    color: #B91C1C;
+
+    background: #FEF2F2;
+
+    border:
+        1px solid #FECACA;
+
+}
+
+
+/* PUNTO */
+
+.status-dot {
+
+    width: 6px;
+
+    height: 6px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: currentColor;
+
+}
+
+
+/* ============================================================
+   CUERPO
+============================================================ */
+
+.section-body {
+
+    min-height: 120px;
+
+    padding: 24px;
+
+    background: var(--nova-white);
+
+}
+
+
+/* Markdown compartido */
+
+.section-body :deep(.markdown-body) {
+
+    color: var(--nova-text);
+
+}
+
+
+.section-body :deep(p) {
+
+    color: var(--nova-text);
+
+    line-height: 1.75;
+
+}
+
+
+.section-body :deep(h1),
+.section-body :deep(h2),
+.section-body :deep(h3),
+.section-body :deep(h4) {
+
+    color: var(--nova-navy);
+
+}
+
+
+/* ============================================================
+   FOOTER
+============================================================ */
+
+.section-footer {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 24px;
+
+    padding: 16px 22px;
+
+    background: var(--nova-soft);
+
+    border-top:
+        1px solid var(--nova-border);
+
+}
+
+
+/* ============================================================
+   BLOQUE IZQUIERDO
+============================================================ */
+
+.footer-left {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 30px;
+
+    min-width: 0;
+
+}
+
+
+.footer-item,
+.footer-right {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 5px;
+
+    min-width: 0;
+
+}
+
+
+/* ============================================================
+   LABELS
+============================================================ */
+
+.footer-label {
+
+    color: var(--nova-subtle);
+
+    font-size: .62rem;
+
+    font-weight: 800;
+
+    letter-spacing: .075em;
+
+    line-height: 1.2;
+
+    text-transform: uppercase;
+
+}
+
+
+/* ============================================================
+   CONFIANZA
+============================================================ */
+
+.confidence-row {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+}
+
+
+.confidence-value {
+
+    min-width: 38px;
+
+    font-size: .9rem;
+
+    font-weight: 800;
+
+}
+
+
+.confidence-track {
+
+    width: 72px;
+
+    height: 5px;
+
+    overflow: hidden;
+
+    border-radius: 999px;
+
+    background: #E2E8F0;
+
+}
+
+
+.confidence-progress {
+
+    height: 100%;
+
+    border-radius: inherit;
 
     transition:
-
-        color .25s ease,
-
-        transform .25s ease;
+        width .45s ease;
 
 }
 
-.analysis-section:hover .confidence-value{
 
-    transform:scale(1.08);
+/* ============================================================
+   ESTADO INFERIOR
+============================================================ */
 
-}
+.status-value {
 
-@keyframes sectionFadeIn{
+    display: inline-flex;
 
-    from{
+    align-items: center;
 
-        opacity:0;
+    gap: 7px;
 
-        transform:translateY(20px);
+    font-size: .82rem;
 
-    }
-
-    to{
-
-        opacity:1;
-
-        transform:translateY(0);
-
-    }
+    font-weight: 750;
 
 }
 
-@keyframes headerSlideDown{
 
-    from{
+.status-value.completed {
 
-        opacity:0;
+    color: #15803D;
 
-        transform:translateY(-12px);
+}
+
+
+.status-value.processing {
+
+    color: var(--nova-blue);
+
+}
+
+
+.status-value.pending {
+
+    color: #B45309;
+
+}
+
+
+.status-value.error {
+
+    color: #B91C1C;
+
+}
+
+
+.status-indicator {
+
+    width: 6px;
+
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: currentColor;
+
+}
+
+
+/* ============================================================
+   MOTOR IA
+============================================================ */
+
+.footer-right {
+
+    align-items: flex-end;
+
+    text-align: right;
+
+}
+
+
+.footer-right strong {
+
+    color: var(--nova-navy);
+
+    font-size: .78rem;
+
+    font-weight: 750;
+
+}
+
+
+/* ============================================================
+   RESPONSIVE — 992PX
+============================================================ */
+
+@media (max-width: 992px) {
+
+    .section-footer {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 18px;
 
     }
 
-    to{
 
-        opacity:1;
+    .footer-left {
 
-        transform:translateY(0);
+        width: 100%;
+
+        justify-content: flex-start;
+
+    }
+
+
+    .footer-right {
+
+        align-items: flex-start;
+
+        text-align: left;
 
     }
 
 }
 
-@keyframes bodyFadeIn{
 
-    from{
+/* ============================================================
+   RESPONSIVE — 768PX
+============================================================ */
 
-        opacity:0;
+@media (max-width: 768px) {
+
+    .section-header {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        padding: 18px 20px;
 
     }
 
-    to{
 
-        opacity:1;
+    .section-title {
+
+        width: 100%;
+
+    }
+
+
+    .section-status {
+
+        align-self: flex-start;
+
+    }
+
+
+    .section-body {
+
+        padding: 20px;
+
+    }
+
+
+    .section-footer {
+
+        padding: 18px 20px;
+
+    }
+
+
+    .footer-left {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 16px;
 
     }
 
 }
 
-@keyframes footerFadeUp{
 
-    from{
+/* ============================================================
+   RESPONSIVE — 576PX
+============================================================ */
 
-        opacity:0;
+@media (max-width: 576px) {
 
-        transform:translateY(10px);
+    .analysis-section {
+
+        border-radius: 17px;
 
     }
 
-    to{
 
-        opacity:1;
+    .section-header {
 
-        transform:translateY(0);
+        padding: 16px 17px;
+
+    }
+
+
+    .section-icon {
+
+        width: 42px;
+
+        height: 42px;
+
+        border-radius: 12px;
+
+        font-size: 1.05rem;
+
+    }
+
+
+    .section-title {
+
+        gap: 12px;
+
+    }
+
+
+    .section-title h3 {
+
+        font-size: .95rem;
+
+    }
+
+
+    .section-title small {
+
+        max-width: 210px;
+
+        font-size: .74rem;
+
+    }
+
+
+    .section-body {
+
+        min-height: 100px;
+
+        padding: 17px;
+
+    }
+
+
+    .section-footer {
+
+        padding: 16px 17px;
+
+    }
+
+
+    .confidence-track {
+
+        width: 60px;
+
+    }
+
+
+    .footer-right strong {
+
+        font-size: .75rem;
 
     }
 
 }
 
+
+/* ============================================================
+   ACCESIBILIDAD
+============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .analysis-section,
+    .section-icon,
+    .confidence-progress {
+
+        transition: none;
+
+    }
+
+}
 
 </style>
-
-
