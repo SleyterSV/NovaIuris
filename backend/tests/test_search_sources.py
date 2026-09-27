@@ -71,6 +71,26 @@ class SearchSourceTests(unittest.TestCase):
         with self.assertRaises(LegalSearchError):
             repository.semantic_search([0.1], limit=3)
 
+    def test_repository_emits_only_the_existing_documented_rpc_payload(self):
+        from types import SimpleNamespace
+        repository = LegalRepository.__new__(LegalRepository)
+        execution = Mock()
+        execution.execute.return_value = SimpleNamespace(data=[])
+        repository.supabase = Mock()
+        repository.supabase.rpc.return_value = execution
+
+        self.assertEqual(repository.semantic_search(
+            [0.1, 0.2], modulo="Civil", solo_vigentes=False, limit=7, threshold=0.4), [])
+        repository.supabase.rpc.assert_called_once_with("match_legal_knowledge", {
+            "query_embedding": [0.1, 0.2],
+            "match_threshold": 0.4,
+            "match_count": 7,
+            "filtro_rama": "Derecho Civil",
+            "filtro_tipo_documento": None,
+            "filtro_jerarquia": None,
+            "solo_vigentes": False,
+        })
+
     def test_search_api_returns_safe_search_failed_status(self):
         from app import create_app
         from app.config import Config

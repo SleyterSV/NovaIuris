@@ -7,12 +7,46 @@ from threading import Lock, Thread
 from time import time
 from uuid import uuid4
 import shutil
+import os
+import tempfile
+import re
+
+
+STAGING_PREFIX = "nova-document-task-"
+STAGING_NAME = re.compile(r"^" + re.escape(STAGING_PREFIX) + r"[A-Za-z0-9_-]+$")
+
+
+def cleanup_abandoned_staging(temp_root=None, max_age_seconds=24 * 60 * 60, now=None):
+    """Remove only old, real NovaIuris task directories from the temp root."""
+    root = Path(temp_root or tempfile.gettempdir())
+    try:
+        root = root.resolve(strict=True)
+        cutoff = (time() if now is None else now) - max(60, int(max_age_seconds))
+        removed = 0
+        with os.scandir(root) as entries:
+            for entry in entries:
+                if not STAGING_NAME.fullmatch(entry.name):
+                    continue
+                try:
+                    if not entry.is_dir(follow_symlinks=False):
+                        continue
+                    if entry.stat(follow_symlinks=False).st_mtime >= cutoff:
+                        continue
+                    shutil.rmtree(Path(entry.path))
+                    removed += 1
+                except OSError:
+                    # Cleanup is best effort and must never prevent app startup.
+                    continue
+        return removed
+    except OSError:
+        return 0
 
 
 class DocumentTaskManager:
-    def __init__(self):
+    def __init__(self, staging_max_age_seconds=24 * 60 * 60):
         self._lock = Lock()
         self._tasks = {}
+        cleanup_abandoned_staging(max_age_seconds=staging_max_age_seconds)
 
     def start(self, case_id, files, ingestion_service, staging_directory, replaces_document_id=None):
         task_id = str(uuid4())

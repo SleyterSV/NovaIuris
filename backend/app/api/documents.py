@@ -91,7 +91,11 @@ def upload_documents(case_id):
         if manager is None:
             factory = current_app.config.get("DOCUMENT_TASK_MANAGER_FACTORY")
             from ..services.document_tasks import DocumentTaskManager
-            manager = current_app.extensions["document_task_manager"] = factory() if factory else DocumentTaskManager()
+            manager = current_app.extensions["document_task_manager"] = (
+                factory() if factory else DocumentTaskManager(
+                    current_app.config["DOCUMENT_STAGING_MAX_AGE_SECONDS"]
+                )
+            )
         task_id = manager.start(case_id, staged, service, staging_directory, replacement_id)
         return jsonify(success=True, case_id=case_id, task_id=task_id, status="queued",
                        total_documents=len(staged)), 202

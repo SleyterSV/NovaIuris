@@ -424,3 +424,59 @@ class UploadApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 413)
         self.assertEqual(response.json["error"]["code"], "FILE_TOO_LARGE")
         self.assertNotIn("traceback", response.json)
+
+
+class RuntimeHardeningTests(unittest.TestCase):
+    def test_staging_cleanup_removes_only_old_owned_directories(self):
+        import os
+        from app.services.document_tasks import cleanup_abandoned_staging
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            old = root / "nova-document-task-old123"
+            recent = root / "nova-document-task-recent123"
+            unrelated = root / "other-service-task-old123"
+            for directory in (old, recent, unrelated):
+                directory.mkdir()
+            (old / "payload.tmp").write_text("temporary", encoding="utf-8")
+            os.utime(old, (1, 1))
+            os.utime(recent, (999, 999))
+
+            with patch("app.services.document_tasks.tempfile.gettempdir", return_value=temporary):
+                removed = cleanup_abandoned_staging(max_age_seconds=100, now=1000)
+
+            self.assertEqual(removed, 1)
+            self.assertFalse(old.exists())
+            self.assertTrue(recent.exists())
+            self.assertTrue(unrelated.exists())
+
+    def test_staging_cleanup_skips_symlinks_and_cleanup_errors(self):
+        import os
+        from app.services import document_tasks
+        with tempfile.TemporaryDirectory() as temporary, tempfile.TemporaryDirectory() as target:
+            root = Path(temporary)
+            old = root / "nova-document-task-old123"
+            old.mkdir()
+            os.utime(old, (1, 1))
+            link = root / "nova-document-task-link123"
+            try:
+                link.symlink_to(target, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("Directory symlinks are unavailable on this platform")
+            with patch("app.services.document_tasks.tempfile.gettempdir", return_value=temporary):
+                with patch.object(document_tasks.shutil, "rmtree", side_effect=OSError("locked")):
+                    manager = document_tasks.DocumentTaskManager(staging_max_age_seconds=100)
+                    self.assertIsNotNone(manager)
+            self.assertTrue(old.exists())
+            self.assertTrue(Path(target).exists())
+
+    def test_legacy_pdf_route_uses_pypdf_and_tolerates_empty_page_text(self):
+        from types import SimpleNamespace
+        from app.api.simulation import extraer_texto_documento
+        upload = SimpleNamespace(filename="brief.pdf")
+        with patch("app.api.simulation.PdfReader", return_value=SimpleNamespace(pages=[
+            SimpleNamespace(extract_text=lambda: "first page"),
+            SimpleNamespace(extract_text=lambda: None),
+            SimpleNamespace(extract_text=lambda: "third page"),
+        ])) as reader:
+            self.assertEqual(extraer_texto_documento(upload), "first page\n\nthird page")
+        reader.assert_called_once_with(upload)

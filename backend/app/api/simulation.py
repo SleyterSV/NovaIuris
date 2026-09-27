@@ -7,7 +7,7 @@ import os
 import tempfile
 import json
 import traceback
-import PyPDF2
+from pypdf import PdfReader
 import docx
 from flask import request, jsonify, send_file
 
@@ -2733,9 +2733,9 @@ def extraer_texto_documento(file_storage):
     texto = ""
     try:
         if filename.endswith('.pdf'):
-            reader = PyPDF2.PdfReader(file_storage)
+            reader = PdfReader(file_storage)
             for page in reader.pages:
-                texto += page.extract_text() + "\n"
+                texto += (page.extract_text() or "") + "\n"
         elif filename.endswith('.docx') or filename.endswith('.doc'):
             doc = docx.Document(file_storage)
             for para in doc.paragraphs:

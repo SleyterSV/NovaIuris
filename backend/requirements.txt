@@ -36,7 +36,7 @@ pydantic>=2.0.0
 
 # Active legal services; pyproject.toml + uv.lock are canonical.
 supabase>=2.31.0
-pypdf2>=3.0.1
+pypdf>=3.0.1
 python-docx>=1.2.0
 langgraph>=1.2.11
 langchain-openai>=1.1.9

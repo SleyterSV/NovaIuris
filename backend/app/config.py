@@ -72,6 +72,7 @@ class Config:
     CASE_DOCUMENT_EMBEDDING_BATCH_SIZE = int(os.getenv('CASE_DOCUMENT_EMBEDDING_BATCH_SIZE', '64'))
     CASE_DOCUMENT_OCR_MIN_PAGE_CHARACTERS = int(os.getenv('CASE_DOCUMENT_OCR_MIN_PAGE_CHARACTERS', '30'))
     CASE_DOCUMENT_CONTEXT_TOP_K = int(os.getenv('CASE_DOCUMENT_CONTEXT_TOP_K', '8'))
+    DOCUMENT_STAGING_MAX_AGE_SECONDS = int(os.getenv('DOCUMENT_STAGING_MAX_AGE_SECONDS', str(24 * 60 * 60)))
     CASE_CORPUS_RETENTION_DAYS = int(os.getenv('CASE_CORPUS_RETENTION_DAYS', '30'))
     CASE_CORPUS_DB_PATH = os.getenv('CASE_CORPUS_DB_PATH', os.path.join(os.path.dirname(__file__), '../uploads/case_corpus.sqlite3'))
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '../uploads')
