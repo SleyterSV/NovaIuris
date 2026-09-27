@@ -1,3 +1,4 @@
+from ..utils.cancellation import check_cancelled, OperationCancelled
 """
 Servicio profesional de construcción y consulta de grafos.
 
@@ -833,6 +834,7 @@ class GraphBuilderService:
         progress_callback: Optional[
             Callable[[str, float], None]
         ] = None,
+        cancellation_token=None,
     ) -> List[str]:
         """
         Envía los fragmentos de texto a Zep por lotes.
@@ -869,12 +871,14 @@ class GraphBuilderService:
         ) // batch_size
 
 
+        check_cancelled(cancellation_token)
         for start_index in range(
             0,
             total_chunks,
             batch_size,
         ):
 
+            check_cancelled(cancellation_token)
             batch_chunks = chunks[
                 start_index:start_index + batch_size
             ]
@@ -1015,6 +1019,7 @@ class GraphBuilderService:
         ] = None,
         timeout: int = 600,
         poll_interval: int = 3,
+        cancellation_token=None,
     ) -> None:
         """
         Espera hasta que todos los episodios hayan sido
@@ -1062,6 +1067,7 @@ class GraphBuilderService:
 
 
         while pending_episodes:
+            check_cancelled(cancellation_token)
 
             elapsed_seconds = time.time() - start_time
 
@@ -1097,6 +1103,7 @@ class GraphBuilderService:
             # ------------------------------------------------
 
             for episode_uuid in list(pending_episodes):
+                check_cancelled(cancellation_token)
 
                 try:
 
@@ -1246,6 +1253,7 @@ class GraphBuilderService:
     def get_graph_data(
         self,
         graph_id: str,
+        cancellation_token=None,
     ) -> Dict[str, Any]:
         """
         Obtiene todos los nodos y relaciones de un grafo.
@@ -1269,14 +1277,18 @@ class GraphBuilderService:
             )
 
 
+        check_cancelled(cancellation_token)
         nodes = fetch_all_nodes(
             self.client,
             graph_id,
+            cancellation_token=cancellation_token,
         )
 
+        check_cancelled(cancellation_token)
         edges = fetch_all_edges(
             self.client,
             graph_id,
+            cancellation_token=cancellation_token,
         )
 
 

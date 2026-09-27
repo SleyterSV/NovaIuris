@@ -97,6 +97,7 @@
              CONTENIDO PRINCIPAL
         ====================================================== -->
 
+        <button v-if="loading" type="button" @click="controller?.abort()">Cancelar tarea</button>
         <main class="case-container">
 
 
@@ -282,6 +283,9 @@
                     </template>
 
                 </CaseTabs>
+                <section v-for="section in supplementarySections" :key="section.title" class="workspace-section">
+                  <h3>{{ section.title }}</h3><MarkdownRenderer :content="section.content" />
+                </section>
 
             </section>
 
@@ -384,10 +388,14 @@
 
 
 <script setup>
+import { normalizeCaseResult } from "@/utils/caseContract.js"
+import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue"
+import { normalizeRenderableContent } from "@/utils/content.js"
 
 import {
     ref,
-    computed
+    computed,
+    onBeforeUnmount
 } from "vue"
 
 import {
@@ -434,6 +442,14 @@ import StrategyView
    ESTADO GLOBAL
 ========================================================= */
 
+const canonicalResult = ref(null)
+const supplementarySections = computed(() => [
+  { title: 'Investigación jurídica', content: canonicalResult.value?.research?.documents },
+  { title: 'Argumentos jurídicos', content: canonicalResult.value?.arguments },
+  { title: 'Cronología', content: canonicalResult.value?.timeline },
+  { title: 'Citas', content: canonicalResult.value?.citations },
+  { title: 'Elementos complementarios de estrategia', content: canonicalResult.value && Object.fromEntries(['defense_strategy','strengths','weaknesses','recommended_evidence','recommended_documents','missing_information'].map(key => [key, canonicalResult.value.strategy[key]])) }
+])
 const loading = ref(false)
 
 const error = ref(null)
@@ -441,6 +457,8 @@ const error = ref(null)
 const currentStep = ref(0)
 
 let progressTimer = null
+let controller = null
+onBeforeUnmount(() => controller?.abort())
 
 
 /* =========================================================
@@ -532,104 +550,12 @@ function resetProgress() {
    PROGRESO VISUAL
 ========================================================= */
 
-function startVisualProgress() {
-
-    resetProgress()
-
-    steps.value[0].status = "processing"
-
-
-    /*
-     * Progreso visual.
-     *
-     * No representa necesariamente el estado real
-     * de cada operación interna del backend.
-     */
-
-    const progression = [
-
-        8000,
-
-        90000,
-
-        90000,
-
-        90000
-
-    ]
-
-
-    let index = 0
-
-
-    function advance() {
-
-        if (!loading.value) {
-
-            return
-
-        }
-
-
-        if (
-            index >= progression.length
-        ) {
-
-            return
-
-        }
-
-
-        steps.value[index].status =
-            "processing"
-
-        currentStep.value =
-            index
-
-
-        const delay =
-            progression[index]
-
-
-        index++
-
-
-        progressTimer = setTimeout(() => {
-
-            if (!loading.value) {
-
-                return
-
-            }
-
-
-            if (
-                index < steps.value.length
-            ) {
-
-                steps.value[index].status =
-                    "processing"
-
-                currentStep.value =
-                    index
-
-                advance()
-
-            }
-
-        }, delay)
-
-    }
-
-
-    advance()
-
+function startVisualProgress() { resetProgress() }
+function updateTask(task) {
+  steps.value = task.stages.map(stage => ({ ...stage, title: stage.label, description: '',
+    status: stage.status === 'running' ? 'processing' : stage.status }))
+  if (task.partial_result?.analysis) canonicalResult.value = normalizeCaseResult(task.partial_result)
 }
-
-
-/* =========================================================
-   FINALIZAR PROGRESO
-========================================================= */
 
 function finishProgress() {
 
@@ -663,8 +589,11 @@ function finishProgress() {
 ========================================================= */
 
 async function handleAnalyze(caseText) {
+    if (loading.value) return
+    controller = new AbortController()
 
     loading.value = true
+    canonicalResult.value = null
 
     error.value = null
 
@@ -702,15 +631,8 @@ async function handleAnalyze(caseText) {
            EJECUTAR ANÁLISIS
         ================================================== */
 
-        const response =
-            await analyzeCase(
-                caseText
-            )
-
-
-        /* =================================================
-           VALIDAR RESPUESTA
-        ================================================== */
+        const response = normalizeCaseResult(await analyzeCase(caseText, { onProgress: updateTask, signal: controller.signal }))
+        canonicalResult.value = response
 
         if (!response) {
 
@@ -725,100 +647,13 @@ async function handleAnalyze(caseText) {
            INFORME
         ================================================== */
 
-        report.value =
-            response.report || ""
-
-
-        /* =================================================
-           ANÁLISIS JURÍDICO
-        ================================================== */
-
-        analysis.value = {
-
-            ...(response.analysis || {}),
-
-            analysis_statistics:
-                response.analysis_statistics,
-
-            analysis_summary:
-                response.analysis_summary
-
-        }
-
-
-        /* =================================================
-           EVIDENCIA
-        ================================================== */
-
-        evidence.value =
-            response.evidence_analysis || {}
-
-
-        /* =================================================
-           RIESGOS
-        ================================================== */
-
-        risk.value = {
-
-            risks:
-                response.analysis?.riesgos || [],
-
-            score:
-                response.evidence_analysis?.evidence_score,
-
-            strength:
-                response.evidence_analysis?.evidence_strength,
-
-            evidentiaryRisks:
-                response.evidence_analysis?.evidentiary_risks || []
-
-        }
-
-
-        /* =================================================
-           CONTRAARGUMENTOS
-        ================================================= */
-
-        counterArguments.value =
-            response.counter_arguments || {}
-
-
-        /* =================================================
-           ESTRATEGIA
-        ================================================= */
-
-        strategy.value = {
-
-            legalArguments:
-                response.legal_arguments,
-
-            recommendations:
-                response.evidence_analysis?.recommendations || [],
-
-            report:
-                response.report
-
-        }
-
-
-        /* =================================================
-           RESUMEN EJECUTIVO
-        ================================================= */
-
-        summary.value = {
-
-            ...(response.analysis_summary || {}),
-
-            statistics:
-                response.analysis_statistics
-
-        }
-
-
-        /* =================================================
-           FINALIZAR PROGRESO
-        ================================================= */
-
+        report.value = normalizeRenderableContent(response.report)
+        analysis.value = response.analysis
+        evidence.value = response.evidence
+        risk.value = response.risks
+        counterArguments.value = response.counter_arguments
+        strategy.value = response.strategy
+        summary.value = response.summary
         finishProgress()
 
 
@@ -869,7 +704,7 @@ async function handleAnalyze(caseText) {
 
         error.value =
 
-            err.response?.data?.error ||
+            err.response?.data?.error?.message ||
 
             err.response?.data?.message ||
 
@@ -911,7 +746,7 @@ const analysisStatistics = computed(() => {
 
     return (
 
-        analysis.value
+        canonicalResult.value?.metadata
             .analysis_statistics ||
 
         {}
@@ -921,19 +756,7 @@ const analysisStatistics = computed(() => {
 })
 
 
-const analysisSummary = computed(() => {
-
-    return (
-
-        analysis.value
-            .analysis_summary ||
-
-        {}
-
-    )
-
-})
-
+const analysisSummary = computed(() => summary.value)
 
 const documentsDetected = computed(() => {
 

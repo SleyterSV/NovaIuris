@@ -82,6 +82,7 @@ class CaseReportService:
     def __init__(self):
 
         self.client = OpenAI(
+            max_retries=0,
 
             api_key=Config.OPENAI_API_KEY
 

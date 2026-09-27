@@ -1726,3 +1726,31 @@ class GraphBuilderService:
             for episode in episodes
             if episode is not None
         ]
+
+# Minimal HTTP layer delegates to the canonical service. The duplicate historical
+# class above is retained for compatibility, but is not used by these routes.
+from flask import jsonify, current_app, g
+from . import graph_bp
+from ..services.graph_builder import GraphBuilderService as CanonicalGraphBuilder
+from ..models.project import ProjectManager
+from ..utils.api_response import api_error
+import re
+
+def valid_graph_identifier(value):
+    return bool(re.fullmatch(r'[A-Za-z0-9_-]{1,128}', value))
+
+@graph_bp.route('/data/<graph_id>', methods=['GET'])
+def graph_data_route(graph_id):
+    if not valid_graph_identifier(graph_id):
+        return api_error('INVALID_GRAPH', 'Identificador de grafo inválido.', g.request_id, 400)
+    builder = current_app.config.get('GRAPH_BUILDER_FACTORY', CanonicalGraphBuilder)()
+    return jsonify(success=True, data=builder.get_graph_data(graph_id))
+
+@graph_bp.route('/project/<project_id>', methods=['GET'])
+def graph_project_route(project_id):
+    if not valid_graph_identifier(project_id):
+        return api_error('INVALID_PROJECT', 'Identificador de proyecto inválido.', g.request_id, 400)
+    project = ProjectManager.get_project(project_id)
+    if not project:
+        return api_error('PROJECT_NOT_FOUND', 'No se encontró el proyecto.', g.request_id, 404)
+    return jsonify(success=True, data=project.to_dict())

@@ -3,10 +3,7 @@ from pathlib import Path
 import unittest
 
 
-MODULE_PATH = Path(__file__).parents[1] / "app" / "utils" / "novacourt_graph.py"
-SPEC = importlib.util.spec_from_file_location("novacourt_graph", MODULE_PATH)
-NOVACOURT_GRAPH = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(NOVACOURT_GRAPH)
+from app.utils import novacourt_graph as NOVACOURT_GRAPH
 
 
 def make_orchestrator(factory, enabled=True):
@@ -25,13 +22,18 @@ class ReadyBuilder:
     def __init__(self):
         self.request = None
 
-    def build_graph_sync(self, **kwargs):
-        self.request = kwargs
-        return {
-            "graph_id": "zep-graph-1",
-            "nodes": [{"uuid": "node-1", "name": "Demandante"}],
-            "edges": [{"uuid": "edge-1", "source_node_uuid": "node-1", "target_node_uuid": "node-1"}],
-        }
+    def create_graph(self, name):
+        return 'zep-graph-1'
+    def set_ontology(self, graph_id, ontology):
+        pass
+    def add_text_batches(self, graph_id, chunks, batch_size, cancellation_token=None):
+        self.request = {'text': '\n'.join(chunks)}
+        return ['episode-1']
+    def _wait_for_episodes(self, episodes, timeout=600, poll_interval=3, cancellation_token=None):
+        self.request.update(timeout=timeout, poll_interval=poll_interval)
+    def get_graph_data(self, graph_id, cancellation_token=None):
+        return {'graph_id':graph_id, 'nodes':[{'uuid':'node-1','name':'Demandante'}],
+                'edges':[{'uuid':'edge-1','source_node_uuid':'node-1','target_node_uuid':'node-1'}]}
 
 
 class GraphProcessingTimeoutError(Exception):
@@ -74,8 +76,8 @@ class NovaCourtGraphTests(unittest.TestCase):
         self.assertEqual(self.case["arguments"], {"principal": "reposición"})
 
     def test_timeout_has_distinct_safe_status(self):
-        class TimeoutBuilder:
-            def build_graph_sync(self, **kwargs):
+        class TimeoutBuilder(ReadyBuilder):
+            def _wait_for_episodes(self, episodes, timeout=600, poll_interval=3, cancellation_token=None):
                 raise GraphProcessingTimeoutError("internal timeout detail")
 
         result = make_orchestrator(TimeoutBuilder).build(self.case)

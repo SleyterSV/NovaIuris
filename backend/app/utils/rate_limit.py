@@ -25,7 +25,7 @@ class CostEndpointRateLimiter:
     def bucket_for_path(path: str):
         if path == '/api/search':
             return 'search'
-        if path in {'/api/case', '/api/novacourt/analyze'}:
+        if path in {'/api/case', '/api/case/tasks', '/api/novacourt/analyze'}:
             return 'case'
         if path.startswith('/api/simulation'):
             return 'simulation'

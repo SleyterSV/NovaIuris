@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "@/config/api.js"
 /**
  * exportUtils.js
  * Utilidad profesional para exportar reportes directamente en PDF llamando al backend.
@@ -7,7 +8,7 @@ export async function descargarPDFOficial(datos, tipo = 'NovaCase') {
   try {
     // 1. Llamar al backend de FastAPI
     // Ajusta la URL según la ruta de tu servidor local o de producción
-    const response = await fetch('http://localhost:8000/api/export/pdf', {
+    const response = await fetch(`${API_BASE_URL}/api/export/pdf`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

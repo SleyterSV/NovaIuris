@@ -11,19 +11,33 @@ from dotenv import load_dotenv
 project_root_env = os.path.join(os.path.dirname(__file__), '../../.env')
 
 if os.path.exists(project_root_env):
-    load_dotenv(project_root_env, override=True)
+    load_dotenv(project_root_env, override=False)
 else:
     # 如果根目录没有 .env，尝试加载环境变量（用于生产环境）
-    load_dotenv(override=True)
+    load_dotenv(override=False)
 
 
 class Config:
     """Flask配置类"""
     
     # Flask配置
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'NovaIuris-secret-key')
-    DEBUG = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.environ.get(
+        'CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',') if origin.strip()]
+    NOVACOURT_GRAPH_ENABLED = os.getenv('NOVACOURT_GRAPH_ENABLED', 'true').lower() == 'true'
+    NOVACOURT_GRAPH_TIMEOUT_SECONDS = int(os.getenv('NOVACOURT_GRAPH_TIMEOUT_SECONDS', '600'))
+    NOVACOURT_GRAPH_POLL_INTERVAL_SECONDS = int(os.getenv('NOVACOURT_GRAPH_POLL_INTERVAL_SECONDS', '3'))
+    NOVACOURT_GRAPH_BATCH_SIZE = int(os.getenv('NOVACOURT_GRAPH_BATCH_SIZE', '3'))
+    NOVACOURT_SIMULATION_ENABLED = os.getenv('NOVACOURT_SIMULATION_ENABLED', 'true').lower() == 'true'
+    NOVACOURT_SIMULATION_TIMEOUT_SECONDS = int(os.getenv('NOVACOURT_SIMULATION_TIMEOUT_SECONDS', '600'))
+    RATE_LIMIT_ENABLED = os.getenv('RATE_LIMIT_ENABLED', 'true').lower() == 'true'
+    RATE_LIMIT_WINDOW_SECONDS = 60
+    RATE_LIMIT_SEARCH = 30
+    RATE_LIMIT_CASE = 10
+    RATE_LIMIT_SIMULATION = 10
+
     # JSON配置 - 禁用ASCII转义，让中文直接显示（而不是 \uXXXX 格式）
     JSON_AS_ASCII = False
     

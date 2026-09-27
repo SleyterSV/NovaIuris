@@ -1,6 +1,8 @@
+from app.utils.cancellation import check_cancelled
 import os
 from typing import TypedDict, Annotated, Sequence, Dict
 from langgraph.graph import StateGraph, END
+from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 import logging
@@ -17,38 +19,41 @@ class TribunalState(TypedDict):
     mensajes: Annotated[Sequence[BaseMessage], "add_messages"]
 
 # Inicializamos el modelo con baja temperatura para evitar alucinaciones
-llm = ChatOpenAI(model="gpt-4o", temperature=0.1, api_key=os.getenv("OPENAI_API_KEY"))
+def get_llm():
+    return ChatOpenAI(model="gpt-4o", temperature=0.1, max_retries=0, api_key=os.getenv("OPENAI_API_KEY"))
 
 # 2. Nodo del Fiscal
-def nodo_fiscal(state: TribunalState) -> Dict:
+def nodo_fiscal(state: TribunalState, config: RunnableConfig = None) -> Dict:
     logger.info("👨‍⚖️ [LangGraph] Fiscal elaborando acusación...")
     prompt = f"""Eres el Fiscal en este tribunal. 
     Basado ESTRICTAMENTE en este dossier documental: {state['dossier_rag']}
     Formula tu acusación formal para este caso: {state['caso']}
     REGLA DE ORO: Si citas una ley, artículo o fecha, debe existir textualmente en el dossier. Cero alucinaciones."""
     
-    respuesta = llm.invoke([HumanMessage(content=prompt)])
+    check_cancelled((config or {}).get("configurable", {}).get("cancellation_token"))
+    respuesta = get_llm().invoke([HumanMessage(content=prompt)])
     return {
         "argumento_fiscal": respuesta.content, 
         "mensajes": [AIMessage(content=f"FISCAL:\n{respuesta.content}")]
     }
 
 # 3. Nodo de la Defensa
-def nodo_defensa(state: TribunalState) -> Dict:
+def nodo_defensa(state: TribunalState, config: RunnableConfig = None) -> Dict:
     logger.info("🛡️ [LangGraph] Defensa analizando vacíos legales...")
     prompt = f"""Eres el Abogado Defensor. 
     Basado ESTRICTAMENTE en este dossier documental: {state['dossier_rag']}
     El Fiscal ha expuesto lo siguiente: {state['argumento_fiscal']}
     Formula tu contraargumento buscando atenuantes, vacíos procesales o falta de pruebas en el dossier."""
     
-    respuesta = llm.invoke([HumanMessage(content=prompt)])
+    check_cancelled((config or {}).get("configurable", {}).get("cancellation_token"))
+    respuesta = get_llm().invoke([HumanMessage(content=prompt)])
     return {
         "argumento_defensa": respuesta.content, 
         "mensajes": [AIMessage(content=f"DEFENSA:\n{respuesta.content}")]
     }
 
 # 4. Nodo del Juez
-def nodo_juez(state: TribunalState) -> Dict:
+def nodo_juez(state: TribunalState, config: RunnableConfig = None) -> Dict:
     logger.info("⚖️ [LangGraph] Juez deliberando...")
     prompt = f"""Eres el Juez. Evalúa el debate estructuralmente:
     Fiscal: {state['argumento_fiscal']}
@@ -58,7 +63,8 @@ def nodo_juez(state: TribunalState) -> Dict:
     
     Emite una resolución final. Señala expresamente cuál de las partes sustentó mejor su postura basándose en los límites probatorios del dossier."""
     
-    respuesta = llm.invoke([HumanMessage(content=prompt)])
+    check_cancelled((config or {}).get("configurable", {}).get("cancellation_token"))
+    respuesta = get_llm().invoke([HumanMessage(content=prompt)])
     return {
         "veredicto_juez": respuesta.content, 
         "mensajes": [AIMessage(content=f"JUEZ:\n{respuesta.content}")]

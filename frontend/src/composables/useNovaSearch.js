@@ -1,3 +1,4 @@
+import { API_URL } from "../config/api.js"
 import { ref, reactive } from 'vue'
 
 export function useNovaSearch() {
@@ -75,14 +76,6 @@ export function useNovaSearch() {
     // =========================================================
     // 8. CONFIGURACIÓN
     // =========================================================
-
-    const API_URL = (
-
-        import.meta.env.VITE_API_URL ||
-
-        'http://localhost:5001/api'
-
-    ).replace(/\/$/, '')
 
     // 10 minutos para mantener compatibilidad
     // con el tiempo máximo de NovaCase/NovaSearch.
@@ -218,7 +211,7 @@ export function useNovaSearch() {
 
             return (
 
-                data?.error ||
+                data?.error?.message || (typeof data?.error === "string" ? data.error : "") ||
 
                 'La consulta enviada no es válida.'
 
@@ -248,7 +241,7 @@ export function useNovaSearch() {
 
         return (
 
-            data?.error ||
+            data?.error?.message || (typeof data?.error === "string" ? data.error : "") ||
 
             `Error del servidor: HTTP ${status}.`
 
@@ -423,7 +416,7 @@ export function useNovaSearch() {
 
                 throw new Error(
 
-                    data.error ||
+                    data.error?.message || (typeof data.error === "string" ? data.error : "") ||
 
                     'NovaSearch no pudo completar la búsqueda.'
 

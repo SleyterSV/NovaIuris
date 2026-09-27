@@ -4,10 +4,7 @@ import time
 import unittest
 
 
-MODULE_PATH = Path(__file__).parents[1] / "app" / "utils" / "novacourt_simulation.py"
-SPEC = importlib.util.spec_from_file_location("novacourt_simulation", MODULE_PATH)
-SIMULATION = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(SIMULATION)
+from app.utils import novacourt_simulation as SIMULATION
 
 
 def make_orchestrator(factory, enabled=True, timeout=1):
@@ -22,7 +19,7 @@ class ReadySimulator:
     def __init__(self):
         self.context = ""
 
-    def simulate_case(self, context):
+    def simulate_case(self, context, cancellation_token=None):
         self.context = context
         return {
             "session_id": "audiencia-1",
@@ -94,7 +91,7 @@ class NovaCourtSimulationTests(unittest.TestCase):
     def test_timeout_is_controlled(self):
         class SlowSimulator:
             @staticmethod
-            def simulate_case(context):
+            def simulate_case(context, cancellation_token=None):
                 time.sleep(0.05)
                 return {}
 

@@ -70,13 +70,13 @@
 
             <!-- Confianza -->
 
-            <div class="footer-item">
+            <div class="footer-item" v-if="confidence !== null && confidence !== undefined">
 
                 <span class="footer-label">
                     Nivel de confianza
                 </span>
 
-                <div class="confidence-row">
+                <div class="confidence-row" v-if="confidence !== null && confidence !== undefined">
 
                     <strong
                         class="confidence-value"
@@ -180,13 +180,13 @@ const props = defineProps({
     },
 
     content: {
-        type: String,
+        type: [String, Object, Array],
         default: ""
     },
 
     confidence: {
         type: Number,
-        default: 90
+        default: null
     },
 
     status: {

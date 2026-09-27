@@ -106,7 +106,6 @@
             :subtitle="item.subtitle"
             :icon="item.icon"
             :content="item.content"
-            :confidence="item.confidence"
             :status="item.status"
         />
 
@@ -255,9 +254,7 @@ const strategies = computed(() => [
 
             props.strategy.objective ||
 
-            "No se definió un objetivo estratégico.",
-
-        confidence: 96,
+            "No identificado con la información disponible.",
 
         status: "completed"
 
@@ -278,9 +275,7 @@ const strategies = computed(() => [
 
             props.strategy.strategy ||
 
-            "No se generó una estrategia principal.",
-
-        confidence: 94,
+            "No identificado con la información disponible.",
 
         status: "completed"
 
@@ -301,9 +296,7 @@ const strategies = computed(() => [
 
             props.strategy.actions ||
 
-            "No se recomendaron actuaciones específicas.",
-
-        confidence: 92,
+            "No identificado con la información disponible.",
 
         status: "completed"
 
@@ -313,7 +306,7 @@ const strategies = computed(() => [
 
         id: "execution",
 
-        title: "Riesgos de Ejecución",
+        title: "Riesgos procesales",
 
         subtitle:
             "Aspectos que requieren seguimiento",
@@ -324,9 +317,7 @@ const strategies = computed(() => [
 
             props.strategy.execution ||
 
-            "No se identificaron riesgos de ejecución.",
-
-        confidence: 89,
+            "No identificado con la información disponible.",
 
         status: "completed"
 
@@ -347,9 +338,7 @@ const strategies = computed(() => [
 
             props.strategy.recommendations ||
 
-            "No se generaron recomendaciones adicionales.",
-
-        confidence: 95,
+            "No identificado con la información disponible.",
 
         status: "completed"
 

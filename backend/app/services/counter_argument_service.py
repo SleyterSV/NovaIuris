@@ -64,6 +64,7 @@ class CounterArgumentService:
     def __init__(self):
 
         self.client = OpenAI(
+            max_retries=0,
 
             api_key=Config.OPENAI_API_KEY
 
@@ -504,11 +505,7 @@ No agregues texto adicional.
 
             )
 
-            logger.debug(
-
-                f"Respuesta recibida:\n{response}"
-
-            )
+            logger.debug("Model response omitted from logs")
 
             return {
 

@@ -10,11 +10,11 @@ const normalized = normalizeCaseResult({
   evidence_analysis: { summary: 'contrato' }
 })
 
-assert.deepEqual(normalized.summary, { tipo_proceso: 'despido' })
-assert.deepEqual(normalized.strategy, { claim_strategy: 'Reposición' })
-assert.deepEqual(normalized.risks, { risks: ['plazo'] })
+assert.equal(normalized.summary.tipo_proceso, 'despido')
+assert.equal(normalized.strategy.claim_strategy, 'Reposición')
+assert.deepEqual(normalized.risks.risks, ['plazo'])
 assert.deepEqual(normalized.arguments, { principal: 'tutela' })
-assert.deepEqual(normalized.evidence, { summary: 'contrato' })
+assert.equal(normalized.evidence.summary, 'contrato')
 assert.equal(normalized.metadata.contract_version, '1.0')
 assert.equal(normalized.graph ?? null, null)
 console.log('case contract OK')

@@ -1,3 +1,4 @@
+export const EMPTY_CONTENT = "No identificado con la información disponible."
 const labelFor = key => String(key)
   .replace(/([a-z])([A-Z])/g, '$1 $2')
   .replace(/[_-]+/g, ' ')

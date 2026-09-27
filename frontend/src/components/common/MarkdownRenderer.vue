@@ -18,6 +18,7 @@ import {
     computed
 } from "vue"
 
+import { normalizeRenderableContent, EMPTY_CONTENT } from "@/utils/content.js"
 import MarkdownIt from "markdown-it"
 
 import hljs from "highlight.js"
@@ -31,7 +32,7 @@ const props = defineProps({
 
     content: {
 
-        type: String,
+        type: [String, Object, Array, Number],
 
         default: ""
 
@@ -170,7 +171,7 @@ md.renderer.rules.link_open = (
 const renderedMarkdown = computed(() => {
 
     return md.render(
-        props.content || ""
+        normalizeRenderableContent(props.content) || EMPTY_CONTENT
     )
 
 })

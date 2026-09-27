@@ -1,10 +1,11 @@
 // One API origin for every frontend client. VITE_API_BASE_URL is canonical;
 // VITE_API_URL remains accepted while existing deployments migrate.
-const configuredBaseUrl = (
-  import.meta.env.VITE_API_BASE_URL ||
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? 'http://localhost:5001' : '')
-).replace(/\/+$/, '')
+import { normalizeApiBase } from './apiBase.js'
+const environment = import.meta.env || {}
+const configuredBaseUrl = normalizeApiBase(
+  environment.VITE_API_BASE_URL || environment.VITE_API_URL ||
+  (environment.DEV ? 'http://localhost:5001' : '')
+)
 
 // Older VITE_API_URL values often included /api. Normalize them once.
 export const API_BASE_URL = configuredBaseUrl.replace(/\/api$/, '')

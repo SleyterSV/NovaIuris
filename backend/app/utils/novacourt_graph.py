@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from typing import Any, Callable, Dict
+from .cancellation import CancellationToken, OperationCancelled, check_cancelled
 
 
 LEGAL_ONTOLOGY: Dict[str, Any] = {
@@ -63,6 +64,10 @@ def graph_result(status: str, *, graph_id: str | None = None,
         "graph_id": graph_id,
         "nodes": nodes if isinstance(nodes, list) else [],
         "edges": edges if isinstance(edges, list) else [],
+        "node_count": len(nodes) if isinstance(nodes, list) else 0,
+        "edge_count": len(edges) if isinstance(edges, list) else 0,
+        "error": {"code": status.upper(), "message": message} if status in {"failed", "timeout"} else None,
+        "metadata": {},
     }
     if message:
         result["message"] = message
@@ -91,7 +96,7 @@ class NovaCourtGraphOrchestrator:
         self.chunk_overlap = chunk_overlap
         self.batch_size = batch_size
 
-    def build(self, case_result: Dict[str, Any]) -> Dict[str, Any]:
+    def build(self, case_result: Dict[str, Any], cancellation_token=None) -> Dict[str, Any]:
         if not self.enabled:
             return graph_result("not_requested")
 
@@ -99,24 +104,33 @@ class NovaCourtGraphOrchestrator:
         if not legal_context:
             return graph_result("not_requested")
 
+        token = CancellationToken(parent=cancellation_token, timeout=self.timeout)
         try:
+            from ..services.text_processor import TextProcessor
+            token.check()
             builder = self.builder_factory()
-            graph = builder.build_graph_sync(
-                text=legal_context,
-                ontology=LEGAL_ONTOLOGY,
-                graph_name="NovaCourt Legal Analysis",
-                chunk_size=self.chunk_size,
-                chunk_overlap=self.chunk_overlap,
-                batch_size=self.batch_size,
-                timeout=self.timeout,
-                poll_interval=self.poll_interval,
-            )
+            token.check()
+            graph_id = builder.create_graph("NovaCourt Legal Analysis")
+            token.check()
+            builder.set_ontology(graph_id, LEGAL_ONTOLOGY)
+            token.check()
+            chunks = TextProcessor.split_text(legal_context, self.chunk_size, self.chunk_overlap)
+            episodes = builder.add_text_batches(graph_id, chunks, self.batch_size, cancellation_token=token)
+            token.check()
+            builder._wait_for_episodes(episodes, timeout=self.timeout,
+                poll_interval=self.poll_interval, cancellation_token=token)
+            token.check()
+            graph = builder.get_graph_data(graph_id, cancellation_token=token)
             return graph_result(
                 "ready",
                 graph_id=graph.get("graph_id"),
                 nodes=graph.get("nodes"),
                 edges=graph.get("edges"),
             )
+        except OperationCancelled:
+            if cancellation_token is not None and cancellation_token.is_cancelled():
+                raise
+            return graph_result("timeout", message="La construcción del grafo superó el límite de espera.")
         except Exception as error:
             if error.__class__.__name__ == "GraphProcessingTimeoutError":
                 return graph_result(

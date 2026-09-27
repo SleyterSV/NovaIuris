@@ -17,7 +17,7 @@ class NovaCourtGraphService:
     def __init__(self, builder_factory: Optional[Callable[[], Any]] = None):
         self.builder_factory = builder_factory or GraphBuilderService
 
-    def build_for_case(self, case_result: Dict[str, Any]) -> Dict[str, Any]:
+    def build_for_case(self, case_result: Dict[str, Any], cancellation_token=None) -> Dict[str, Any]:
         orchestrator = NovaCourtGraphOrchestrator(
             self.builder_factory,
             enabled=Config.NOVACOURT_GRAPH_ENABLED,
@@ -27,7 +27,7 @@ class NovaCourtGraphService:
             chunk_overlap=Config.DEFAULT_CHUNK_OVERLAP,
             batch_size=Config.NOVACOURT_GRAPH_BATCH_SIZE,
         )
-        graph = orchestrator.build(case_result)
+        graph = orchestrator.build(case_result, cancellation_token=cancellation_token)
         if graph["status"] in {"failed", "timeout"}:
             logger.warning("NovaCourt graph finished with status=%s", graph["status"])
         return graph

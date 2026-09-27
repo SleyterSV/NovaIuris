@@ -120,7 +120,7 @@ const cards = computed(() => [
 
         value:
             props.summary.rama
-            || "No identificada",
+            || "No identificado con la información disponible.",
 
         icon: "⚖️"
 
@@ -132,21 +132,9 @@ const cards = computed(() => [
 
         value:
             props.summary.proceso
-            || "No identificado",
+            || "No identificado con la información disponible.",
 
         icon: "📂"
-
-    },
-
-    {
-
-        title: "Probabilidad de Éxito",
-
-        value:
-            props.summary.probabilidad
-            || "--",
-
-        icon: "🎯"
 
     },
 
@@ -156,7 +144,7 @@ const cards = computed(() => [
 
         value:
             props.summary.riesgo
-            || "--",
+            || "No identificado con la información disponible.",
 
         icon: "⚠️"
 
@@ -168,7 +156,7 @@ const cards = computed(() => [
 
         value:
             props.summary.evidencia
-            || "--",
+            || "No identificado con la información disponible.",
 
         icon: "📑"
 
@@ -176,7 +164,7 @@ const cards = computed(() => [
 
     {
 
-        title: "Documentos Analizados",
+        title: "Fuentes recuperadas",
 
         value:
             props.summary.documentos

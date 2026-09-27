@@ -21,7 +21,9 @@ from ..utils.logger import get_logger
 from ..utils.locale import t, get_locale, set_locale
 from ..models.project import ProjectManager
 # --- NUEVA IMPORTACIÓN PARA EL TRIBUNAL MULTIAGENTE ---
-from ..services.court_simulation import LegalDebateSimulator
+def get_legal_simulator():
+    from ..services.court_simulation import LegalDebateSimulator
+    return LegalDebateSimulator
 
 logger = get_logger('NovaIuris.api.simulation')
 
@@ -2762,9 +2764,9 @@ def simulate_court_case():
             }), 400
         
         dominio = data.get('dominio', 'General')
-        logger.info(f"⚖️ Iniciando Tribunal [{dominio}] - Caso: {caso[:50]}...")
+        logger.info("Starting tribunal domain=%s", dominio)
         
-        resultados = LegalDebateSimulator.simulate_case(caso)
+        resultados = get_legal_simulator().simulate_case(caso)
         
         return jsonify({
             "success": True,
@@ -2803,7 +2805,7 @@ def upload_and_simulate():
             caso_completo += f"\n[DOCUMENTAL PROBATORIA ADJUNTA]:\n{texto_evidencia[:10000]}" 
             
         # 3. Iniciar Simulación
-        resultados = LegalDebateSimulator.simulate_case(caso_completo)
+        resultados = get_legal_simulator().simulate_case(caso_completo)
         
         return jsonify({"success": True, "data": resultados})
         

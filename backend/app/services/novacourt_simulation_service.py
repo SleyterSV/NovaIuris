@@ -21,14 +21,14 @@ class NovaCourtSimulationService:
         self.simulator_factory = simulator_factory or get_legal_debate_simulator
 
     def simulate_for_case(
-        self, case_result: Dict[str, Any], case_text: str
+        self, case_result: Dict[str, Any], case_text: str, cancellation_token=None
     ) -> Dict[str, Any]:
         orchestrator = NovaCourtSimulationOrchestrator(
             self.simulator_factory,
             enabled=Config.NOVACOURT_SIMULATION_ENABLED,
             timeout=Config.NOVACOURT_SIMULATION_TIMEOUT_SECONDS,
         )
-        simulation = orchestrator.simulate(case_result, case_text)
+        simulation = orchestrator.simulate(case_result, case_text, cancellation_token=cancellation_token)
         if simulation["status"] in {"failed", "timeout"}:
             logger.warning(
                 "NovaCourt simulation finished with status=%s",

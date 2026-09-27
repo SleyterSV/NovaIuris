@@ -1,9 +1,10 @@
+import { API_BASE_URL } from "../config/api.js"
 import axios from 'axios'
 import i18n from '../i18n'
 
 // 创建axios实例
 const service = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001',
+  baseURL: API_BASE_URL,
   timeout: 300000, // 5分钟超时（本体生成可能需要较长时间）
   headers: {
     'Content-Type': 'application/json'

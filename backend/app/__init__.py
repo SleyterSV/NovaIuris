@@ -9,7 +9,11 @@ import warnings
 # 需要在所有其他导入之前设置
 warnings.filterwarnings("ignore", message=".*resource_tracker.*")
 
-from flask import Flask, request
+from flask import Flask, request, g
+from uuid import uuid4
+from werkzeug.exceptions import HTTPException
+from .utils.api_response import api_error
+from .utils.rate_limit import CostEndpointRateLimiter
 from flask_cors import CORS
 
 from .config import Config
@@ -21,6 +25,11 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     
+    if os.getenv('APP_ENV', '').lower() == 'production' and not app.config.get('SECRET_KEY'):
+        raise RuntimeError('SECRET_KEY must be configured in production')
+    limiter = CostEndpointRateLimiter(config_class)
+    app.extensions['cost_limiter'] = limiter
+
     # 设置JSON编码：确保中文直接显示（而不是 \uXXXX 格式）
     # Flask >= 2.3 使用 app.json.ensure_ascii，旧版本使用 JSON_AS_ASCII 配置
     if hasattr(app, 'json') and hasattr(app.json, 'ensure_ascii'):
@@ -40,7 +49,7 @@ def create_app(config_class=Config):
         logger.info("=" * 50)
     
     # 启用CORS
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    CORS(app, resources={r"/api/*": {"origins": app.config["CORS_ALLOWED_ORIGINS"]}})
     
     # 注册模拟进程清理函数（确保服务器关闭时终止所有模拟进程）
     from .services.simulation_runner import SimulationRunner
@@ -50,18 +59,37 @@ def create_app(config_class=Config):
     
     # 请求日志中间件
     @app.before_request
-    def log_request():
-        logger = get_logger('NovaIuris.request')
-        logger.debug(f"请求: {request.method} {request.path}")
-        if request.content_type and 'json' in request.content_type:
-            logger.debug(f"请求体: {request.get_json(silent=True)}")
-    
+    def identify_request():
+        g.request_id = str(uuid4())
+        allowed, retry_after = limiter.check(request.remote_addr, request.path) if request.method == "POST" else (True, 0)
+        if not allowed:
+            response, status = api_error('RATE_LIMITED', 'Demasiadas solicitudes. Inténtalo más tarde.', g.request_id, 429)
+            response.headers['Retry-After'] = str(retry_after)
+            return response, status
+
     @app.after_request
-    def log_response(response):
-        logger = get_logger('NovaIuris.request')
-        logger.debug(f"响应: {response.status_code}")
+    def protect_response(response):
+        response.headers['X-Request-ID'] = g.request_id
+        if response.is_json and response.status_code >= 400:
+            payload = response.get_json(silent=True) or {}
+            error = payload.get('error')
+            # Legacy errors are sanitized here; never pass exception text or traceback.
+            if not isinstance(error, dict) or not {'code', 'message'} <= error.keys():
+                message = 'Solicitud inválida.' if response.status_code < 500 else 'No fue posible completar la solicitud.'
+                safe, _ = api_error('REQUEST_FAILED', message, g.request_id, response.status_code)
+                response.set_data(safe.get_data())
+            else:
+                safe, _ = api_error(error['code'], error['message'], g.request_id, response.status_code)
+                response.set_data(safe.get_data())
+        logger.info('request_id=%s method=%s status=%s', g.request_id, request.method, response.status_code)
         return response
-    
+
+    @app.errorhandler(Exception)
+    def public_error(error):
+        status = error.code if isinstance(error, HTTPException) else 500
+        logger.error('request_id=%s error_type=%s', getattr(g, 'request_id', ''), type(error).__name__)
+        return api_error('REQUEST_FAILED', 'No fue posible completar la solicitud.', getattr(g, 'request_id', ''), status)
+
     # 注册蓝图
     # 👇 1. SE AGREGÓ export_bp A LA IMPORTACIÓN
     from .api import (

@@ -20,6 +20,7 @@ paginación.
 from __future__ import annotations
 
 import time
+from .cancellation import check_cancelled, OperationCancelled
 from collections.abc import Callable
 from typing import Any
 
@@ -95,6 +96,7 @@ def _obtener_pagina_con_reintentos(
     max_retries: int = MAXIMO_REINTENTOS_PREDETERMINADO,
     retry_delay: float = RETRASO_REINTENTO_PREDETERMINADO,
     page_description: str = "página",
+    cancellation_token=None,
     **kwargs: Any,
 ) -> list[Any]:
     """
@@ -151,6 +153,7 @@ def _obtener_pagina_con_reintentos(
 
         try:
 
+            check_cancelled(cancellation_token)
             resultado = api_call(
                 *args,
                 **kwargs,
@@ -259,6 +262,7 @@ def _obtener_todos_los_elementos(
     max_items: int,
     max_retries: int,
     retry_delay: float,
+    cancellation_token=None,
 ) -> list[Any]:
     """
     Obtiene todos los elementos de una API paginada de Zep.
@@ -325,6 +329,7 @@ def _obtener_todos_los_elementos(
     )
 
     while True:
+        check_cancelled(cancellation_token)
 
         numero_pagina += 1
 
@@ -345,6 +350,7 @@ def _obtener_todos_los_elementos(
             graph_id,
             max_retries=max_retries,
             retry_delay=retry_delay,
+            cancellation_token=cancellation_token,
             page_description=descripcion_pagina,
             **kwargs,
         )
@@ -473,6 +479,7 @@ def fetch_all_nodes(
     max_items: int = MAXIMO_NODOS_PREDETERMINADO,
     max_retries: int = MAXIMO_REINTENTOS_PREDETERMINADO,
     retry_delay: float = RETRASO_REINTENTO_PREDETERMINADO,
+    cancellation_token=None,
 ) -> list[Any]:
     """
     Obtiene todos los nodos disponibles de un grafo de Zep.
@@ -512,6 +519,7 @@ def fetch_all_nodes(
         max_items=max_items,
         max_retries=max_retries,
         retry_delay=retry_delay,
+        cancellation_token=cancellation_token,
     )
 
 
@@ -526,6 +534,7 @@ def fetch_all_edges(
     max_items: int = MAXIMO_RELACIONES_PREDETERMINADO,
     max_retries: int = MAXIMO_REINTENTOS_PREDETERMINADO,
     retry_delay: float = RETRASO_REINTENTO_PREDETERMINADO,
+    cancellation_token=None,
 ) -> list[Any]:
     """
     Obtiene todas las relaciones disponibles de un grafo de Zep.
@@ -565,4 +574,5 @@ def fetch_all_edges(
         max_items=max_items,
         max_retries=max_retries,
         retry_delay=retry_delay,
+        cancellation_token=cancellation_token,
     )

@@ -404,6 +404,8 @@
 </template>
 
 <script setup>
+import { API_BASE_URL } from "@/config/api.js"
+
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, h, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -468,7 +470,7 @@ const exportarDictamen = async () => {
     }
 
     // 3. Llamada directa a tu nuevo endpoint de Flask
-    const response = await fetch('http://localhost:5000/api/export/pdf', {
+    const response = await fetch(`${API_BASE_URL}/api/export/pdf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

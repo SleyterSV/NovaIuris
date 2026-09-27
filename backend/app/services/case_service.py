@@ -1,3 +1,6 @@
+from app.utils.cancellation import check_cancelled, OperationCancelled
+from app.utils.case_contract import normalize_case_result
+from uuid import uuid4
 import logging
 
 from typing import Dict
@@ -129,7 +132,8 @@ class CaseService:
     def analyze_case(
         self,
         case_text: str,
-        filtros: Dict[str, Any] | None = None
+        filtros: Dict[str, Any] | None = None,
+        progress_callback=None, cancellation_token=None, case_id=None
     ) -> Dict:
 
         """
@@ -150,6 +154,12 @@ class CaseService:
         en paralelo cuando sus dependencias lo permiten.
         """
 
+        case_id = case_id or str(uuid4())
+        def stage(name, status):
+            check_cancelled(cancellation_token)
+            if progress_callback:
+                progress_callback(name, status)
+        stage('intake', 'completed')
         if filtros is None:
 
             filtros = {}
@@ -158,6 +168,7 @@ class CaseService:
         ###################### ANALIZAR CASO ########################
         ############################################################
 
+        stage('facts', 'running')
         analysis = self.case_analyzer.analyze_case(
 
             case_text
@@ -186,6 +197,8 @@ class CaseService:
         ################ CONSTRUIR ESTRATEGIA #######################
         ############################################################
 
+        stage('facts', 'completed')
+        stage('strategy', 'running')
         strategy = self.strategy_builder.build_strategy(
 
             analysis
@@ -214,6 +227,8 @@ class CaseService:
         ################### NOVASEARCH ############################
         ############################################################
 
+        stage('strategy', 'completed')
+        stage('research', 'running')
         search_queries = list(
             dict.fromkeys(
                 query.strip()
@@ -230,12 +245,13 @@ class CaseService:
 
 
         def execute_search(query):
+            check_cancelled(cancellation_token)
 
             try:
 
                 logger.info(
                     "NovaSearch ejecutando consulta: %s",
-                    query[:100]
+                    "[redacted]"
                 )
 
                 result = self.search_service.search(
@@ -249,6 +265,7 @@ class CaseService:
                     build_context=False,
 
                     use_reranker=False,
+                    cancellation_token=cancellation_token,
 
                 )
 
@@ -271,12 +288,11 @@ class CaseService:
                     )
                 }
 
+            except OperationCancelled:
+                raise
             except Exception as error:
 
-                logger.exception(
-                    "Error ejecutando NovaSearch para query: %s",
-                    query
-                )
+                logger.error("Search stage failed error_type=%s", type(error).__name__)
 
                 return None
 
@@ -396,6 +412,8 @@ class CaseService:
         ################ LEGAL ARGUMENT SERVICE ####################
         ############################################################
 
+        stage('research', 'completed')
+        stage('arguments', 'running')
         legal_arguments = (
 
             self.argument_service.generate_arguments(
@@ -428,7 +446,9 @@ class CaseService:
         ################ EVIDENCE + RISK ##########################
         ############################################################
 
+        stage('arguments', 'completed')
         def analyze_evidence():
+            stage("evidence", "running")
 
             return self.evidence_analyzer.analyze(
 
@@ -444,6 +464,7 @@ class CaseService:
 
 
         def analyze_risk():
+            stage("risks", "running")
 
             return self.risk_analyzer.analyze(
 
@@ -522,6 +543,9 @@ class CaseService:
         ################ COUNTER ARGUMENTS #########################
         ############################################################
 
+        stage('evidence', 'completed')
+        stage('risks', 'completed')
+        stage('counter_arguments', 'running')
         counter_arguments = (
 
             self.counter_argument_service.generate_counterarguments(
@@ -560,6 +584,7 @@ class CaseService:
         ################ TIMELINE #################################
         ############################################################
 
+        stage('counter_arguments', 'completed')
         timeline = []
 
         # timeline =
@@ -574,6 +599,7 @@ class CaseService:
         ################ CASE REPORT ###############################
         ############################################################
 
+        stage('report', 'running')
         report = (
 
             self.report_service.generate_report(
@@ -622,7 +648,8 @@ class CaseService:
         ###################### RESPUESTA FINAL ######################
         ############################################################
 
-        return {
+        stage('report', 'completed')
+        result = {
 
             ########################################################
             ################ ESTADO ################################
@@ -743,3 +770,6 @@ class CaseService:
                 report
 
         }
+
+        result["case_id"] = case_id
+        return normalize_case_result(result)

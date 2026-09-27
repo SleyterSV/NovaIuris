@@ -1,3 +1,4 @@
+from app.utils.cancellation import check_cancelled
 from typing import Dict, Any
 
 from app.services.embedding_service import EmbeddingService
@@ -32,7 +33,6 @@ class SearchService:
 
         self.query_analyzer = QueryAnalyzer()
 
-        self.embedding_service = EmbeddingService()
 
         self.repository = LegalRepository()
 
@@ -56,7 +56,8 @@ class SearchService:
         filtros: Dict[str, Any] | None = None,
         generate_answer: bool = True,
         build_context: bool = True,
-        use_reranker: bool = True
+        use_reranker: bool = True,
+        cancellation_token=None
     ):
 
         if filtros is None:
@@ -99,9 +100,10 @@ class SearchService:
         ################## GENERACION DEL EMBEDDING #####################
         ################################################################
 
-        embedding = self.embedding_service.generate_embedding(
+        check_cancelled(cancellation_token)
+        embedding = EmbeddingService().generate_embedding(
 
-            query_mejorada
+            query_mejorada, cancellation_token=cancellation_token
 
         )
 
@@ -109,6 +111,7 @@ class SearchService:
         ################### BUSQUEDA VECTORIAL ###########################
         ################################################################
 
+        check_cancelled(cancellation_token)
         resultados = self.repository.semantic_search(
 
             embedding=embedding,
@@ -151,6 +154,7 @@ class SearchService:
 
         if use_reranker:
 
+            check_cancelled(cancellation_token)
             resultados = self.reranker.rerank(
 
                 query=query_mejorada,
@@ -211,6 +215,7 @@ class SearchService:
 
         if generate_answer:
 
+            check_cancelled(cancellation_token)
             respuesta = self.answer_service.generate_answer(
 
                 query=query_mejorada,

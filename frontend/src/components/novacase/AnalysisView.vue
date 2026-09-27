@@ -326,7 +326,7 @@ const sections = computed(() => [
 
         content:
             props.analysis.summary ||
-            "No se generó un resumen ejecutivo."
+            "No identificado con la información disponible."
 
     },
 
@@ -340,7 +340,7 @@ const sections = computed(() => [
 
         content:
             props.analysis.facts ||
-            "No se identificaron hechos relevantes."
+            "No identificado con la información disponible."
 
     },
 
@@ -354,7 +354,7 @@ const sections = computed(() => [
 
         content:
             props.analysis.issues ||
-            "No se identificaron problemas jurídicos."
+            "No identificado con la información disponible."
 
     },
 
@@ -364,11 +364,11 @@ const sections = computed(() => [
 
         category: "MARCO NORMATIVO",
 
-        title: "Normativa Aplicable",
+        title: "Normativa preliminar identificada",
 
         content:
             props.analysis.law ||
-            "No se encontró normativa aplicable."
+            "No identificado con la información disponible."
 
     },
 
@@ -382,7 +382,7 @@ const sections = computed(() => [
 
         content:
             props.analysis.jurisprudence ||
-            "No se encontraron precedentes relevantes."
+            "No identificado con la información disponible."
 
     },
 
@@ -396,7 +396,7 @@ const sections = computed(() => [
 
         content:
             props.analysis.observations ||
-            "No existen observaciones adicionales."
+            "No identificado con la información disponible."
 
     }
 
@@ -446,7 +446,7 @@ const processSteps = [
 
         id: 4,
 
-        title: "Normativa Aplicable",
+        title: "Normativa preliminar identificada",
 
         description:
             "Se localizaron las normas relacionadas con el caso."

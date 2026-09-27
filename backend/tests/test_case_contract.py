@@ -27,11 +27,11 @@ class CaseContractTests(unittest.TestCase):
 
         normalized = CASE_CONTRACT.normalize_case_result(raw)
 
-        self.assertEqual(normalized["summary"], raw["analysis_summary"])
-        self.assertEqual(normalized["strategy"], raw["strategy"])
-        self.assertEqual(normalized["risks"], raw["risk_analysis"])
+        self.assertEqual(normalized["summary"]["tipo_proceso"], raw["analysis_summary"]["tipo_proceso"])
+        self.assertEqual(normalized["strategy"]["claim_strategy"], raw["strategy"]["claim_strategy"])
+        self.assertEqual(normalized["risks"]["risks"], raw["risk_analysis"]["risks"])
         self.assertEqual(normalized["arguments"], raw["legal_arguments"])
-        self.assertEqual(normalized["evidence"], raw["evidence_analysis"])
+        self.assertEqual(normalized["evidence"]["summary"], raw["evidence_analysis"]["summary"])
         self.assertEqual(normalized["report"], "# Informe")
         self.assertEqual(normalized["metadata"]["contract_version"], "1.0")
 

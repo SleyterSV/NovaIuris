@@ -7,6 +7,9 @@
         ====================================================== -->
 
         <NovaCourtHeader />
+        <PipelineProgress v-if="isLoading" :progress="novaCourt.progress.value" :current="novaCourt.currentStage.value" :stages="novaCourt.stages.value" />
+        <button v-if="isLoading" type="button" @click="novaCourt.cancel">Cancelar tarea</button>
+        <p v-for="warning in novaCourt.warnings.value" :key="warning.stage" role="status">{{ warning.message }}</p>
 
 
         <!-- =====================================================
@@ -123,8 +126,8 @@
                 <template #overview>
 
                     <CourtSummary
-                        :content="summaryContent"
-                        :loading="isLoading"
+                        :summary="summaryContent"
+                        :loading="isLoading && !hasResult"
                     />
 
                 </template>
@@ -138,7 +141,7 @@
 
                     <CourtAnalysis
                         :content="analysisContent"
-                        :loading="isLoading"
+                        :loading="isLoading && !hasResult"
                         :status="analysisStatus"
                         :status-type="analysisStatusType"
                     />
@@ -154,7 +157,7 @@
 
                     <CourtAnalysis
                         :content="evidenceContent"
-                        :loading="isLoading"
+                        :loading="isLoading && !hasResult"
                         :status="evidenceStatus"
                         :status-type="evidenceStatusType"
                     />
@@ -170,7 +173,7 @@
 
                     <CourtAnalysis
                         :content="riskContent"
-                        :loading="isLoading"
+                        :loading="isLoading && !hasResult"
                         :status="riskStatus"
                         :status-type="riskStatusType"
                     />
@@ -184,9 +187,9 @@
 
                 <template #strategy>
 
-                    <StrategyView
+                    <CourtSimulation
                         :simulation="simulationData"
-                        :loading="isLoading"
+                        :loading="isLoading && !hasResult"
                         :status="simulationStatus"
                         :status-type="simulationStatusType"
                     />
@@ -202,7 +205,7 @@
 
                     <CourtReport
                         :content="reportContent"
-                        :loading="isLoading"
+                        :loading="isLoading && !hasResult"
                         :status="reportStatus"
                         :status-type="reportStatusType"
                     />
@@ -217,8 +220,8 @@
                 <template #graph>
 
                     <GraphPanel
-                        :data="graphData"
-                        :loading="isLoading"
+                        :graph-data="graphData"
+                        :loading="isLoading && !hasResult"
                     />
 
                 </template>
@@ -282,6 +285,12 @@
 
 
 <script setup>
+import CourtSimulation from '../components/novacourt/CourtSimulation.vue'
+import PipelineProgress from '../components/novacourt/PipelineProgress.vue'
+import { normalizeRenderableContent } from '../utils/content.js'
+import { normalizeGraphState } from '../utils/graphState.js'
+import { normalizeSimulationState } from '../utils/simulationState.js'
+
 
 import {
     computed,
@@ -533,7 +542,7 @@ const analysisContent = computed(() => {
     const data =
         result.value || {}
 
-    return (
+    return normalizeRenderableContent(
         data.analysis ||
         data.arguments ||
         data.legal_analysis ||
@@ -552,7 +561,7 @@ const evidenceContent = computed(() => {
     const data =
         result.value || {}
 
-    return (
+    return normalizeRenderableContent(
         data.evidence ||
         data.probative_analysis ||
         data.evidence_analysis ||
@@ -571,7 +580,7 @@ const riskContent = computed(() => {
     const data =
         result.value || {}
 
-    return (
+    return normalizeRenderableContent(
         data.risks ||
         data.risk_analysis ||
         data.legal_risks ||
@@ -585,78 +594,15 @@ const riskContent = computed(() => {
    SIMULACIÓN MULTIAGENTE
 ========================================================= */
 
-const simulationData = computed(() => {
+const simulationData = computed(() => normalizeSimulationState(result.value?.simulation))
 
-    const data =
-        result.value || {}
-
-
-    const simulation =
-        data.simulation ||
-        data.strategy ||
-        data.court_simulation ||
-        data.multiagent_simulation ||
-        null
-
-
-    if (
-        simulation &&
-        typeof simulation === "object" &&
-        !Array.isArray(simulation)
-    ) {
-
-        return simulation
-
-    }
-
-
-    return {}
-
-})
-
-
-/* =========================================================
-   INFORME FINAL
-========================================================= */
-
-const reportContent = computed(() => {
-
-    const data =
-        result.value || {}
-
-    return (
-        data.report ||
-        data.final_report ||
-        data.prediction ||
-        data.conclusion ||
-        ""
-    )
-
-})
-
+const reportContent = computed(() => normalizeRenderableContent(result.value?.report))
 
 /* =========================================================
    GRAFO JURÍDICO
 ========================================================= */
 
-const graphData = computed(() => {
-
-    const data =
-        result.value || {}
-
-    return (
-        data.graph ||
-        data.graph_data ||
-        data.knowledge_graph ||
-        null
-    )
-
-})
-
-
-/* =========================================================
-   ESTADO — ANÁLISIS
-========================================================= */
+const graphData = computed(() => normalizeGraphState(result.value?.graph))
 
 const analysisStatus = computed(() => {
 
@@ -760,57 +706,9 @@ const riskStatusType = computed(() => {
    ESTADO — SIMULACIÓN
 ========================================================= */
 
-const simulationStatus = computed(() => {
-
-    if (isLoading.value) {
-        return "Simulando escenarios judiciales"
-    }
-
-
-    if (
-        simulationData.value &&
-        Object.keys(
-            simulationData.value
-        ).length > 0
-    ) {
-
-        return "Simulación disponible"
-
-    }
-
-
-    return ""
-
-})
-
-
-const simulationStatusType = computed(() => {
-
-    if (isLoading.value) {
-        return "processing"
-    }
-
-
-    if (
-        simulationData.value &&
-        Object.keys(
-            simulationData.value
-        ).length > 0
-    ) {
-
-        return "completed"
-
-    }
-
-
-    return "processing"
-
-})
-
-
-/* =========================================================
-   ESTADO — INFORME
-========================================================= */
+const simulationStatus = computed(() => simulationData.value.status === 'ready'
+    ? 'Simulación disponible' : simulationData.value.message || 'Simulación no disponible')
+const simulationStatusType = computed(() => simulationData.value.status === 'ready' ? 'completed' : 'processing')
 
 const reportStatus = computed(() => {
 

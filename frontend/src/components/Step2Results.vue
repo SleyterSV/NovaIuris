@@ -88,6 +88,8 @@
 </template>
 
 <script setup>
+import { API_BASE_URL } from "@/config/api.js"
+
 import { ref } from 'vue';
 
 const props = defineProps({
@@ -100,7 +102,7 @@ const isDownloading = ref(false);
 const downloadReport = async () => {
   isDownloading.value = true;
   try {
-    const response = await fetch('http://127.0.0.1:5001/api/simulation/court/download-report', {
+    const response = await fetch(`${API_BASE_URL}/api/simulation/court/download-report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(props.results)

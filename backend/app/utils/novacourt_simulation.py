@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from typing import Any, Callable, Dict
+from .cancellation import CancellationToken, OperationCancelled, check_cancelled
 
 
 _CONTEXT_FIELDS = (
@@ -80,6 +81,7 @@ def simulation_result(
         "judge": _as_dict(judge),
         "projection": _as_dict(projection),
         "metadata": _as_dict(metadata),
+        "error": {"code": status.upper(), "message": message} if status in {"failed", "timeout"} else None,
     }
     if message:
         result["message"] = message
@@ -93,6 +95,8 @@ def normalize_simulator_output(output: Any) -> Dict[str, Any]:
     defensa = payload.get("defensa")
     juez = payload.get("juez")
     metricas = _as_dict(payload.get("metricas"))
+    if not all(isinstance(value, str) and value.strip() for value in (fiscal, defensa, juez)):
+        return simulation_result("failed", message="La simulación no produjo las posiciones requeridas.")
 
     return simulation_result(
         "ready",
@@ -125,7 +129,7 @@ class NovaCourtSimulationOrchestrator:
         self.timeout = timeout
 
     def simulate(
-        self, case_result: Dict[str, Any], case_text: str
+        self, case_result: Dict[str, Any], case_text: str, cancellation_token=None
     ) -> Dict[str, Any]:
         if not self.enabled:
             return simulation_result("not_requested")
@@ -134,14 +138,17 @@ class NovaCourtSimulationOrchestrator:
         if not context:
             return simulation_result("not_requested")
 
+        token = CancellationToken(parent=cancellation_token, timeout=self.timeout)
+        token.check()
         executor = ThreadPoolExecutor(max_workers=1)
         try:
             # La importación diferida y la ejecución del simulador comparten el
             # mismo límite para que una dependencia lenta no bloquee el endpoint.
-            future = executor.submit(self._run_simulation, context)
+            future = executor.submit(self._run_simulation, context, token)
             output = future.result(timeout=self.timeout)
             return normalize_simulator_output(output)
         except TimeoutError:
+            token.cancel()
             return simulation_result(
                 "timeout",
                 message=(
@@ -149,6 +156,10 @@ class NovaCourtSimulationOrchestrator:
                     "El análisis y el grafo permanecen disponibles."
                 ),
             )
+        except OperationCancelled:
+            if cancellation_token is not None and cancellation_token.is_cancelled():
+                raise
+            return simulation_result("timeout", message="La simulación superó el límite de espera.")
         except Exception:
             return simulation_result(
                 "failed",
@@ -162,6 +173,8 @@ class NovaCourtSimulationOrchestrator:
             # hilo tras el timeout; el futuro se cancela si aún no inició.
             executor.shutdown(wait=False, cancel_futures=True)
 
-    def _run_simulation(self, context: str) -> Any:
+    def _run_simulation(self, context: str, token) -> Any:
+        token.check()
         simulator = self.simulator_factory()
-        return simulator.simulate_case(context)
+        token.check()
+        return simulator.simulate_case(context, cancellation_token=token)

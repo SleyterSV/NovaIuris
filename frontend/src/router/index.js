@@ -63,16 +63,7 @@ const routes = [
   // Búsqueda jurídica inteligente
   // ===================================================
 
-    {
-    path: "/novasearch",
-    name: "NovaSearch",
-    component: () =>
-        import("../views/NovaSearchView.vue"),
 
-    meta: {
-        title: "Nova Search | Nova Iuris"
-    }
-    },
 
 
   // ===================================================

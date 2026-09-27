@@ -148,7 +148,7 @@ const summaryItems = computed(() => [
         value:
             props.summary.proceso
             ||
-            "No identificado",
+            "No identificado con la información disponible.",
 
         type: "neutral"
 
@@ -162,23 +162,9 @@ const summaryItems = computed(() => [
         value:
             props.summary.escenario
             ||
-            "En evaluación",
+            "No identificado con la información disponible.",
 
         type: "neutral"
-
-    },
-
-
-    {
-
-        label: "Probabilidad estimada",
-
-        value:
-            props.summary.probabilidad
-            ||
-            "--",
-
-        type: "positive"
 
     },
 
@@ -190,7 +176,7 @@ const summaryItems = computed(() => [
         value:
             props.summary.riesgo
             ||
-            "--",
+            "No identificado con la información disponible.",
 
         type: "warning"
 

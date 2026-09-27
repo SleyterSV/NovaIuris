@@ -89,6 +89,7 @@ class RerankerService:
 
 
         self.client = OpenAI(
+            max_retries=0,
 
             api_key=api_key,
 

@@ -26,7 +26,10 @@ logger = logging.getLogger(
 # SERVICIO
 # ===============================================================
 
-search_service = SearchService()
+def get_search_service():
+    from flask import current_app
+    factory = current_app.config.get("SEARCH_SERVICE_FACTORY", SearchService)
+    return factory()
 
 
 # ===============================================================
@@ -229,7 +232,7 @@ def semantic_search():
         # EJECUTAR BÚSQUEDA
         # ---------------------------------------------------------
 
-        resultado = search_service.search(
+        resultado = get_search_service().search(
 
             query=query,
 

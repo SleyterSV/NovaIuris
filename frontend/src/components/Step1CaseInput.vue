@@ -82,6 +82,8 @@
 </template>
 
 <script setup>
+import { API_BASE_URL } from "@/config/api.js"
+
 import { ref, onUnmounted } from 'vue';
 
 const props = defineProps({ domainName: String });
@@ -145,7 +147,7 @@ const startSimulation = async () => {
   });
 
   try {
-    const response = await fetch('http://127.0.0.1:5001/api/simulation/court/upload-and-simulate', {
+    const response = await fetch(`${API_BASE_URL}/api/simulation/court/upload-and-simulate`, {
       method: 'POST',
       body: formData
     });

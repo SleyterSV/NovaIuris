@@ -52,8 +52,6 @@
 
                 :content="item.content"
 
-                :confidence="item.confidence"
-
                 :status="item.status"
 
             />
@@ -65,77 +63,7 @@
              ESTADÍSTICAS
         ====================================================== -->
 
-        <section class="evidence-stats">
 
-            <div class="stat-card">
-
-                <div class="stat-icon">
-
-                    <span>01</span>
-
-                </div>
-
-                <div class="stat-content">
-
-                    <span class="stat-label">
-                        Evidencias analizadas
-                    </span>
-
-                    <strong class="stat-value">
-                        {{ evidences.length }}
-                    </strong>
-
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-icon">
-
-                    <span>02</span>
-
-                </div>
-
-                <div class="stat-content">
-
-                    <span class="stat-label">
-                        Nivel promedio
-                    </span>
-
-                    <strong class="stat-value">
-                        {{ averageConfidence }}%
-                    </strong>
-
-                </div>
-
-            </div>
-
-
-            <div class="stat-card">
-
-                <div class="stat-icon success-icon">
-
-                    <span>✓</span>
-
-                </div>
-
-                <div class="stat-content">
-
-                    <span class="stat-label">
-                        Estado general
-                    </span>
-
-                    <strong class="stat-success">
-                        Validado
-                    </strong>
-
-                </div>
-
-            </div>
-
-        </section>
 
 
         <!-- =====================================================
@@ -235,9 +163,7 @@ const evidences = computed(() => [
         content:
             props.evidence.documents ||
 
-            "No se identificaron documentos relevantes.",
-
-        confidence: 96,
+            "No identificado con la información disponible.",
 
         status: "completed"
 
@@ -257,9 +183,7 @@ const evidences = computed(() => [
         content:
             props.evidence.testimonies ||
 
-            "No se identificaron testimonios relevantes.",
-
-        confidence: 91,
+            "No identificado con la información disponible.",
 
         status: "completed"
 
@@ -279,9 +203,7 @@ const evidences = computed(() => [
         content:
             props.evidence.expertReports ||
 
-            "No existen informes periciales.",
-
-        confidence: 88,
+            "No identificado con la información disponible.",
 
         status: "completed"
 
@@ -301,9 +223,7 @@ const evidences = computed(() => [
         content:
             props.evidence.digitalEvidence ||
 
-            "No se encontró evidencia digital.",
-
-        confidence: 90,
+            "No identificado con la información disponible.",
 
         status: "completed"
 
@@ -330,42 +250,6 @@ NovaCase no encontró una conclusión probatoria disponible.`
 /* =========================================================
    PROMEDIO
 ========================================================= */
-
-const averageConfidence = computed(() => {
-
-    if (
-        evidences.value.length === 0
-    ) {
-
-        return 0
-
-    }
-
-
-    const total =
-        evidences.value.reduce(
-
-            (
-                sum,
-                item
-            ) =>
-
-                sum +
-                item.confidence,
-
-            0
-
-        )
-
-
-    return Math.round(
-
-        total /
-        evidences.value.length
-
-    )
-
-})
 
 </script>
 

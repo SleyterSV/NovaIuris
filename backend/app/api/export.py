@@ -94,57 +94,22 @@ def armar_latex(tipo: str, datos: dict) -> str:
 # ==========================================
 # 3. ENDPOINT DE COMPILACIÓN
 # ==========================================
+# Legacy LaTeX formatter above is retained, but external compilation is disabled.
+from flask import g
+from ..utils.api_response import api_error
+from ..services.document_output import prepare_document
+
+@export_bp.route('/prepare', methods=['POST'])
+def prepare_export():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return api_error('INVALID_EXPORT', 'Debe enviar un objeto JSON válido.', g.request_id, 400)
+    try:
+        document = prepare_document(data.get('case_id'), data.get('result'), data.get('tool'))
+    except (ValueError, TypeError):
+        return api_error('INVALID_EXPORT', 'El resultado debe corresponder al case_id indicado.', g.request_id, 400)
+    return jsonify(success=True, document=document)
+
 @export_bp.route('/pdf', methods=['POST'])
 def generar_pdf():
-    doc_data = request.get_json()
-    
-    if not doc_data:
-        return jsonify({"success": False, "error": "No se enviaron datos"}), 400
-        
-    tipo = doc_data.get('tipo', '')
-    datos = doc_data.get('datos', {})
-    
-    if tipo not in ['NovaCase', 'NovaCourt']:
-        return jsonify({"success": False, "error": "Tipo de documento no válido"}), 400
-
-    latex_content = armar_latex(tipo, datos)
-    temp_dir = tempfile.mkdtemp()
-    
-    try:
-        tex_path = os.path.join(temp_dir, "documento.tex")
-        pdf_path = os.path.join(temp_dir, "documento.pdf")
-        
-        # Inyección del logotipo (Asegúrate de que NovaIuris.png esté en la carpeta static del backend)
-        logo_src = os.path.join(os.getcwd(), "static", "NovaIuris.png") 
-        if os.path.exists(logo_src):
-            shutil.copy(logo_src, os.path.join(temp_dir, "NovaIuris.png"))
-        
-        # Escribir el código LaTeX en el archivo
-        with open(tex_path, "w", encoding="utf-8") as f:
-            f.write(latex_content)
-            
-        # Compilación doble para resolver referencias y márgenes
-        try:
-            subprocess.run(["pdflatex", "-interaction=nonstopmode", "documento.tex"], cwd=temp_dir, check=True, stdout=subprocess.DEVNULL)
-            subprocess.run(["pdflatex", "-interaction=nonstopmode", "documento.tex"], cwd=temp_dir, check=True, stdout=subprocess.DEVNULL)
-        except subprocess.CalledProcessError:
-            return jsonify({"success": False, "error": "Error compilando LaTeX. Verifica la instalación de pdflatex."}), 500
-
-        if not os.path.exists(pdf_path):
-            return jsonify({"success": False, "error": "No se pudo generar el PDF final."}), 500
-
-        # Cargar el PDF compilado a la memoria RAM
-        with open(pdf_path, 'rb') as f:
-            pdf_bytes = f.read()
-            
-    finally:
-        # Limpieza de servidor obligatoria
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
-    # Retornar el archivo directamente desde la memoria
-    return send_file(
-        io.BytesIO(pdf_bytes), 
-        mimetype="application/pdf", 
-        as_attachment=True, 
-        download_name=f"NovaIuris_{tipo}_Oficial.pdf"
-    )
+    return api_error('DOCUMENT_OUTPUT_PENDING', 'La exportación PDF está pendiente del bloque Document Output.', g.request_id, 501)

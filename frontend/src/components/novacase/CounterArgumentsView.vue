@@ -137,7 +137,6 @@
                     :subtitle="argument.subtitle"
                     :icon="argument.icon"
                     :content="argument.content"
-                    :confidence="argument.confidence"
                     :status="argument.status"
                 />
 
@@ -329,9 +328,7 @@ const counterArguments = computed(() => [
 
             props.counterArguments.procedural ||
 
-            "No se identificaron excepciones procesales relevantes.",
-
-        confidence: 89,
+            "No identificado con la información disponible.",
 
         status: "completed"
 
@@ -353,9 +350,7 @@ const counterArguments = computed(() => [
 
             props.counterArguments.evidence ||
 
-            "No se identificaron cuestionamientos probatorios relevantes.",
-
-        confidence: 91,
+            "No identificado con la información disponible.",
 
         status: "completed"
 
@@ -377,9 +372,7 @@ const counterArguments = computed(() => [
 
             props.counterArguments.legal ||
 
-            "No se identificaron interpretaciones jurídicas adversas.",
-
-        confidence: 87,
+            "No identificado con la información disponible.",
 
         status: "completed"
 
@@ -401,9 +394,7 @@ const counterArguments = computed(() => [
 
             props.counterArguments.jurisprudence ||
 
-            "No se identificó jurisprudencia contraria relevante.",
-
-        confidence: 85,
+            "No identificado con la información disponible.",
 
         status: "completed"
 

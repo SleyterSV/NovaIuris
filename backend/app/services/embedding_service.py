@@ -1,3 +1,4 @@
+from app.utils.cancellation import check_cancelled, OperationCancelled
 import os
 import time
 import hashlib
@@ -96,6 +97,7 @@ class EmbeddingService:
 
             api_key=api_key,
 
+            max_retries=0,
             timeout=self.TIMEOUT
 
         )
@@ -192,7 +194,8 @@ class EmbeddingService:
     def generate_embedding(
         self,
         text: str,
-        retries: int = DEFAULT_RETRIES
+        retries: int = DEFAULT_RETRIES,
+        cancellation_token=None
     ) -> List[float]:
 
         text = self.clean_text(
@@ -242,6 +245,7 @@ class EmbeddingService:
             retries + 1
         ):
 
+            check_cancelled(cancellation_token)
             try:
 
                 logger.info(
@@ -302,6 +306,8 @@ class EmbeddingService:
                 return embedding
 
 
+            except OperationCancelled:
+                raise
             except Exception as error:
 
                 last_error = error
@@ -357,7 +363,8 @@ class EmbeddingService:
     def generate_embeddings(
         self,
         texts: List[str],
-        retries: int = DEFAULT_RETRIES
+        retries: int = DEFAULT_RETRIES,
+        cancellation_token=None
     ) -> List[List[float]]:
 
         if not texts:
@@ -454,6 +461,7 @@ class EmbeddingService:
             retries + 1
         ):
 
+            check_cancelled(cancellation_token)
             try:
 
                 logger.info(
@@ -537,6 +545,8 @@ class EmbeddingService:
                 return embeddings
 
 
+            except OperationCancelled:
+                raise
             except Exception as error:
 
                 last_error = error

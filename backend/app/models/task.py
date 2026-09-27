@@ -1,3 +1,5 @@
+from copy import deepcopy
+from ..utils.cancellation import CancellationToken
 """
 任务状态管理
 用于跟踪长时间运行的任务（如图谱构建）
@@ -18,6 +20,7 @@ class TaskStatus(str, Enum):
     PENDING = "pending"          # 等待中
     PROCESSING = "processing"    # 处理中
     COMPLETED = "completed"      # 已完成
+    CANCELLED = "cancelled"
     FAILED = "failed"            # 失败
 
 
@@ -38,7 +41,7 @@ class Task:
     
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典"""
-        return {
+        return deepcopy({
             "task_id": self.task_id,
             "task_type": self.task_type,
             "status": self.status.value,
@@ -50,7 +53,7 @@ class Task:
             "result": self.result,
             "error": self.error,
             "metadata": self.metadata,
-        }
+        })
 
 
 class TaskManager:
@@ -69,6 +72,7 @@ class TaskManager:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
                     cls._instance._tasks: Dict[str, Task] = {}
+                    cls._instance._cancellations = {}
                     cls._instance._task_lock = threading.Lock()
         return cls._instance
     
@@ -97,13 +101,14 @@ class TaskManager:
         
         with self._task_lock:
             self._tasks[task_id] = task
+            self._cancellations[task_id] = CancellationToken()
         
         return task_id
     
     def get_task(self, task_id: str) -> Optional[Task]:
         """获取任务"""
         with self._task_lock:
-            return self._tasks.get(task_id)
+            return deepcopy(self._tasks.get(task_id))
     
     def update_task(
         self,
@@ -131,6 +136,8 @@ class TaskManager:
             task = self._tasks.get(task_id)
             if task:
                 task.updated_at = datetime.now()
+                if task.status in {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED}:
+                    return
                 if status is not None:
                     task.status = status
                 if progress is not None:
@@ -138,11 +145,11 @@ class TaskManager:
                 if message is not None:
                     task.message = message
                 if result is not None:
-                    task.result = result
+                    task.result = deepcopy(result)
                 if error is not None:
-                    task.error = error
+                    task.error = deepcopy(error)
                 if progress_detail is not None:
-                    task.progress_detail = progress_detail
+                    task.progress_detail = deepcopy(progress_detail)
     
     def complete_task(self, task_id: str, result: Dict):
         """标记任务完成"""
@@ -179,8 +186,24 @@ class TaskManager:
         with self._task_lock:
             old_ids = [
                 tid for tid, task in self._tasks.items()
-                if task.created_at < cutoff and task.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]
+                if task.created_at < cutoff and task.status in [TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED]
             ]
             for tid in old_ids:
                 del self._tasks[tid]
+                self._cancellations.pop(tid, None)
 
+
+    def cancellation_token(self, task_id):
+        with self._task_lock:
+            return self._cancellations.get(task_id)
+
+    def cancel_task(self, task_id):
+        with self._task_lock:
+            task = self._tasks.get(task_id)
+            if not task or task.status not in {TaskStatus.PENDING, TaskStatus.PROCESSING}:
+                return False
+            self._cancellations[task_id].cancel()
+            task.status = TaskStatus.CANCELLED
+            task.updated_at = datetime.now()
+            task.message = 'Tarea cancelada; una solicitud externa en curso puede continuar.'
+            return True
