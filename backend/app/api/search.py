@@ -5,6 +5,7 @@ from flask import jsonify
 from flask import request
 
 from app.services.search_service import SearchService
+from app.services.legal_repository import LegalSearchError
 
 
 # ===============================================================
@@ -280,6 +281,16 @@ def semantic_search():
                 {}
             ),
 
+            "result_status": resultado.get("result_status", "completed"),
+
+            "sources": resultado.get("sources", []),
+
+            "citations": resultado.get("citations", []),
+
+            "warnings": resultado.get("warnings", []),
+
+            "detected_legal_mentions": resultado.get("detected_legal_mentions", []),
+
             "answer": resultado.get(
                 "answer",
                 ""
@@ -306,6 +317,14 @@ def semantic_search():
     # ===========================================================
     # ERRORES
     # ===========================================================
+
+    except LegalSearchError:
+        logger.warning("NovaSearch public corpus unavailable")
+        return jsonify({
+            "success": False,
+            "result_status": "search_failed",
+            "error": {"code": "SEARCH_FAILED", "message": "No se pudo consultar el repositorio jurídico."}
+        }), 503
 
     except Exception as error:
 

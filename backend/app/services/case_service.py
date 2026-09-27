@@ -12,6 +12,7 @@ from concurrent.futures import as_completed
 from app.services.case_analyzer import CaseAnalyzer
 from app.services.strategy_builder import StrategyBuilder
 from app.services.search_service import SearchService
+from app.services.legal_repository import LegalSearchError
 from app.services.legal_argument_service import LegalArgumentService
 from app.services.evidence_analyzer import EvidenceAnalyzer
 from app.services.risk_analyzer import RiskAnalyzer
@@ -301,6 +302,7 @@ class CaseService:
 
                 return {
                     "query": query,
+                    "result_status": result.get("result_status", "completed"),
                     "answer": result.get(
                         "answer",
                         ""
@@ -317,6 +319,9 @@ class CaseService:
 
             except OperationCancelled:
                 raise
+            except LegalSearchError:
+                return {"query": query, "result_status": "search_failed", "documents": [],
+                        "answer": "", "analysis": {}}
             except Exception as error:
 
                 logger.error("Search stage failed error_type=%s", type(error).__name__)
@@ -764,7 +769,18 @@ class CaseService:
 
                         documentos
 
-                    )
+                    ),
+
+                "status": (
+                    "partial" if any(item.get("result_status") == "search_failed" for item in search_results)
+                    and documentos else "search_failed" if any(
+                        item.get("result_status") == "search_failed" for item in search_results
+                    ) else "completed"
+                ),
+
+                "warnings": ([{"code": "SEARCH_FAILED",
+                    "message": "Una o más consultas de investigación no pudieron verificarse en el repositorio jurídico."}]
+                    if any(item.get("result_status") == "search_failed" for item in search_results) else [])
 
             },
 
@@ -798,6 +814,23 @@ class CaseService:
 
         }
 
+        from app.services.source_contracts import normalize_case_source
+        public_sources = []
+        for document in documentos:
+            source = document.get("source") if isinstance(document, dict) else None
+            if isinstance(source, dict) and source.get("source_scope") == "public":
+                public_sources.append(source)
+            elif isinstance(document, dict):
+                from app.services.source_contracts import normalize_public_source
+                public_sources.append(normalize_public_source(
+                    document, excerpt=document.get("extracto_exacto", "")))
+        document_names = {}
+        if case_sources and self.case_corpus_repository is not None:
+            document_names = {doc["document_id"]: doc.get("filename")
+                              for doc in self.case_corpus_repository.list_documents(case_id)}
+        result["sources"] = public_sources + [normalize_case_source({
+            **item, "filename": document_names.get(item.get("document_id"))
+        }) for item in case_sources]
         result["case_id"] = case_id
         result["document_ids"] = list(document_ids or [])
         result["research"]["case_sources"] = [item["source_reference"] for item in case_sources]

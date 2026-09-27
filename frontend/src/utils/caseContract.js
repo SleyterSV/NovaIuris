@@ -22,6 +22,7 @@ export function normalizeCaseResult(result) {
     timeline: asList(source.timeline),
     report: source.report ?? '',
     citations: asList(source.citations),
+    sources: asList(source.sources),
     metadata: {
       ...asRecord(source.metadata),
       contract_version: source.metadata?.contract_version || '1.0',

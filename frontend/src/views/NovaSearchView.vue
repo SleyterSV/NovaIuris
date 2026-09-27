@@ -23,6 +23,10 @@ const {
     searchError,
 
     answer,
+    sources,
+    citations,
+    sourceWarnings,
+    resultStatus,
     analysis,
     normalizedQuery,
 
@@ -219,6 +223,9 @@ function handleFiltersUpdate(newFilters) {
                     <NovaSearchAnswer
                         v-if="answer"
                         :answer="answer"
+                        :sources="sources"
+                        :citations="citations"
+                        :source-warnings="sourceWarnings"
                         :search-time="searchTime"
                         :total-results="totalResults"
                         :analysis="analysis"
@@ -252,6 +259,9 @@ function handleFiltersUpdate(newFilters) {
                     v-else
                     :has-query="Boolean(searchQuery.trim())"
                 />
+                <p v-if="resultStatus === 'no_results'" class="source-empty-notice">
+                    No se encontraron fuentes verificables para respaldar esta respuesta.
+                </p>
 
             </section>
 

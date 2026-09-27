@@ -29,6 +29,11 @@ export function useNovaSearch() {
 
     const answer = ref('')
 
+    const sources = ref([])
+    const citations = ref([])
+    const sourceWarnings = ref([])
+    const resultStatus = ref('')
+
     const analysis = ref({})
 
     const context = ref('')
@@ -175,6 +180,10 @@ export function useNovaSearch() {
         searchError.value = null
 
         answer.value = ''
+        sources.value = []
+        citations.value = []
+        sourceWarnings.value = []
+        resultStatus.value = ''
 
         analysis.value = {}
 
@@ -445,6 +454,11 @@ export function useNovaSearch() {
             answer.value =
 
                 data.answer || ''
+
+            sources.value = Array.isArray(data.sources) ? data.sources : []
+            citations.value = Array.isArray(data.citations) ? data.citations : []
+            sourceWarnings.value = Array.isArray(data.warnings) ? data.warnings : []
+            resultStatus.value = data.result_status || (data.documents?.length ? 'completed' : 'no_results')
 
             analysis.value =
 
@@ -717,6 +731,11 @@ export function useNovaSearch() {
         // -----------------------------------------------------
 
         answer,
+
+        sources,
+        citations,
+        sourceWarnings,
+        resultStatus,
 
         analysis,
 

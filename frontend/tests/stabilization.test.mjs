@@ -5,6 +5,7 @@ import { normalizeApiBase } from '../src/config/apiBase.js'
 import { normalizeCaseResult } from '../src/utils/caseContract.js'
 import { normalizeSimulationState } from '../src/utils/simulationState.js'
 import { normalizeRenderableContent, EMPTY_CONTENT } from '../src/utils/content.js'
+import { normalizeSource, normalizeSources, resolveCitations } from '../src/utils/sourceContract.js'
 import { runAnalysisTask } from '../src/services/taskService.js'
 import { uploadCaseDocuments } from '../src/services/documentService.js'
 import { createServer } from 'vite'
@@ -201,5 +202,58 @@ test('actual Vue panels render canonical data and professional empty states', as
     assert.ok(!court.includes('<StrategyView'))
     assert.ok(court.includes('requestedCaseId && typeof route.query.document_ids'))
     assert.ok(court.includes(':initial-document-ids="requestedDocumentIds"'))
+  } finally { await server.close() }
+})
+
+test('source contracts deduplicate, validate URLs and isolate private cases', () => {
+  const publicSource={source_id:'SRC-PUBLIC1',source_scope:'public',source_type:'legislation',title:'Código Civil',
+    official_url:'https://official.test/law',excerpt:'exact public excerpt',metadata:{article:'1969'}}
+  const privateA={source_id:'SRC-PRIVATE1',source_scope:'case',case_id:'CASE-A',document_id:'DOC-A',chunk_id:'CH-A',title:'brief.pdf',excerpt:'private A'}
+  assert.equal(normalizeSource({...publicSource,official_url:'javascript:alert(1)'}).official_url,null)
+  assert.equal(normalizeSource(privateA,'CASE-B'),null)
+  assert.equal(normalizeSource(privateA),null)
+  assert.equal(normalizeSource({...privateA,official_url:'https://file.test'},'CASE-A').official_url,null)
+  assert.equal(normalizeSources([publicSource,publicSource]).length,1)
+  const resolved=resolveCitations([{citation_id:'CIT-abc',source_id:'SRC-PRIVATE1',label:'[1]'}],
+    [privateA], 'CASE-B')
+  assert.deepEqual(resolved.citations,[])
+  assert.deepEqual(resolved.sources,[])
+  assert.equal(normalizeSource(publicSource).official_url,'https://official.test/law')
+  const caseContract=normalizeCaseResult({success:true,case_id:'CASE-A',sources:[privateA],citations:[{citation_id:'CIT-a',source_id:'SRC-PRIVATE1'}]})
+  assert.equal(caseContract.sources[0].case_id,'CASE-A')
+  assert.equal(caseContract.citations[0].source_id,'SRC-PRIVATE1')
+})
+
+test('shared citation renderer makes only verified labels interactive and escapes HTML', async () => {
+  const server=await createServer({server:{middlewareMode:true},appType:'custom',logLevel:'error',optimizeDeps:{noDiscovery:true,include:[]}})
+  try {
+    const {default:MarkdownRenderer}=await server.ssrLoadModule('/src/components/common/MarkdownRenderer.vue')
+    const source={source_id:'SRC-PUBLIC1',source_scope:'public',source_type:'legislation',title:'Law',excerpt:'exact',official_url:'https://official.test/law'}
+    const citation={citation_id:'CIT-000000000000000000000000',source_id:source.source_id,label:'[1]',excerpt:'exact'}
+    const html=await renderToString(createSSRApp({render:()=>h(MarkdownRenderer,{
+      content:'**Fundamento** [1] [2] <img src=x onerror=alert(1)>',sources:[source],citations:[citation]
+    })}))
+    assert.match(html,/data-citation-id="CIT-000000000000000000000000"/)
+    assert.match(html,/\[2\]/)
+    assert.ok(!html.includes('<img'))
+    const sourceModal=await readFile(new URL('../src/components/common/SourceModal.vue',import.meta.url),'utf8')
+    assert.ok(sourceModal.includes('v-if="safeSource.official_url"'))
+    assert.ok(sourceModal.includes('target="_blank" rel="noopener noreferrer"'))
+    const sourceList=await readFile(new URL('../src/components/common/SourcesList.vue',import.meta.url),'utf8')
+    assert.ok(sourceList.includes('normalizeSources(props.sources, props.caseId)'))
+    const {default:SourceModal}=await server.ssrLoadModule('/src/components/common/SourceModal.vue')
+    const context={}
+    await renderToString(createSSRApp({render:()=>h(SourceModal,{source})}),context)
+    const modalHtml=context.teleports?.body || ''
+    assert.ok(modalHtml.includes('Abrir fuente oficial'))
+    assert.ok(modalHtml.includes('rel="noopener noreferrer"'))
+    assert.ok(!modalHtml.includes('<dt>Tribunal</dt>'))
+    const {default:SourcesList}=await server.ssrLoadModule('/src/components/common/SourcesList.vue')
+    const listHtml=await renderToString(createSSRApp({render:()=>h(SourcesList,{
+      sources:[source,source,{source_id:'SRC-PRIVATE1',source_scope:'case',case_id:'CASE-B',title:'Private B'}],
+      citations:[citation],caseId:'CASE-A'
+    })}))
+    assert.equal((listHtml.match(/<strong[^>]*>Law<\/strong>/g)||[]).length,1,listHtml)
+    assert.ok(!listHtml.includes('Private B'))
   } finally { await server.close() }
 })

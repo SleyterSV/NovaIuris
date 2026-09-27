@@ -4,6 +4,7 @@
 
         <article
             class="markdown-body"
+            @click="handleCitationClick"
             v-html="renderedMarkdown"
         ></article>
 
@@ -22,6 +23,7 @@ import { normalizeRenderableContent, EMPTY_CONTENT } from "@/utils/content.js"
 import MarkdownIt from "markdown-it"
 
 import hljs from "highlight.js"
+import { resolveCitations } from "@/utils/sourceContract.js"
 
 
 /* ============================================================
@@ -36,9 +38,16 @@ const props = defineProps({
 
         default: ""
 
-    }
+    },
+
+    citations: { type: Array, default: () => [] },
+    sources: { type: Array, default: () => [] },
+    caseId: { type: String, default: null }
 
 })
+const emit = defineEmits(["select-citation"])
+const resolved = computed(() => resolveCitations(props.citations, props.sources, props.caseId))
+const citationByLabel = computed(() => new Map(resolved.value.citations.map(item => [item.label, item])))
 
 
 /* ============================================================
@@ -163,6 +172,24 @@ md.renderer.rules.link_open = (
 
 }
 
+md.renderer.rules.text = (tokens, idx) => {
+    const text = tokens[idx].content
+    const pattern = /\[\d+\]/g
+    let output = ""
+    let cursor = 0
+    for (const match of text.matchAll(pattern)) {
+        output += md.utils.escapeHtml(text.slice(cursor, match.index))
+        const citation = citationByLabel.value.get(match[0])
+        if (!citation) output += md.utils.escapeHtml(match[0])
+        else {
+            const citationId = md.utils.escapeHtml(citation.citation_id)
+            output += `<button type="button" class="citation-inline" data-citation-id="${citationId}" aria-label="Abrir fuente ${match[0]}">${match[0]}</button>`
+        }
+        cursor = match.index + match[0].length
+    }
+    return output + md.utils.escapeHtml(text.slice(cursor))
+}
+
 
 /* ============================================================
    RENDER
@@ -175,6 +202,13 @@ const renderedMarkdown = computed(() => {
     )
 
 })
+
+function handleCitationClick(event) {
+    const button = event.target?.closest?.("button[data-citation-id]")
+    if (!button) return
+    const citation = resolved.value.citations.find(item => item.citation_id === button.dataset.citationId)
+    if (citation) emit("select-citation", citation)
+}
 
 </script>
 

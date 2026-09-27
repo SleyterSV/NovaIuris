@@ -15,6 +15,10 @@ logger = logging.getLogger(
 )
 
 
+class LegalSearchError(RuntimeError):
+    """The public legal corpus failed, which is not an empty search."""
+
+
 class LegalRepository:
     """
     Repositorio central de conocimiento jurídico.
@@ -334,7 +338,7 @@ class LegalRepository:
                     "Supabase devolvió un formato inesperado."
                 )
 
-                return []
+                raise LegalSearchError("Legal source search returned an invalid response")
 
 
             logger.info(
@@ -351,20 +355,5 @@ class LegalRepository:
 
 
         except Exception as error:
-
-            logger.exception(
-
-                "Error durante la búsqueda semántica: %s",
-
-                error
-
-            )
-
-            # ----------------------------------------------------
-            # IMPORTANTE:
-            #
-            # Se devuelve una lista vacía, no una tupla.
-            # Esto mantiene la firma List[dict].
-            # ----------------------------------------------------
-
-            return []
+            logger.error("Legal corpus query failed error_type=%s", type(error).__name__)
+            raise LegalSearchError("Legal source search failed") from error

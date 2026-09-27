@@ -4,6 +4,7 @@ from typing import Dict, Any
 from app.services.embedding_service import EmbeddingService
 from app.services.reranker_service import RerankerService
 from app.services.legal_repository import LegalRepository
+from app.services.source_contracts import normalize_public_source, resolve_citations
 
 from app.services.query_analyzer import QueryAnalyzer
 from app.services.fusion_service import FusionService
@@ -131,12 +132,16 @@ class SearchService:
                 "query_normalizada": query_mejorada,
 
                 "analysis": analysis,
+                "result_status": "no_results",
 
                 "answer": "No se encontraron documentos jurídicos relacionados con la consulta.",
 
                 "documents": [],
 
-                "context": ""
+                "context": "",
+                "sources": [], "citations": [], "sources_used": [],
+                "detected_legal_mentions": [],
+                "warnings": [{"code": "NO_RESULTS", "message": "No se encontraron fuentes verificables para respaldar esta respuesta."}]
 
             }
 
@@ -176,7 +181,7 @@ class SearchService:
 
         for documento in resultados:
 
-            documento["citations"] = (
+            documento["detected_legal_mentions"] = (
 
                 self.citation_service.extract_citations(
 
@@ -194,7 +199,7 @@ class SearchService:
         ###################### CONSTRUIR CONTEXTO #######################
         ################################################################
 
-        contexto = ""
+        contexto = {"text": "", "sources": []}
 
         if build_context:
 
@@ -212,6 +217,7 @@ class SearchService:
         ################################################################
 
         respuesta_texto = ""
+        resolved = {"citations": [], "sources_used": [], "warnings": []}
 
         if generate_answer:
 
@@ -220,7 +226,7 @@ class SearchService:
 
                 query=query_mejorada,
 
-                context=contexto
+                context=contexto["text"]
 
             )
 
@@ -232,6 +238,8 @@ class SearchService:
                 )
 
             )
+            resolved = resolve_citations(respuesta_texto, contexto["sources"])
+            respuesta_texto = resolved["answer"]
 
 
         ################################################################
@@ -242,7 +250,8 @@ class SearchService:
 
             resultados,
 
-            modulo
+            modulo,
+            contexto["sources"]
 
         )
 
@@ -259,11 +268,18 @@ class SearchService:
 
             "analysis": analysis,
 
+            "result_status": "completed",
+
             "answer": respuesta_texto,
 
             "documents": resultados_formateados,
 
-            "context": contexto
+            "context": contexto["text"],
+            "sources": resolved["sources_used"],
+            "citations": resolved["citations"],
+            "warnings": resolved["warnings"],
+            "detected_legal_mentions": [mention for item in resultados
+                                         for mention in item.get("detected_legal_mentions", [])]
 
         }
     ####################################################################
@@ -273,15 +289,17 @@ class SearchService:
     @staticmethod
     def format_results(
         resultados,
-        modulo: str
+        modulo: str,
+        context_sources: list[dict] | None = None
     ):
 
         if not resultados:
             return []
 
         formatted = []
+        sources_by_record = {str(source.get("document_id")): source for source in (context_sources or [])}
 
-        for item in resultados:
+        for index, item in enumerate(resultados):
 
             texto = item.get(
                 "texto",
@@ -300,9 +318,20 @@ class SearchService:
                     else texto
                 )
 
+            source = sources_by_record.get(str(item.get("id"))) or (
+                context_sources[index] if context_sources and index < len(context_sources) else None
+            ) or normalize_public_source(
+                item, excerpt=str(texto or "")[:ContextBuilder.MAX_CHARS_PER_DOCUMENT])
             formatted.append({
 
                 "id": item.get("id"),
+
+                "source_id": source["source_id"],
+                "source": source,
+                "detected_legal_mentions": item.get("detected_legal_mentions", []),
+                "article": source.get("article"),
+                "official_url": source.get("official_url"),
+                "metadata": source.get("metadata", {}),
 
                 "titulo": (
                     item.get("articulo")

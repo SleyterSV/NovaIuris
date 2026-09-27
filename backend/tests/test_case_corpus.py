@@ -302,12 +302,17 @@ class UploadApiTests(unittest.TestCase):
 
     def test_novacourt_continuation_keeps_the_explicit_corpus_identity(self):
         from app.services.novacourt_pipeline_service import NovaCourtPipelineService
+        from app.services.source_contracts import normalize_case_source
+        source = normalize_case_source({"case_id":"CASE-A", "document_id":"DOC-A", "chunk_id":"CHUNK-A",
+                                       "text":"Same-case evidence"})
         class FakeCaseService:
             def __init__(self): self.received = None
             def analyze_case(self, text, **kwargs):
                 self.received = (kwargs["case_id"], list(kwargs["document_ids"]))
                 kwargs["progress_callback"]("intake", "completed")
-                return {"success":True, "case_id":kwargs["case_id"], "case":text}
+                return {"success":True, "case_id":kwargs["case_id"], "case":text, "sources":[source],
+                        "citations":[{"citation_id":"CIT-123456789012345678901234",
+                                       "source_id":source["source_id"], "label":"[1]"}]}
         case = FakeCaseService()
         graph = Mock()
         graph.build_for_case.return_value = {"status":"ready", "nodes":[], "edges":[]}
@@ -325,6 +330,8 @@ class UploadApiTests(unittest.TestCase):
         self.assertEqual(case.received, ("CASE-A", ["DOC-A"]))
         self.assertEqual(status["final_result"]["graph"]["status"], "ready")
         self.assertEqual(status["final_result"]["simulation"]["status"], "ready")
+        self.assertEqual(status["final_result"]["sources"][0]["case_id"], "CASE-A")
+        self.assertEqual(status["final_result"]["citations"][0]["source_id"], source["source_id"])
 
     def test_case_service_uses_only_explicit_case_corpus_with_source_references(self):
         from tests.test_stabilization import case_service
@@ -346,6 +353,10 @@ class UploadApiTests(unittest.TestCase):
             self.assertEqual(result["metadata"]["case_id"], "CASE-A")
             self.assertEqual(result["research"]["case_sources"][0]["document_id"],
                              manifest["document_id"])
+            private_source = next(source for source in result["sources"] if source["source_scope"] == "case")
+            self.assertEqual(private_source["case_id"], "CASE-A")
+            self.assertEqual(private_source["document_id"], manifest["document_id"])
+            self.assertIn("Alpha evidence establishes", private_source["excerpt"])
             with self.assertRaises(DocumentError):
                 service.case_corpus_repository.retrieve("CASE-B", [manifest["document_id"]])
         finally:

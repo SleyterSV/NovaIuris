@@ -79,12 +79,13 @@
         <div class="nova-search-answer-body">
 
             <div class="nova-search-answer-content">
-
-                <p>
-                    {{ answer }}
-                </p>
-
+                <MarkdownRenderer :content="answer" :sources="verifiedSources" :citations="verifiedCitations"
+                    @select-citation="openCitation" />
             </div>
+            <p v-if="!verifiedCitations.length" class="citation-warning">
+                No se encontraron fuentes verificables para respaldar esta respuesta.
+            </p>
+            <SourcesList :sources="verifiedSources" :citations="verifiedCitations" @select="selectedSource = $event" @select-citation="openCitation" />
 
         </div>
 
@@ -287,6 +288,8 @@
 
         </div>
 
+        <SourceModal :source="selectedSource" @close="selectedSource = null" />
+
     </section>
 
 </template>
@@ -295,8 +298,13 @@
 <script setup>
 
 import {
-    computed
+    computed,
+    ref
 } from 'vue'
+import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
+import SourcesList from '@/components/common/SourcesList.vue'
+import SourceModal from '@/components/common/SourceModal.vue'
+import { resolveCitations } from '@/utils/sourceContract.js'
 
 
 /* =========================================================
@@ -312,6 +320,10 @@ const props = defineProps({
         default: ''
 
     },
+
+    sources: { type: Array, default: () => [] },
+    citations: { type: Array, default: () => [] },
+    sourceWarnings: { type: Array, default: () => [] },
 
     searchTime: {
 
@@ -344,6 +356,13 @@ const props = defineProps({
     }
 
 })
+const selectedSource = ref(null)
+const verified = computed(() => resolveCitations(props.citations, props.sources))
+const verifiedSources = computed(() => verified.value.sources)
+const verifiedCitations = computed(() => verified.value.citations)
+const openCitation = citation => {
+    selectedSource.value = verifiedSources.value.find(source => source.source_id === citation.source_id) || null
+}
 
 
 /* =========================================================
@@ -1192,4 +1211,7 @@ const formattedSearchTime = computed(() => {
     }
 
 }
+ .citation-warning{margin:14px 24px 0;color:#805d2a;background:#fbf7ee;border-left:3px solid #bd9854;padding:10px 13px;font-size:.82rem}
+ .nova-search-answer-content :deep(.citation-inline){border:0;background:#edf3f8;color:#173b61;border-radius:4px;padding:1px 5px;margin:0 2px;font-family:inherit;font-size:.78em;font-weight:600;line-height:1.4;cursor:pointer}
+ .nova-search-answer-content :deep(.citation-inline:focus-visible){outline:2px solid #b68a3a;outline-offset:2px}
 </style>
