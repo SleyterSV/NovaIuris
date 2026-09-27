@@ -164,25 +164,6 @@
                     </div>
 
 
-                    <!-- =================================================
-                         SCORE DE RELEVANCIA
-                    ================================================== -->
-
-                    <div
-                        v-if="hasScore(result)"
-                        class="relevance-score"
-                    >
-
-                        <span class="score-label">
-                            RELEVANCIA
-                        </span>
-
-                        <strong>
-                            {{ formatScore(result.score) }}
-                        </strong>
-
-                    </div>
-
                 </header>
 
 
@@ -478,52 +459,6 @@ function formatPosition(index){
 
 /* =========================================================
    SCORE
-========================================================= */
-
-function hasScore(result){
-
-    return (
-
-        result.score !== null &&
-
-        result.score !== undefined &&
-
-        result.score !== "" &&
-
-        !Number.isNaN(
-            Number(result.score)
-        )
-
-    )
-
-}
-
-
-function formatScore(score){
-
-    const numericScore = Number(score)
-
-    if(Number.isNaN(numericScore)){
-
-        return "—"
-
-    }
-
-    const percentage =
-
-        numericScore <= 1
-
-            ? numericScore * 100
-
-            : numericScore
-
-    return `${Math.round(percentage)}%`
-
-}
-
-
-/* =========================================================
-   PRECEDENTE VINCULANTE
 ========================================================= */
 
 function isBindingPrecedent(value){

@@ -1,4 +1,6 @@
 <script setup>
+import { watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useNovaSearch } from '@/composables/useNovaSearch'
 
 import NovaSearchHeader from '@/components/novasearch/NovaSearchHeader.vue'
@@ -41,10 +43,18 @@ const {
 
     searchStage,
     searchProgress,
+    progressStages,
+    searchCounts,
 
     performSearch,
+    cancelSearch,
     updateFilter
 } = useNovaSearch()
+
+const route = useRoute()
+watch(() => route.query.q, value => {
+    if (typeof value === 'string') searchQuery.value = value.slice(0, 10000)
+}, { immediate: true })
 
 
 /* =========================================
@@ -102,30 +112,25 @@ function handleFiltersUpdate(newFilters) {
 
 
     if (
-        newFilters?.tipoDocumento !== undefined &&
-        newFilters.tipoDocumento !== filters.tipoDocumento
+        newFilters?.solo_vigentes !== undefined &&
+        newFilters.solo_vigentes !== filters.solo_vigentes
     ) {
 
         updateFilter(
-            'tipoDocumento',
-            newFilters.tipoDocumento
+            'solo_vigentes',
+            newFilters.solo_vigentes
         )
 
     }
 
+}
 
-    if (
-        newFilters?.fecha !== undefined &&
-        newFilters.fecha !== filters.fecha
-    ) {
+function resetFilters() {
+    handleFiltersUpdate({ modulo: 'Todos', solo_vigentes: true })
+}
 
-        updateFilter(
-            'fecha',
-            newFilters.fecha
-        )
-
-    }
-
+function useSuggestion(value) {
+    searchQuery.value = value
 }
 </script>
 
@@ -203,6 +208,9 @@ function handleFiltersUpdate(newFilters) {
                     v-if="isSearching"
                     :stage="searchStage"
                     :progress="searchProgress"
+                    :stages="progressStages"
+                    :counts="searchCounts"
+                    @cancel="cancelSearch"
                 />
 
 
@@ -211,6 +219,7 @@ function handleFiltersUpdate(newFilters) {
                 <NovaSearchError
                     v-else-if="searchError"
                     :message="searchError"
+                    @retry="performSearch"
                 />
 
 
@@ -257,11 +266,14 @@ function handleFiltersUpdate(newFilters) {
 
                 <NovaSearchEmptyState
                     v-else
-                    :has-query="Boolean(searchQuery.trim())"
+                    :mode="resultStatus === 'no_results' ? 'no-results' : 'initial'"
+                    :query="searchQuery"
+                    :show-suggestions="resultStatus !== 'no_results'"
+                    @suggestion="useSuggestion"
                 />
-                <p v-if="resultStatus === 'no_results'" class="source-empty-notice">
-                    No se encontraron fuentes verificables para respaldar esta respuesta.
-                </p>
+                <button v-if="resultStatus === 'no_results'" class="reset-search-filters" type="button" @click="resetFilters">
+                    Restablecer filtros
+                </button>
 
             </section>
 
@@ -379,6 +391,23 @@ function handleFiltersUpdate(newFilters) {
 
     min-width: 0;
 
+}
+
+.reset-search-filters {
+    display: block;
+    margin: 12px auto 0;
+    padding: 8px 12px;
+    border: 1px solid #ced8e3;
+    border-radius: 7px;
+    background: #fff;
+    color: #315c97;
+    font: inherit;
+    cursor: pointer;
+}
+
+.reset-search-filters:focus-visible {
+    outline: 2px solid #315c97;
+    outline-offset: 2px;
 }
 
 

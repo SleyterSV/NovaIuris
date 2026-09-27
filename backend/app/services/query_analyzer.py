@@ -222,18 +222,13 @@ class QueryAnalyzer:
     def normalize(
         text: str
     ) -> str:
+        # Only normalize whitespace: casing, names, dates and legal locators
+        # are useful query information and must remain intact.
+        return re.sub(r"\s+", " ", str(text or "")).strip()
 
-        text = text.lower()
-
-        text = text.strip()
-
-        text = re.sub(
-            r"\s+",
-            " ",
-            text
-        )
-
-        return text
+    @staticmethod
+    def _contains_term(term: str, query: str) -> bool:
+        return bool(re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", query, flags=re.IGNORECASE))
 
     ####################################################################
     ########################### ANALYZE ################################
@@ -244,11 +239,14 @@ class QueryAnalyzer:
         query: str
     ) -> Dict:
 
-        query = self.normalize(query)
+        original_query = self.normalize(query)
+        query = original_query.casefold()
 
         resultado = {
 
-            "query_original": query,
+            "query_original": original_query,
+            "original_query": original_query,
+            "normalized_query": original_query,
 
             "rama": None,
 
@@ -269,15 +267,13 @@ class QueryAnalyzer:
         for rama, palabras in self.RAMAS.items():
 
             if any(
-                palabra in query
+                self._contains_term(palabra, query)
                 for palabra in palabras
             ):
 
                 resultado["rama"] = rama.title()
 
-                resultado["keywords"].extend(
-                    palabras
-                )
+                resultado["keywords"].extend(palabra for palabra in palabras if self._contains_term(palabra, query))
 
                 break
 
@@ -288,15 +284,13 @@ class QueryAnalyzer:
         for organo, palabras in self.ORGANOS.items():
 
             if any(
-                palabra in query
+                self._contains_term(palabra, query)
                 for palabra in palabras
             ):
 
                 resultado["organo"] = organo
 
-                resultado["keywords"].extend(
-                    palabras
-                )
+                resultado["keywords"].extend(palabra for palabra in palabras if self._contains_term(palabra, query))
 
                 break
 
@@ -307,15 +301,13 @@ class QueryAnalyzer:
         for tipo, palabras in self.TIPOS_DOCUMENTO.items():
 
             if any(
-                palabra in query
+                self._contains_term(palabra, query)
                 for palabra in palabras
             ):
 
                 resultado["tipo_documento"] = tipo
 
-                resultado["keywords"].extend(
-                    palabras
-                )
+                resultado["keywords"].extend(palabra for palabra in palabras if self._contains_term(palabra, query))
 
                 break
 
@@ -326,7 +318,7 @@ class QueryAnalyzer:
         for intencion, palabras in self.INTENCIONES.items():
 
             if any(
-                palabra in query
+                self._contains_term(palabra, query)
                 for palabra in palabras
             ):
 
@@ -363,5 +355,8 @@ class QueryAnalyzer:
             )
 
         )
+
+        resultado["filters"] = {}
+        resultado["metadata"] = {"analysis_method": "deterministic"}
 
         return resultado

@@ -26,24 +26,6 @@
             </div>
 
 
-            <!-- RELEVANCIA -->
-
-            <div
-                v-if="hasScore"
-                class="nova-search-score"
-                :aria-label="`Relevancia ${scorePercentage}%`"
-            >
-
-                <span class="nova-search-score-label">
-                    RELEVANCIA
-                </span>
-
-                <strong>
-                    {{ scorePercentage }}%
-                </strong>
-
-            </div>
-
         </header>
 
 
@@ -273,9 +255,6 @@
 
 <script setup>
 
-import { computed } from "vue"
-
-
 /* =========================================================
    PROPS
 ========================================================= */
@@ -292,44 +271,6 @@ const props = defineProps({
 
 })
 
-
-/* =========================================================
-   RELEVANCIA
-========================================================= */
-
-const hasScore = computed(() => {
-
-    return typeof props.result.score === "number"
-
-})
-
-
-const scorePercentage = computed(() => {
-
-    if (!hasScore.value) {
-
-        return 0
-
-    }
-
-
-    return Math.min(
-
-        100,
-
-        Math.max(
-
-            0,
-
-            Math.round(
-                props.result.score * 100
-            )
-
-        )
-
-    )
-
-})
 
 </script>
 

@@ -140,6 +140,8 @@ class LegalRepository:
 
         modulo: str = "Todos",
 
+        solo_vigentes: bool = True,
+
         limit: int = DEFAULT_LIMIT,
 
         threshold: float = DEFAULT_THRESHOLD
@@ -271,7 +273,7 @@ class LegalRepository:
 
             "filtro_jerarquia": None,
 
-            "solo_vigentes": True
+            "solo_vigentes": bool(solo_vigentes)
 
         }
         

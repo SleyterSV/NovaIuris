@@ -7,6 +7,7 @@ from typing import List
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from app.utils.cancellation import OperationCancelled, check_cancelled
 
 
 load_dotenv()
@@ -224,8 +225,12 @@ No escribas explicaciones fuera del JSON.
         self,
         query: str,
         documents: List[dict],
-        retries: int = DEFAULT_RETRIES
+        retries: int = DEFAULT_RETRIES,
+        cancellation_token=None
     ) -> List[dict]:
+
+        self.last_failed = False
+        check_cancelled(cancellation_token)
 
         if not documents:
 
@@ -287,6 +292,8 @@ No escribas explicaciones fuera del JSON.
             retries + 1
 
         ):
+
+            check_cancelled(cancellation_token)
 
             try:
 
@@ -534,23 +541,15 @@ No escribas explicaciones fuera del JSON.
                 return documentos_ordenados
 
 
+            except OperationCancelled:
+                raise
             except Exception as error:
 
                 last_error = error
 
 
-                logger.warning(
-
-                    "Error en reranking "
-                    "(intento %s/%s): %s",
-
-                    attempt,
-
-                    retries,
-
-                    error
-
-                )
+                logger.warning("Reranking attempt failed attempt=%s/%s error_type=%s",
+                               attempt, retries, type(error).__name__)
 
 
                 if attempt < retries:
@@ -566,13 +565,8 @@ No escribas explicaciones fuera del JSON.
         # FALLBACK
         # --------------------------------------------------------
 
-        logger.error(
-
-            "No fue posible completar el reranking: %s",
-
-            last_error
-
-        )
+        self.last_failed = True
+        logger.error("Reranking exhausted retries error_type=%s", type(last_error).__name__)
 
 
         logger.warning(
