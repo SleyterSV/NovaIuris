@@ -1,0 +1,167 @@
+"""Contrato estable y adaptador seguro para la simulación de NovaCourt."""
+
+from __future__ import annotations
+
+import json
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from typing import Any, Callable, Dict
+
+
+_CONTEXT_FIELDS = (
+    ("Caso", "case"),
+    ("Resumen", "summary"),
+    ("Análisis", "analysis"),
+    ("Estrategia", "strategy"),
+    ("Investigación", "research"),
+    ("Argumentos", "arguments"),
+    ("Evidencia", "evidence"),
+    ("Riesgos", "risks"),
+    ("Contraargumentos", "counter_arguments"),
+    ("Cronología", "timeline"),
+    ("Citas", "citations"),
+)
+
+
+def _as_dict(value: Any) -> Dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def build_simulation_context(
+    case_result: Dict[str, Any], case_text: str
+) -> str:
+    """Prepara el mínimo contexto canónico que el simulador existente acepta."""
+    source = dict(case_result)
+    source["case"] = case_text
+    sections = []
+    for label, field in _CONTEXT_FIELDS:
+        value = source.get(field)
+        if value in (None, "", [], {}):
+            continue
+        sections.append(
+            f"{label}:\n{json.dumps(value, ensure_ascii=False, default=str, indent=2)}"
+        )
+
+    graph = _as_dict(source.get("graph"))
+    if graph.get("status") == "ready":
+        graph_context = {
+            "graph_id": graph.get("graph_id"),
+            "nodes": (
+                graph.get("nodes", [])[:50]
+                if isinstance(graph.get("nodes"), list) else []
+            ),
+            "edges": (
+                graph.get("edges", [])[:75]
+                if isinstance(graph.get("edges"), list) else []
+            ),
+        }
+        sections.append(
+            "Grafo jurídico disponible:\n"
+            + json.dumps(graph_context, ensure_ascii=False, default=str, indent=2)
+        )
+
+    return "\n\n".join(sections).strip()
+
+
+def simulation_result(
+    status: str,
+    *,
+    prosecutor: Any = None,
+    defense: Any = None,
+    judge: Any = None,
+    projection: Any = None,
+    metadata: Any = None,
+    message: str | None = None,
+) -> Dict[str, Any]:
+    """Construye el único contrato público de simulación para NovaCourt."""
+    result = {
+        "status": status,
+        "prosecutor": _as_dict(prosecutor),
+        "defense": _as_dict(defense),
+        "judge": _as_dict(judge),
+        "projection": _as_dict(projection),
+        "metadata": _as_dict(metadata),
+    }
+    if message:
+        result["message"] = message
+    return result
+
+
+def normalize_simulator_output(output: Any) -> Dict[str, Any]:
+    """Normaliza campos reales del simulador sin modificar su razonamiento."""
+    payload = _as_dict(output)
+    fiscal = payload.get("fiscal")
+    defensa = payload.get("defensa")
+    juez = payload.get("juez")
+    metricas = _as_dict(payload.get("metricas"))
+
+    return simulation_result(
+        "ready",
+        prosecutor={"content": fiscal} if isinstance(fiscal, str) and fiscal else {},
+        defense={"content": defensa} if isinstance(defensa, str) and defensa else {},
+        judge={"content": juez} if isinstance(juez, str) and juez else {},
+        # La proyección reutiliza la resolución existente del Juez; no invoca
+        # un modelo adicional ni la presenta como una sentencia real.
+        projection={"content": juez} if isinstance(juez, str) and juez else {},
+        metadata={
+            "session_id": payload.get("session_id"),
+            "metrics": metricas,
+            "base_legal": payload.get("base_legal") if isinstance(payload.get("base_legal"), str) else "",
+        },
+    )
+
+
+class NovaCourtSimulationOrchestrator:
+    """Ejecuta el simulador legado con un límite de espera del endpoint."""
+
+    def __init__(
+        self,
+        simulator_factory: Callable[[], Any],
+        *,
+        enabled: bool,
+        timeout: int,
+    ) -> None:
+        self.simulator_factory = simulator_factory
+        self.enabled = enabled
+        self.timeout = timeout
+
+    def simulate(
+        self, case_result: Dict[str, Any], case_text: str
+    ) -> Dict[str, Any]:
+        if not self.enabled:
+            return simulation_result("not_requested")
+
+        context = build_simulation_context(case_result, case_text)
+        if not context:
+            return simulation_result("not_requested")
+
+        executor = ThreadPoolExecutor(max_workers=1)
+        try:
+            # La importación diferida y la ejecución del simulador comparten el
+            # mismo límite para que una dependencia lenta no bloquee el endpoint.
+            future = executor.submit(self._run_simulation, context)
+            output = future.result(timeout=self.timeout)
+            return normalize_simulator_output(output)
+        except TimeoutError:
+            return simulation_result(
+                "timeout",
+                message=(
+                    "La simulación judicial superó el tiempo de espera. "
+                    "El análisis y el grafo permanecen disponibles."
+                ),
+            )
+        except Exception:
+            return simulation_result(
+                "failed",
+                message=(
+                    "No fue posible completar la simulación judicial. "
+                    "El análisis y el grafo permanecen disponibles."
+                ),
+            )
+        finally:
+            # No bloquea la respuesta si una dependencia remota continúa en el
+            # hilo tras el timeout; el futuro se cancela si aún no inició.
+            executor.shutdown(wait=False, cancel_futures=True)
+
+    def _run_simulation(self, context: str) -> Any:
+        simulator = self.simulator_factory()
+        return simulator.simulate_case(context)

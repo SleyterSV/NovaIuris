@@ -26,15 +26,37 @@ const routes = [
   // HOME / LANDING
   // ===================================================
 
-  {
-    path: "/",
-    name: "Home",
-    component: Home,
-    meta: {
-      title: "Nova Iuris | Inteligencia Jurídica"
-    }
-  },
+    {
+      path: "/",
+      name: "Home",
+      component: Home,
 
+      meta: {
+        title: "Nova Iuris | Inteligencia Jurídica"
+      }
+    },
+
+    {
+      path: "/mike",
+      name: "Mike",
+      component: () =>
+        import("../views/MikeView.vue"),
+
+      meta: {
+        title: "MIKE | Legal Intelligence"
+      }
+    },
+
+    {
+      path: "/novasearch",
+      name: "NovaSearch",
+      component: () =>
+        import("../views/NovaSearchView.vue"),
+
+      meta: {
+        title: "Nova Search | Nova Iuris"
+      }
+    },
 
   // ===================================================
   // NOVA SEARCH
