@@ -116,6 +116,8 @@ Un trabajador fue despedido luego de publicar comentarios críticos sobre su emp
         </div>
 
 
+        <CaseDocumentUpload :case-id="caseId" :disabled="loading" @update:document-ids="documentIds = $event" />
+
         <!-- ===================================================
              PIE / ACCIÓN
         ==================================================== -->
@@ -139,7 +141,7 @@ Un trabajador fue despedido luego de publicar comentarios críticos sobre su emp
             <button
                 type="button"
                 class="analyze-button"
-                :disabled="loading || !caseText.trim()"
+                :disabled="loading || (!caseText.trim() && documentIds.length === 0)"
                 @click="submitCase"
             >
 
@@ -198,15 +200,15 @@ Un trabajador fue despedido luego de publicar comentarios críticos sobre su emp
 <script setup>
 
 import { ref } from "vue"
+import CaseDocumentUpload from "@/components/common/CaseDocumentUpload.vue"
 
 
 /* =========================================================
    EVENTOS
 ========================================================= */
 
-const emit = defineEmits([
-    "analyze"
-])
+const props = defineProps({ caseId: { type:String, required:true }, loading: { type:Boolean, default:false } })
+const emit = defineEmits(["analyze"])
 
 
 /* =========================================================
@@ -215,7 +217,7 @@ const emit = defineEmits([
 
 const caseText = ref("")
 
-const loading = ref(false)
+const documentIds = ref([])
 
 
 /* =========================================================
@@ -225,8 +227,8 @@ const loading = ref(false)
 async function submitCase(){
 
     if(
-        loading.value ||
-        !caseText.value.trim()
+        props.loading ||
+        (!caseText.value.trim() && documentIds.value.length === 0)
     ){
 
         return
@@ -234,20 +236,8 @@ async function submitCase(){
     }
 
 
-    loading.value = true
-
-    try{
-
-        await emit(
-            "analyze",
-            caseText.value.trim()
-        )
-
-    }finally{
-
-        loading.value = false
-
-    }
+    const text = caseText.value.trim() || "Analiza los documentos jurídicos aportados para este caso."
+    emit("analyze", { caseText:text, caseId:props.caseId, documentIds:[...documentIds.value] })
 
 }
 

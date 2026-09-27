@@ -108,6 +108,7 @@
             <section class="workspace-section">
 
                 <CaseInput
+                    :case-id="inputCaseId" :loading="loading"
                     @analyze="handleAnalyze"
                 />
 
@@ -283,6 +284,7 @@
                     </template>
 
                 </CaseTabs>
+                <button v-if="hasResults && canonicalResult?.case_id" type="button" @click="continueInNovaCourt">Simular este caso en NovaCourt</button>
                 <section v-for="section in supplementarySections" :key="section.title" class="workspace-section">
                   <h3>{{ section.title }}</h3><MarkdownRenderer :content="section.content" />
                 </section>
@@ -388,6 +390,7 @@
 
 
 <script setup>
+import { useRouter } from "vue-router"
 import { normalizeCaseResult } from "@/utils/caseContract.js"
 import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue"
 import { normalizeRenderableContent } from "@/utils/content.js"
@@ -443,6 +446,8 @@ import StrategyView
 ========================================================= */
 
 const canonicalResult = ref(null)
+const inputCaseId = ref(crypto.randomUUID())
+const router = useRouter()
 const supplementarySections = computed(() => [
   { title: 'Investigación jurídica', content: canonicalResult.value?.research?.documents },
   { title: 'Argumentos jurídicos', content: canonicalResult.value?.arguments },
@@ -588,8 +593,11 @@ function finishProgress() {
    ANALIZAR CASO
 ========================================================= */
 
-async function handleAnalyze(caseText) {
+async function handleAnalyze(payload) {
     if (loading.value) return
+    const caseText = payload.caseText
+    const caseId = payload.caseId
+    const documentIds = payload.documentIds || []
     controller = new AbortController()
 
     loading.value = true
@@ -631,7 +639,7 @@ async function handleAnalyze(caseText) {
            EJECUTAR ANÁLISIS
         ================================================== */
 
-        const response = normalizeCaseResult(await analyzeCase(caseText, { onProgress: updateTask, signal: controller.signal }))
+        const response = normalizeCaseResult(await analyzeCase(caseText, { caseId, documentIds, onProgress: updateTask, signal: controller.signal }))
         canonicalResult.value = response
 
         if (!response) {
@@ -655,6 +663,7 @@ async function handleAnalyze(caseText) {
         strategy.value = response.strategy
         summary.value = response.summary
         finishProgress()
+        inputCaseId.value = crypto.randomUUID()
 
 
     }
@@ -757,6 +766,12 @@ const analysisStatistics = computed(() => {
 
 
 const analysisSummary = computed(() => summary.value)
+
+function continueInNovaCourt() {
+  const result = canonicalResult.value
+  if (!result?.case_id) return
+  router.push({ path:"/novacourt", query:{ case_id:result.case_id, document_ids:(result.document_ids || []).join(",") }, state:{ caseText:result.case } })
+}
 
 const documentsDetected = computed(() => {
 

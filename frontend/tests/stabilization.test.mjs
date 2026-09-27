@@ -6,6 +6,7 @@ import { normalizeCaseResult } from '../src/utils/caseContract.js'
 import { normalizeSimulationState } from '../src/utils/simulationState.js'
 import { normalizeRenderableContent, EMPTY_CONTENT } from '../src/utils/content.js'
 import { runAnalysisTask } from '../src/services/taskService.js'
+import { uploadCaseDocuments } from '../src/services/documentService.js'
 import { createServer } from 'vite'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
@@ -81,6 +82,83 @@ test('mismatched cases are rejected; abort cancels the backend task', async () =
   } finally { globalThis.fetch=original }
 })
 
+test('document upload polls sequentially and returns per-file results after real stages', async () => {
+  const originalFetch = globalThis.fetch
+  const originalXHR = globalThis.XMLHttpRequest
+  const polls=[], stages=[]
+  let inFlight=0, maximum=0
+  globalThis.fetch = async url => {
+    assert.match(url,/CASE%20DOC\/document-tasks\/TASK-DOC/)
+    inFlight++; maximum=Math.max(maximum,inFlight)
+    await new Promise(resolve=>setTimeout(resolve,2)); inFlight--
+    polls.push(url)
+    const completed=polls.length===2
+    return Response.json({success:true,task_id:'TASK-DOC',case_id:'CASE DOC',tool:'documents',
+      status:completed?'completed':'running',stage:completed?'completed':'indexing',
+      completed_documents:completed?2:0,total_documents:2,current_document_index:1,current_units:4,
+      documents:completed?[
+        {status:'ready',duplicate:false,document:{document_id:'DOC-A',case_id:'CASE DOC',filename:'a.txt',status:'ready',chunk_count:3,ocr_required:false,warnings:[]}},
+        {status:'failed',filename:'b.pdf',error:{code:'parse_failed',message:'PDF inválido'}}
+      ]:[{status:'uploaded'},{status:'uploaded'}]})
+  }
+  class FakeXHR {
+    constructor() { this.upload = {}; FakeXHR.instance = this }
+    open(method,url) { this.method=method; this.url=url }
+    send(body) {
+      this.body=body
+      this.upload.onprogress({lengthComputable:true,loaded:5,total:10})
+      this.upload.onload?.()
+      this.status=202
+      this.responseText=JSON.stringify({task_id:'TASK-DOC',case_id:'CASE DOC',status:'queued'})
+      this.onload()
+    }
+    abort() { this.onabort?.() }
+  }
+  globalThis.XMLHttpRequest = FakeXHR
+  try {
+    const progress=[]
+    const files=['a.txt','b.pdf'].map(name=>Object.assign(new Blob(['Legal text']),{name}))
+    const outcomes=await uploadCaseDocuments(files,'CASE DOC',{
+      onProgress:(value,phase)=>progress.push([value,phase]),
+      onTaskProgress:task=>stages.push(task.stage)
+    })
+    assert.equal(outcomes[0].document.document_id,'DOC-A')
+    assert.equal(outcomes[1].status,'failed')
+    assert.match(FakeXHR.instance.url,/CASE%20DOC/)
+    assert.equal(FakeXHR.instance.body.getAll('files').length,2)
+    assert.deepEqual(progress,[[50,undefined],[100,'uploaded']])
+    assert.deepEqual(stages,['indexing','completed'])
+    assert.equal(polls.length,2)
+    assert.equal(maximum,1)
+  } finally { globalThis.XMLHttpRequest = originalXHR; globalThis.fetch=originalFetch }
+})
+
+test('document polling aborts cleanly and rejects task identity mismatches', async () => {
+  const originalFetch=globalThis.fetch, originalXHR=globalThis.XMLHttpRequest
+  class ImmediateXHR {
+    constructor(){this.upload={};ImmediateXHR.last=this}
+    open(){}
+    send(){this.status=202;this.responseText=JSON.stringify({task_id:'TASK-A',case_id:'CASE-A',status:'queued'});this.onload()}
+    abort(){this.onabort?.()}
+  }
+  globalThis.XMLHttpRequest=ImmediateXHR
+  try {
+    let polls=0
+    const controller=new AbortController()
+    globalThis.fetch=async()=>{
+      polls++
+      return Response.json({success:true,task_id:'TASK-A',case_id:'CASE-A',tool:'documents',status:'running',stage:'extracting',documents:[]})
+    }
+    await assert.rejects(uploadCaseDocuments([Object.assign(new Blob(['x']),{name:'x.txt'})],'CASE-A',{
+      signal:controller.signal,onTaskProgress:()=>controller.abort()
+    }),{name:'AbortError'})
+    assert.equal(polls,1)
+
+    globalThis.fetch=async()=>Response.json({success:true,task_id:'TASK-A',case_id:'CASE-B',tool:'documents',status:'completed',documents:[]})
+    await assert.rejects(uploadCaseDocuments([Object.assign(new Blob(['x']),{name:'x.txt'})],'CASE-A'),/no corresponde/i)
+  } finally { globalThis.fetch=originalFetch;globalThis.XMLHttpRequest=originalXHR }
+})
+
 test('actual Vue panels render canonical data and professional empty states', async () => {
   // Middleware mode transforms modules only; no listening server and no provider calls.
   const server=await createServer({server:{middlewareMode:true},appType:'custom',logLevel:'error',optimizeDeps:{noDiscovery:true,include:[]}})
@@ -106,10 +184,22 @@ test('actual Vue panels render canonical data and professional empty states', as
       assert.ok(!html.includes('Probabilidad de Éxito'),name)
       assert.ok(!html.includes('Nivel de confianza'),`${name} has no fabricated confidence`)
     }
+    const input={default:(await server.ssrLoadModule('/src/components/novacourt/NovaCourtInput.vue')).default}
+    const courtInputHtml=await renderToString(createSSRApp({render:()=>h(input.default,{modelValue:'',hasDocuments:true})}))
+    assert.match(courtInputHtml,/Iniciar simulaci/)
+    assert.ok(!/disabled/.test(courtInputHtml),'uploaded case documents permit document-only analysis')
+    const uploader=(await server.ssrLoadModule('/src/components/common/CaseDocumentUpload.vue')).default
+    const uploadHtml=await renderToString(createSSRApp({render:()=>h(uploader,{caseId:'CASE-A',initialDocumentIds:['DOC-A']})}))
+    assert.match(uploadHtml,/multiple/)
+    const uploadSource=await readFile(new URL('../src/components/common/CaseDocumentUpload.vue',import.meta.url),'utf8')
+    assert.ok(uploadSource.includes('onBeforeUnmount(() => activeController?.abort())'))
+    assert.ok(!uploadSource.includes('deleteCaseDocument'))
     const court=await readFile(new URL('../src/views/NovaCourtView.vue',import.meta.url),'utf8')
     assert.ok(court.includes(':graph-data="graphData"'))
     assert.ok(court.includes(':summary="summaryContent"'))
     assert.ok(court.includes('<CourtSimulation'))
     assert.ok(!court.includes('<StrategyView'))
+    assert.ok(court.includes('requestedCaseId && typeof route.query.document_ids'))
+    assert.ok(court.includes(':initial-document-ids="requestedDocumentIds"'))
   } finally { await server.close() }
 })

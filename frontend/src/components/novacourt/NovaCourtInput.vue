@@ -208,6 +208,14 @@ const props = defineProps({
 
         default: false
 
+    },
+
+    hasDocuments: {
+
+        type: Boolean,
+
+        default: false
+
     }
 
 })
@@ -279,9 +287,7 @@ watch(
 
 const canSimulate = computed(() =>
 
-    localValue.value
-        .trim()
-        .length >= 20 &&
+    (localValue.value.trim().length >= 20 || props.hasDocuments) &&
 
     !props.loading
 

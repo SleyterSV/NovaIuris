@@ -17,6 +17,7 @@ from app.services.evidence_analyzer import EvidenceAnalyzer
 from app.services.risk_analyzer import RiskAnalyzer
 from app.services.counter_argument_service import CounterArgumentService
 from app.services.case_report_service import CaseReportService
+from flask import current_app, has_app_context
 
 logger = logging.getLogger(
     "NovaIuris.Service.Case"
@@ -124,6 +125,9 @@ class CaseService:
         ########################################################
 
         self.report_service = CaseReportService()
+        self.case_corpus_repository = (
+            current_app.extensions.get("case_corpus_repository") if has_app_context() else None
+        )
 
     ####################################################################
     ######################## ANALISIS DEL CASO ##########################
@@ -133,7 +137,7 @@ class CaseService:
         self,
         case_text: str,
         filtros: Dict[str, Any] | None = None,
-        progress_callback=None, cancellation_token=None, case_id=None
+        progress_callback=None, cancellation_token=None, case_id=None, document_ids=None
     ) -> Dict:
 
         """
@@ -164,6 +168,29 @@ class CaseService:
 
             filtros = {}
 
+        case_sources = []
+        analysis_case_text = case_text
+        if document_ids:
+            stage("documents", "running")
+            if self.case_corpus_repository is None:
+                raise ValueError("El corpus documental del caso no está disponible.")
+            from app.services.case_corpus import CaseContextService
+            from app.services.embedding_service import EmbeddingService
+            from app.config import Config
+            context_service = CaseContextService(self.case_corpus_repository, EmbeddingService())
+            case_sources = context_service.relevant_context(
+                case_id, case_text, document_ids=document_ids,
+                top_k=Config.CASE_DOCUMENT_CONTEXT_TOP_K,
+                cancellation_token=cancellation_token)
+            if case_sources:
+                excerpts = "\n\n".join(
+                    f"[Fuente document_id={item['document_id']} page={item['source_reference'].get('page_start')} "
+                    f"chunk_id={item['chunk_id']}]\n{item['text']}" for item in case_sources)
+                analysis_case_text = f"{case_text}\n\nDOCUMENTOS DEL MISMO CASO (fragmentos recuperados):\n{excerpts}"
+            stage("documents", "completed")
+        else:
+            stage("documents", "skipped")
+
         ############################################################
         ###################### ANALIZAR CASO ########################
         ############################################################
@@ -171,7 +198,7 @@ class CaseService:
         stage('facts', 'running')
         analysis = self.case_analyzer.analyze_case(
 
-            case_text
+            analysis_case_text
 
         )
 
@@ -772,4 +799,8 @@ class CaseService:
         }
 
         result["case_id"] = case_id
+        result["document_ids"] = list(document_ids or [])
+        result["research"]["case_sources"] = [item["source_reference"] for item in case_sources]
+        result["metadata"] = {"case_id": case_id, "document_ids": list(document_ids or []),
+                               "case_source_references": result["research"]["case_sources"]}
         return normalize_case_result(result)

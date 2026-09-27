@@ -1,5 +1,6 @@
 """Canonical case endpoint and process-local case/court jobs."""
 from uuid import uuid4
+import re
 from threading import Lock
 _pipeline_lock = Lock()
 from flask import Blueprint, request, jsonify, current_app, g
@@ -31,14 +32,22 @@ def input_case():
     if not isinstance(text, str) or not 50 <= len(text.strip()) <= 50000:
         raise ValueError('El caso debe contener entre 50 y 50.000 caracteres.')
     case_id = data.get('case_id') or str(uuid4())
-    if not isinstance(case_id, str) or not case_id.strip() or len(case_id) > 128:
+    if not isinstance(case_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", case_id) or ".." in case_id:
         raise ValueError('El identificador de caso no es válido.')
-    return text.strip(), case_id
+    document_ids = data.get('document_ids') or []
+    maximum = current_app.config.get('CASE_DOCUMENT_MAX_FILES', 20)
+    if not isinstance(document_ids, list) or len(document_ids) > maximum or any(
+        not isinstance(item, str) or not item.strip() or len(item) > 128 for item in document_ids
+    ):
+        raise ValueError('La lista de documentos del caso no es válida.')
+    if len(set(document_ids)) != len(document_ids):
+        raise ValueError('La lista de documentos contiene identificadores repetidos.')
+    return text.strip(), case_id, document_ids
 
 @case_bp.route('/case', methods=['POST'])
 def analyze_case():
     try:
-        text, case_id = input_case()
+        text, case_id, _ = input_case()
     except ValueError as error:
         return api_error('INVALID_CASE', str(error), g.request_id, 400)
     service, _, _ = services()
@@ -53,12 +62,12 @@ def analyze_case():
 @case_bp.route('/novacourt/analyze', methods=['POST'])
 def start_analysis():
     try:
-        text, case_id = input_case()
+        text, case_id, document_ids = input_case()
     except ValueError as error:
         return api_error('INVALID_CASE', str(error), g.request_id, 400)
     tool = 'court' if request.path.endswith('/novacourt/analyze') else 'case'
     manager = pipeline()
-    task_id = manager.start(text, case_id=case_id, tool=tool)
+    task_id = manager.start(text, case_id=case_id, tool=tool, document_ids=document_ids)
     return jsonify(success=True, task_id=task_id, case_id=case_id, tool=tool), 202
 
 @case_bp.route('/tasks/<task_id>', methods=['GET'])

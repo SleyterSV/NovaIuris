@@ -17,6 +17,7 @@ class CostEndpointRateLimiter:
             'search': config.RATE_LIMIT_SEARCH,
             'case': config.RATE_LIMIT_CASE,
             'simulation': config.RATE_LIMIT_SIMULATION,
+            'documents': config.RATE_LIMIT_DOCUMENTS,
         }
         self._requests = defaultdict(deque)
         self._lock = Lock()
@@ -29,6 +30,8 @@ class CostEndpointRateLimiter:
             return 'case'
         if path.startswith('/api/simulation'):
             return 'simulation'
+        if path.startswith('/api/cases/') and '/documents' in path:
+            return 'documents'
         return None
 
     def check(self, client_ip: str, path: str):

@@ -1,0 +1,108 @@
+"""Process-local document ingestion tasks with case-scoped status polling."""
+from __future__ import annotations
+
+from copy import deepcopy
+from pathlib import Path
+from threading import Lock, Thread
+from time import time
+from uuid import uuid4
+import shutil
+
+
+class DocumentTaskManager:
+    def __init__(self):
+        self._lock = Lock()
+        self._tasks = {}
+
+    def start(self, case_id, files, ingestion_service, staging_directory, replaces_document_id=None):
+        task_id = str(uuid4())
+        task_documents = []
+        normalized_files = []
+        for entry in files:
+            path, filename = entry[:2]
+            preparation_error = entry[2] if len(entry) > 2 else None
+            document_id = str(uuid4())
+            normalized_files.append((path, filename, preparation_error, document_id))
+            task_documents.append({"document_id":document_id, "case_id":case_id,
+                                   "filename":filename, "status":"uploaded"})
+        state = {"task_id":task_id, "case_id":case_id, "tool":"documents", "status":"queued",
+                 "stage":"uploaded", "progress":0, "progress_kind":"completed_documents",
+                 "completed_documents":0, "total_documents":len(normalized_files),
+                 "documents":task_documents,
+                 "error":None, "created_at":time(), "updated_at":time()}
+        with self._lock:
+            self._cleanup_locked()
+            self._tasks[task_id] = state
+        Thread(target=self._run, args=(task_id, case_id, normalized_files, ingestion_service, staging_directory, replaces_document_id),
+               name=f"document-ingest-{task_id[:8]}", daemon=True).start()
+        return task_id
+
+    def _update(self, task_id, **changes):
+        with self._lock:
+            task = self._tasks.get(task_id)
+            if task:
+                task.update(changes, updated_at=time())
+
+    def _run(self, task_id, case_id, files, ingestion_service, staging_directory, replaces_document_id):
+        self._update(task_id, status="running", stage="validating")
+        try:
+            for index, entry in enumerate(files):
+                path, filename, preparation_error, document_id = entry
+                self._update(task_id, stage="validating", current_document=filename,
+                             current_document_index=index + 1, current_units=0)
+                def report(stage, completed_units):
+                    self._update(task_id, stage=stage, current_units=int(completed_units or 0))
+                    with self._lock:
+                        task = self._tasks.get(task_id)
+                        if task:
+                            task["documents"][index]["status"] = stage
+                try:
+                    if preparation_error:
+                        raise ValueError(preparation_error["message"])
+                    with Path(path).open("rb") as stream:
+                        manifest, duplicate = ingestion_service.ingest(case_id, filename, stream,
+                            replaces_document_id=replaces_document_id, progress=report,
+                            document_id=document_id)
+                    outcome = {"status":manifest["status"], "duplicate":duplicate, "document":manifest}
+                except Exception as error:
+                    from .case_corpus import DocumentError
+                    failure_document = {"document_id":document_id, "case_id":case_id,
+                        "filename":filename, "status":"failed", "page_count":None,
+                        "chunk_count":0, "ocr_required":False, "warnings":[]}
+                    if preparation_error:
+                        outcome = {**failure_document, "error":preparation_error}
+                    elif isinstance(error, DocumentError):
+                        outcome = {**failure_document,
+                                   "error":{"code":error.code, "message":error.message}}
+                    else:
+                        outcome = {**failure_document,
+                                   "error":{"code":"index_failed", "message":"No se pudo procesar este documento."}}
+                with self._lock:
+                    task = self._tasks.get(task_id)
+                    if task:
+                        task["documents"][index] = outcome
+                        task["completed_documents"] = index + 1
+                        task["progress"] = int((index + 1) * 100 / max(1, len(files)))
+                        task["stage"] = "finalizing" if index + 1 == len(files) else "validating"
+                        task["updated_at"] = time()
+            self._update(task_id, status="completed", stage="completed",
+                         result={"case_id":case_id}, error=None)
+        except Exception:
+            self._update(task_id, status="failed", stage="failed",
+                         error={"code":"INGESTION_FAILED", "message":"No se pudo completar la ingesta documental."})
+        finally:
+            shutil.rmtree(staging_directory, ignore_errors=True)
+
+    def status(self, case_id, task_id):
+        with self._lock:
+            task = self._tasks.get(task_id)
+            if not task or task["case_id"] != case_id:
+                return None
+            return deepcopy(task)
+
+    def _cleanup_locked(self):
+        cutoff = time() - 3600
+        terminal = {"completed", "failed", "cancelled"}
+        for task_id in [key for key, value in self._tasks.items()
+                        if value["status"] in terminal and value["updated_at"] < cutoff]:
+            self._tasks.pop(task_id, None)

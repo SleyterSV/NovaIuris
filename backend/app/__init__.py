@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore", message=".*resource_tracker.*")
 
 from flask import Flask, request, g
 from uuid import uuid4
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import HTTPException, RequestEntityTooLarge
 from .utils.api_response import api_error
 from .utils.rate_limit import CostEndpointRateLimiter
 from flask_cors import CORS
@@ -90,6 +90,11 @@ def create_app(config_class=Config):
         logger.error('request_id=%s error_type=%s', getattr(g, 'request_id', ''), type(error).__name__)
         return api_error('REQUEST_FAILED', 'No fue posible completar la solicitud.', getattr(g, 'request_id', ''), status)
 
+    @app.errorhandler(RequestEntityTooLarge)
+    def request_too_large(error):
+        return api_error('FILE_TOO_LARGE', 'La solicitud supera el límite configurado de carga.',
+                         getattr(g, 'request_id', ''), 413)
+
     # 注册蓝图
     # 👇 1. SE AGREGÓ export_bp A LA IMPORTACIÓN
     from .api import (
@@ -98,7 +103,8 @@ def create_app(config_class=Config):
         report_bp,
         export_bp,
         search_bp,
-        case_bp
+        case_bp,
+        documents_bp
     )
     app.register_blueprint(graph_bp, url_prefix='/api/graph')
     app.register_blueprint(simulation_bp, url_prefix='/api/simulation')
@@ -111,6 +117,7 @@ def create_app(config_class=Config):
         case_bp,
         url_prefix='/api'
     )
+    app.register_blueprint(documents_bp, url_prefix='/api')
 
     # 健康检查
     @app.route('/health')

@@ -23,7 +23,7 @@ export async function runAnalysisTask(tool, text, options = {}) {
   let taskId
   try {
     const started = await requestJson(tool === 'court' ? '/novacourt/analyze' : '/case/tasks', {
-      method:'POST', body:JSON.stringify({ case_text:text, case_id:caseId })
+      method:'POST', body:JSON.stringify({ case_text:text, case_id:caseId, document_ids:options.documentIds || [] })
     })
     taskId = started.task_id
     if (started.case_id !== caseId) throw new Error('La tarea no corresponde al caso enviado.')

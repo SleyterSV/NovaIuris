@@ -21,8 +21,13 @@
             <NovaCourtInput
                 v-model="caseText"
                 :loading="isLoading"
+                :has-documents="selectedDocumentIds.length > 0"
                 @simulate="handleSimulation"
             />
+            <p v-if="continuingCase" role="status">Continuando explícitamente el caso {{ activeCaseId }} y los documentos seleccionados en NovaCase.</p>
+            <p v-else role="status">Caso independiente nuevo. No se reutilizan documentos de otras sesiones.</p>
+            <CaseDocumentUpload :key="activeCaseId" :case-id="activeCaseId" :initial-document-ids="requestedDocumentIds" :load-existing="continuingCase" :disabled="isLoading" @update:document-ids="selectedDocumentIds = $event" />
+            <button v-if="continuingCase || result" type="button" :disabled="isLoading" @click="startIndependentCase">Iniciar un caso independiente</button>
 
         </section>
 
@@ -285,6 +290,8 @@
 
 
 <script setup>
+import { useRoute, useRouter } from "vue-router"
+import CaseDocumentUpload from "@/components/common/CaseDocumentUpload.vue"
 import CourtSimulation from '../components/novacourt/CourtSimulation.vue'
 import PipelineProgress from '../components/novacourt/PipelineProgress.vue'
 import { normalizeRenderableContent } from '../utils/content.js'
@@ -338,6 +345,16 @@ import GraphPanel
 ========================================================= */
 
 const novaCourt = useNovaCourt()
+const route = useRoute()
+const router = useRouter()
+const requestedCaseId = typeof route.query.case_id === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(route.query.case_id) && !route.query.case_id.includes("..") ? route.query.case_id : null
+const continuingCase = ref(Boolean(requestedCaseId))
+const activeCaseId = ref(requestedCaseId || crypto.randomUUID())
+const requestedDocumentIds = requestedCaseId && typeof route.query.document_ids === "string"
+    ? [...new Set(route.query.document_ids.split(",").filter(id => id.length > 0 && id.length <= 128))].slice(0, 20)
+    : []
+const selectedDocumentIds = ref([])
+if (requestedCaseId && globalThis.history?.state?.caseText) novaCourt.caseText.value = String(globalThis.history.state.caseText)
 
 
 /*
@@ -414,7 +431,7 @@ async function handleSimulation(text) {
         Validación básica.
     */
 
-    if (!normalizedText) {
+    if (!normalizedText && selectedDocumentIds.value.length === 0) {
 
         error.value =
             "Ingresa la descripción del caso antes de iniciar el análisis."
@@ -437,8 +454,8 @@ async function handleSimulation(text) {
         con el composable.
     */
 
-    caseText.value =
-        normalizedText
+    const effectiveText = normalizedText || "Analiza los documentos jurídicos aportados para este caso."
+    caseText.value = effectiveText
 
 
     /*
@@ -455,7 +472,7 @@ async function handleSimulation(text) {
 
     try {
 
-        await analyzeCase()
+        await analyzeCase(effectiveText, { caseId:activeCaseId.value, documentIds:selectedDocumentIds.value })
 
     }
     catch (err) {
@@ -488,6 +505,14 @@ async function handleSimulation(text) {
 /* =========================================================
    CAMBIO DE PESTAÑA
 ========================================================= */
+
+function startIndependentCase() {
+    novaCourt.resetAnalysis()
+    selectedDocumentIds.value = []
+    activeCaseId.value = crypto.randomUUID()
+    continuingCase.value = false
+    router.replace({ path:"/novacourt" })
+}
 
 function handleTabChange(tab) {
 

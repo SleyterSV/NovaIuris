@@ -6,7 +6,7 @@ export function useNovaCourt() {
   let controller
   const cancel = () => controller?.abort()
   onBeforeUnmount(cancel)
-  async function analyzeCase(text = caseText.value) {
+  async function analyzeCase(text = caseText.value, taskOptions = {}) {
     if (isAnalyzing.value) return null
     caseText.value = String(text ?? '').trim()
     if (!caseText.value) { error.value = 'Ingresa el caso jurídico.'; return null }
@@ -16,6 +16,8 @@ export function useNovaCourt() {
     try {
       result.value = await analyzeNovaCourtCase(caseText.value, {
         signal:controller.signal,
+        documentIds:taskOptions.documentIds || [],
+        caseId:taskOptions.caseId,
         onProgress(task) {
           progress.value = task.progress; currentStage.value = task.message
           stages.value = task.stages; warnings.value = task.warnings

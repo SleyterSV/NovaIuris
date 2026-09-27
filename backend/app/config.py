@@ -37,6 +37,7 @@ class Config:
     RATE_LIMIT_SEARCH = 30
     RATE_LIMIT_CASE = 10
     RATE_LIMIT_SIMULATION = 10
+    RATE_LIMIT_DOCUMENTS = int(os.getenv('RATE_LIMIT_DOCUMENTS', '20'))
 
     # JSON配置 - 禁用ASCII转义，让中文直接显示（而不是 \uXXXX 格式）
     JSON_AS_ASCII = False
@@ -58,7 +59,21 @@ class Config:
     ZEP_API_KEY = os.environ.get('ZEP_API_KEY')
     
     # 文件上传配置
-    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB
+    CASE_DOCUMENT_MAX_FILE_BYTES = int(os.getenv('CASE_DOCUMENT_MAX_FILE_BYTES', str(45 * 1024 * 1024)))
+    CASE_DOCUMENT_MAX_CASE_BYTES = int(os.getenv('CASE_DOCUMENT_MAX_CASE_BYTES', str(200 * 1024 * 1024)))
+    CASE_DOCUMENT_MAX_REQUEST_BYTES = int(os.getenv('CASE_DOCUMENT_MAX_REQUEST_BYTES', str(201 * 1024 * 1024)))
+    MAX_CONTENT_LENGTH = CASE_DOCUMENT_MAX_REQUEST_BYTES
+    CASE_DOCUMENT_MAX_FILES = int(os.getenv('CASE_DOCUMENT_MAX_FILES', '20'))
+    CASE_DOCUMENT_MAX_UNCOMPRESSED_BYTES = int(os.getenv('CASE_DOCUMENT_MAX_UNCOMPRESSED_BYTES', str(100 * 1024 * 1024)))
+    CASE_DOCUMENT_MAX_PAGES = int(os.getenv('CASE_DOCUMENT_MAX_PAGES', '5000'))
+    CASE_DOCUMENT_CHUNK_TOKENS = int(os.getenv('CASE_DOCUMENT_CHUNK_TOKENS', '600'))
+    CASE_DOCUMENT_CHUNK_OVERLAP = int(os.getenv('CASE_DOCUMENT_CHUNK_OVERLAP', '60'))
+    CASE_DOCUMENT_CHUNK_MAX_CHARS = int(os.getenv('CASE_DOCUMENT_CHUNK_MAX_CHARS', '12000'))
+    CASE_DOCUMENT_EMBEDDING_BATCH_SIZE = int(os.getenv('CASE_DOCUMENT_EMBEDDING_BATCH_SIZE', '64'))
+    CASE_DOCUMENT_OCR_MIN_PAGE_CHARACTERS = int(os.getenv('CASE_DOCUMENT_OCR_MIN_PAGE_CHARACTERS', '30'))
+    CASE_DOCUMENT_CONTEXT_TOP_K = int(os.getenv('CASE_DOCUMENT_CONTEXT_TOP_K', '8'))
+    CASE_CORPUS_RETENTION_DAYS = int(os.getenv('CASE_CORPUS_RETENTION_DAYS', '30'))
+    CASE_CORPUS_DB_PATH = os.getenv('CASE_CORPUS_DB_PATH', os.path.join(os.path.dirname(__file__), '../uploads/case_corpus.sqlite3'))
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '../uploads')
     ALLOWED_EXTENSIONS = {'pdf', 'md', 'txt', 'markdown'}
     

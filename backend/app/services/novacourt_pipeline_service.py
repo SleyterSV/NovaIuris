@@ -8,7 +8,7 @@ from ..utils.cancellation import OperationCancelled, check_cancelled
 from ..utils.novacourt_graph import graph_result
 from ..utils.novacourt_simulation import simulation_result
 
-CASE_STAGES = (("intake", "Recepción"), ("facts", "Hechos"),
+CASE_STAGES = (("intake", "Recepción"), ("documents", "Corpus documental del caso"), ("facts", "Hechos"),
     ("strategy", "Estrategia inicial"), ("research", "Investigación"),
     ("arguments", "Argumentos"), ("evidence", "Evidencia"),
     ("risks", "Riesgos"), ("counter_arguments", "Contraargumentos"), ("report", "Informe"))
@@ -21,10 +21,11 @@ class NovaCourtPipelineService:
         self.simulation_service = simulation_service
         self.tasks = TaskManager()
 
-    def start(self, case_text, case_id=None, tool="court"):
+    def start(self, case_text, case_id=None, tool="court", document_ids=None):
         case_id = case_id or str(uuid4())
         self.tasks.cleanup_old_tasks()
-        task_id = self.tasks.create_task("legal_analysis", {"case_id": case_id, "tool": tool, "owner": None})
+        task_id = self.tasks.create_task("legal_analysis", {"case_id": case_id, "tool": tool,
+            "document_ids": list(document_ids or []), "owner": None})
         threading.Thread(target=self._run, args=(task_id, case_text), daemon=True).start()
         return task_id
 
@@ -61,7 +62,8 @@ class NovaCourtPipelineService:
                                      "progress_kind": "completed_stages"})
         try:
             result = self.case_service.analyze_case(case_text, progress_callback=update,
-                cancellation_token=token, case_id=case_id)
+                cancellation_token=token, case_id=case_id,
+                document_ids=task.metadata.get("document_ids", []))
             check_cancelled(token)
             if not result.get("success"):
                 raise RuntimeError("Case analysis failed")
