@@ -18,8 +18,8 @@ def normalize_case_result(result: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(result, dict):
         return {}
 
-    result = deepcopy(result)
     normalized = deepcopy(result)
+    result = normalized
     if not result.get("success"):
         return normalized
 

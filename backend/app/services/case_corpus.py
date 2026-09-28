@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, BinaryIO
 
+from app.utils.cancellation import check_cancelled
+
 
 class DocumentError(ValueError):
     def __init__(self, code: str, message: str):
@@ -509,12 +511,17 @@ class CaseContextService:
         self.repository, self.embedding_service = repository, embedding_service
 
     def relevant_context(self, case_id: str, query: str, *, document_ids=None, top_k=6, filters=None,
-                         cancellation_token=None):
+                         cancellation_token=None, operation_callback=None):
+        check_cancelled(cancellation_token)
         if not case_id: raise DocumentError("case_id_required", "La búsqueda privada requiere case_id.")
         if not query or not query.strip(): return []
         if not self.repository.validate_documents(case_id, document_ids):
             return []
+        check_cancelled(cancellation_token)
+        if operation_callback: operation_callback("embedding")
         query_embedding = self.embedding_service.generate_embedding(query, cancellation_token=cancellation_token)
+        check_cancelled(cancellation_token)
+        if operation_callback: operation_callback("retrieval")
         candidates = self.repository.iter_retrieve(case_id, document_ids)
         if filters and filters.get("section"):
             candidates = (c for c in candidates if c.get("section") == filters["section"])

@@ -22,6 +22,7 @@ from app.services.case_professional import (
     build_report_document, case_facts, case_issues,
     case_timeline, final_strategy, ground_links, select_report_sources,
 )
+from app.services.case_execution import CaseExecutionContext, CaseExecutionMetrics, prompt_documents, research_queries
 from app.services.source_contracts import normalize_case_source, normalize_public_source, resolve_citations
 from app.config import Config
 from flask import current_app, has_app_context
@@ -166,10 +167,14 @@ class CaseService:
         """
 
         case_id = case_id or str(uuid4())
+        metrics = CaseExecutionMetrics()
+        execution = CaseExecutionContext(case_id)
         def stage(name, status):
             check_cancelled(cancellation_token)
+            metrics.stage(name, status)
             if progress_callback:
                 progress_callback(name, status)
+        metrics.stage('intake', 'running')
         stage('intake', 'completed')
         if filtros is None:
 
@@ -184,15 +189,27 @@ class CaseService:
                 raise ValueError("El corpus documental del caso no está disponible.")
             from app.services.case_corpus import CaseContextService
             from app.services.embedding_service import EmbeddingService
+            documents_in_case = self.case_corpus_repository.list_documents(case_id)
+            selected_ids = set(document_ids)
+            manifests = {doc["document_id"]: doc for doc in documents_in_case
+                         if doc.get("document_id") in selected_ids}
+            execution = CaseExecutionContext(case_id, (
+                (str(document_id), str(manifests.get(document_id, {}).get("document_version") or ""),
+                 str(manifests.get(document_id, {}).get("sha256") or ""))
+                for document_id in selected_ids))
             context_service = CaseContextService(self.case_corpus_repository, EmbeddingService())
-            case_sources = context_service.relevant_context(
-                case_id, (case_text or "").strip() or "hechos, pretensiones, pruebas y cuestiones jurídicas",
-                document_ids=document_ids,
-                top_k=Config.CASE_DOCUMENT_CONTEXT_TOP_K,
-                cancellation_token=cancellation_token)
+            context_query = (case_text or "").strip() or "hechos, pretensiones, pruebas y cuestiones jurídicas"
+            def load_context():
+                metrics.increment("case_context_lookup_count")
+                return context_service.relevant_context(
+                    case_id, context_query, document_ids=document_ids,
+                    top_k=Config.CASE_DOCUMENT_CONTEXT_TOP_K,
+                    cancellation_token=cancellation_token,
+                    operation_callback=lambda name: metrics.increment(f"{name}_call_count"))
+            case_sources = execution.case_context(context_query, load_context)
             if case_sources:
                 document_names = {doc["document_id"]: doc.get("filename")
-                                  for doc in self.case_corpus_repository.list_documents(case_id)}
+                                  for doc in documents_in_case}
                 case_source_contracts = [normalize_case_source({
                     **item, "case_id": case_id,
                     "filename": document_names.get(item.get("document_id")),
@@ -211,6 +228,7 @@ class CaseService:
         ############################################################
 
         stage('facts', 'running')
+        metrics.increment("llm_service_call_count")
         analysis = self.case_analyzer.analyze_case(
 
             analysis_case_text
@@ -246,6 +264,7 @@ class CaseService:
 
         stage('facts', 'completed')
         stage('strategy', 'running')
+        metrics.increment("llm_service_call_count")
         strategy = self.strategy_builder.build_strategy(
 
             analysis
@@ -276,17 +295,7 @@ class CaseService:
 
         stage('strategy', 'completed')
         stage('research', 'running')
-        search_queries = list(
-            dict.fromkeys(
-                query.strip()
-                for query in strategy.get(
-                    "search_queries",
-                    []
-                )
-                if isinstance(query, str)
-                and query.strip()
-            )
-        )[:max(1, Config.CASE_RESEARCH_MAX_QUERIES)]
+        search_queries = research_queries(strategy.get("search_queries", []), Config.CASE_RESEARCH_MAX_QUERIES)
 
         search_results = []
 
@@ -301,20 +310,19 @@ class CaseService:
                     "[redacted]"
                 )
 
-                result = self.search_service.search(
+                def search_progress(name, status, details=None):
+                    if status == "running" and name in {"embedding", "retrieval"}:
+                        metrics.increment(f"{name}_call_count")
 
-                    query=query,
-
-                    filtros=filtros,
-
-                    generate_answer=False,
-
-                    build_context=False,
-
-                    use_reranker=False,
-                    cancellation_token=cancellation_token,
-
-                )
+                def retrieve():
+                    metrics.increment("research_service_call_count")
+                    return self.search_service.search(
+                        query=query, filtros=filtros, generate_answer=False,
+                        build_context=False, use_reranker=False,
+                        cancellation_token=cancellation_token,
+                        progress_callback=search_progress,
+                    )
+                result = execution.research(query, filtros, retrieve)
 
                 if not result:
                     return None
@@ -394,19 +402,10 @@ class CaseService:
         ################ ORDENAR RESULTADOS ########################
         ############################################################
 
-        search_results.sort(
+        query_order = {query: index for index, query in enumerate(search_queries)}
+        search_results.sort(key=lambda item: query_order.get(item["query"], len(query_order)))
 
-            key=lambda item:
-            search_queries.index(
-                item["query"]
-            )
-
-            if item["query"] in search_queries
-            else 999
-
-        )
-
-                ############################################################
+        ############################################################
         ################ ELIMINAR DUPLICADOS ########################
         ############################################################
 
@@ -470,6 +469,7 @@ class CaseService:
             if not isinstance(source, dict) or source.get("source_scope") != "public":
                 source = normalize_public_source(
                     document, excerpt=document.get("extracto_exacto") or document.get("texto") or "")
+                document["source"] = source
             if source["source_id"] not in seen_public:
                 public_sources.append(source)
                 seen_public.add(source["source_id"])
@@ -478,6 +478,7 @@ class CaseService:
                                "tipo_documento": "case_document", "title": source["title"],
                                "texto": source["excerpt"], "source": source})
         verified_sources = public_sources + case_source_contracts
+        downstream_documents = prompt_documents(documentos)
         
         ############################################################
         ################ LEGAL ARGUMENT SERVICE ####################
@@ -485,6 +486,7 @@ class CaseService:
 
         stage('research', 'completed')
         stage('arguments', 'running')
+        metrics.increment("llm_service_call_count")
         legal_arguments = (
 
             self.argument_service.generate_arguments(
@@ -493,7 +495,7 @@ class CaseService:
 
                 strategy=strategy,
 
-                documents=documentos
+                documents=downstream_documents
 
             )
 
@@ -524,34 +526,30 @@ class CaseService:
         stage('arguments', 'completed')
         def analyze_evidence():
             stage("evidence", "running")
-
-            return self.evidence_analyzer.analyze(
-
-                analysis=analysis,
-
-                strategy=strategy,
-
-                arguments=legal_arguments,
-
-                documents=documentos
-
-            )
+            metrics.increment("llm_service_call_count")
+            try:
+                result = self.evidence_analyzer.analyze(
+                    analysis=analysis, strategy=strategy, arguments=legal_arguments,
+                    documents=downstream_documents)
+            except Exception:
+                stage("evidence", "failed")
+                raise
+            stage("evidence", "completed")
+            return result
 
 
         def analyze_risk():
             stage("risks", "running")
-
-            return self.risk_analyzer.analyze(
-
-                analysis=analysis,
-
-                strategy=strategy,
-
-                arguments=legal_arguments,
-
-                documents=documentos
-
-            )
+            metrics.increment("llm_service_call_count")
+            try:
+                result = self.risk_analyzer.analyze(
+                    analysis=analysis, strategy=strategy, arguments=legal_arguments,
+                    documents=downstream_documents)
+            except Exception:
+                stage("risks", "failed")
+                raise
+            stage("risks", "completed")
+            return result
 
 
         ############################################################
@@ -623,9 +621,8 @@ class CaseService:
         ################ COUNTER ARGUMENTS #########################
         ############################################################
 
-        stage('evidence', 'completed')
-        stage('risks', 'completed')
         stage('counter_arguments', 'running')
+        metrics.increment("llm_service_call_count")
         counter_arguments = (
 
             self.counter_argument_service.generate_counterarguments(
@@ -640,7 +637,7 @@ class CaseService:
 
                 risk=risk_analysis,
 
-                documents=documentos
+                documents=downstream_documents
 
             )
 
@@ -690,6 +687,7 @@ class CaseService:
 
         stage('report', 'running')
         try:
+            metrics.increment("llm_service_call_count")
             candidate = self.report_service.generate_report(
                 case_text=case_text,
                 analysis=analysis,
@@ -878,10 +876,17 @@ class CaseService:
         result["case_id"] = case_id
         result["document_ids"] = list(document_ids or [])
         result["research"]["case_sources"] = [item["source_reference"] for item in case_sources]
+        execution_metrics = metrics.snapshot()
         result["metadata"] = {"case_id": case_id, "document_ids": list(document_ids or []),
                                "case_source_references": result["research"]["case_sources"],
                                "research_query_count": len(search_queries),
                                "retrieved_source_count": len(verified_sources),
+                               "case_chunk_count": len(case_sources),
                                "report_context_source_count": len(report_sources),
-                               "report_context_characters": sum(len(source["excerpt"]) for source in report_sources)}
+                               "report_context_characters": sum(len(source["excerpt"]) for source in report_sources),
+                               "input_characters": {"user_statement": len(case_text or ""),
+                                    "case_context": sum(len(source["excerpt"]) for source in case_source_contracts),
+                                    "research_queries": sum(len(query) for query in search_queries),
+                                    "downstream_documents": sum(len(item.get("texto", "")) for item in downstream_documents)},
+                               **execution_metrics}
         return normalize_case_result(result)
