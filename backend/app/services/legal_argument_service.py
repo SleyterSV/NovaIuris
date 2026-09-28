@@ -278,7 +278,8 @@ Construye:
 
 9. Riesgos de cada argumento.
 
-10. Fortaleza estimada de cada argumento.
+10. Valoración cualitativa de cada argumento, solo si los datos la sustentan.
+    Si no puede fundamentarse, indícala como "No determinada".
 
 ========================================================
 
@@ -289,9 +290,12 @@ Devuelve EXCLUSIVAMENTE este JSON.
         {{
             "title":"",
             "argument":"",
+            "issue_id":null,
+            "supporting_fact_ids":[],
+            "source_ids":[],
             "legal_basis":[],
             "jurisprudence":[],
-            "strength":"Alta",
+            "strength":"No determinada",
             "risk":"Bajo"
         }}
     ],
@@ -328,9 +332,15 @@ ESTRATEGIA
 
 ========================================================
 
-DOCUMENTOS ENCONTRADOS POR NOVASEARCH
+DOCUMENTOS RECUPERADOS Y FRAGMENTOS DEL EXPEDIENTE
 
 {documents_json}
+
+Usa issue_id de los problemas jurídicos recibidos, supporting_fact_ids de los
+hechos estructurados recibidos y source_ids solo de las
+fuentes verificadas incluidas en los documentos. Las normas_probables del
+análisis inicial son hipótesis, no autoridad recuperada. Si una fuente no
+existe, no la cites ni atribuyas una regla jurídica a ella.
 
 ========================================================
 

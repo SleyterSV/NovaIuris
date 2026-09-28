@@ -107,7 +107,14 @@ class CaseReportService:
         evidence_analysis: Dict,
         risk_analysis: Dict,
         counter_arguments: Dict,
-        research: Dict
+        research: Dict,
+        sources=None,
+        facts=None,
+        issues=None,
+        timeline=None,
+        final_strategy=None,
+        case_id=None,
+        document_profile="analysis_report",
     ) -> str:
 
         """
@@ -142,7 +149,14 @@ class CaseReportService:
 
             counter_arguments=counter_arguments,
 
-            research=research
+            research=research,
+            sources=sources,
+            facts=facts,
+            issues=issues,
+            timeline=timeline,
+            final_strategy=final_strategy,
+            case_id=case_id,
+            document_profile=document_profile,
 
         )
 
@@ -221,254 +235,69 @@ class CaseReportService:
         evidence_analysis: Dict,
         risk_analysis: Dict,
         counter_arguments: Dict,
-        research: Dict
+        research: Dict,
+        sources=None,
+        facts=None,
+        issues=None,
+        timeline=None,
+        final_strategy=None,
+        case_id=None,
+        document_profile="analysis_report",
     ) -> str:
-
-        analysis_json = json.dumps(
-            analysis,
-            indent=4,
-            ensure_ascii=False
+        """Give the model one compact, traceable case snapshot."""
+        if document_profile != "analysis_report":
+            raise ValueError("Unsupported document profile")
+        analysis_context = {key: value for key, value in analysis.items()
+                            if key not in {"hechos", "hechos_estructurados", "fact_records",
+                                           "problemas_juridicos", "issue_records", "normas_probables"}}
+        source_context = [{key: source.get(key) for key in
+                           ("source_id", "source_scope", "source_type", "title", "article",
+                            "legal_basis", "court", "case_number", "document_id", "chunk_id",
+                            "page_start", "page_end", "section", "excerpt")}
+                          for source in (sources or [])]
+        context = {
+            "case_id": case_id,
+            "user_statement": str(case_text or "")[:8000],
+            "analysis": analysis_context,
+            "facts": facts or [],
+            "issues": issues or [],
+            "timeline": timeline or [],
+            "initial_strategy": {key: value for key, value in strategy.items()
+                                 if key != "search_queries"},
+            "final_strategy": final_strategy or {},
+            "arguments": legal_arguments,
+            "evidence": evidence_analysis,
+            "risks": risk_analysis,
+            "counter_arguments": counter_arguments,
+            "research_status": research.get("status"),
+            "verified_sources": source_context,
+        }
+        payload = json.dumps(context, ensure_ascii=False, separators=(",", ":"), default=str)
+        return (
+            "Redacta un INFORME JURÍDICO DE ANÁLISIS DEL CASO para revisión por un abogado. "
+            "Usa tono formal, preciso y sobrio; emplea terminología peruana cuando corresponda. "
+            "No escribas como tribunal ni como autoridad pública.\n\n"
+            "Estructura adaptable en Markdown: título y secciones de objeto y alcance; "
+            "antecedentes y hechos; cuestiones jurídicas; marco normativo y jurisprudencial; "
+            "análisis jurídico por cuestión; análisis probatorio; argumentos; contraargumentos; "
+            "riesgos; estrategia y actuaciones; conclusiones; fuentes. "
+            "Omite secciones sin contenido real. Redacta párrafos desarrollados y conclusiones "
+            "que respondan a las cuestiones; usa listas solo cuando aclaren pruebas, acciones o conclusiones.\n\n"
+            "El relato del usuario contiene alegaciones. Una fuente documental puede acreditar "
+            "que una afirmación consta en un documento sin probar por sí sola su veracidad. "
+            "Separa ambos planos. No inventes hechos, pruebas, fechas, normas, jurisprudencia, "
+            "tribunales, artículos, fundamentos, URLs ni probabilidades. "
+            "Las normas preliminares del análisis no son autoridades verificadas.\n\n"
+            "Para toda afirmación jurídica externa o hecho documental relevante respaldado, "
+            "cita únicamente los identificadores exactos mostrados en verified_sources, "
+            "por ejemplo [SRC-ABC123]. No dupliques el prefijo ni alteres el identificador. "
+            "No uses [1] ni otros números de cita: el sistema los asignará tras validar. "
+            "No cites una fuente si su fragmento no respalda esa afirmación. "
+            "Si la investigación falló o no hay fuentes verificadas, dilo con precisión y "
+            "no atribuyas autoridad a información no recuperada. "
+            "La sección Fuentes debe mencionar solo las fuentes citadas, sin inventar datos.\n\n"
+            f"DATOS DEL CASO:\n{payload}\n\nEntrega únicamente el informe Markdown."
         )
-
-        strategy_json = json.dumps(
-            strategy,
-            indent=4,
-            ensure_ascii=False
-        )
-
-        arguments_json = json.dumps(
-            legal_arguments,
-            indent=4,
-            ensure_ascii=False
-        )
-
-        evidence_json = json.dumps(
-            evidence_analysis,
-            indent=4,
-            ensure_ascii=False
-        )
-
-        risk_json = json.dumps(
-            risk_analysis,
-            indent=4,
-            ensure_ascii=False
-        )
-
-        counter_json = json.dumps(
-            counter_arguments,
-            indent=4,
-            ensure_ascii=False
-        )
-
-        research_json = json.dumps(
-            research,
-            indent=2,
-            ensure_ascii=False
-        )
-
-        return f"""
-Eres un abogado litigante peruano senior con más de 35 años de experiencia.
-
-Has participado en procesos:
-
-• Constitucionales
-
-• Civiles
-
-• Penales
-
-• Laborales
-
-• Administrativos
-
-• Tributarios
-
-• Comerciales
-
-Tu trabajo consiste en redactar un INFORME JURÍDICO PROFESIONAL.
-
-NO inventes normas.
-
-NO inventes jurisprudencia.
-
-NO inventes hechos.
-
-NO inventes pruebas.
-
-Utiliza únicamente la información proporcionada.
-
-El informe debe ser claro, técnico, objetivo y apto para ser revisado por otro abogado.
-
-==============================================================
-
-El informe debe contener exactamente las siguientes secciones:
-
-# INFORME JURÍDICO
-
-## I. Resumen Ejecutivo
-
-Realiza un resumen profesional del caso.
-
---------------------------------------------------------------
-
-## II. Hechos Relevantes
-
-Resume cronológicamente los hechos relevantes.
-
---------------------------------------------------------------
-
-## III. Problemas Jurídicos
-
-Identifica los principales problemas jurídicos del caso.
-
---------------------------------------------------------------
-
-## IV. Normativa Aplicable
-
-Explica las normas aplicables encontradas por NovaSearch.
-
---------------------------------------------------------------
-
-## V. Jurisprudencia Relevante
-
-Resume la jurisprudencia más importante encontrada.
-
---------------------------------------------------------------
-
-## VI. Estrategia Jurídica Recomendada
-
-Explica por qué la estrategia propuesta es adecuada.
-
---------------------------------------------------------------
-
-## VII. Argumentos Jurídicos Principales
-
-Desarrolla los argumentos más sólidos.
-
---------------------------------------------------------------
-
-## VIII. Evaluación Probatoria
-
-Describe las pruebas disponibles.
-
-Explica las pruebas faltantes.
-
-Explica qué pruebas deberían conseguirse.
-
---------------------------------------------------------------
-
-## IX. Evaluación de Riesgos
-
-Describe:
-
-• Riesgos procesales
-
-• Riesgos jurídicos
-
-• Riesgos probatorios
-
-Incluye una valoración de la probabilidad estimada de éxito.
-
---------------------------------------------------------------
-
-## X. Posibles Argumentos de la Contraparte
-
-Resume los argumentos que probablemente utilizará la contraparte.
-
-Explica cómo responder a ellos.
-
---------------------------------------------------------------
-
-## XI. Recomendaciones
-
-Indica acciones concretas antes de iniciar el proceso.
-
---------------------------------------------------------------
-
-## XII. Conclusión
-
-Concluye indicando:
-
-• Fortalezas.
-
-• Debilidades.
-
-• Viabilidad del caso.
-
-• Recomendación final.
-
-==============================================================
-
-CASO ORIGINAL
-
-{case_text}
-
-==============================================================
-
-ANÁLISIS DEL CASO
-
-{analysis_json}
-
-==============================================================
-
-ESTRATEGIA
-
-{strategy_json}
-
-==============================================================
-
-ARGUMENTOS JURÍDICOS
-
-{arguments_json}
-
-==============================================================
-
-ANÁLISIS PROBATORIO
-
-{evidence_json}
-
-==============================================================
-
-ANÁLISIS DE RIESGOS
-
-{risk_json}
-
-==============================================================
-
-CONTRAARGUMENTOS
-
-{counter_json}
-
-==============================================================
-
-INVESTIGACIÓN JURÍDICA (NOVASEARCH)
-
-{research_json}
-
-==============================================================
-
-IMPORTANTE
-
-El informe debe parecer elaborado por un abogado experto.
-
-Debe ser técnico.
-
-Debe ser ordenado.
-
-Debe ser objetivo.
-
-Debe ser claro.
-
-No utilices tablas.
-
-No utilices Markdown adicional distinto a los encabezados.
-
-No inventes información.
-
-No omitas ninguna sección.
-
-Entrega únicamente el informe.
-"""
 
     ####################################################################
     ###################### LIMPIAR INFORME ##############################
@@ -549,68 +378,15 @@ Entrega únicamente el informe.
     ####################################################################
 
     @staticmethod
-    def validate_report(
-        report: str
-    ) -> bool:
-
-        """
-        Verifica que el informe tenga
-        las secciones mínimas esperadas.
-        """
-
-        if not report:
-
+    def validate_report(report: str) -> bool:
+        """Accept an adaptive report with substantive analysis and conclusions."""
+        if not isinstance(report, str) or len(report.strip()) < 120:
             return False
-
-        required_sections = [
-
-            "Resumen Ejecutivo",
-
-            "Hechos",
-
-            "Problemas Jurídicos",
-
-            "Normativa",
-
-            "Jurisprudencia",
-
-            "Estrategia",
-
-            "Argumentos",
-
-            "Evaluación Probatoria",
-
-            "Evaluación de Riesgos",
-
-            "Contraparte",
-
-            "Recomendaciones",
-
-            "Conclusión"
-
-        ]
-
-        report_lower = report.lower()
-
-        encontrados = 0
-
-        for section in required_sections:
-
-            if section.lower() in report_lower:
-
-                encontrados += 1
-
-        logger.info(
-
-            f"Secciones detectadas: {encontrados}/{len(required_sections)}"
-
-        )
-
-        return encontrados >= 10
-
-    ####################################################################
-    ###################### RESUMEN DEL INFORME ##########################
-    ####################################################################
+        headings = [line[3:].strip().lower() for line in report.splitlines()
+                    if line.startswith("## ")]
+        return (len(headings) >= 3
+                and any("análisis" in heading or "analisis" in heading for heading in headings)
+                and any("conclus" in heading for heading in headings))
 
     @staticmethod
     def summary(

@@ -172,6 +172,16 @@ Extrae la siguiente información:
 
 ========================================================
 
+Los hechos del relato son alegaciones; no los presentes como probados.
+En hechos_estructurados usa objetos con text, status, date y source_ids.
+status puede ser alleged, supported, disputed o unclear. Usa supported solo
+si un fragmento documental concreto lo respalda; distingue un documento que
+menciona una alegación de uno que acredita un hecho.
+source_ids solo puede contener marcadores SRC proporcionados en el caso.
+No inventes fechas ni referencias. Formula problemas jurídicos concretos
+relacionados con las circunstancias del caso. normas_probables son hipótesis
+para investigar, no autoridades verificadas.
+
 Devuelve únicamente este formato JSON.
 
 {{
@@ -192,6 +202,8 @@ Devuelve únicamente este formato JSON.
     }},
 
     "hechos": [],
+
+    "hechos_estructurados": [],
 
     "problemas_juridicos": [],
 

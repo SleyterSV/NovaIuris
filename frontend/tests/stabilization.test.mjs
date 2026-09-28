@@ -185,6 +185,22 @@ test('actual Vue panels render canonical data and professional empty states', as
       assert.ok(!html.includes('Probabilidad de Éxito'),name)
       assert.ok(!html.includes('Nivel de confianza'),`${name} has no fabricated confidence`)
     }
+    const {default:analysisPanel}=await server.ssrLoadModule('/src/components/novacase/AnalysisView.vue')
+    const stageHtml=await renderToString(createSSRApp({render:()=>h(analysisPanel,{
+      analysis:{facts:['HECHO-A']},stages:[{id:'report',title:'Informe',status:'failed',description:'Etapa no completada.'}]
+    })}))
+    assert.match(stageHtml,/No completado/)
+    assert.match(stageHtml,/Etapa no completada/)
+    const {default:progressPanel}=await server.ssrLoadModule('/src/components/novacase/AnalysisProgress.vue')
+    const progressHtml=await renderToString(createSSRApp({render:()=>h(progressPanel,{
+      loading:false,steps:[{id:'facts',title:'Hechos',status:'completed'},
+        {id:'documents',title:'Documentos',status:'skipped'},
+        {id:'report',title:'Informe',status:'failed'}]
+    })}))
+    assert.match(progressHtml,/Analisis completado con incidencias/)
+    assert.match(progressHtml,/2\/3/)
+    assert.match(progressHtml,/No requerido/)
+    assert.match(progressHtml,/No completado/)
     const input={default:(await server.ssrLoadModule('/src/components/novacourt/NovaCourtInput.vue')).default}
     const courtInputHtml=await renderToString(createSSRApp({render:()=>h(input.default,{modelValue:'',hasDocuments:true})}))
     assert.match(courtInputHtml,/Iniciar simulaci/)
@@ -203,6 +219,64 @@ test('actual Vue panels render canonical data and professional empty states', as
     assert.ok(court.includes('requestedCaseId && typeof route.query.document_ids'))
     assert.ok(court.includes(':initial-document-ids="requestedDocumentIds"'))
   } finally { await server.close() }
+})
+
+test('NovaCase report renders verified citations, source details and partial failure state', async () => {
+  const server=await createServer({server:{middlewareMode:true},appType:'custom',logLevel:'error',optimizeDeps:{noDiscovery:true,include:[]}})
+  try {
+    const {default:component}=await server.ssrLoadModule('/src/components/novacase/ReportView.vue')
+    const props={
+      report:'# Informe jurídico\n\n## I. Análisis jurídico\nLa regla aplicable se analiza aquí [1].',
+      reportDocument:{document_type:'analysis_report',title:'Informe del caso A',case_id:'CASE-A',
+        generated_at:'2026-01-10T10:00:00Z',citations:[{citation_id:'CIT-abcdef0123456789abcdef01',source_id:'SRC-CASEA001',label:'[1]',excerpt:'Fragmento exacto'}],
+        sources:[{source_id:'SRC-CASEA001',source_scope:'case',source_type:'case_document',case_id:'CASE-A',
+          document_id:'DOC-A',chunk_id:'CH-A',title:'demanda.pdf',page_start:4,excerpt:'Fragmento exacto'}]},
+      caseId:'CASE-A',reportStatus:'ready'
+    }
+    const html=await renderToString(createSSRApp({render:()=>h(component,props)}))
+    assert.match(html,/Informe del caso A/)
+    assert.match(html,/CASE-A/)
+    assert.match(html,/data-citation-id=/)
+    assert.match(html,/Copiar informe/)
+    assert.match(html,/demanda\.pdf/)
+    assert.match(html,/PDF · próximamente/)
+    assert.match(html,/disabled/)
+    assert.ok(!html.includes('[object Object]'))
+    assert.ok(!/\b(?:undefined|null)\b/.test(html))
+    const reportSource=await readFile(new URL('../src/components/novacase/ReportView.vue',import.meta.url),'utf8')
+    assert.ok(reportSource.includes('navigator.clipboard.writeText(props.report.trim())'))
+    assert.ok(!reportSource.includes('function exportPdf'))
+    const {default:modal}=await server.ssrLoadModule('/src/components/common/SourceModal.vue')
+    const context={teleports:{}}
+    await renderToString(createSSRApp({render:()=>h(modal,{source:props.reportDocument.sources[0],caseId:'CASE-A'})}),context)
+    assert.match(context.teleports.body,/Fragmento exacto/)
+    assert.match(context.teleports.body,/<dt[^>]*>P(?:á|Ã¡)gina<\/dt><dd[^>]*>4<\/dd>/i)
+    const partial=await renderToString(createSSRApp({render:()=>h(component,{
+      report:'',reportStatus:'failed',reportError:{message:'El análisis permanece disponible.'},caseId:'CASE-A'
+    })}))
+    assert.match(partial,/El análisis permanece disponible/)
+  } finally { await server.close() }
+})
+
+test('NovaCase workspace exposes sections only when corresponding result data exists', async () => {
+  const source=await readFile(new URL('../src/views/NovaCaseView.vue',import.meta.url),'utf8')
+  const tabs=await readFile(new URL('../src/components/novacase/CaseTabs.vue',import.meta.url),'utf8')
+  assert.ok(source.includes(':available-tabs="availableTabs"'))
+  assert.ok(source.includes('<template #arguments>'))
+  assert.ok(source.includes('<template #sources>'))
+  assert.ok(source.includes('canonicalResult?.facts?.length'))
+  assert.ok(source.includes('factStatusLabel(fact.status)'))
+  assert.ok(source.includes('canonicalResult?.evidence?.evidence_links?.length'))
+  assert.ok(source.includes('issuesForLink(link)'))
+  assert.ok(source.includes('source.case_id === canonicalResult.value?.case_id'))
+  assert.ok(source.includes(':content="canonicalResult?.arguments"'))
+  assert.ok(source.includes('result.sources_used?.length'))
+  assert.ok(source.includes("result.report_status === \"failed\""))
+  assert.ok(tabs.includes('{ id: "summary", label: "Resumen" }'))
+  assert.ok(tabs.includes('{ id: "arguments", label: "Argumentos" }'))
+  assert.ok(tabs.includes('{ id: "sources", label: "Fuentes" }'))
+  assert.ok(source.includes('canonicalResult?.final_strategy'))
+  assert.ok(source.includes(':strategy="strategy"'))
 })
 
 test('source contracts deduplicate, validate URLs and isolate private cases', () => {

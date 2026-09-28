@@ -23,7 +23,7 @@ class RiskAnalyzer:
 
     Analiza:
 
-        • Probabilidad de éxito
+        - Factores que fortalecen o debilitan la posicion del caso
 
         • Riesgos procesales
 
@@ -97,7 +97,7 @@ class RiskAnalyzer:
 
             • Riesgos jurídicos
 
-            • Probabilidad estimada de éxito
+            - Factores de riesgo sustantivo, procesal y probatorio
 
             • Debilidades probatorias
 
@@ -232,7 +232,7 @@ class RiskAnalyzer:
         )
 
         return f"""
-Eres un magistrado peruano con más de 30 años de experiencia.
+Eres un analista jurídico peruano que evalúa riesgos con objetividad.
 
 Especialista en:
 
@@ -268,13 +268,13 @@ No inventes hechos.
 
 No favorezcas a ninguna de las partes.
 
-Debes comportarte como un juez imparcial.
+Evalúa ambas posiciones sin suplantar el criterio de un juez.
 
 ========================================================
 
 Evalúa:
 
-1. Probabilidad estimada de éxito (0-100).
+1. Factores que fortalecen o debilitan la posición del caso.
 
 2. Nivel general de riesgo.
 
@@ -303,8 +303,6 @@ Evalúa:
 Devuelve EXCLUSIVAMENTE este JSON.
 
 {{
-    "overall_probability": 0,
-
     "risk_level": "",
 
     "critical_risks": [],
@@ -330,6 +328,11 @@ Devuelve EXCLUSIVAMENTE este JSON.
     "missing_information": []
 
 }}
+
+El nivel de riesgo es cualitativo: úsalo solo si identificas factores
+concretos en la información recibida. Explica el factor y una mitigación
+cuando sea posible. Si faltan datos para valorarlo, indícalo como desconocido;
+no expreses probabilidad ni predicción estadística.
 
 ========================================================
 
@@ -358,14 +361,6 @@ DOCUMENTOS RECUPERADOS POR NOVASEARCH
 ========================================================
 
 IMPORTANTE
-
-La probabilidad de éxito debe estar fundamentada únicamente en la información disponible.
-
-Si faltan pruebas importantes, disminuye la probabilidad.
-
-Si existen riesgos procesales importantes, disminuye la probabilidad.
-
-Si la jurisprudencia encontrada favorece claramente el caso, aumenta la probabilidad.
 
 Si existen vacíos relevantes de información, indícalos.
 
@@ -475,8 +470,6 @@ No escribas texto adicional.
 
             return {
 
-                "overall_probability": 0,
-
                 "risk_level": "DESCONOCIDO",
 
                 "critical_risks": [],
@@ -508,96 +501,12 @@ No escribas texto adicional.
     ####################################################################
 
     @staticmethod
-    def validate_risk(
-        risk: Dict
-    ) -> bool:
-
-        """
-        Verifica que el análisis de riesgos tenga
-        la estructura mínima esperada.
-        """
-
-        required_fields = [
-
-            "overall_probability",
-
-            "risk_level",
-
-            "critical_risks",
-
-            "procedural_risks",
-
-            "legal_risks",
-
-            "evidentiary_risks",
-
-            "strengths",
-
-            "weaknesses",
-
-            "missing_evidence",
-
-            "missing_documents",
-
-            "judge_observations",
-
-            "recommendations",
-
-            "missing_information"
-
-        ]
-
-        for field in required_fields:
-
-            if field not in risk:
-
-                logger.warning(
-
-                    f"Campo faltante: {field}"
-
-                )
-
-                return False
-
-        probability = risk.get(
-
-            "overall_probability",
-
-            0
-
-        )
-
-        if not isinstance(
-
-            probability,
-
-            (int, float)
-
-        ):
-
-            logger.warning(
-
-                "overall_probability no es numérico."
-
-            )
-
+    def validate_risk(risk: Dict) -> bool:
+        if not isinstance(risk, dict):
             return False
-
-        if probability < 0 or probability > 100:
-
-            logger.warning(
-
-                "overall_probability fuera del rango permitido."
-
-            )
-
-            return False
-
-        return True
-
-    ####################################################################
-    ###################### RESUMEN EJECUTIVO ###########################
-    ####################################################################
+        required = ("risk_level", "critical_risks", "procedural_risks",
+                    "legal_risks", "evidentiary_risks")
+        return all(key in risk for key in required)
 
     @staticmethod
     def summary(
@@ -610,16 +519,6 @@ No escribas texto adicional.
         """
 
         return {
-
-            "overall_probability":
-
-                risk.get(
-
-                    "overall_probability",
-
-                    0
-
-                ),
 
             "risk_level":
 
@@ -762,73 +661,6 @@ No escribas texto adicional.
                 )
 
         }
-
-    ####################################################################
-    ###################### SCORE DEL CASO ###############################
-    ####################################################################
-
-    @staticmethod
-    def calculate_case_score(
-        risk: Dict
-    ) -> float:
-
-        """
-        Devuelve el score estimado del caso.
-
-        Se utiliza para el Dashboard.
-        """
-
-        return round(
-
-            float(
-
-                risk.get(
-
-                    "overall_probability",
-
-                    0
-
-                )
-
-            ),
-
-            2
-
-        )
-
-    ####################################################################
-    ###################### COLOR DEL RIESGO #############################
-    ####################################################################
-
-    @staticmethod
-    def risk_color(
-        probability: float
-    ) -> str:
-
-        """
-        Devuelve un color para representar
-        visualmente el riesgo.
-
-        Verde: Muy favorable
-
-        Amarillo: Riesgo medio
-
-        Rojo: Riesgo alto
-        """
-
-        if probability >= 80:
-
-            return "green"
-
-        if probability >= 60:
-
-            return "yellow"
-
-        if probability >= 40:
-
-            return "orange"
-
-        return "red"
 
     ####################################################################
     ###################### DEBUG #######################################

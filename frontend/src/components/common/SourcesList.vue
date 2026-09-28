@@ -18,7 +18,7 @@ import { computed } from 'vue'
 import { normalizeSources } from '@/utils/sourceContract.js'
 import CitationLink from '@/components/common/CitationLink.vue'
 const props = defineProps({ sources: { type: Array, default: () => [] }, citations: { type: Array, default: () => [] }, caseId: { type: String, default: null } })
-defineEmits(['select'])
+defineEmits(['select', 'select-citation'])
 const items = computed(() => {
   const sources = normalizeSources(props.sources, props.caseId)
   return sources.map(source => ({ source, citations: props.citations.filter(c => c.source_id === source.source_id) }))

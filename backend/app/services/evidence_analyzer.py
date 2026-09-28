@@ -289,7 +289,7 @@ Analiza:
 
 12. Debilidades probatorias.
 
-13. Probabilidad de acreditar los hechos.
+13. Qué acredita y qué no acredita cada fragmento identificado.
 
 14. Recomendaciones antes del proceso.
 
@@ -324,7 +324,10 @@ Devuelve EXCLUSIVAMENTE este JSON.
 
     "evidence_strength": "",
 
-    "evidence_score": 0,
+    "evidence_links": [
+        {{"fact_ids":[], "issue_id":null, "source_ids":[],
+          "what_it_supports":"", "limitations":""}}
+    ],
 
     "recommendations": []
 
@@ -350,9 +353,14 @@ ARGUMENTOS JURÍDICOS
 
 ========================================================
 
-DOCUMENTOS ENCONTRADOS POR NOVASEARCH
+DOCUMENTOS RECUPERADOS Y FRAGMENTOS DEL EXPEDIENTE
 
 {documents_json}
+
+En evidence_links relaciona únicamente evidencia existente con fact_id,
+issue_id y source_ids recibidos. Para cada relación indica what_it_supports
+y limitations. Si no hay fuente documental verificable, deja el vínculo vacío.
+No conviertas medios probatorios recomendados en prueba disponible.
 
 ========================================================
 
@@ -363,8 +371,6 @@ Evalúa objetivamente si las pruebas son suficientes para sostener la estrategia
 Si detectas ausencia de pruebas esenciales, indícalo expresamente.
 
 Si existen medios probatorios más adecuados, recomiéndalos.
-
-Asigna un evidence_score entre 0 y 100.
 
 Clasifica la fortaleza probatoria como:
 
@@ -377,6 +383,11 @@ Clasifica la fortaleza probatoria como:
 • BAJA
 
 • MUY BAJA
+
+La clasificación es cualitativa y debe derivarse de la procedencia,
+integridad, corroboración y relación de la evidencia disponible con los
+hechos relevantes. Si esos criterios no pueden evaluarse, usa DESCONOCIDA.
+No la presentes como probabilidad de acreditar hechos.
 
 ========================================================
 
@@ -509,7 +520,7 @@ No escribas texto adicional.
 
                 "evidence_strength": "DESCONOCIDA",
 
-                "evidence_score": 0,
+                "evidence_links": [],
 
                 "recommendations": []
 
@@ -520,100 +531,13 @@ No escribas texto adicional.
     ####################################################################
 
     @staticmethod
-    def validate_evidence(
-        evidence: Dict
-    ) -> bool:
-
-        """
-        Verifica que el análisis de evidencia
-        tenga la estructura esperada.
-        """
-
-        required_fields = [
-
-            "available_evidence",
-
-            "documentary_evidence",
-
-            "testimonial_evidence",
-
-            "expert_evidence",
-
-            "digital_evidence",
-
-            "physical_evidence",
-
-            "missing_evidence",
-
-            "recommended_documents",
-
-            "recommended_evidence",
-
-            "evidentiary_risks",
-
-            "strengths",
-
-            "weaknesses",
-
-            "evidence_strength",
-
-            "evidence_score",
-
-            "recommendations"
-
-        ]
-
-        for field in required_fields:
-
-            if field not in evidence:
-
-                logger.warning(
-
-                    f"Campo faltante: {field}"
-
-                )
-
-                return False
-
-        score = evidence.get(
-
-            "evidence_score",
-
-            0
-
-        )
-
-        if not isinstance(
-
-            score,
-
-            (int, float)
-
-        ):
-
-            logger.warning(
-
-                "evidence_score no es numérico."
-
-            )
-
+    def validate_evidence(evidence: Dict) -> bool:
+        if not isinstance(evidence, dict):
             return False
-
-        if score < 0 or score > 100:
-
-            logger.warning(
-
-                "evidence_score fuera del rango permitido."
-
-            )
-
-            return False
-
-        return True
-
-    ####################################################################
-    ###################### RESUMEN EJECUTIVO ############################
-    ####################################################################
+        required = ("available_evidence", "documentary_evidence",
+                    "missing_evidence", "evidence_strength")
+        return all(key in evidence for key in required) and isinstance(
+            evidence.get("evidence_links", []), list)
 
     @staticmethod
     def summary(
@@ -678,16 +602,6 @@ No escribas texto adicional.
                     "DESCONOCIDA"
 
                 ),
-
-            "evidence_score":
-
-                evidence.get(
-
-                    "evidence_score",
-
-                    0
-
-                )
 
         }
 
@@ -807,65 +721,6 @@ No escribas texto adicional.
 
         }
 
-    ####################################################################
-    ###################### SCORE PROBATORIO #############################
-    ####################################################################
-
-    @staticmethod
-    def calculate_evidence_score(
-        evidence: Dict
-    ) -> float:
-
-        """
-        Devuelve el score probatorio
-        estimado del caso.
-        """
-
-        return round(
-
-            float(
-
-                evidence.get(
-
-                    "evidence_score",
-
-                    0
-
-                )
-
-            ),
-
-            2
-
-        )
-
-    ####################################################################
-    ###################### COLOR DEL SCORE ##############################
-    ####################################################################
-
-    @staticmethod
-    def evidence_color(
-        score: float
-    ) -> str:
-
-        """
-        Devuelve un color para representar
-        visualmente la fortaleza probatoria.
-        """
-
-        if score >= 80:
-
-            return "green"
-
-        if score >= 60:
-
-            return "yellow"
-
-        if score >= 40:
-
-            return "orange"
-
-        return "red"
 
     ####################################################################
     ######################## DEBUG ######################################

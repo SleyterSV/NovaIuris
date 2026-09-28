@@ -42,8 +42,18 @@ def normalize_case_result(result: Dict[str, Any]) -> Dict[str, Any]:
         "counter_arguments": _as_dict(result.get("counter_arguments")),
         "timeline": _as_list(result.get("timeline")),
         "report": result.get("report") if result.get("report") is not None else "",
+        "report_document": _as_dict(result.get("report_document")),
+        "report_status": result.get("report_status") or "not_requested",
+        "report_error": result.get("report_error"),
+        "facts": _as_list(result.get("facts")),
+        "issues": _as_list(result.get("issues")),
+        "final_strategy": _as_dict(result.get("final_strategy")),
         "citations": _as_list(result.get("citations")),
         "sources": _as_list(result.get("sources")),
+        "sources_used": _as_list(result.get("sources_used")),
+        "warnings": _as_list(result.get("warnings")),
+        "status": result.get("status") or "completed",
+        "document_ids": _as_list(result.get("document_ids")),
         "metadata": metadata,
     })
     normalized['case_id'] = result.get('case_id') or metadata.get('case_id') or str(uuid4())

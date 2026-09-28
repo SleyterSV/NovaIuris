@@ -180,9 +180,7 @@
 
                         <span class="status-dot"></span>
 
-                        <span>
-                            Análisis completado
-                        </span>
+                        <span>{{ canonicalResult?.status === "partial" ? "Analisis disponible parcialmente" : "Analisis completado" }}</span>
 
                     </div>
 
@@ -193,18 +191,18 @@
                      RESUMEN EJECUTIVO
                 ============================================== -->
 
-                <ExecutiveSummary
-                    :summary="analysisSummary"
-                />
-
-
                 <!-- =============================================
                      NAVEGACIÓN DEL CASO
                 ============================================== -->
 
                 <CaseTabs
                     defaultTab="report"
+                    :available-tabs="availableTabs"
                 >
+
+                    <template #summary>
+                        <ExecutiveSummary :summary="analysisSummary" />
+                    </template>
 
                     <!-- =========================================
                          INFORME
@@ -214,6 +212,12 @@
 
                         <ReportView
                             :report="report"
+                            :report-document="canonicalResult?.report_document"
+                            :citations="canonicalResult?.citations || []"
+                            :sources="canonicalResult?.sources || []"
+                            :case-id="canonicalResult?.case_id"
+                            :report-status="canonicalResult?.report_status || 'not_requested'"
+                            :report-error="canonicalResult?.report_error"
                         />
 
                     </template>
@@ -227,8 +231,33 @@
 
                         <AnalysisView
                             :analysis="analysis"
+                            :stages="steps"
                         />
+                        <section v-if="canonicalResult?.facts?.length" class="case-facts">
+                            <h3>Hechos identificados</h3>
+                            <ul>
+                                <li v-for="fact in canonicalResult.facts" :key="fact.fact_id">
+                                    <MarkdownRenderer :content="fact.text" />
+                                    <span class="fact-status">{{ factStatusLabel(fact.status) }}</span>
+                                    <button v-for="source in factSources(fact)" :key="source.source_id"
+                                        type="button" class="fact-source" @click="selectedSource = source">
+                                        Ver documento fuente<span v-if="source.page_start">, pág. {{ source.page_start }}</span>
+                                    </button>
+                                </li>
+                            </ul>
+                        </section>
+                        <section v-if="canonicalResult?.timeline?.length" class="case-timeline">
+                            <h3>Cronología con fechas identificadas</h3>
+                            <ol><li v-for="event in canonicalResult.timeline" :key="event.fact_id">
+                                <time :datetime="event.date">{{ event.date }}</time>
+                                <MarkdownRenderer :content="event.description" />
+                            </li></ol>
+                        </section>
 
+                    </template>
+
+                    <template #arguments>
+                        <MarkdownRenderer :content="canonicalResult?.arguments" />
                     </template>
 
 
@@ -241,6 +270,23 @@
                         <EvidenceView
                             :evidence="evidence"
                         />
+                        <section v-if="canonicalResult?.evidence?.evidence_links?.length" class="evidence-links">
+                            <h3>Relación entre evidencia y hechos</h3>
+                            <article v-for="(link, index) in canonicalResult.evidence.evidence_links" :key="`${link.issue_id || 'link'}-${index}`">
+                                <MarkdownRenderer :content="link.what_it_supports" />
+                                <p v-if="link.limitations"><strong>Limitaciones:</strong> {{ link.limitations }}</p>
+                                <p v-for="issue in issuesForLink(link)" :key="issue.issue_id" class="fact-reference">
+                                    Problema relacionado: {{ issue.text }}
+                                </p>
+                                <span v-for="fact in factsForLink(link)" :key="fact.fact_id" class="fact-reference">
+                                    {{ fact.text }}
+                                </span>
+                                <button v-for="source in sourcesForLink(link)" :key="source.source_id" type="button"
+                                    class="fact-source" @click="selectedSource = source">
+                                    Consultar fuente documental<span v-if="source.page_start">, pág. {{ source.page_start }}</span>
+                                </button>
+                            </article>
+                        </section>
 
                     </template>
 
@@ -277,17 +323,33 @@
 
                     <template #strategy>
 
+                        <section v-if="canonicalResult?.final_strategy" class="final-strategy">
+                            <h3>Estrategia consolidada</h3>
+                            <MarkdownRenderer :content="canonicalResult.final_strategy" />
+                        </section>
+
                         <StrategyView
                             :strategy="strategy"
                         />
 
                     </template>
 
+                    <template #sources>
+                        <SourcesList
+                            :sources="canonicalResult?.sources_used || []"
+                            :citations="canonicalResult?.citations || []"
+                            :case-id="canonicalResult?.case_id"
+                            @select="selectedSource = $event"
+                            @select-citation="selectCitation"
+                        />
+                        <p v-if="!canonicalResult?.sources_used?.length" class="empty-sources">
+                            No se identificaron fuentes verificadas utilizadas en el informe.
+                        </p>
+                    </template>
+
                 </CaseTabs>
+                <SourceModal :source="selectedSource" :case-id="canonicalResult?.case_id" @close="selectedSource = null" />
                 <button v-if="hasResults && canonicalResult?.case_id" type="button" @click="continueInNovaCourt">Simular este caso en NovaCourt</button>
-                <section v-for="section in supplementarySections" :key="section.title" class="workspace-section">
-                  <h3>{{ section.title }}</h3><MarkdownRenderer :content="section.content" />
-                </section>
 
             </section>
 
@@ -418,6 +480,8 @@ import AnalysisProgress
 
 import ExecutiveSummary
     from "@/components/common/ExecutiveSummary.vue"
+import SourcesList from "@/components/common/SourcesList.vue"
+import SourceModal from "@/components/common/SourceModal.vue"
 
 import CaseTabs
     from "@/components/novacase/CaseTabs.vue"
@@ -448,20 +512,13 @@ import StrategyView
 const canonicalResult = ref(null)
 const inputCaseId = ref(crypto.randomUUID())
 const router = useRouter()
-const supplementarySections = computed(() => [
-  { title: 'Investigación jurídica', content: canonicalResult.value?.research?.documents },
-  { title: 'Argumentos jurídicos', content: canonicalResult.value?.arguments },
-  { title: 'Cronología', content: canonicalResult.value?.timeline },
-  { title: 'Citas', content: canonicalResult.value?.citations },
-  { title: 'Elementos complementarios de estrategia', content: canonicalResult.value && Object.fromEntries(['defense_strategy','strengths','weaknesses','recommended_evidence','recommended_documents','missing_information'].map(key => [key, canonicalResult.value.strategy[key]])) }
-])
+const selectedSource = ref(null)
 const loading = ref(false)
 
 const error = ref(null)
 
 const currentStep = ref(0)
 
-let progressTimer = null
 let controller = null
 onBeforeUnmount(() => controller?.abort())
 
@@ -489,49 +546,7 @@ const strategy = ref({})
    PROGRESO DEL ANÁLISIS
 ========================================================= */
 
-const steps = ref([
-
-    {
-        id: 1,
-        title: "Recepción del caso",
-        description:
-            "Recibiendo y preparando la información proporcionada.",
-        status: "pending"
-    },
-
-    {
-        id: 2,
-        title: "Análisis jurídico",
-        description:
-            "Identificando hechos, problemas jurídicos, normas y criterios relevantes.",
-        status: "pending"
-    },
-
-    {
-        id: 3,
-        title: "Evaluación probatoria",
-        description:
-            "Analizando las evidencias, fortalezas y aspectos que requieren atención.",
-        status: "pending"
-    },
-
-    {
-        id: 4,
-        title: "Evaluación de riesgos",
-        description:
-            "Identificando riesgos jurídicos y procesales del caso.",
-        status: "pending"
-    },
-
-    {
-        id: 5,
-        title: "Generación del informe",
-        description:
-            "Integrando el análisis y preparando el informe jurídico final.",
-        status: "pending"
-    }
-
-])
+const steps = ref([])
 
 
 /* =========================================================
@@ -539,15 +554,8 @@ const steps = ref([
 ========================================================= */
 
 function resetProgress() {
-
-    steps.value.forEach(step => {
-
-        step.status = "pending"
-
-    })
-
+    steps.value = []
     currentStep.value = 0
-
 }
 
 
@@ -557,35 +565,19 @@ function resetProgress() {
 
 function startVisualProgress() { resetProgress() }
 function updateTask(task) {
-  steps.value = task.stages.map(stage => ({ ...stage, title: stage.label, description: '',
+  steps.value = (Array.isArray(task.stages) ? task.stages : []).map(stage => ({ ...stage, title: stage.label, description: '',
     status: stage.status === 'running' ? 'processing' : stage.status }))
   if (task.partial_result?.analysis) canonicalResult.value = normalizeCaseResult(task.partial_result)
 }
 
-function finishProgress() {
-
-    if (progressTimer) {
-
-        clearTimeout(
-            progressTimer
-        )
-
-        progressTimer = null
-
+function finishProgress(result) {
+    if (result?.status !== "partial") {
+        steps.value = steps.value.map(step => ({
+            ...step,
+            status: step.status === "processing" ? "completed" : step.status
+        }))
     }
-
-
-    steps.value.forEach(step => {
-
-        step.status =
-            "completed"
-
-    })
-
-
-    currentStep.value =
-        steps.value.length - 1
-
+    currentStep.value = steps.value.reduce((last, step, index) => step.status === "completed" ? index : last, 0)
 }
 
 
@@ -602,6 +594,7 @@ async function handleAnalyze(payload) {
 
     loading.value = true
     canonicalResult.value = null
+    selectedSource.value = null
 
     error.value = null
 
@@ -662,7 +655,7 @@ async function handleAnalyze(payload) {
         counterArguments.value = response.counter_arguments
         strategy.value = response.strategy
         summary.value = response.summary
-        finishProgress()
+        finishProgress(response)
         inputCaseId.value = crypto.randomUUID()
 
 
@@ -670,26 +663,12 @@ async function handleAnalyze(payload) {
 
     catch (err) {
 
-        console.error(
-            "NovaCase error:",
-            err
-        )
+        console.error("NovaCase request failed")
 
 
         /* -------------------------------------------------
            DETENER PROGRESO
         ------------------------------------------------- */
-
-        if (progressTimer) {
-
-            clearTimeout(
-                progressTimer
-            )
-
-            progressTimer = null
-
-        }
-
 
         /* -------------------------------------------------
            RESTAURAR ESTADO DE LA ETAPA
@@ -767,6 +746,61 @@ const analysisStatistics = computed(() => {
 
 const analysisSummary = computed(() => summary.value)
 
+const availableTabs = computed(() => {
+    const result = canonicalResult.value
+    if (!result) return []
+    const tabs = []
+    if (normalizeRenderableContent(result.summary)) tabs.push("summary")
+    tabs.push("analysis")
+    if (normalizeRenderableContent(result.arguments)) tabs.push("arguments")
+    if (normalizeRenderableContent(result.evidence)) tabs.push("evidence")
+    if (normalizeRenderableContent(result.risks)) tabs.push("risk")
+    if (normalizeRenderableContent(result.counter_arguments)) tabs.push("counter")
+    if (normalizeRenderableContent(result.final_strategy || result.strategy)) tabs.push("strategy")
+    if (result.sources_used?.length || result.citations?.length) tabs.push("sources")
+    if (result.report || result.report_status === "failed") tabs.push("report")
+    return tabs
+})
+
+/* Keep provenance controls compact so they remain usable with long case files. */
+
+function selectCitation(citation) {
+    selectedSource.value = canonicalResult.value?.sources_used?.find(
+        source => source.source_id === citation.source_id
+    ) || null
+}
+
+function factStatusLabel(status) {
+    return ({ alleged: "Alegación", supported: "Con respaldo documental identificado", disputed: "Controvertido", unclear: "No determinado" })[status] || "No determinado"
+}
+
+function sourceMap() {
+    const result = canonicalResult.value || {}
+    return new Map([...(result.sources || []), ...(result.sources_used || [])].map(source => [source.source_id, source]))
+}
+
+function factSources(fact) {
+    const sources = sourceMap()
+    return (fact.source_ids || []).map(id => sources.get(id)).filter(source =>
+        source && (source.source_scope !== "case" || source.case_id === canonicalResult.value?.case_id))
+}
+
+function factsForLink(link) {
+    const ids = new Set(link.fact_ids || [])
+    return (canonicalResult.value?.facts || []).filter(fact => ids.has(fact.fact_id))
+}
+
+function issuesForLink(link) {
+    const issue = (canonicalResult.value?.issues || []).find(item => item.issue_id === link.issue_id)
+    return issue ? [issue] : []
+}
+
+function sourcesForLink(link) {
+    const sources = sourceMap()
+    return (link.source_ids || []).map(id => sources.get(id)).filter(source =>
+        source && (source.source_scope !== "case" || source.case_id === canonicalResult.value?.case_id))
+}
+
 function continueInNovaCourt() {
   const result = canonicalResult.value
   if (!result?.case_id) return
@@ -829,6 +863,16 @@ const keywordCount = computed(() => {
 
 
 <style scoped>
+
+.case-facts, .evidence-links { margin: 18px 0; padding: 18px; background: #fff; border: 1px solid #dce5ee; border-radius: 10px; }
+.case-facts h3, .evidence-links h3 { margin: 0 0 12px; color: #17375e; font: 600 1rem Georgia, serif; }
+.case-facts ul { display: grid; gap: 12px; margin: 0; padding-left: 20px; }
+.case-facts li, .evidence-links article { padding: 10px 0; border-bottom: 1px solid #e8edf2; }
+.fact-status { display: inline-block; margin: 6px 8px 0 0; color: #65768a; font-size: .75rem; }
+.fact-source { margin: 5px 6px 0 0; padding: 4px 8px; border: 1px solid #d4deea; border-radius: 5px; background: #f7f9fb; color: #244c73; cursor: pointer; }
+.fact-source:focus-visible { outline: 2px solid #b68a3a; outline-offset: 2px; }
+.fact-reference { display: block; margin: 6px 0; color: #65768a; font-size: .82rem; }
+.evidence-links article p { color: #65768a; font-size: .85rem; }
 
 /* =========================================================
    NOVACASE — MAIN VIEW

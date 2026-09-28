@@ -320,7 +320,7 @@ Analiza:
 
 11. Estrategia recomendada para la contraparte.
 
-12. Probabilidad estimada de éxito de la contraparte.
+12. Fortalezas y limitaciones de la posición adversa.
 
 ========================================================
 
@@ -346,8 +346,7 @@ Devuelve EXCLUSIVAMENTE este JSON.
     "recommended_evidence": [],
 
     "opponent_observations": [],
-
-    "opponent_success_probability": 0
+    "responses_or_mitigations": []
 
 }}
 
@@ -401,7 +400,7 @@ Identifica cualquier vacío probatorio.
 
 Evalúa cómo respondería un abogado experimentado.
 
-Asigna una probabilidad de éxito de la contraparte entre 0 y 100.
+Presenta objeciones plausibles y respuestas posibles sin asegurar su resultado.
 
 ========================================================
 
@@ -529,7 +528,6 @@ No agregues texto adicional.
 
                 "opponent_observations": [],
 
-                "opponent_success_probability": 0
 
             }
 
@@ -538,92 +536,12 @@ No agregues texto adicional.
     ####################################################################
 
     @staticmethod
-    def validate_counterarguments(
-        counterarguments: Dict
-    ) -> bool:
-
-        """
-        Verifica que la estructura generada
-        tenga todos los campos necesarios.
-        """
-
-        required_fields = [
-
-            "main_counterarguments",
-
-            "procedural_exceptions",
-
-            "legal_defenses",
-
-            "attacks_on_arguments",
-
-            "attacks_on_evidence",
-
-            "attacks_on_jurisprudence",
-
-            "identified_weaknesses",
-
-            "recommended_strategy",
-
-            "recommended_evidence",
-
-            "opponent_observations",
-
-            "opponent_success_probability"
-
-        ]
-
-        for field in required_fields:
-
-            if field not in counterarguments:
-
-                logger.warning(
-
-                    f"Campo faltante: {field}"
-
-                )
-
-                return False
-
-        probability = counterarguments.get(
-
-            "opponent_success_probability",
-
-            0
-
-        )
-
-        if not isinstance(
-
-            probability,
-
-            (int, float)
-
-        ):
-
-            logger.warning(
-
-                "opponent_success_probability no es numérico."
-
-            )
-
+    def validate_counterarguments(counterarguments: Dict) -> bool:
+        if not isinstance(counterarguments, dict):
             return False
-
-        if probability < 0 or probability > 100:
-
-            logger.warning(
-
-                "opponent_success_probability fuera del rango permitido."
-
-            )
-
-            return False
-
-        return True
-
-    ####################################################################
-    ###################### RESUMEN EJECUTIVO ############################
-    ####################################################################
+        required = ("main_counterarguments", "procedural_exceptions",
+                    "legal_defenses", "attacks_on_evidence")
+        return all(key in counterarguments for key in required)
 
     @staticmethod
     def summary(
@@ -692,16 +610,6 @@ No agregues texto adicional.
                     )
 
                 ),
-
-            "opponent_success_probability":
-
-                counterarguments.get(
-
-                    "opponent_success_probability",
-
-                    0
-
-                )
 
         }
 
@@ -821,65 +729,6 @@ No agregues texto adicional.
 
         }
 
-    ####################################################################
-    ###################### SCORE CONTRAPARTE ############################
-    ####################################################################
-
-    @staticmethod
-    def calculate_opponent_score(
-        counterarguments: Dict
-    ) -> float:
-
-        """
-        Devuelve la probabilidad estimada
-        de éxito de la contraparte.
-        """
-
-        return round(
-
-            float(
-
-                counterarguments.get(
-
-                    "opponent_success_probability",
-
-                    0
-
-                )
-
-            ),
-
-            2
-
-        )
-
-    ####################################################################
-    ###################### COLOR DEL RIESGO #############################
-    ####################################################################
-
-    @staticmethod
-    def opponent_risk_color(
-        probability: float
-    ) -> str:
-
-        """
-        Devuelve un color para representar
-        la fortaleza de la contraparte.
-        """
-
-        if probability >= 80:
-
-            return "red"
-
-        if probability >= 60:
-
-            return "orange"
-
-        if probability >= 40:
-
-            return "yellow"
-
-        return "green"
 
     ####################################################################
     ######################## DEBUG ######################################

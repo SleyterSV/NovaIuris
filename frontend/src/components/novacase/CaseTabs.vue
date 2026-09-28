@@ -9,7 +9,7 @@
         <div class="tabs-header">
 
             <button
-                v-for="tab in tabs"
+                v-for="tab in visibleTabs"
                 :key="tab.id"
                 type="button"
                 class="tab-button"
@@ -241,6 +241,7 @@
 <script setup>
 
 import {
+    computed,
     ref,
     watch
 } from "vue"
@@ -257,6 +258,12 @@ const props = defineProps({
         type: String,
 
         default: "report"
+
+    },
+
+    availableTabs: {
+        type: Array,
+        default: () => []
 
     }
 
@@ -278,6 +285,8 @@ const emit = defineEmits([
 
 const tabs = [
 
+    { id: "summary", label: "Resumen" },
+
     {
         id: "report",
         label: "Informe"
@@ -287,6 +296,8 @@ const tabs = [
         id: "analysis",
         label: "Análisis"
     },
+
+    { id: "arguments", label: "Argumentos" },
 
     {
         id: "evidence",
@@ -306,7 +317,9 @@ const tabs = [
     {
         id: "strategy",
         label: "Estrategia"
-    }
+    },
+
+    { id: "sources", label: "Fuentes" }
 
 ]
 
@@ -318,6 +331,16 @@ const tabs = [
 const activeTab = ref(
     props.defaultTab
 )
+
+const visibleTabs = computed(() => props.availableTabs.length
+    ? tabs.filter(tab => props.availableTabs.includes(tab.id))
+    : tabs)
+
+watch(visibleTabs, (available) => {
+    if (available.length && !available.some(tab => tab.id === activeTab.value)) {
+        activeTab.value = available[0].id
+    }
+}, { immediate: true })
 
 
 /* =========================================================

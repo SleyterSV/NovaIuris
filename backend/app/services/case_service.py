@@ -18,6 +18,12 @@ from app.services.evidence_analyzer import EvidenceAnalyzer
 from app.services.risk_analyzer import RiskAnalyzer
 from app.services.counter_argument_service import CounterArgumentService
 from app.services.case_report_service import CaseReportService
+from app.services.case_professional import (
+    build_report_document, case_facts, case_issues,
+    case_timeline, final_strategy, ground_links, select_report_sources,
+)
+from app.services.source_contracts import normalize_case_source, normalize_public_source, resolve_citations
+from app.config import Config
 from flask import current_app, has_app_context
 
 logger = logging.getLogger(
@@ -170,6 +176,7 @@ class CaseService:
             filtros = {}
 
         case_sources = []
+        case_source_contracts = []
         analysis_case_text = case_text
         if document_ids:
             stage("documents", "running")
@@ -177,16 +184,23 @@ class CaseService:
                 raise ValueError("El corpus documental del caso no está disponible.")
             from app.services.case_corpus import CaseContextService
             from app.services.embedding_service import EmbeddingService
-            from app.config import Config
             context_service = CaseContextService(self.case_corpus_repository, EmbeddingService())
             case_sources = context_service.relevant_context(
-                case_id, case_text, document_ids=document_ids,
+                case_id, (case_text or "").strip() or "hechos, pretensiones, pruebas y cuestiones jurídicas",
+                document_ids=document_ids,
                 top_k=Config.CASE_DOCUMENT_CONTEXT_TOP_K,
                 cancellation_token=cancellation_token)
             if case_sources:
+                document_names = {doc["document_id"]: doc.get("filename")
+                                  for doc in self.case_corpus_repository.list_documents(case_id)}
+                case_source_contracts = [normalize_case_source({
+                    **item, "case_id": case_id,
+                    "filename": document_names.get(item.get("document_id")),
+                }) for item in case_sources]
                 excerpts = "\n\n".join(
-                    f"[Fuente document_id={item['document_id']} page={item['source_reference'].get('page_start')} "
-                    f"chunk_id={item['chunk_id']}]\n{item['text']}" for item in case_sources)
+                    f"[{source['source_id']}] {source['title']} "
+                    f"página={source.get('page_start')} sección={source.get('section')}\n{source['excerpt']}"
+                    for source in case_source_contracts)
                 analysis_case_text = f"{case_text}\n\nDOCUMENTOS DEL MISMO CASO (fragmentos recuperados):\n{excerpts}"
             stage("documents", "completed")
         else:
@@ -220,6 +234,11 @@ class CaseService:
                 "error": "No fue posible analizar correctamente el caso."
 
             }
+
+        fact_records = case_facts(analysis, case_source_contracts, case_id)
+        issue_records = case_issues(analysis, case_id)
+        analysis["fact_records"] = fact_records
+        analysis["issue_records"] = issue_records
 
         ############################################################
         ################ CONSTRUIR ESTRATEGIA #######################
@@ -267,7 +286,7 @@ class CaseService:
                 if isinstance(query, str)
                 and query.strip()
             )
-        )
+        )[:max(1, Config.CASE_RESEARCH_MAX_QUERIES)]
 
         search_results = []
 
@@ -314,7 +333,9 @@ class CaseService:
                     "analysis": result.get(
                         "analysis",
                         {}
-                    )
+                    ),
+                    "sources": result.get("sources", []),
+                    "warnings": result.get("warnings", []),
                 }
 
             except OperationCancelled:
@@ -326,7 +347,8 @@ class CaseService:
 
                 logger.error("Search stage failed error_type=%s", type(error).__name__)
 
-                return None
+                return {"query": query, "result_status": "search_failed", "documents": [],
+                        "answer": "", "analysis": {}, "sources": [], "warnings": []}
 
 
         ############################################################
@@ -439,6 +461,23 @@ class CaseService:
             reverse=True
 
         )
+        public_sources = []
+        seen_public = set()
+        for document in documentos:
+            if not isinstance(document, dict):
+                continue
+            source = document.get("source")
+            if not isinstance(source, dict) or source.get("source_scope") != "public":
+                source = normalize_public_source(
+                    document, excerpt=document.get("extracto_exacto") or document.get("texto") or "")
+            if source["source_id"] not in seen_public:
+                public_sources.append(source)
+                seen_public.add(source["source_id"])
+        for source in case_source_contracts:
+            documentos.append({"id": source["chunk_id"], "source_id": source["source_id"],
+                               "tipo_documento": "case_document", "title": source["title"],
+                               "texto": source["excerpt"], "source": source})
+        verified_sources = public_sources + case_source_contracts
         
         ############################################################
         ################ LEGAL ARGUMENT SERVICE ####################
@@ -473,6 +512,10 @@ class CaseService:
                 "error": "No fue posible generar los argumentos jurídicos."
 
             }
+        if isinstance(legal_arguments.get("main_arguments"), list):
+            legal_arguments["main_arguments"] = ground_links(
+                legal_arguments["main_arguments"], issue_records, fact_records,
+                verified_sources, case_id)
 
         ############################################################
         ################ EVIDENCE + RISK ##########################
@@ -552,6 +595,10 @@ class CaseService:
                     "No fue posible evaluar la evidencia del caso."
 
             }
+        evidence_analysis.pop("evidence_score", None)
+        evidence_analysis["evidence_links"] = ground_links(
+            evidence_analysis.get("evidence_links", []), issue_records, fact_records,
+            case_source_contracts, case_id)
 
 
         ############################################################
@@ -570,6 +617,7 @@ class CaseService:
                     "No fue posible evaluar los riesgos del caso."
 
             }
+        risk_analysis.pop("overall_probability", None)
         
         ############################################################
         ################ COUNTER ARGUMENTS #########################
@@ -611,76 +659,90 @@ class CaseService:
                 "error": "No fue posible generar los contraargumentos."
 
             }
+        counter_arguments.pop("opponent_success_probability", None)
 
         ############################################################
         ################ TIMELINE #################################
         ############################################################
 
         stage('counter_arguments', 'completed')
-        timeline = []
+        timeline = case_timeline(fact_records)
+        stage('final_strategy', 'running')
+        final_plan = final_strategy(
+            analysis, strategy, legal_arguments, evidence_analysis,
+            risk_analysis, counter_arguments)
+        stage('final_strategy', 'completed')
 
-        # timeline =
-        #
-        # self.timeline_service.build(
-        #
-        #     analysis
-        #
-        # )
-
-        ############################################################
-        ################ CASE REPORT ###############################
-        ############################################################
+        research_failed = any(item.get("result_status") == "search_failed"
+                              for item in search_results)
+        research_status = (
+            "partial" if research_failed and public_sources else
+            "search_failed" if research_failed else
+            "not_requested" if not search_queries else
+            "completed"
+        )
+        report_sources = select_report_sources(
+            public_sources, case_source_contracts, case_id,
+            limit=Config.CASE_REPORT_MAX_SOURCES)
+        report, citations, cited_sources, report_warnings = "", [], [], []
+        report_status, report_error = "ready", None
+        report_document = None
 
         stage('report', 'running')
-        report = (
-
-            self.report_service.generate_report(
-
+        try:
+            candidate = self.report_service.generate_report(
                 case_text=case_text,
-
                 analysis=analysis,
-
                 strategy=strategy,
-
                 legal_arguments=legal_arguments,
-
                 evidence_analysis=evidence_analysis,
-
                 risk_analysis=risk_analysis,
-
                 counter_arguments=counter_arguments,
-
-                research={
-
-                    "documents": documentos,
-
-                    "search_results": search_results
-
-                }
-
+                research={"status": research_status},
+                sources=report_sources,
+                facts=fact_records,
+                issues=issue_records,
+                timeline=timeline,
+                final_strategy=final_plan,
+                case_id=case_id,
+                document_profile="analysis_report",
             )
+            if not self.report_service.validate_report(candidate):
+                raise ValueError("Report structure invalid")
+        except OperationCancelled:
+            raise
+        except Exception as error:
+            logger.error("Report generation failed error_type=%s", type(error).__name__)
+            report_status = "failed"
+            report_error = {"code": "REPORT_FAILED",
+                            "message": "No se pudo preparar el informe jurídico. El análisis estructurado permanece disponible."}
+            stage('report', 'failed')
+            stage('citations', 'skipped')
+        else:
+            stage('report', 'completed')
+            stage('citations', 'running')
+            try:
+                # Only validated SRC markers become interactive citations. Keep
+                # ordinary numeric references intact; they may be legal numbering.
+                resolved = resolve_citations(candidate, report_sources, case_id)
+                report = resolved["answer"]
+                citations = resolved["citations"]
+                cited_sources = resolved["sources_used"]
+                report_warnings = resolved["warnings"]
+                report_document = build_report_document(report, case_id, citations, cited_sources)
+                stage('citations', 'completed')
+            except OperationCancelled:
+                raise
+            except Exception as error:
+                logger.error("Report citation validation failed error_type=%s", type(error).__name__)
+                report_status = "failed"
+                report_error = {"code": "REPORT_FAILED",
+                                "message": "No se pudo verificar el informe. El análisis estructurado permanece disponible."}
+                report, citations, cited_sources, report_document = "", [], [], None
+                stage('citations', 'failed')
+        if report_document is None:
+            report_document = build_report_document("", case_id, [], [])
 
-        )
-
-        if not self.report_service.validate_report(
-
-            report
-
-        ):
-
-            return {
-
-                "success": False,
-
-                "error": "No fue posible generar el informe jurídico."
-
-            }
-
-        ############################################################
-        ###################### RESPUESTA FINAL ######################
-        ############################################################
-
-        stage('report', 'completed')
         result = {
 
             ########################################################
@@ -747,13 +809,7 @@ class CaseService:
 
                 "queries":
 
-                    strategy.get(
-
-                        "search_queries",
-
-                        []
-
-                    ),
+                    search_queries,
 
                 "documents":
 
@@ -771,16 +827,12 @@ class CaseService:
 
                     ),
 
-                "status": (
-                    "partial" if any(item.get("result_status") == "search_failed" for item in search_results)
-                    and documentos else "search_failed" if any(
-                        item.get("result_status") == "search_failed" for item in search_results
-                    ) else "completed"
-                ),
+                "status": research_status,
 
                 "warnings": ([{"code": "SEARCH_FAILED",
                     "message": "Una o más consultas de investigación no pudieron verificarse en el repositorio jurídico."}]
-                    if any(item.get("result_status") == "search_failed" for item in search_results) else [])
+                    if research_failed else []),
+                "sources": verified_sources,
 
             },
 
@@ -808,32 +860,28 @@ class CaseService:
 
                 timeline,
 
-            "report":
-
-                report
+            "report": report,
+            "report_document": report_document,
+            "report_status": report_status,
+            "report_error": report_error,
+            "final_strategy": final_plan,
+            "facts": fact_records,
+            "issues": issue_records,
+            "status": "partial" if report_status == "failed" else "completed",
 
         }
 
-        from app.services.source_contracts import normalize_case_source
-        public_sources = []
-        for document in documentos:
-            source = document.get("source") if isinstance(document, dict) else None
-            if isinstance(source, dict) and source.get("source_scope") == "public":
-                public_sources.append(source)
-            elif isinstance(document, dict):
-                from app.services.source_contracts import normalize_public_source
-                public_sources.append(normalize_public_source(
-                    document, excerpt=document.get("extracto_exacto", "")))
-        document_names = {}
-        if case_sources and self.case_corpus_repository is not None:
-            document_names = {doc["document_id"]: doc.get("filename")
-                              for doc in self.case_corpus_repository.list_documents(case_id)}
-        result["sources"] = public_sources + [normalize_case_source({
-            **item, "filename": document_names.get(item.get("document_id"))
-        }) for item in case_sources]
+        result["sources"] = report_sources
+        result["citations"] = citations
+        result["sources_used"] = cited_sources
+        result["warnings"] = result["research"]["warnings"] + report_warnings + ([report_error] if report_error else [])
         result["case_id"] = case_id
         result["document_ids"] = list(document_ids or [])
         result["research"]["case_sources"] = [item["source_reference"] for item in case_sources]
         result["metadata"] = {"case_id": case_id, "document_ids": list(document_ids or []),
-                               "case_source_references": result["research"]["case_sources"]}
+                               "case_source_references": result["research"]["case_sources"],
+                               "research_query_count": len(search_queries),
+                               "retrieved_source_count": len(verified_sources),
+                               "report_context_source_count": len(report_sources),
+                               "report_context_characters": sum(len(source["excerpt"]) for source in report_sources)}
         return normalize_case_result(result)

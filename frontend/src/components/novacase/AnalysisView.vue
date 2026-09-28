@@ -151,7 +151,7 @@
              PROCESO DE ANÁLISIS
         ==================================================== -->
 
-        <section class="analysis-process">
+        <section v-if="processSteps.length" class="analysis-process">
 
             <header class="process-header">
 
@@ -240,25 +240,7 @@
                             </span>
 
 
-                            <span class="process-completed">
-
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    aria-hidden="true"
-                                >
-
-                                    <path d="M5 12.5l4 4L19 7" />
-
-                                </svg>
-
-                                Completado
-
-                            </span>
+                            <span class="process-completed" :class="`stage-${step.status}`">{{ stageStatus(step.status) }}</span>
 
                         </div>
 
@@ -300,11 +282,12 @@ import MarkdownRenderer
 const props = defineProps({
 
     analysis: {
-
         type: Object,
-
         required: true
-
+    },
+    stages: {
+        type: Array,
+        default: () => []
     }
 
 })
@@ -407,75 +390,17 @@ const sections = computed(() => [
    PROCESO DE ANÁLISIS
 ========================================================= */
 
-const processSteps = [
+const processSteps = computed(() => props.stages.map((stage, index) => ({
+    id: stage.id || stage.key || index,
+    title: stage.title || stage.label || stage.key || "Etapa",
+    description: stage.description || "",
+    status: stage.status || "pending"
+})))
 
-    {
-
-        id: 1,
-
-        title: "Recepción del Caso",
-
-        description:
-            "Se recibió la descripción del caso para iniciar el análisis."
-
-    },
-
-    {
-
-        id: 2,
-
-        title: "Identificación de Hechos",
-
-        description:
-            "Se identificaron los hechos jurídicamente relevantes."
-
-    },
-
-    {
-
-        id: 3,
-
-        title: "Problemas Jurídicos",
-
-        description:
-            "Se determinaron las principales controversias legales."
-
-    },
-
-    {
-
-        id: 4,
-
-        title: "Normativa preliminar identificada",
-
-        description:
-            "Se localizaron las normas relacionadas con el caso."
-
-    },
-
-    {
-
-        id: 5,
-
-        title: "Jurisprudencia",
-
-        description:
-            "Se analizaron precedentes relevantes."
-
-    },
-
-    {
-
-        id: 6,
-
-        title: "Informe Jurídico",
-
-        description:
-            "Se generó el informe final para el usuario."
-
-    }
-
-]
+function stageStatus(status) {
+    return ({ completed: "Completado", skipped: "No requerido", failed: "No completado",
+        processing: "En curso", running: "En curso", pending: "Pendiente" })[status] || "Pendiente"
+}
 
 
 /* =========================================================

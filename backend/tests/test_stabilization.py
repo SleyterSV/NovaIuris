@@ -71,7 +71,7 @@ class CaseTests(unittest.TestCase):
         stages = []
         case_service().analyze_case('A', progress_callback=lambda *args: stages.append(args))
         completed = {stage for stage, status in stages if status == 'completed'}
-        self.assertEqual(completed, {'intake','facts','strategy','research','arguments','evidence','risks','counter_arguments','report'})
+        self.assertEqual(completed, {'intake','facts','strategy','research','arguments','evidence','risks','counter_arguments','final_strategy','report','citations'})
         self.assertLess(stages.index(('research','completed')), stages.index(('arguments','running')))
 
     def test_cancellation_stops_next_stage(self):
@@ -108,6 +108,9 @@ class PipelineTests(unittest.TestCase):
                 task = await_task(pipeline, pipeline.start('Expediente A', 'CASE-A'))
                 self.assertEqual(task['status'], 'completed')
                 self.assertEqual(task['final_result']['report'], '# INFORME-A')
+                self.assertEqual(task['final_result']['case_id'], task['case_id'])
+                self.assertEqual(task['final_result']['report_document']['case_id'], task['case_id'])
+                self.assertEqual(task['final_result']['citations'], [])
                 self.assertEqual(task['final_result']['graph']['status'], graph)
                 self.assertEqual(task['final_result']['simulation']['status'], simulation)
 

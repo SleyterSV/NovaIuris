@@ -110,6 +110,8 @@
                         NovaCase está analizando el caso
                     </h2>
 
+                    <h2 v-else-if="hasFailed">Analisis completado con incidencias</h2>
+
                     <h2 v-else-if="hasCompleted">
                         Análisis jurídico completado
                     </h2>
@@ -123,6 +125,8 @@
                         El sistema está procesando la información del caso
                         y construyendo el análisis jurídico integral.
                     </p>
+
+                    <p v-else-if="hasFailed">El analisis estructurado esta disponible; una o mas etapas no pudieron completarse.</p>
 
                     <p v-else-if="hasCompleted">
                         El análisis ha finalizado correctamente.
@@ -281,6 +285,10 @@
                             En proceso
                         </span>
 
+
+                        <span v-else-if="step.status === 'failed'" class="step-status failed">No completado</span>
+
+                        <span v-else-if="step.status === 'skipped'" class="step-status skipped">No requerido</span>
 
                         <span
                             v-else
@@ -441,13 +449,15 @@ const hasCompleted = computed(() => {
 
         props.steps.every(
 
-            step => step.status === "completed"
+            step => ["completed", "skipped"].includes(step.status)
 
         )
 
     )
 
 })
+
+const hasFailed = computed(() => props.steps.some(step => step.status === "failed"))
 
 
 /* =====================================================
@@ -458,7 +468,7 @@ const completedSteps = computed(() => {
 
     return props.steps.filter(
 
-        step => step.status === "completed"
+        step => ["completed", "skipped"].includes(step.status)
 
     ).length
 
@@ -507,7 +517,11 @@ function statusClass(status) {
             status === "processing",
 
         "step-pending":
-            status === "pending"
+            status === "pending",
+
+        "step-failed": status === "failed",
+
+        "step-skipped": status === "skipped"
 
     }
 

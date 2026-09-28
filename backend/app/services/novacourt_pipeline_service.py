@@ -11,7 +11,9 @@ from ..utils.novacourt_simulation import simulation_result
 CASE_STAGES = (("intake", "Recepción"), ("documents", "Corpus documental del caso"), ("facts", "Hechos"),
     ("strategy", "Estrategia inicial"), ("research", "Investigación"),
     ("arguments", "Argumentos"), ("evidence", "Evidencia"),
-    ("risks", "Riesgos"), ("counter_arguments", "Contraargumentos"), ("report", "Informe"))
+    ("risks", "Riesgos"), ("counter_arguments", "Contraargumentos"),
+    ("final_strategy", "Estrategia final"), ("report", "Informe"),
+    ("citations", "Verificación de citas"))
 COURT_STAGES = (("graph_build", "Grafo jurídico"), ("simulation", "Simulación"))
 
 class NovaCourtPipelineService:
@@ -70,6 +72,7 @@ class NovaCourtPipelineService:
             result = normalize_case_result(result)
             if result["case_id"] != case_id:
                 raise ValueError("Case identity mismatch")
+            warnings.extend(result.get("warnings", []))
             partial.update(deepcopy(result))
             if tool == "court":
                 for stage, field, action in (
