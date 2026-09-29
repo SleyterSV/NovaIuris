@@ -25,10 +25,12 @@ def get_llm():
 # 2. Nodo del Fiscal
 def nodo_fiscal(state: TribunalState, config: RunnableConfig = None) -> Dict:
     logger.info("👨‍⚖️ [LangGraph] Fiscal elaborando acusación...")
-    prompt = f"""Eres el Fiscal en este tribunal. 
+    role = (config or {}).get("configurable", {}).get("court_roles", {}).get("position_a", "Fiscalía")
+    prompt = f"""Desarrolla la mejor posición jurídicamente plausible de {role} en esta simulación.
     Basado ESTRICTAMENTE en este dossier documental: {state['dossier_rag']}
-    Formula tu acusación formal para este caso: {state['caso']}
-    REGLA DE ORO: Si citas una ley, artículo o fecha, debe existir textualmente en el dossier. Cero alucinaciones."""
+    Presenta tesis, hechos alegados o respaldados, prueba disponible, fundamentos y limitaciones.
+    Distingue prueba existente de prueba recomendada. Cita solo marcadores [SRC-...] presentes en el dossier.
+    Si citas una ley, artículo o fecha, debe existir textualmente en el dossier."""
     
     check_cancelled((config or {}).get("configurable", {}).get("cancellation_token"))
     respuesta = get_llm().invoke([HumanMessage(content=prompt)])
@@ -40,10 +42,14 @@ def nodo_fiscal(state: TribunalState, config: RunnableConfig = None) -> Dict:
 # 3. Nodo de la Defensa
 def nodo_defensa(state: TribunalState, config: RunnableConfig = None) -> Dict:
     logger.info("🛡️ [LangGraph] Defensa analizando vacíos legales...")
-    prompt = f"""Eres el Abogado Defensor. 
+    roles = (config or {}).get("configurable", {}).get("court_roles", {})
+    role = roles.get("position_b", "Defensa")
+    opposing_role = roles.get("position_a", "la parte promotora")
+    prompt = f"""Desarrolla la mejor posición jurídicamente plausible de {role}.
     Basado ESTRICTAMENTE en este dossier documental: {state['dossier_rag']}
-    El Fiscal ha expuesto lo siguiente: {state['argumento_fiscal']}
-    Formula tu contraargumento buscando atenuantes, vacíos procesales o falta de pruebas en el dossier."""
+    {opposing_role} ha expuesto lo siguiente: {state['argumento_fiscal']}
+    Formula una teoría propia y sustancial. Examina hechos, interpretación, procedimiento, prueba y límites.
+    No inventes evidencia ni autoridad. Cita solo marcadores [SRC-...] presentes en el dossier."""
     
     check_cancelled((config or {}).get("configurable", {}).get("cancellation_token"))
     respuesta = get_llm().invoke([HumanMessage(content=prompt)])
@@ -55,13 +61,17 @@ def nodo_defensa(state: TribunalState, config: RunnableConfig = None) -> Dict:
 # 4. Nodo del Juez
 def nodo_juez(state: TribunalState, config: RunnableConfig = None) -> Dict:
     logger.info("⚖️ [LangGraph] Juez deliberando...")
-    prompt = f"""Eres el Juez. Evalúa el debate estructuralmente:
-    Fiscal: {state['argumento_fiscal']}
-    Defensa: {state['argumento_defensa']}
+    roles = (config or {}).get("configurable", {}).get("court_roles", {})
+    prompt = f"""Redacta una DECISIÓN SIMULADA, no una sentencia real ni una predicción estadística.
+    Compara de forma independiente ambas posiciones:
+    {roles.get('position_a', 'Parte promotora')}: {state['argumento_fiscal']}
+    {roles.get('position_b', 'Parte contraria')}: {state['argumento_defensa']}
     
     Límites probatorios (Dossier): {state['dossier_rag']}
     
-    Emite una resolución final. Señala expresamente cuál de las partes sustentó mejor su postura basándose en los límites probatorios del dossier."""
+    Identifica controversias, distingue alegaciones de hechos respaldados, valora la prueba y las fuentes,
+    expone límites y concluye con una decisión simulada razonada. Cita solo [SRC-...] disponibles.
+    No inventes evidencia, autoridades ni probabilidades."""
     
     check_cancelled((config or {}).get("configurable", {}).get("cancellation_token"))
     respuesta = get_llm().invoke([HumanMessage(content=prompt)])

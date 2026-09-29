@@ -24,10 +24,11 @@
                 :has-documents="selectedDocumentIds.length > 0"
                 @simulate="handleSimulation"
             />
-            <p v-if="continuingCase" role="status">Continuando explícitamente el caso {{ activeCaseId }} y los documentos seleccionados en NovaCase.</p>
+            <p v-if="continuingCase && (reuseTaskId || result?.metadata?.case_reused)" role="status">Continuando el análisis existente del caso {{ activeCaseId }}.</p>
+            <p v-else-if="continuingCase" role="status">Caso {{ activeCaseId }} seleccionado. El análisis se actualizará con el texto y documentos elegidos.</p>
             <p v-else role="status">Caso independiente nuevo. No se reutilizan documentos de otras sesiones.</p>
             <CaseDocumentUpload :key="activeCaseId" :case-id="activeCaseId" :initial-document-ids="requestedDocumentIds" :load-existing="continuingCase" :disabled="isLoading" @update:document-ids="selectedDocumentIds = $event" />
-            <button v-if="continuingCase || result" type="button" :disabled="isLoading" @click="startIndependentCase">Iniciar un caso independiente</button>
+            <button v-if="continuingCase || result" type="button" @click="startIndependentCase">Nueva simulación independiente</button>
 
         </section>
 
@@ -132,6 +133,10 @@
 
                     <CourtSummary
                         :summary="summaryContent"
+                        :court-status="result?.court_status"
+                        :graph-status="graphData.status"
+                        :simulation-status="simulationData.status"
+                        :issue-count="result?.issues?.length || 0"
                         :loading="isLoading && !hasResult"
                     />
 
@@ -194,6 +199,8 @@
 
                     <CourtSimulation
                         :simulation="simulationData"
+                        :case-id="result?.case_id"
+                        mode="positions"
                         :loading="isLoading && !hasResult"
                         :status="simulationStatus"
                         :status-type="simulationStatusType"
@@ -201,15 +208,22 @@
 
                 </template>
 
+                <template #decision>
+                    <CourtSimulation :simulation="simulationData" :case-id="result?.case_id" mode="decision" />
+                </template>
+
 
                 <!-- =================================================
                      INFORME FINAL
                 ================================================== -->
 
-                <template #prediction>
+                <template #report>
 
                     <CourtReport
                         :content="reportContent"
+                        :citations="simulationData.citations"
+                        :sources="simulationData.sources"
+                        :case-id="result?.case_id"
                         :loading="isLoading && !hasResult"
                         :status="reportStatus"
                         :status-type="reportStatusType"
@@ -348,11 +362,15 @@ const novaCourt = useNovaCourt()
 const route = useRoute()
 const router = useRouter()
 const requestedCaseId = typeof route.query.case_id === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(route.query.case_id) && !route.query.case_id.includes("..") ? route.query.case_id : null
+const reuseTaskId = ref(requestedCaseId && typeof globalThis.history?.state?.reuseTaskId === 'string'
+    ? globalThis.history.state.reuseTaskId : null)
 const continuingCase = ref(Boolean(requestedCaseId))
 const activeCaseId = ref(requestedCaseId || crypto.randomUUID())
 const requestedDocumentIds = requestedCaseId && typeof route.query.document_ids === "string"
     ? [...new Set(route.query.document_ids.split(",").filter(id => id.length > 0 && id.length <= 128))].slice(0, 20)
     : []
+const originalCaseText = requestedCaseId && globalThis.history?.state?.caseText
+    ? String(globalThis.history.state.caseText) : ''
 const selectedDocumentIds = ref([])
 if (requestedCaseId && globalThis.history?.state?.caseText) novaCourt.caseText.value = String(globalThis.history.state.caseText)
 
@@ -472,7 +490,11 @@ async function handleSimulation(text) {
 
     try {
 
-        await analyzeCase(effectiveText, { caseId:activeCaseId.value, documentIds:selectedDocumentIds.value })
+        const sameDocuments = selectedDocumentIds.value.length === requestedDocumentIds.length &&
+            selectedDocumentIds.value.every(id => requestedDocumentIds.includes(id))
+        await analyzeCase(effectiveText, { caseId:activeCaseId.value, documentIds:selectedDocumentIds.value,
+            reuseTaskId: effectiveText === originalCaseText && sameDocuments ? reuseTaskId.value : null })
+        reuseTaskId.value = null
 
     }
     catch (err) {
@@ -511,6 +533,7 @@ function startIndependentCase() {
     selectedDocumentIds.value = []
     activeCaseId.value = crypto.randomUUID()
     continuingCase.value = false
+    reuseTaskId.value = null
     router.replace({ path:"/novacourt" })
 }
 
@@ -621,7 +644,8 @@ const riskContent = computed(() => {
 
 const simulationData = computed(() => normalizeSimulationState(result.value?.simulation))
 
-const reportContent = computed(() => normalizeRenderableContent(result.value?.report))
+const reportContent = computed(() => (result.value?.court_report_document?.sections || [])
+    .map(section => `## ${section.title}\n\n${section.content}`).join('\n\n'))
 
 /* =========================================================
    GRAFO JURÍDICO
@@ -738,7 +762,7 @@ const simulationStatusType = computed(() => simulationData.value.status === 'rea
 const reportStatus = computed(() => {
 
     if (isLoading.value) {
-        return "Generando proyección judicial"
+        return "Preparando documento de simulación"
     }
 
     if (reportContent.value) {

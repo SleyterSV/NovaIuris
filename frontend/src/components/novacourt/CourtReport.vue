@@ -15,7 +15,7 @@
                 </span>
 
                 <h2>
-                    Informe Judicial Inteligente
+                    Documento de simulación jurídica
                 </h2>
 
                 <div class="title-accent"></div>
@@ -115,9 +115,18 @@
 
                 <MarkdownRenderer
                     :content="content"
+                    :citations="citations"
+                    :sources="sources"
+                    :case-id="caseId"
+                    @select-citation="openCitation"
                 />
+                <SourcesList :sources="sources" :citations="citations" :case-id="caseId"
+                    @select="selectedSource = $event" @select-citation="openCitation" />
 
             </article>
+            <button type="button" @click="copyReport">{{ copied ? 'Copiado' : 'Copiar simulación' }}</button>
+            <button type="button" disabled>PDF · próximamente</button>
+            <button type="button" disabled>DOCX · próximamente</button>
 
         </div>
 
@@ -142,7 +151,7 @@
                 </span>
 
                 <h3>
-                    Informe pendiente
+                    Simulación no disponible
                 </h3>
 
                 <p>
@@ -188,21 +197,28 @@
         </footer>
 
     </section>
+    <SourceModal :source="selectedSource" :case-id="caseId" @close="selectedSource = null" />
 
 </template>
 
 
 <script setup>
 
+import { ref } from 'vue'
 import MarkdownRenderer from "../common/MarkdownRenderer.vue"
+import SourcesList from '../common/SourcesList.vue'
+import SourceModal from '../common/SourceModal.vue'
 
 
-defineProps({
+const props = defineProps({
 
     content: {
         type: String,
         default: ""
     },
+    citations: { type: Array, default: () => [] },
+    sources: { type: Array, default: () => [] },
+    caseId: { type: String, default: null },
 
     loading: {
         type: Boolean,
@@ -220,6 +236,16 @@ defineProps({
     }
 
 })
+const selectedSource = ref(null)
+const copied = ref(false)
+const openCitation = citation => { selectedSource.value = props.sources.find(source => source.source_id === citation.source_id) || null }
+async function copyReport() {
+    if (!props.content || !navigator.clipboard?.writeText) return
+    try {
+        await navigator.clipboard.writeText(props.content.trim())
+        copied.value = true
+    } catch { copied.value = false }
+}
 
 </script>
 

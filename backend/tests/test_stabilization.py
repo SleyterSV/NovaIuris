@@ -98,7 +98,9 @@ class PipelineTests(unittest.TestCase):
         graph = Mock(spec=NovaCourtGraphService)
         graph.build_for_case.return_value = {'status':graph_status, 'nodes':[], 'edges':[]}
         simulation = Mock()
-        simulation.simulate_for_case.return_value = {'status':simulation_status, 'prosecutor':{'content':'FISCAL-A'}}
+        simulation.simulate_for_case.return_value = {'status':simulation_status,
+            'prosecutor':{'content':'POSICIÓN-A'}, 'defense':{'content':'POSICIÓN-B'},
+            'judge':{'content':'DECISIÓN SIMULADA'}}
         return NovaCourtPipelineService(case_service(), graph, simulation)
 
     def test_pipeline_ready_and_partial_failures(self):

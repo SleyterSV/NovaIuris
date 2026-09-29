@@ -349,7 +349,7 @@
 
                 </CaseTabs>
                 <SourceModal :source="selectedSource" :case-id="canonicalResult?.case_id" @close="selectedSource = null" />
-                <button v-if="hasResults && canonicalResult?.case_id" type="button" @click="continueInNovaCourt">Simular este caso en NovaCourt</button>
+                <button v-if="hasResults && caseTaskCompleted && canonicalResult?.case_id" type="button" @click="continueInNovaCourt">Simular este caso en NovaCourt</button>
 
             </section>
 
@@ -510,6 +510,8 @@ import StrategyView
 ========================================================= */
 
 const canonicalResult = ref(null)
+const completedTaskId = ref(null)
+const caseTaskCompleted = ref(false)
 const inputCaseId = ref(crypto.randomUUID())
 const router = useRouter()
 const selectedSource = ref(null)
@@ -594,6 +596,8 @@ async function handleAnalyze(payload) {
 
     loading.value = true
     canonicalResult.value = null
+    completedTaskId.value = null
+    caseTaskCompleted.value = false
     selectedSource.value = null
 
     error.value = null
@@ -632,7 +636,9 @@ async function handleAnalyze(payload) {
            EJECUTAR ANÁLISIS
         ================================================== */
 
-        const response = normalizeCaseResult(await analyzeCase(caseText, { caseId, documentIds, onProgress: updateTask, signal: controller.signal }))
+        const response = normalizeCaseResult(await analyzeCase(caseText, { caseId, documentIds,
+            onTask: task => { completedTaskId.value = task.task_id },
+            onProgress: updateTask, signal: controller.signal }))
         canonicalResult.value = response
 
         if (!response) {
@@ -642,6 +648,7 @@ async function handleAnalyze(payload) {
             )
 
         }
+        caseTaskCompleted.value = true
 
 
         /* =================================================
@@ -804,7 +811,8 @@ function sourcesForLink(link) {
 function continueInNovaCourt() {
   const result = canonicalResult.value
   if (!result?.case_id) return
-  router.push({ path:"/novacourt", query:{ case_id:result.case_id, document_ids:(result.document_ids || []).join(",") }, state:{ caseText:result.case } })
+  router.push({ path:"/novacourt", query:{ case_id:result.case_id, document_ids:(result.document_ids || []).join(",") },
+    state:{ caseText:result.case, reuseTaskId:completedTaskId.value } })
 }
 
 const documentsDetected = computed(() => {

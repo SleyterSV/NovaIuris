@@ -36,6 +36,20 @@ def provider_clients():
 class LegalDebateSimulator:
     """Orquestador Multi-Agente con Arquitectura Híbrida (LangGraph + Zep + Supabase Vector RAG)."""
 
+    @classmethod
+    def simulate_prepared_case(cls, context: str, roles=None, cancellation_token=None) -> Dict[str, str]:
+        """Canonical Court path: reuse verified CaseResult context without reingestion."""
+        check_cancelled(cancellation_token)
+        labels = roles or {"position_a": "Parte promotora", "position_b": "Parte contraria"}
+        result = nova_iuris_tribunal.invoke(
+            {"caso": "Simulación jurídica argumentativa", "dossier_rag": context, "mensajes": []},
+            config={"configurable": {"cancellation_token": cancellation_token,
+                                    "court_roles": labels}})
+        check_cancelled(cancellation_token)
+        return {"fiscal": result.get("argumento_fiscal", ""),
+                "defensa": result.get("argumento_defensa", ""),
+                "juez": result.get("veredicto_juez", "")}
+
     @staticmethod
     def _vectorizar_expediente_vivo(texto_completo: str, session_id: str, cancellation_token=None) -> bool:
         """
@@ -279,26 +293,3 @@ class LegalDebateSimulator:
             "juez": resultado_final.get("veredicto_juez", ""),
             "metricas": metricas_graficas
         }
-
-# --- ZONA DE PRUEBA (CLI) ---
-if __name__ == "__main__":
-    caso_real = "El trabajador Juan Pérez solicita la devolución de sus aportes al FOVIPOL tras 20 años de servicio, amparándose en la reciente jurisprudencia sobre fondos de vivienda policial. Adjunta boletas de pago donde se evidencian los descuentos mensuales."
-    
-    resultados = LegalDebateSimulator.simulate_case(caso_real)
-    
-    print("\n" + "="*80)
-    print(f"🏛️ RESOLUCIÓN DEL TRIBUNAL [SESIÓN: {resultados['session_id']}]")
-    print("="*80)
-    
-    print("\n🔴 1. POSTURA DE LA FISCALÍA / DEMANDANTE:")
-    print(resultados["fiscal"])
-    
-    print("\n" + "-"*80)
-    print("🔵 2. CONTRAARGUMENTO DE LA DEFENSA:")
-    print(resultados["defensa"])
-    
-    print("\n" + "-"*80)
-    print("⚖️ 3. RESOLUCIÓN FINAL (EL JUEZ):")
-    print(resultados["juez"])
-    
-    print("\n" + "="*80)

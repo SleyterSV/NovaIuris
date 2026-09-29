@@ -50,7 +50,7 @@ test('one task polling loop validates identity and returns canonical result', as
   let polls=0, inFlight=0, maximum=0
   globalThis.fetch = async (url, options) => {
     if (url.endsWith('/case/tasks')) return Response.json({success:true, task_id:'TASK-A',case_id:'CASE-A'})
-    assert.ok(url.endsWith('/tasks/TASK-A'))
+    assert.ok(url.endsWith('/tasks/TASK-A?case_id=CASE-A'))
     inFlight++; maximum=Math.max(maximum,inFlight)
     await new Promise(resolve => setTimeout(resolve,5)); inFlight--; polls++
     return Response.json({success:true,task_id:'TASK-A',case_id:'CASE-A',tool:'case',

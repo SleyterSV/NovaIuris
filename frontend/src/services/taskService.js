@@ -23,14 +23,16 @@ export async function runAnalysisTask(tool, text, options = {}) {
   let taskId
   try {
     const started = await requestJson(tool === 'court' ? '/novacourt/analyze' : '/case/tasks', {
-      method:'POST', body:JSON.stringify({ case_text:text, case_id:caseId, document_ids:options.documentIds || [] })
+      method:'POST', signal:options.signal,
+      body:JSON.stringify({ case_text:text, case_id:caseId, document_ids:options.documentIds || [],
+        ...(tool === 'court' && options.reuseTaskId ? {reuse_task_id:options.reuseTaskId} : {}) })
     })
     taskId = started.task_id
     if (started.case_id !== caseId) throw new Error('La tarea no corresponde al caso enviado.')
     options.onTask?.(started)
     for (;;) {
       if (options.signal?.aborted) throw new DOMException('Cancelado', 'AbortError')
-      const task = await requestJson(`/tasks/${encodeURIComponent(taskId)}`, { signal:options.signal })
+      const task = await requestJson(`/tasks/${encodeURIComponent(taskId)}?case_id=${encodeURIComponent(caseId)}`, { signal:options.signal })
       if (task.case_id !== caseId || task.task_id !== taskId || task.tool !== tool) throw new Error('La respuesta no corresponde al caso enviado.')
       options.onProgress?.(task)
       if (task.status === 'completed') {
@@ -42,7 +44,8 @@ export async function runAnalysisTask(tool, text, options = {}) {
     }
   } catch (error) {
     if (taskId) {
-      try { await requestJson(`/tasks/${encodeURIComponent(taskId)}/cancel`, {method:'POST'}) } catch { /* Server unreachable. */ }
+      try { await requestJson(`/tasks/${encodeURIComponent(taskId)}/cancel`, {
+        method:'POST', body:JSON.stringify({case_id:caseId}) }) } catch { /* Server unreachable. */ }
     }
     throw error
   }

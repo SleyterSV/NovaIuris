@@ -15,7 +15,11 @@ export function normalizeSimulationState(simulation) {
     prosecutor: asRecord(source.prosecutor),
     defense: asRecord(source.defense),
     judge: asRecord(source.judge),
+    judicial_analysis: asRecord(source.judicial_analysis),
+    decision: asRecord(source.decision),
     projection: asRecord(source.projection),
+    sources: Array.isArray(source.sources) ? source.sources : [],
+    citations: Array.isArray(source.citations) ? source.citations : [],
     metadata: asRecord(source.metadata),
     message: typeof source.message === 'string' ? source.message : ''
   }

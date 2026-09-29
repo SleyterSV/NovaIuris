@@ -6,20 +6,20 @@ import json
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from typing import Any, Callable, Dict
 from .cancellation import CancellationToken, OperationCancelled, check_cancelled
+from .court_roles import resolve_court_roles
 
 
 _CONTEXT_FIELDS = (
     ("Caso", "case"),
     ("Resumen", "summary"),
-    ("Análisis", "analysis"),
-    ("Estrategia", "strategy"),
-    ("Investigación", "research"),
+    ("Hechos", "facts"),
+    ("Problemas", "issues"),
     ("Argumentos", "arguments"),
     ("Evidencia", "evidence"),
     ("Riesgos", "risks"),
     ("Contraargumentos", "counter_arguments"),
     ("Cronología", "timeline"),
-    ("Citas", "citations"),
+    ("Estrategia final", "final_strategy"),
 )
 
 
@@ -32,16 +32,23 @@ def build_simulation_context(
 ) -> str:
     """Prepara el mínimo contexto canónico que el simulador existente acepta."""
     source = dict(case_result)
-    source["case"] = case_text
+    # Structured facts/issues supersede the raw statement; never resend the
+    # entire uploaded dossier when NovaCase has already extracted it.
+    source["case"] = case_text if not source.get("facts") else None
     sections = []
     for label, field in _CONTEXT_FIELDS:
         value = source.get(field)
         if value in (None, "", [], {}):
             continue
         sections.append(
-            f"{label}:\n{json.dumps(value, ensure_ascii=False, default=str, indent=2)}"
+            f"{label}:\n{json.dumps(value, ensure_ascii=False, default=str, separators=(',', ':'))}"
         )
 
+    sources = [item for item in source.get("sources", []) + source.get("sources_used", [])
+               if isinstance(item, dict) and item.get("source_id") and
+               (item.get("source_scope") != "case" or item.get("case_id") == source.get("case_id"))]
+    for item in {entry["source_id"]: entry for entry in sources}.values():
+        sections.append(f"[{item['source_id']}] {item.get('title') or ''}\n{item.get('excerpt') or ''}")
     graph = _as_dict(source.get("graph"))
     if graph.get("status") == "ready":
         graph_context = {
@@ -94,7 +101,6 @@ def normalize_simulator_output(output: Any) -> Dict[str, Any]:
     fiscal = payload.get("fiscal")
     defensa = payload.get("defensa")
     juez = payload.get("juez")
-    metricas = _as_dict(payload.get("metricas"))
     if not all(isinstance(value, str) and value.strip() for value in (fiscal, defensa, juez)):
         return simulation_result("failed", message="La simulación no produjo las posiciones requeridas.")
 
@@ -103,12 +109,10 @@ def normalize_simulator_output(output: Any) -> Dict[str, Any]:
         prosecutor={"content": fiscal} if isinstance(fiscal, str) and fiscal else {},
         defense={"content": defensa} if isinstance(defensa, str) and defensa else {},
         judge={"content": juez} if isinstance(juez, str) and juez else {},
-        # La proyección reutiliza la resolución existente del Juez; no invoca
-        # un modelo adicional ni la presenta como una sentencia real.
-        projection={"content": juez} if isinstance(juez, str) and juez else {},
+        projection={},
         metadata={
             "session_id": payload.get("session_id"),
-            "metrics": metricas,
+            "metrics": {},
             "base_legal": payload.get("base_legal") if isinstance(payload.get("base_legal"), str) else "",
         },
     )
@@ -144,9 +148,16 @@ class NovaCourtSimulationOrchestrator:
         try:
             # La importación diferida y la ejecución del simulador comparten el
             # mismo límite para que una dependencia lenta no bloquee el endpoint.
-            future = executor.submit(self._run_simulation, context, token)
+            roles = resolve_court_roles(case_result)
+            future = executor.submit(self._run_simulation, context, token, roles)
             output = future.result(timeout=self.timeout)
-            return normalize_simulator_output(output)
+            result = normalize_simulator_output(output)
+            result["case_id"] = case_result.get("case_id")
+            result["prosecutor"]["role_label"] = roles["position_a"]
+            result["defense"]["role_label"] = roles["position_b"]
+            result["judicial_analysis"] = result["judge"]
+            result["decision"] = {"label": "Decisión simulada", "content": result["judge"].get("content", "")}
+            return result
         except TimeoutError:
             token.cancel()
             return simulation_result(
@@ -173,8 +184,10 @@ class NovaCourtSimulationOrchestrator:
             # hilo tras el timeout; el futuro se cancela si aún no inició.
             executor.shutdown(wait=False, cancel_futures=True)
 
-    def _run_simulation(self, context: str, token) -> Any:
+    def _run_simulation(self, context: str, token, roles) -> Any:
         token.check()
         simulator = self.simulator_factory()
         token.check()
+        if hasattr(simulator, "simulate_prepared_case"):
+            return simulator.simulate_prepared_case(context, roles=roles, cancellation_token=token)
         return simulator.simulate_case(context, cancellation_token=token)

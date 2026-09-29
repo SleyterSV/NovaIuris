@@ -174,7 +174,7 @@ const tabs = [
 
         id: "strategy",
 
-        label: "Estrategia",
+        label: "Posiciones",
 
         icon: "◈"
 
@@ -182,9 +182,19 @@ const tabs = [
 
     {
 
-        id: "prediction",
+        id: "decision",
 
-        label: "Proyección",
+        label: "Decisión simulada",
+
+        icon: "§"
+
+    },
+
+    {
+
+        id: "report",
+
+        label: "Informe simulado",
 
         icon: "↗"
 

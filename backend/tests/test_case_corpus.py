@@ -287,7 +287,8 @@ class UploadApiTests(unittest.TestCase):
             def analyze_case(self, text, **kwargs):
                 self.calls.append((text, kwargs["case_id"], kwargs["document_ids"]))
                 kwargs["progress_callback"]("intake", "completed")
-                return {"success":True, "case_id":kwargs["case_id"], "case":text}
+                return {"success":True, "case_id":kwargs["case_id"], "case":text,
+                        "document_ids":list(kwargs["document_ids"])}
         service = FakeCaseService()
         pipeline = NovaCourtPipelineService(service, Mock(), Mock())
         task_id = pipeline.start("Case narrative", case_id="CASE-A", tool="case", document_ids=["DOC-A"])
@@ -310,14 +311,16 @@ class UploadApiTests(unittest.TestCase):
             def analyze_case(self, text, **kwargs):
                 self.received = (kwargs["case_id"], list(kwargs["document_ids"]))
                 kwargs["progress_callback"]("intake", "completed")
-                return {"success":True, "case_id":kwargs["case_id"], "case":text, "sources":[source],
+                return {"success":True, "case_id":kwargs["case_id"], "case":text,
+                        "document_ids":list(kwargs["document_ids"]), "sources":[source],
                         "citations":[{"citation_id":"CIT-123456789012345678901234",
                                        "source_id":source["source_id"], "label":"[1]"}]}
         case = FakeCaseService()
         graph = Mock()
         graph.build_for_case.return_value = {"status":"ready", "nodes":[], "edges":[]}
         simulation = Mock()
-        simulation.simulate_for_case.return_value = {"status":"ready", "participants":[], "projection":{}}
+        simulation.simulate_for_case.return_value = {"status":"ready", "prosecutor":{"content":"Posición A"},
+            "defense":{"content":"Posición B"}, "judge":{"content":"Decisión simulada"}}
         pipeline = NovaCourtPipelineService(case, graph, simulation)
         task_id = pipeline.start("Continue this case", case_id="CASE-A", tool="court", document_ids=["DOC-A"])
         deadline = time.monotonic() + 3

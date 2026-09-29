@@ -67,21 +67,33 @@ def start_analysis():
         return api_error('INVALID_CASE', str(error), g.request_id, 400)
     tool = 'court' if request.path.endswith('/novacourt/analyze') else 'case'
     manager = pipeline()
-    task_id = manager.start(text, case_id=case_id, tool=tool, document_ids=document_ids)
+    reuse_task_id = (request.get_json(silent=True) or {}).get('reuse_task_id')
+    if reuse_task_id is not None and (tool != 'court' or not isinstance(reuse_task_id, str) or
+                                      not re.fullmatch(r'[a-f0-9-]{36}', reuse_task_id)):
+        return api_error('INVALID_CASE', 'La referencia al análisis previo no es válida.', g.request_id, 400)
+    try:
+        task_id = manager.start(text, case_id=case_id, tool=tool, document_ids=document_ids,
+                                reuse_task_id=reuse_task_id)
+    except ValueError as error:
+        return api_error('CASE_MISMATCH', str(error), g.request_id, 409)
     return jsonify(success=True, task_id=task_id, case_id=case_id, tool=tool), 202
 
 @case_bp.route('/tasks/<task_id>', methods=['GET'])
 @case_bp.route('/novacourt/results/<task_id>', methods=['GET'])
 def task_status(task_id):
     data = pipeline().status(task_id)
-    if not data:
+    case_id = request.args.get('case_id')
+    if not data or not case_id or data['case_id'] != case_id:
         return api_error('TASK_NOT_FOUND', 'No se encontró la tarea.', g.request_id, 404)
     return jsonify(success=True, **data)
 
 @case_bp.route('/tasks/<task_id>/cancel', methods=['POST'])
 def cancel_task(task_id):
     manager = pipeline()
-    if manager.status(task_id) is None:
+    data = manager.status(task_id)
+    payload = request.get_json(silent=True)
+    case_id = payload.get('case_id') if isinstance(payload, dict) else None
+    if not data or not case_id or data['case_id'] != case_id:
         return api_error('TASK_NOT_FOUND', 'No se encontró la tarea.', g.request_id, 404)
     manager.tasks.cancel_task(task_id)
     return jsonify(success=True, **manager.status(task_id))

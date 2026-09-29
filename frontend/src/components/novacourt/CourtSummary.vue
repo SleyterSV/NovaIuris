@@ -130,7 +130,11 @@ const props = defineProps({
 
         default: () => ({})
 
-    }
+    },
+    courtStatus: { type: String, default: '' },
+    graphStatus: { type: String, default: '' },
+    simulationStatus: { type: String, default: '' },
+    issueCount: { type: Number, default: 0 }
 
 })
 
@@ -157,12 +161,10 @@ const summaryItems = computed(() => [
 
     {
 
-        label: "Escenario judicial",
+        label: "Problemas jurídicos identificados",
 
         value:
-            props.summary.escenario
-            ||
-            "No identificado con la información disponible.",
+            String(props.issueCount),
 
         type: "neutral"
 
@@ -171,16 +173,15 @@ const summaryItems = computed(() => [
 
     {
 
-        label: "Nivel de riesgo",
+        label: "Simulación jurídica",
 
         value:
-            props.summary.riesgo
-            ||
-            "No identificado con la información disponible.",
+            props.simulationStatus === 'ready' ? 'Disponible' : 'No disponible',
 
         type: "warning"
 
-    }
+    },
+    { label: 'Grafo jurídico', value: props.graphStatus === 'ready' ? 'Disponible' : 'No disponible', type: 'neutral' }
 
 ])
 

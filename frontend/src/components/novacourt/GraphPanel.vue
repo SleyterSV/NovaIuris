@@ -714,7 +714,7 @@ const legendItems = [
 
         key: "lawyer",
 
-        label: "Defensa / abogado",
+        label: "Parte contraria / abogado",
 
         color: categoryColors.lawyer
 
@@ -724,7 +724,7 @@ const legendItems = [
 
         key: "prosecution",
 
-        label: "Fiscalía",
+        label: "Parte promotora",
 
         color: categoryColors.prosecution
 

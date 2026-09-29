@@ -94,7 +94,7 @@
 
             <p class="header-subtitle">
 
-                Analizador Judicial Inteligente para evaluación
+                Simulación jurídica argumentativa para evaluación
                 integral de casos.
 
             </p>
@@ -107,8 +107,8 @@
             <p class="header-description">
 
                 Evalúa escenarios jurídicos, contrasta argumentos,
-                analiza evidencia y riesgos, y explora posibles
-                resultados mediante inteligencia artificial.
+                analiza evidencia y riesgos, y presenta una decisión
+                simulada para revisión profesional.
 
             </p>
 
