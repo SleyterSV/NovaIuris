@@ -241,6 +241,8 @@
                     <GraphPanel
                         :graph-data="graphData"
                         :loading="isLoading && !hasResult"
+                        :sources="[...(result?.sources || []), ...(result?.sources_used || []), ...(result?.research?.sources || [])]"
+                        :case-id="result?.case_id"
                     />
 
                 </template>
@@ -315,7 +317,8 @@ import { normalizeSimulationState } from '../utils/simulationState.js'
 
 import {
     computed,
-    ref
+    ref,
+    watch
 } from "vue"
 
 
@@ -651,7 +654,12 @@ const reportContent = computed(() => (result.value?.court_report_document?.secti
    GRAFO JURÍDICO
 ========================================================= */
 
-const graphData = computed(() => normalizeGraphState(result.value?.graph))
+const graphData = ref(normalizeGraphState(null))
+watch(() => result.value?.graph, graph => {
+    graphData.value = graph
+        ? normalizeGraphState(graph, graphData.value)
+        : normalizeGraphState(null)
+}, { immediate: true })
 
 const analysisStatus = computed(() => {
 

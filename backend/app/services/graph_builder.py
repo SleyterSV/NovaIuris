@@ -972,10 +972,8 @@ class GraphBuilderService:
                 )
 
 
-                # Pequeña pausa para evitar solicitudes
-                # excesivamente rápidas al servicio.
-                if batch_number < total_batches:
-                    time.sleep(1)
+                # La siguiente llamada sólo empieza si el trabajo sigue activo.
+                check_cancelled(cancellation_token)
 
 
             except Exception as error:
@@ -1104,6 +1102,8 @@ class GraphBuilderService:
 
             for episode_uuid in list(pending_episodes):
                 check_cancelled(cancellation_token)
+                if time.time() - start_time >= timeout:
+                    break
 
                 try:
 
@@ -1170,9 +1170,13 @@ class GraphBuilderService:
 
             if pending_episodes:
 
-                time.sleep(
-                    max(1, poll_interval)
-                )
+                remaining = timeout - (time.time() - start_time)
+                sleep_for = min(max(0.1, poll_interval), max(0, remaining))
+                while sleep_for > 0:
+                    check_cancelled(cancellation_token)
+                    step = min(0.1, sleep_for)
+                    time.sleep(step)
+                    sleep_for -= step
 
 
         if progress_callback:

@@ -207,7 +207,7 @@
         ====================================================== -->
 
         <div
-            v-else-if="error"
+            v-else-if="effectiveError"
             class="graph-state graph-error"
         >
 
@@ -227,7 +227,7 @@
                 </strong>
 
                 <p>
-                    {{ error }}
+                    {{ effectiveError }}
                 </p>
 
             </div>
@@ -286,6 +286,35 @@
             v-else
             class="graph-workspace"
         >
+            <p v-if="graphData?.status === 'building'" role="status" class="graph-notice">
+                Grafo parcial. Procesamiento de fuentes en curso.
+            </p>
+            <p v-if="['failed', 'timeout'].includes(graphData?.status)" role="alert" class="graph-notice">
+                Grafo parcial: {{ graphData?.message || 'No se completó el procesamiento.' }}
+            </p>
+            <div class="graph-filters" aria-label="Filtros del grafo">
+                <label>Buscar nodos <input v-model="query" type="search" placeholder="Título del nodo" /></label>
+                <label>Complejidad <select v-model="complexity">
+                    <option value="essential">Vista esencial</option>
+                    <option value="complete">Vista completa</option>
+                </select></label>
+                <fieldset><legend>Tipos visibles</legend>
+                    <label v-for="type in visibleTypes" :key="type">
+                        <input type="checkbox" :checked="!selectedTypes.includes(type)"
+                            @change="toggleType(type)" />
+                        {{ getNodeCategoryLabel({ entity_type: type }) }}
+                    </label>
+                </fieldset>
+            </div>
+            <p v-if="!normalizedNodes.length" role="status">No hay nodos para los filtros actuales.</p>
+            <details class="graph-text-list">
+                <summary>Lista accesible de nodos ({{ normalizedNodes.length }})</summary>
+                <ul><li v-for="node in normalizedNodes" :key="node.id">
+                    <button type="button" @click="selectedNode = node">
+                        {{ getNodeCategoryLabel(node) }}: {{ node.title || node.name }}
+                    </button>
+                </li></ul>
+            </details>
 
             <!-- =================================================
                  BARRA DE HERRAMIENTAS
@@ -439,7 +468,7 @@
                             <h3>
 
                                 {{
-                                    selectedNode.name ||
+                                    selectedNode.title || selectedNode.name ||
                                     "Elemento sin nombre"
                                 }}
 
@@ -479,6 +508,26 @@
                             {{ selectedNode.summary }}
                         </p>
 
+                    </div>
+                    <div v-if="selectedNode.status || selectedNode.date" class="detail-section">
+                        <span v-if="selectedNode.status">Estado: {{ selectedNode.status }}</span>
+                        <span v-if="selectedNode.date">Fecha: {{ selectedNode.date }}</span>
+                    </div>
+                    <div v-if="selectedNode.description || selectedNode.excerpt" class="detail-section">
+                        <span class="detail-label">Descripción o referencia</span>
+                        <p>{{ selectedNode.description || selectedNode.excerpt }}</p>
+                    </div>
+                    <div v-if="selectedNode.document_id || selectedNode.page_start || selectedNode.section" class="detail-section">
+                        <span v-if="selectedNode.document_id">Documento: {{ selectedNode.document_id }}</span>
+                        <span v-if="selectedNode.page_start">Página: {{ selectedNode.page_start }}<template v-if="selectedNode.page_end && selectedNode.page_end !== selectedNode.page_start">–{{ selectedNode.page_end }}</template></span>
+                        <span v-if="selectedNode.section">Sección: {{ selectedNode.section }}</span>
+                    </div>
+                    <div v-if="availableSources(selectedNode.source_ids).length" class="detail-section">
+                        <span class="detail-label">Fuentes</span>
+                        <button v-for="sourceId in availableSources(selectedNode.source_ids)" :key="sourceId"
+                            type="button" @click="openSource(sourceId)">
+                            {{ sourceLabel(sourceId) }}
+                        </button>
                     </div>
 
 
@@ -569,6 +618,14 @@
                     </div>
 
                 </aside>
+                <aside v-if="selectedEdge" class="node-detail-panel">
+                    <button type="button" @click="selectedEdge = null" aria-label="Cerrar relación">×</button>
+                    <h3>{{ selectedEdge.label || selectedEdge.relation_type }}</h3>
+                    <p>{{ selectedEdge.relation_type }}</p>
+                    <p>{{ nodeTitle(selectedEdge.source) }} → {{ nodeTitle(selectedEdge.target) }}</p>
+                    <button v-for="sourceId in availableSources(selectedEdge.source_ids)" :key="sourceId"
+                        type="button" @click="openSource(sourceId)">{{ sourceLabel(sourceId) }}</button>
+                </aside>
 
             </div>
 
@@ -591,6 +648,7 @@
 
         </div>
 
+        <SourceModal :source="selectedSource" :case-id="caseId" @close="selectedSource = null" />
     </section>
 
 </template>
@@ -610,6 +668,7 @@ import {
 } from "vue"
 
 import * as d3 from "d3"
+import SourceModal from "../common/SourceModal.vue"
 
 
 /* ============================================================
@@ -625,6 +684,8 @@ const props = defineProps({
         default: () => ({})
 
     },
+    sources: { type: Array, default: () => [] },
+    caseId: { type: String, default: null },
 
     loading: {
 
@@ -654,6 +715,13 @@ const graphContainer = ref(null)
 const svgElement = ref(null)
 
 const selectedNode = ref(null)
+const selectedEdge = ref(null)
+const selectedSource = ref(null)
+const selectedTypes = ref([])
+const complexity = ref("essential")
+const query = ref("")
+const viewport = ref(d3.zoomIdentity)
+const positions = new Map()
 
 
 /* ============================================================
@@ -698,190 +766,62 @@ const categoryColors = {
 }
 
 
-const legendItems = [
-
-    {
-
-        key: "judicial",
-
-        label: "Órgano judicial",
-
-        color: categoryColors.judicial
-
-    },
-
-    {
-
-        key: "lawyer",
-
-        label: "Parte contraria / abogado",
-
-        color: categoryColors.lawyer
-
-    },
-
-    {
-
-        key: "prosecution",
-
-        label: "Parte promotora",
-
-        color: categoryColors.prosecution
-
-    },
-
-    {
-
-        key: "party",
-
-        label: "Parte procesal",
-
-        color: categoryColors.party
-
-    },
-
-    {
-
-        key: "evidence",
-
-        label: "Evidencia",
-
-        color: categoryColors.evidence
-
-    },
-
-    {
-
-        key: "norm",
-
-        label: "Norma / jurisprudencia",
-
-        color: categoryColors.norm
-
-    },
-
-    {
-
-        key: "argument",
-
-        label: "Argumento",
-
-        color: categoryColors.argument
-
-    },
-
-    {
-
-        key: "fact",
-
-        label: "Hecho / general",
-
-        color: categoryColors.fact
-
-    }
-
-]
-
-
-/* ============================================================
-   NORMALIZAR DATOS
-============================================================ */
-
-const normalizedNodes = computed(() => {
-
-    const nodes = props.graphData?.nodes
-
-    if (!Array.isArray(nodes)) {
-
-        return []
-
-    }
-
-    return nodes
-
-        .filter(node => node?.uuid)
-
-        .map(node => ({
-
-            ...node,
-
-            id: String(node.uuid)
-
-        }))
-
-})
-
+const visibleTypes = computed(() => [...new Set((props.graphData?.nodes || [])
+    .map(node => node?.entity_type).filter(Boolean))])
+const legendItems = computed(() => visibleTypes.value.map(type => ({
+    key: type, label: getNodeCategoryLabel({ entity_type: type }),
+    color: getNodeColor({ entity_type: type })
+})))
+const normalizedNodes = computed(() => (props.graphData?.nodes || [])
+    .filter(node => node?.node_id || node?.uuid)
+    .filter(node => !selectedTypes.value.includes(node.entity_type))
+    .filter(node => complexity.value === "complete" || node.importance === "core" ||
+        ["EVIDENCE", "LAW", "JURISPRUDENCE"].includes(node.entity_type))
+    .filter(node => !query.value || String(node.title || node.name || "")
+        .toLocaleLowerCase().includes(query.value.toLocaleLowerCase()))
+    .map(node => ({ ...node, id: String(node.node_id || node.uuid) })))
 
 const normalizedLinks = computed(() => {
-
-    const edges = props.graphData?.edges
-
-    if (!Array.isArray(edges)) {
-
-        return []
-
-    }
-
-    const validNodeIds = new Set(
-
-        normalizedNodes.value.map(node => node.id)
-
-    )
-
-    return edges
-
-        .filter(edge => {
-
-            const source = String(
-
-                edge?.source_node_uuid || ""
-
-            )
-
-            const target = String(
-
-                edge?.target_node_uuid || ""
-
-            )
-
-            return (
-
-                source &&
-                target &&
-                validNodeIds.has(source) &&
-                validNodeIds.has(target)
-
-            )
-
-        })
-
+    const ids = new Set(normalizedNodes.value.map(node => node.id))
+    return (props.graphData?.edges || [])
+        .filter(edge => ids.has(String(edge.source_node_id || edge.source_node_uuid)) &&
+            ids.has(String(edge.target_node_id || edge.target_node_uuid)))
         .map(edge => ({
-
             ...edge,
-
-            id: String(
-
-                edge.uuid ||
-
-                `${edge.source_node_uuid}-${edge.target_node_uuid}-${edge.name || ""}`
-
-            ),
-
-            source: String(edge.source_node_uuid),
-
-            target: String(edge.target_node_uuid)
-
+            id: String(edge.edge_id || edge.uuid),
+            source: String(edge.source_node_id || edge.source_node_uuid),
+            target: String(edge.target_node_id || edge.target_node_uuid)
         }))
-
 })
 
-
-const hasGraphData = computed(() =>
-
-    normalizedNodes.value.length > 0
-
-)
-
+const hasGraphData = computed(() => (props.graphData?.nodes || []).length > 0)
+const effectiveError = computed(() => props.error || (!hasGraphData.value &&
+    ["failed", "timeout"].includes(props.graphData?.status)
+    ? props.graphData?.message || "No se pudo completar el grafo." : ""))
+const sourceById = computed(() => new Map(props.sources
+    .filter(source => source?.source_id && (source.source_scope === "public" ||
+        source.source_scope === "case" && source.case_id === props.caseId))
+    .map(source => [source.source_id, source])))
+function availableSources(sourceIds) {
+    return (Array.isArray(sourceIds) ? sourceIds : []).filter(id => sourceById.value.has(id))
+}
+function sourceLabel(sourceId) {
+    const source = sourceById.value.get(sourceId)
+    return source ? `${source.title || "Fuente"}${source.page_start ? ` · pág. ${source.page_start}` : ""}` : "Fuente"
+}
+function nodeTitle(nodeId) {
+    const node = (props.graphData?.nodes || []).find(item =>
+        String(item.node_id || item.uuid) === String(nodeId?.id || nodeId))
+    return node?.title || node?.name || "Elemento no disponible"
+}
+function openSource(sourceId) {
+    selectedSource.value = sourceById.value.get(sourceId) || null
+}
+function toggleType(type) {
+    selectedTypes.value = selectedTypes.value.includes(type)
+        ? selectedTypes.value.filter(item => item !== type)
+        : [...selectedTypes.value, type]
+}
 
 /* ============================================================
    DETALLE DEL NODO
@@ -942,229 +882,34 @@ const selectedNodeConnectionCount = computed(() => {
    CLASIFICACIÓN
 ============================================================ */
 
-function getNodeText(node) {
-
-    return [
-
-        ...(Array.isArray(node?.labels)
-            ? node.labels
-            : []),
-
-        node?.name || "",
-
-        node?.summary || ""
-
-    ]
-
-        .join(" ")
-
-        .toLowerCase()
-
-}
-
-
 function getNodeCategory(node) {
-
-    const text = getNodeText(node)
-
-
-    if (
-
-        text.includes("juez") ||
-
-        text.includes("tribunal") ||
-
-        text.includes("corte") ||
-
-        text.includes("sala") ||
-
-        text.includes("magistrado") ||
-
-        text.includes("judicial")
-
-    ) {
-
-        return "judicial"
-
-    }
-
-
-    if (
-
-        text.includes("abogado") ||
-
-        text.includes("defensa") ||
-
-        text.includes("defensor")
-
-    ) {
-
-        return "lawyer"
-
-    }
-
-
-    if (
-
-        text.includes("fiscal") ||
-
-        text.includes("ministerio público") ||
-
-        text.includes("acusación")
-
-    ) {
-
-        return "prosecution"
-
-    }
-
-
-    if (
-
-        text.includes("demandante") ||
-
-        text.includes("demandado") ||
-
-        text.includes("imputado") ||
-
-        text.includes("acusado") ||
-
-        text.includes("agraviado") ||
-
-        text.includes("parte")
-
-    ) {
-
-        return "party"
-
-    }
-
-
-    if (
-
-        text.includes("evidencia") ||
-
-        text.includes("prueba") ||
-
-        text.includes("documento") ||
-
-        text.includes("pericia") ||
-
-        text.includes("testimonio")
-
-    ) {
-
-        return "evidence"
-
-    }
-
-
-    if (
-
-        text.includes("norma") ||
-
-        text.includes("ley") ||
-
-        text.includes("artículo") ||
-
-        text.includes("jurisprudencia") ||
-
-        text.includes("precedente") ||
-
-        text.includes("constitución")
-
-    ) {
-
-        return "norm"
-
-    }
-
-
-    if (
-
-        text.includes("argumento") ||
-
-        text.includes("pretensión") ||
-
-        text.includes("alegato")
-
-    ) {
-
-        return "argument"
-
-    }
-
-
-    if (
-
-        text.includes("hecho") ||
-
-        text.includes("evento") ||
-
-        text.includes("suceso")
-
-    ) {
-
-        return "fact"
-
-    }
-
-
+    const type = node?.entity_type
+    if (type === "PARTY") return node?.legal_role === "court" ? "judicial" : "party"
+    if (type === "EVIDENCE" || type === "DOCUMENT") return "evidence"
+    if (type === "LAW" || type === "JURISPRUDENCE") return "norm"
+    if (type === "ARGUMENT" || type === "COUNTERARGUMENT") return "argument"
+    if (type === "FACT" || type === "PROCEDURAL_ACT") return "fact"
     return "default"
-
 }
-
 
 function getNodeColor(node) {
-
-    return (
-
-        categoryColors[getNodeCategory(node)] ||
-
-        categoryColors.default
-
-    )
-
+    return categoryColors[getNodeCategory(node)] || categoryColors.default
 }
-
 
 function getNodeCategoryLabel(node) {
-
-    const category = getNodeCategory(node)
-
-
-    const labels = {
-
-        judicial: "ÓRGANO JUDICIAL",
-
-        lawyer: "DEFENSA / ABOGADO",
-
-        prosecution: "FISCALÍA",
-
-        party: "PARTE PROCESAL",
-
-        evidence: "EVIDENCIA",
-
-        norm: "NORMA / JURISPRUDENCIA",
-
-        argument: "ARGUMENTO",
-
-        fact: "HECHO / ELEMENTO",
-
-        default: "ELEMENTO DEL CASO"
-
-    }
-
-
-    return labels[category]
-
+    return ({
+        CASE: "CASO", PARTY: "PARTE", CLAIM: "PRETENSIÓN",
+        LEGAL_ISSUE: "PROBLEMA JURÍDICO", FACT: "HECHO",
+        EVIDENCE: "EVIDENCIA", DOCUMENT: "DOCUMENTO", LAW: "NORMA",
+        JURISPRUDENCE: "JURISPRUDENCIA", ARGUMENT: "ARGUMENTO",
+        COUNTERARGUMENT: "CONTRAARGUMENTO", RISK: "RIESGO",
+        PROCEDURAL_ACT: "ACTUACIÓN"
+    })[node?.entity_type] || "ELEMENTO DEL CASO"
 }
-
 
 /* ============================================================
    UTILIDADES DE COLOR
 ============================================================ */
-
 function hexToRgba(hex, alpha = 1) {
 
     const normalized = String(hex).replace("#", "")
@@ -1246,6 +991,12 @@ function renderGraph() {
     }
 
 
+    if (simulation) {
+        for (const node of simulation.nodes()) {
+            positions.set(node.id, { x: node.x, y: node.y })
+        }
+    }
+    if (currentSvg) viewport.value = d3.zoomTransform(currentSvg.node())
     destroyGraph()
 
 
@@ -1272,7 +1023,8 @@ function renderGraph() {
 
     const nodes = normalizedNodes.value.map(node => ({
 
-        ...node
+        ...node,
+        ...(positions.get(node.id) || {})
 
     }))
 
@@ -1387,6 +1139,7 @@ function renderGraph() {
 
 
     svg.call(zoomBehavior)
+    svg.call(zoomBehavior.transform, viewport.value)
 
 
     svg.on(
@@ -1436,6 +1189,12 @@ function renderGraph() {
             "graph-link"
 
         )
+        .on("click", (event, link) => {
+            event.stopPropagation()
+            selectedEdge.value = link
+        })
+    linkSelection.append("title")
+        .text(link => link.label || link.relation_type || "Relación")
 
 
     /* ========================================================
@@ -1920,6 +1679,9 @@ function renderGraph() {
         }
 
     )
+    if (selectedNode.value) {
+        updateSelectionStyles(nodeSelection, linkSelection, selectedNode.value.id)
+    }
 
 }
 
@@ -2223,7 +1985,15 @@ watch(
 
     async () => {
 
-        selectedNode.value = null
+        const id = selectedNode.value?.id
+        selectedNode.value = id
+            ? normalizedNodes.value.find(node => node.id === id) || null
+            : null
+        if (selectedEdge.value && !normalizedLinks.value.some(edge => edge.id === selectedEdge.value.id)) {
+            selectedEdge.value = null
+        } else if (selectedEdge.value) {
+            selectedEdge.value = normalizedLinks.value.find(edge => edge.id === selectedEdge.value.id)
+        }
 
         await nextTick()
 
@@ -2231,13 +2001,20 @@ watch(
 
     },
 
-    {
-
-        deep: true
-
-    }
+    { deep: false }
 
 )
+
+watch([selectedTypes, complexity, query], async () => {
+    if (selectedNode.value && !normalizedNodes.value.some(node => node.id === selectedNode.value.id)) {
+        selectedNode.value = null
+    }
+    if (selectedEdge.value && !normalizedLinks.value.some(edge => edge.id === selectedEdge.value.id)) {
+        selectedEdge.value = null
+    }
+    await nextTick()
+    renderGraph()
+})
 
 
 watch(
@@ -4809,4 +4586,15 @@ onBeforeUnmount(() => {
 
 }
 
+.graph-filters { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:12px 20px; color:#17324f; }
+.graph-filters label { display:inline-flex; align-items:center; gap:6px; font-size:.82rem; }
+.graph-filters input[type="search"], .graph-filters select { max-width:220px; padding:6px; border:1px solid #b9c8d7; border-radius:5px; }
+.graph-filters fieldset { display:flex; flex-wrap:wrap; gap:8px; border:1px solid #d7e0e8; border-radius:5px; }
+.graph-filters legend { font-size:.75rem; }
+.graph-notice { margin:10px 20px; padding:10px; background:#f8f4eb; color:#5a4732; border-left:3px solid #b08a4c; }
+.graph-text-list { padding:0 20px 10px; font-size:.82rem; }
+.graph-text-list ul { max-height:180px; overflow:auto; }
+.graph-text-list button, .detail-section button { border:0; background:transparent; color:#244c73; text-align:left; cursor:pointer; padding:4px; }
+.node-detail-panel { max-width:100%; }
+@media (max-width:700px) { .graph-main { display:block; } .node-detail-panel { width:100%; } }
 </style>

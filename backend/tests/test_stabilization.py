@@ -155,9 +155,10 @@ class AdapterTests(unittest.TestCase):
 
     def test_graph_uses_actual_builder_interface(self):
         builder = self.builder()
-        result = self.orchestrator(builder).build({'analysis':{'hechos':['A']}})
+        result = self.orchestrator(builder).build({
+            'case_id': 'CASE-A', 'facts': [{'fact_id': 'FACT-A', 'text': 'A', 'status': 'alleged'}]})
         self.assertEqual(result['status'], 'ready')
-        self.assertEqual(result['node_count'], 1)
+        self.assertEqual(result['node_count'], 2)
         builder.create_graph.assert_called_once()
         builder.set_ontology.assert_called_once()
         builder.add_text_batches.assert_called_once()
@@ -172,7 +173,9 @@ class AdapterTests(unittest.TestCase):
             return 'graph-A'
         builder.create_graph.side_effect = create
         with self.assertRaises(OperationCancelled):
-            self.orchestrator(builder).build({'analysis':{'hechos':['A']}}, cancellation_token=token)
+            self.orchestrator(builder).build({
+                'case_id': 'CASE-A', 'facts': [{'fact_id': 'FACT-A', 'text': 'A'}]},
+                cancellation_token=token)
         builder.set_ontology.assert_not_called()
 
     def test_simulation_timeout_stops_later_calls(self):

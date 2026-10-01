@@ -39,7 +39,7 @@ class FakeGraph:
     def __init__(self, status="ready"):
         self.status = status
 
-    def build_for_case(self, case_result, cancellation_token=None):
+    def build_for_case(self, case_result, cancellation_token=None, snapshot_callback=None):
         return {"status": self.status, "case_id": case_result["case_id"], "nodes": [], "edges": []}
 
 
@@ -112,6 +112,21 @@ class CourtProfessionalTests(unittest.TestCase):
                     self.assertEqual(result["court_report_document"]["sections"], [])
                     self.assertNotIn("claim_strategy", str(result["simulation"]))
 
+    def test_graph_snapshot_survives_provider_failure_without_losing_simulation(self):
+        pipeline, _ = self.pipeline()
+        def partial_then_fail(case_result, cancellation_token=None, snapshot_callback=None):
+            snapshot_callback({"status": "building", "case_id": case_result["case_id"],
+                "version": 1, "stage": "core_entities", "is_final": False,
+                "nodes": [{"node_id": "N-1", "entity_type": "CASE", "title": "Caso"}], "edges": []})
+            raise RuntimeError("provider private detail")
+        pipeline.graph_service.build_for_case = partial_then_fail
+        result = await_task(pipeline, pipeline.start("Relato", "CASE-A"))["final_result"]
+        self.assertEqual(result["graph"]["status"], "failed")
+        self.assertEqual(result["graph"]["version"], 2)
+        self.assertEqual(result["graph"]["nodes"][0]["node_id"], "N-1")
+        self.assertEqual(result["simulation"]["status"], "ready")
+        self.assertNotIn("private detail", str(result))
+
     def test_private_source_or_secondary_identity_mismatch_never_reaches_other_branch(self):
         pipeline, _ = self.pipeline()
         pipeline.case_service.analyze_case = Mock(return_value={"success": True, "case_id": "CASE-A",
@@ -128,7 +143,7 @@ class CourtProfessionalTests(unittest.TestCase):
 
     def test_cancel_after_graph_prevents_simulation(self):
         pipeline, _ = self.pipeline()
-        def cancel_during_graph(case_result, cancellation_token=None):
+        def cancel_during_graph(case_result, cancellation_token=None, snapshot_callback=None):
             cancellation_token.cancel()
             return {"status": "ready"}
         pipeline.graph_service.build_for_case = cancel_during_graph

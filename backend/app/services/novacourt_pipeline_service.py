@@ -102,8 +102,16 @@ class NovaCourtPipelineService:
             partial.update(deepcopy(result))
             if tool == "court":
                 timings = {}
+                def graph_snapshot(snapshot):
+                    check_cancelled(token)
+                    if snapshot.get("case_id") != case_id:
+                        raise ValueError("Graph snapshot case identity mismatch")
+                    with lock:
+                        partial["graph"] = deepcopy(snapshot)
+                    update("graph_build", "running")
                 for stage, field, action in (
-                    ("graph_build", "graph", lambda: self.graph_service.build_for_case(result, cancellation_token=token)),
+                    ("graph_build", "graph", lambda: self.graph_service.build_for_case(
+                        result, cancellation_token=token, snapshot_callback=graph_snapshot)),
                     ("simulation", "simulation", lambda: self.simulation_service.simulate_for_case(result, case_text, cancellation_token=token))):
                     update(stage, "running")
                     stage_started = perf_counter()
@@ -112,7 +120,16 @@ class NovaCourtPipelineService:
                     except OperationCancelled:
                         raise
                     except Exception:
-                        result[field] = (graph_result if field == "graph" else simulation_result)("failed", message="No fue posible completar esta etapa.")
+                        if field == "graph" and isinstance(partial.get("graph"), dict):
+                            previous = partial["graph"]
+                            result[field] = graph_result("failed", graph_id=previous.get("graph_id"),
+                                case_id=case_id, version=previous.get("version", 0) + 1,
+                                stage="failed", nodes=previous.get("nodes"), edges=previous.get("edges"),
+                                message="No fue posible completar esta etapa.",
+                                warnings=[{"code": "FAILED", "message": "Grafo parcial"}])
+                        else:
+                            result[field] = (graph_result if field == "graph" else simulation_result)(
+                                "failed", message="No fue posible completar esta etapa.")
                     check_cancelled(token)
                     timings[stage] = round((perf_counter() - stage_started) * 1000)
                     if not isinstance(result[field], dict) or result[field].get("status") not in {
