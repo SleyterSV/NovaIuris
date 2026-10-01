@@ -656,6 +656,11 @@ const reportContent = computed(() => (result.value?.court_report_document?.secti
 
 const graphData = ref(normalizeGraphState(null))
 watch(() => result.value?.graph, graph => {
+    if (graph && graph.version > 0 && graph.graph_id &&
+        graph.case_id === graphData.value?.case_id &&
+        graph.graph_id === graphData.value?.graph_id &&
+        graph.version === graphData.value?.version &&
+        graph.status === graphData.value?.status) return
     graphData.value = graph
         ? normalizeGraphState(graph, graphData.value)
         : normalizeGraphState(null)

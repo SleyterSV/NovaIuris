@@ -1051,6 +1051,7 @@ class GraphBuilderService:
         completed_count = 0
 
         total_episodes = len(pending_episodes)
+        self.last_poll_count = 0
 
 
         if progress_callback:
@@ -1107,6 +1108,7 @@ class GraphBuilderService:
 
                 try:
 
+                    self.last_poll_count += 1
                     episode = self.client.graph.episode.get(
                         uuid_=episode_uuid
                     )

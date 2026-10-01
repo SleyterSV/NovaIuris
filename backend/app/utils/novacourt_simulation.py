@@ -49,23 +49,6 @@ def build_simulation_context(
                (item.get("source_scope") != "case" or item.get("case_id") == source.get("case_id"))]
     for item in {entry["source_id"]: entry for entry in sources}.values():
         sections.append(f"[{item['source_id']}] {item.get('title') or ''}\n{item.get('excerpt') or ''}")
-    graph = _as_dict(source.get("graph"))
-    if graph.get("status") == "ready":
-        graph_context = {
-            "graph_id": graph.get("graph_id"),
-            "nodes": (
-                graph.get("nodes", [])[:50]
-                if isinstance(graph.get("nodes"), list) else []
-            ),
-            "edges": (
-                graph.get("edges", [])[:75]
-                if isinstance(graph.get("edges"), list) else []
-            ),
-        }
-        sections.append(
-            "Grafo jurídico disponible:\n"
-            + json.dumps(graph_context, ensure_ascii=False, default=str, indent=2)
-        )
 
     return "\n\n".join(sections).strip()
 
@@ -152,6 +135,7 @@ class NovaCourtSimulationOrchestrator:
             future = executor.submit(self._run_simulation, context, token, roles)
             output = future.result(timeout=self.timeout)
             result = normalize_simulator_output(output)
+            result["metadata"]["context_characters"] = len(context)
             result["case_id"] = case_result.get("case_id")
             result["prosecutor"]["role_label"] = roles["position_a"]
             result["defense"]["role_label"] = roles["position_b"]

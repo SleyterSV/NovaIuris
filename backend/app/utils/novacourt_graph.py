@@ -270,6 +270,8 @@ class NovaCourtGraphOrchestrator:
         started = time.monotonic()
         token = CancellationToken(parent=cancellation_token, timeout=self.timeout)
         graph_id, snapshot, batch_count = None, None, 0
+        operation_count, input_characters = 0, 0
+        poll_count = 0
         try:
             token.check()
             contract = build_graph_input(case_result)
@@ -284,8 +286,10 @@ class NovaCourtGraphOrchestrator:
             builder = self.builder_factory()
             token.check()
             graph_id = builder.create_graph("NovaCourt Legal Analysis")
+            operation_count += 1
             token.check()
             builder.set_ontology(graph_id, LEGAL_ONTOLOGY)
+            operation_count += 1
             records = [{"entity_type": n["entity_type"], "node_id": n["node_id"],
                         "title": n["title"], "source_ids": n["source_ids"]} for n in entities]
             records += [{"relation_type": e["relation_type"],
@@ -295,9 +299,11 @@ class NovaCourtGraphOrchestrator:
             episodes = [json.dumps(item, ensure_ascii=False, separators=(",", ":"))
                         for item in records]
             batch_count = (len(episodes) + self.batch_size - 1) // self.batch_size
+            input_characters = sum(map(len, episodes))
             token.check()
             episode_ids = builder.add_text_batches(graph_id, episodes, self.batch_size,
                                                    cancellation_token=token)
+            operation_count += batch_count
             token.check()
             remaining = max(0, self.timeout - (time.monotonic() - started))
             if not remaining:
@@ -305,14 +311,20 @@ class NovaCourtGraphOrchestrator:
             builder._wait_for_episodes(episode_ids, timeout=remaining,
                                        poll_interval=self.poll_interval,
                                        cancellation_token=token)
+            poll_count = getattr(builder, "last_poll_count", 0)
             token.check()
             # Fetch once to verify Zep completion. Its extraction is not documentary authority.
             builder.get_graph_data(graph_id, cancellation_token=token)
+            operation_count += 1
             token.check()
             return graph_result("ready", graph_id=graph_id, case_id=case_id, version=2,
                                 stage="completed", nodes=entities, edges=relations,
                                 metadata={"graph_build_duration_ms": round((time.monotonic()-started)*1000),
-                                          "snapshot_count": 2, "batch_count": batch_count})
+                                          "snapshot_count": 2,
+                                          "batch_count": batch_count, "episode_count": len(episodes),
+                                          "input_characters": input_characters,
+                                          "poll_count": poll_count,
+                                          "operation_count": operation_count})
         except OperationCancelled:
             if cancellation_token is not None and cancellation_token.is_cancelled():
                 raise
@@ -326,4 +338,7 @@ class NovaCourtGraphOrchestrator:
                             edges=snapshot["edges"] if snapshot else [], message=message,
                             warnings=[{"code": status.upper(), "message": "Grafo parcial"}] if snapshot else [],
                             metadata={"graph_build_duration_ms": round((time.monotonic()-started)*1000),
-                                      "snapshot_count": 1 if snapshot else 0, "batch_count": batch_count})
+                                      "snapshot_count": 1 if snapshot else 0,
+                                      "batch_count": batch_count, "input_characters": input_characters,
+                                      "poll_count": poll_count,
+                                      "operation_count": operation_count})

@@ -65,7 +65,7 @@ class NovaCourtSimulationTests(unittest.TestCase):
         self.assertEqual(result["defense"]["role_label"], "Parte demandada")
         self.assertEqual(result["metadata"]["metrics"], {})
         self.assertEqual(result["metadata"]["session_id"], "audiencia-1")
-        self.assertIn("Grafo jurídico disponible", simulator.context)
+        self.assertNotIn("Grafo jurídico disponible", simulator.context)
         self.assertIn("Argumentos", simulator.context)
         self.assertNotIn("internal_only", simulator.context)
 

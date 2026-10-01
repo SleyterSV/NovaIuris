@@ -1,6 +1,7 @@
 """Process-local jobs; every new task has an explicit, isolated case identity."""
 import threading
 import re
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from time import perf_counter
 from uuid import uuid4
 from copy import deepcopy
@@ -79,6 +80,7 @@ class NovaCourtPipelineService:
                                      "progress_kind": "completed_stages"})
         try:
             started = perf_counter()
+            case_started = started
             if reused_result:
                 result = reused_result
                 for stage, _ in CASE_STAGES:
@@ -101,50 +103,78 @@ class NovaCourtPipelineService:
             warnings.extend(result.get("warnings", []))
             partial.update(deepcopy(result))
             if tool == "court":
-                timings = {}
+                timings = {"case": round((perf_counter() - case_started) * 1000)}
+                snapshot_version = -1
                 def graph_snapshot(snapshot):
+                    nonlocal snapshot_version
                     check_cancelled(token)
                     if snapshot.get("case_id") != case_id:
                         raise ValueError("Graph snapshot case identity mismatch")
                     with lock:
+                        version = snapshot.get("version", 0)
+                        if version <= snapshot_version:
+                            return
+                        snapshot_version = version
                         partial["graph"] = deepcopy(snapshot)
-                    update("graph_build", "running")
-                for stage, field, action in (
-                    ("graph_build", "graph", lambda: self.graph_service.build_for_case(
-                        result, cancellation_token=token, snapshot_callback=graph_snapshot)),
-                    ("simulation", "simulation", lambda: self.simulation_service.simulate_for_case(result, case_text, cancellation_token=token))):
-                    update(stage, "running")
-                    stage_started = perf_counter()
-                    try:
-                        result[field] = action()
-                    except OperationCancelled:
-                        raise
-                    except Exception:
-                        if field == "graph" and isinstance(partial.get("graph"), dict):
-                            previous = partial["graph"]
-                            result[field] = graph_result("failed", graph_id=previous.get("graph_id"),
-                                case_id=case_id, version=previous.get("version", 0) + 1,
-                                stage="failed", nodes=previous.get("nodes"), edges=previous.get("edges"),
-                                message="No fue posible completar esta etapa.",
-                                warnings=[{"code": "FAILED", "message": "Grafo parcial"}])
-                        else:
-                            result[field] = (graph_result if field == "graph" else simulation_result)(
-                                "failed", message="No fue posible completar esta etapa.")
-                    check_cancelled(token)
-                    timings[stage] = round((perf_counter() - stage_started) * 1000)
-                    if not isinstance(result[field], dict) or result[field].get("status") not in {
-                            "ready", "failed", "timeout", "not_requested"}:
-                        result[field] = (graph_result if field == "graph" else simulation_result)(
-                            "failed", message="La etapa no produjo un resultado válido.")
-                    if result[field].get("case_id") not in (None, case_id):
-                        result[field] = (graph_result if field == "graph" else simulation_result)("failed", message="Identidad de caso no válida.")
-                    result[field]["case_id"] = case_id
-                    status = result[field]["status"]
-                    if status in {"failed", "timeout"}:
-                        warnings.append({"stage": stage, "code": status, "message": "El análisis principal permanece disponible."})
-                    partial.update(deepcopy(result))
-                    update(stage, "completed" if status == "ready" else "skipped" if status == "not_requested" else "failed")
+                        update("graph_build", "running")
+                # Both branches only read the normalized CaseResult. Neither receives
+                # the mutable aggregate that the coordinator publishes to TaskManager.
+                branches = (
+                    ("graph_build", "graph", lambda input_result: self.graph_service.build_for_case(
+                        input_result, cancellation_token=token, snapshot_callback=graph_snapshot)),
+                    ("simulation", "simulation", lambda input_result: self.simulation_service.simulate_for_case(
+                        input_result, case_text, cancellation_token=token)))
+                executor = ThreadPoolExecutor(max_workers=2)
+                pending = {}
+                try:
+                    for stage, field, action in branches:
+                        check_cancelled(token)
+                        branch_input = deepcopy(result)
+                        started_branch = perf_counter()
+                        future = executor.submit(action, branch_input)
+                        pending[future] = (stage, field, started_branch)
+                        update(stage, "running")
+                    while pending:
+                        check_cancelled(token)
+                        completed, _ = wait(pending, timeout=0.05, return_when=FIRST_COMPLETED)
+                        for future in completed:
+                            stage, field, started_branch = pending.pop(future)
+                            try:
+                                value = future.result()
+                            except OperationCancelled:
+                                raise
+                            except Exception:
+                                value = None
+                            check_cancelled(token)
+                            timings[stage] = round((perf_counter() - started_branch) * 1000)
+                            if not isinstance(value, dict) or value.get("status") not in {
+                                    "ready", "failed", "timeout", "not_requested"}:
+                                if field == "graph" and isinstance(partial.get("graph"), dict):
+                                    previous = partial["graph"]
+                                    value = graph_result("failed", graph_id=previous.get("graph_id"),
+                                        case_id=case_id, version=previous.get("version", 0) + 1,
+                                        stage="failed", nodes=previous.get("nodes"), edges=previous.get("edges"),
+                                        message="No fue posible completar esta etapa.",
+                                        warnings=[{"code": "FAILED", "message": "Grafo parcial"}])
+                                else:
+                                    value = (graph_result if field == "graph" else simulation_result)(
+                                        "failed", message="No fue posible completar esta etapa.")
+                            if value.get("case_id") not in (None, case_id):
+                                value = (graph_result if field == "graph" else simulation_result)(
+                                    "failed", message="Identidad de caso no válida.")
+                            value["case_id"] = case_id
+                            result[field] = value
+                            status = value["status"]
+                            if status in {"failed", "timeout"}:
+                                warnings.append({"stage": stage, "code": status,
+                                                 "message": "El análisis principal permanece disponible."})
+                            partial[field] = deepcopy(value)
+                            update(stage, "completed" if status == "ready" else
+                                   "skipped" if status == "not_requested" else "failed")
+                finally:
+                    executor.shutdown(wait=False, cancel_futures=True)
                 update("court_citations", "running")
+                citation_started = perf_counter()
                 simulation = result["simulation"]
                 citation_failed = False
                 if simulation["status"] != "ready":
@@ -203,6 +233,17 @@ class NovaCourtPipelineService:
                 result.setdefault("metadata", {}).update({"case_reused": bool(reused_result), "graph_status": result["graph"]["status"],
                     "simulation_status": simulation["status"], "sources_count": len(simulation.get("sources", [])),
                     "citations_count": len(simulation.get("citations", [])), "court_timings_ms": timings,
+                    "case_duration_ms": timings["case"], "graph_duration_ms": timings["graph_build"],
+                    "simulation_duration_ms": timings["simulation"],
+                    "citation_duration_ms": round((perf_counter() - citation_started) * 1000),
+                    "simulation_provider_call_count": simulation.get("metadata", {}).get("provider_call_count"),
+                    "graph_operation_count": result["graph"].get("metadata", {}).get("operation_count"),
+                    "graph_poll_count": result["graph"].get("metadata", {}).get("poll_count"),
+                    "graph_snapshot_count": result["graph"].get("metadata", {}).get("snapshot_count"),
+                    "simulation_context_characters": simulation.get("metadata", {}).get("context_characters"),
+                    "graph_input_characters": result["graph"].get("metadata", {}).get("input_characters"),
+                    "case_source_count": sum(1 for source in result.get("sources", [])
+                                             if isinstance(source, dict) and source.get("source_scope") == "case"),
                     "court_total_duration_ms": round((perf_counter() - started) * 1000)})
                 result["warnings"] = list(warnings)
                 partial.update(deepcopy(result))
