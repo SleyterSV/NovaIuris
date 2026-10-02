@@ -22,13 +22,13 @@ COURT_STAGES = (("graph_build", "Grafo jurídico"), ("simulation", "Simulación 
                 ("court_citations", "Verificación de citas"))
 
 class NovaCourtPipelineService:
-    def __init__(self, case_service, graph_service, simulation_service):
+    def __init__(self, case_service, graph_service, simulation_service, task_manager=None):
         self.case_service = case_service
         self.graph_service = graph_service
         self.simulation_service = simulation_service
-        self.tasks = TaskManager()
+        self.tasks = task_manager or TaskManager()
 
-    def start(self, case_text, case_id=None, tool="court", document_ids=None, reuse_task_id=None):
+    def start(self, case_text, case_id=None, tool="court", document_ids=None, reuse_task_id=None, owner_id=None):
         case_id = case_id or str(uuid4())
         self.tasks.cleanup_old_tasks()
         previous = None
@@ -36,13 +36,14 @@ class NovaCourtPipelineService:
             previous = self.tasks.get_task(reuse_task_id)
             if (tool != "court" or previous is None or previous.task_type != "legal_analysis"
                     or previous.status != TaskStatus.COMPLETED or previous.metadata.get("tool") != "case"
+                    or previous.metadata.get("owner_id") != owner_id
                     or previous.metadata.get("case_id") != case_id or not isinstance(previous.result, dict)
                     or not previous.result.get("success") or previous.result.get("case_id") != case_id
                     or previous.result.get("case") != case_text
                     or set(previous.result.get("document_ids") or []) != set(document_ids or [])):
                 raise ValueError("El análisis previo no corresponde al caso y documentos solicitados.")
         task_id = self.tasks.create_task("legal_analysis", {"case_id": case_id, "tool": tool,
-            "document_ids": list(document_ids or []), "reuse_task_id": reuse_task_id, "owner": None})
+            "document_ids": list(document_ids or []), "reuse_task_id": reuse_task_id, "owner_id": owner_id})
         reused_result = deepcopy(previous.result) if previous else None
         threading.Thread(target=self._run, args=(task_id, case_text, reused_result), daemon=True).start()
         return task_id
@@ -54,6 +55,7 @@ class NovaCourtPipelineService:
         data = task.to_dict()
         detail = data["progress_detail"]
         data.update(case_id=data["metadata"]["case_id"], tool=data["metadata"]["tool"],
+                    owner_id=data["metadata"].get("owner_id"),
                     stage=detail.get("current_stage"), stages=detail.get("stages", []),
                     partial_result=detail.get("partial_result", {}), final_result=data["result"],
                     warnings=detail.get("warnings", []))

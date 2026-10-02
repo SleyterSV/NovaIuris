@@ -1,11 +1,12 @@
 import { API_URL } from '../config/api.js'
+import { authHeaders, publicApiError } from '../config/authSession.js'
 import { normalizeCaseResult } from '../utils/caseContract.js'
 export async function requestJson(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
-    ...options, headers: { 'Content-Type': 'application/json', ...options.headers }
+    ...options, headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options.headers }
   })
   const data = await response.json()
-  if (!response.ok || data.success === false) throw new Error(data.error?.message || data.message || 'No fue posible completar la solicitud.')
+  if (!response.ok || data.success === false) throw publicApiError(response, data)
   return data
 }
 function pause(signal, milliseconds) {
@@ -39,7 +40,7 @@ export async function runAnalysisTask(tool, text, options = {}) {
         if (task.final_result?.case_id !== caseId) throw new Error('El resultado no corresponde al caso enviado.')
         return normalizeCaseResult(task.final_result)
       }
-      if (task.status === 'failed' || task.status === 'cancelled') throw new Error(task.error?.message || 'No fue posible completar el análisis.')
+      if (['failed', 'cancelled', 'interrupted'].includes(task.status)) throw new Error(task.error?.message || 'No fue posible completar el análisis.')
       await pause(options.signal, options.pollInterval ?? 1500)
     }
   } catch (error) {

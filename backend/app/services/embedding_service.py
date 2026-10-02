@@ -7,7 +7,7 @@ import logging
 from typing import List
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import OpenAI, APIStatusError, APITimeoutError, APIConnectionError
 
 
 load_dotenv()
@@ -16,6 +16,16 @@ load_dotenv()
 logger = logging.getLogger(
     "NovaIuris.Embedding"
 )
+
+
+def retryable_provider_error(error):
+    if isinstance(error, (APITimeoutError, APIConnectionError, TimeoutError)):
+        return True
+    return isinstance(error, APIStatusError) and error.status_code in {408, 409, 429, 500, 502, 503, 504}
+
+
+def bounded_attempts(requested):
+    return max(1, min(int(requested), 3))
 
 
 class EmbeddingService:
@@ -240,6 +250,7 @@ class EmbeddingService:
         last_error = None
 
 
+        retries = bounded_attempts(retries)
         for attempt in range(
             1,
             retries + 1
@@ -322,12 +333,12 @@ class EmbeddingService:
 
                     retries,
 
-                    error
+                    type(error).__name__
 
                 )
 
 
-                if attempt < retries:
+                if attempt < retries and retryable_provider_error(error):
 
                     delay = 2 ** (
                         attempt - 1
@@ -336,6 +347,9 @@ class EmbeddingService:
                     time.sleep(
                         delay
                     )
+                    check_cancelled(cancellation_token)
+                else:
+                    break
 
 
         logger.error(
@@ -343,15 +357,14 @@ class EmbeddingService:
             "No fue posible generar el embedding "
             "después de %s intentos.",
 
-            retries
+            attempt
 
         )
 
 
         raise RuntimeError(
 
-            "Error generando embedding: "
-            f"{last_error}"
+            "No fue posible generar el embedding."
 
         ) from last_error
 
@@ -456,6 +469,7 @@ class EmbeddingService:
         last_error = None
 
 
+        retries = bounded_attempts(retries)
         for attempt in range(
             1,
             retries + 1
@@ -557,12 +571,12 @@ class EmbeddingService:
                     "Error generando embeddings "
                     "en lote: %s",
 
-                    error
+                    type(error).__name__
 
                 )
 
 
-                if attempt < retries:
+                if attempt < retries and retryable_provider_error(error):
 
                     delay = 2 ** (
                         attempt - 1
@@ -571,12 +585,14 @@ class EmbeddingService:
                     time.sleep(
                         delay
                     )
+                    check_cancelled(cancellation_token)
+                else:
+                    break
 
 
         raise RuntimeError(
 
-            "Error generando embeddings en lote: "
-            f"{last_error}"
+            "No fue posible generar los embeddings."
 
         ) from last_error
 

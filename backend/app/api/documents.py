@@ -8,6 +8,8 @@ from pathlib import Path
 from flask import Blueprint, current_app, jsonify, g, request
 from ..services.case_corpus import CaseCorpusRepository, DocumentError, DocumentIngestionService, safe_filename
 from ..utils.api_response import api_error
+from ..services.runtime_security import owns_case
+from ..services.runtime_security import authenticated_user_id
 
 documents_bp = Blueprint("case_documents", __name__)
 CASE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
@@ -18,8 +20,8 @@ def corpus_repository():
         factory = current_app.config.get("CASE_CORPUS_REPOSITORY_FACTORY")
         current_app.extensions["case_corpus_repository"] = (
             factory() if factory else CaseCorpusRepository(current_app.config["CASE_CORPUS_DB_PATH"]))
-        current_app.extensions["case_corpus_repository"].purge_expired(
-            current_app.config["CASE_CORPUS_RETENTION_DAYS"])
+        # Corpus deletion requires an explicit lifecycle operation; age alone
+        # must not silently delete private source material at first request.
     return current_app.extensions["case_corpus_repository"]
 
 
@@ -50,6 +52,11 @@ def _valid_case_id(case_id):
 
 @documents_bp.route("/cases/<case_id>/documents", methods=["POST"])
 def upload_documents(case_id):
+    if not owns_case(case_id, create=True):
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
+    existing_manager = current_app.extensions.get('document_task_manager')
+    if existing_manager and existing_manager.active_count(authenticated_user_id()) >= current_app.config['ACTIVE_TASKS_PER_USER']:
+        return api_error('RATE_LIMITED', 'Hay demasiadas tareas activas.', g.request_id, 429)
     if not _valid_case_id(case_id):
         return api_error("INVALID_CASE_ID", "El identificador de caso no es válido.", g.request_id, 400)
     files = request.files.getlist("files") or ([request.files["file"]] if "file" in request.files else [])
@@ -93,10 +100,12 @@ def upload_documents(case_id):
             from ..services.document_tasks import DocumentTaskManager
             manager = current_app.extensions["document_task_manager"] = (
                 factory() if factory else DocumentTaskManager(
-                    current_app.config["DOCUMENT_STAGING_MAX_AGE_SECONDS"]
+                    current_app.config["DOCUMENT_STAGING_MAX_AGE_SECONDS"],
+                    repository=current_app.extensions.get('document_task_repository')
                 )
             )
-        task_id = manager.start(case_id, staged, service, staging_directory, replacement_id)
+        task_id = manager.start(case_id, staged, service, staging_directory, replacement_id,
+                                owner_id=authenticated_user_id())
         return jsonify(success=True, case_id=case_id, task_id=task_id, status="queued",
                        total_documents=len(staged)), 202
     except DocumentError as error:
@@ -111,17 +120,22 @@ def upload_documents(case_id):
 
 @documents_bp.route("/cases/<case_id>/document-tasks/<task_id>", methods=["GET"])
 def document_task_status(case_id, task_id):
+    if not owns_case(case_id):
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
     if not _valid_case_id(case_id):
         return api_error("INVALID_CASE_ID", "El identificador de caso no es válido.", g.request_id, 400)
     manager = current_app.extensions.get("document_task_manager")
-    task = manager.status(case_id, task_id) if manager else None
+    task = manager.status(case_id, task_id, authenticated_user_id()) if manager else None
     if task is None:
         return api_error("TASK_NOT_FOUND", "No se encontró la tarea documental de este caso.", g.request_id, 404)
+    task.pop('owner_id', None)
     return jsonify(success=True, **task)
 
 
 @documents_bp.route("/cases/<case_id>/documents", methods=["GET"])
 def list_documents(case_id):
+    if not owns_case(case_id):
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
     if not _valid_case_id(case_id):
         return api_error("INVALID_CASE_ID", "El identificador de caso no es válido.", g.request_id, 400)
     return jsonify(success=True, case_id=case_id, documents=corpus_repository().list_documents(case_id))
@@ -129,6 +143,8 @@ def list_documents(case_id):
 
 @documents_bp.route("/cases/<case_id>/documents/<document_id>/chunks/<chunk_id>", methods=["GET"])
 def get_document_chunk(case_id, document_id, chunk_id):
+    if not owns_case(case_id):
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
     if not _valid_case_id(case_id):
         return api_error("INVALID_CASE_ID", "El identificador de caso no es válido.", g.request_id, 400)
     chunk = corpus_repository().get_chunk(case_id, document_id, chunk_id)
@@ -139,6 +155,8 @@ def get_document_chunk(case_id, document_id, chunk_id):
 
 @documents_bp.route("/cases/<case_id>/documents/<document_id>", methods=["GET"])
 def get_document(case_id, document_id):
+    if not owns_case(case_id):
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
     if not _valid_case_id(case_id):
         return api_error("INVALID_CASE_ID", "El identificador de caso no es válido.", g.request_id, 400)
     manifest = next((doc for doc in corpus_repository().list_documents(case_id)
@@ -150,6 +168,8 @@ def get_document(case_id, document_id):
 
 @documents_bp.route("/cases/<case_id>/documents/<document_id>", methods=["DELETE"])
 def delete_document(case_id, document_id):
+    if not owns_case(case_id):
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
     if not _valid_case_id(case_id):
         return api_error("INVALID_CASE_ID", "El identificador de caso no es válido.", g.request_id, 400)
     deleted = corpus_repository().delete_document(case_id, document_id)

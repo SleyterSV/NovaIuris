@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify, current_app, g
 from ..utils.api_response import api_error
 from ..utils.case_contract import normalize_case_result
 from ..services.novacourt_pipeline_service import NovaCourtPipelineService
+from ..services.runtime_security import owns_case, authenticated_user_id
 
 case_bp = Blueprint('case', __name__)
 
@@ -21,8 +22,17 @@ def services():
 def pipeline():
     with _pipeline_lock:
         if 'legal_pipeline' not in current_app.extensions:
-            current_app.extensions['legal_pipeline'] = NovaCourtPipelineService(*services())
+            current_app.extensions['legal_pipeline'] = NovaCourtPipelineService(
+                *services(), task_manager=current_app.extensions.get('task_manager'))
     return current_app.extensions['legal_pipeline']
+
+
+def public_task(data):
+    payload = dict(data)
+    payload.pop('owner_id', None)
+    payload['metadata'] = {key: value for key, value in (payload.get('metadata') or {}).items()
+                           if key != 'owner_id'}
+    return payload
 
 def input_case():
     data = request.get_json(silent=True)
@@ -50,6 +60,8 @@ def analyze_case():
         text, case_id, _ = input_case()
     except ValueError as error:
         return api_error('INVALID_CASE', str(error), g.request_id, 400)
+    if not owns_case(case_id, create=True):
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
     service, _, _ = services()
     result = normalize_case_result(service.analyze_case(text, case_id=case_id))
     if not result.get('success'):
@@ -65,14 +77,19 @@ def start_analysis():
         text, case_id, document_ids = input_case()
     except ValueError as error:
         return api_error('INVALID_CASE', str(error), g.request_id, 400)
+    if not owns_case(case_id, create=True):
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
     tool = 'court' if request.path.endswith('/novacourt/analyze') else 'case'
     manager = pipeline()
+    if manager.tasks.active_count(authenticated_user_id()) >= current_app.config['ACTIVE_TASKS_PER_USER']:
+        return api_error('RATE_LIMITED', 'Hay demasiadas tareas activas.', g.request_id, 429)
     reuse_task_id = (request.get_json(silent=True) or {}).get('reuse_task_id')
     if reuse_task_id is not None and (tool != 'court' or not isinstance(reuse_task_id, str) or
                                       not re.fullmatch(r'[a-f0-9-]{36}', reuse_task_id)):
         return api_error('INVALID_CASE', 'La referencia al análisis previo no es válida.', g.request_id, 400)
     try:
         task_id = manager.start(text, case_id=case_id, tool=tool, document_ids=document_ids,
+                                owner_id=authenticated_user_id(),
                                 reuse_task_id=reuse_task_id)
     except ValueError as error:
         return api_error('CASE_MISMATCH', str(error), g.request_id, 409)
@@ -83,9 +100,9 @@ def start_analysis():
 def task_status(task_id):
     data = pipeline().status(task_id)
     case_id = request.args.get('case_id')
-    if not data or not case_id or data['case_id'] != case_id:
+    if not data or not case_id or data['case_id'] != case_id or not owns_case(case_id) or data.get('owner_id') != authenticated_user_id():
         return api_error('TASK_NOT_FOUND', 'No se encontró la tarea.', g.request_id, 404)
-    return jsonify(success=True, **data)
+    return jsonify(success=True, **public_task(data))
 
 @case_bp.route('/tasks/<task_id>/cancel', methods=['POST'])
 def cancel_task(task_id):
@@ -93,7 +110,7 @@ def cancel_task(task_id):
     data = manager.status(task_id)
     payload = request.get_json(silent=True)
     case_id = payload.get('case_id') if isinstance(payload, dict) else None
-    if not data or not case_id or data['case_id'] != case_id:
+    if not data or not case_id or data['case_id'] != case_id or not owns_case(case_id) or data.get('owner_id') != authenticated_user_id():
         return api_error('TASK_NOT_FOUND', 'No se encontró la tarea.', g.request_id, 404)
     manager.tasks.cancel_task(task_id)
-    return jsonify(success=True, **manager.status(task_id))
+    return jsonify(success=True, **public_task(manager.status(task_id)))

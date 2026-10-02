@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "../config/api.js"
 import axios from 'axios'
+import { authHeaders, publicApiError } from '../config/authSession.js'
 import i18n from '../i18n'
 
 // 创建axios实例
@@ -15,10 +16,10 @@ const service = axios.create({
 service.interceptors.request.use(
   config => {
     config.headers['Accept-Language'] = i18n.global.locale.value
+    Object.assign(config.headers, authHeaders())
     return config
   },
   error => {
-    console.error('Request error:', error)
     return Promise.reject(error)
   }
 )
@@ -30,26 +31,15 @@ service.interceptors.response.use(
     
     // 如果返回的状态码不是success，则抛出错误
     if (!res.success && res.success !== undefined) {
-      console.error('API Error:', res.error || res.message || 'Unknown error')
-      return Promise.reject(new Error(res.error || res.message || 'Error'))
+      return Promise.reject(publicApiError(response, res))
     }
     
     return res
   },
   error => {
-    console.error('Response error:', error)
-    
-    // 处理超时
-    if (error.code === 'ECONNABORTED' && error.message.includes('timeout')) {
-      console.error('Request timeout')
-    }
-    
-    // 处理网络错误
-    if (error.message === 'Network Error') {
-      console.error('Network error - please check your connection')
-    }
-    
-    return Promise.reject(error)
+    return Promise.reject(error.response
+      ? publicApiError(error.response, error.response.data)
+      : new Error('No fue posible conectar con el servicio.'))
   }
 )
 

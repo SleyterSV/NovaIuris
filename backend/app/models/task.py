@@ -22,6 +22,7 @@ class TaskStatus(str, Enum):
     COMPLETED = "completed"      # 已完成
     CANCELLED = "cancelled"
     FAILED = "failed"            # 失败
+    INTERRUPTED = "interrupted"
 
 
 @dataclass
@@ -38,6 +39,7 @@ class Task:
     error: Optional[str] = None    # 错误信息
     metadata: Dict = field(default_factory=dict)  # 额外元数据
     progress_detail: Dict = field(default_factory=dict)  # 详细进度信息
+    finished_at: Optional[datetime] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典"""
@@ -47,6 +49,7 @@ class Task:
             "status": self.status.value,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
+            "finished_at": self.finished_at.isoformat() if self.finished_at else None,
             "progress": self.progress,
             "message": self.message,
             "progress_detail": self.progress_detail,
@@ -62,19 +65,24 @@ class TaskManager:
     线程安全的任务状态管理
     """
     
-    _instance = None
-    _lock = threading.Lock()
-    
-    def __new__(cls):
-        """单例模式"""
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = super().__new__(cls)
-                    cls._instance._tasks: Dict[str, Task] = {}
-                    cls._instance._cancellations = {}
-                    cls._instance._task_lock = threading.Lock()
-        return cls._instance
+    def __init__(self, repository=None):
+        self._tasks: Dict[str, Task] = {}
+        self._cancellations = {}
+        self._task_lock = threading.Lock()
+        self.repository = repository
+        if repository:
+            repository.interrupt_active()
+            for raw in repository.load_all():
+                task = Task(task_id=raw['task_id'], task_type=raw['task_type'],
+                    status=TaskStatus(raw['status']),
+                    created_at=datetime.fromisoformat(raw['created_at']),
+                    updated_at=datetime.fromisoformat(raw['updated_at']),
+                    progress=raw.get('progress', 0), message=raw.get('message', ''),
+                    result=raw.get('result'), error=raw.get('error'),
+                    metadata=raw.get('metadata') or {},
+                    progress_detail=raw.get('progress_detail') or {})
+                task.finished_at = datetime.fromisoformat(raw['finished_at']) if raw.get('finished_at') else None
+                self._tasks[task.task_id] = task
     
     def create_task(self, task_type: str, metadata: Optional[Dict] = None) -> str:
         """
@@ -87,6 +95,8 @@ class TaskManager:
         Returns:
             任务ID
         """
+        if self.repository and not (metadata or {}).get('owner_id'):
+            raise ValueError('Persistent tasks require an authenticated owner')
         task_id = str(uuid.uuid4())
         now = datetime.now()
         
@@ -102,6 +112,8 @@ class TaskManager:
         with self._task_lock:
             self._tasks[task_id] = task
             self._cancellations[task_id] = CancellationToken()
+            if self.repository:
+                self.repository.save(task)
         
         return task_id
     
@@ -135,11 +147,18 @@ class TaskManager:
         with self._task_lock:
             task = self._tasks.get(task_id)
             if task:
-                task.updated_at = datetime.now()
-                if task.status in {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED}:
+                if task.status in {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED, TaskStatus.INTERRUPTED}:
                     return
+                if status is not None and status not in {
+                    TaskStatus.PENDING: {TaskStatus.PROCESSING, TaskStatus.CANCELLED, TaskStatus.FAILED},
+                    TaskStatus.PROCESSING: {TaskStatus.PROCESSING, TaskStatus.COMPLETED, TaskStatus.CANCELLED, TaskStatus.FAILED},
+                }[task.status]:
+                    return
+                task.updated_at = datetime.now()
                 if status is not None:
                     task.status = status
+                    if status in {TaskStatus.COMPLETED, TaskStatus.CANCELLED, TaskStatus.FAILED}:
+                        task.finished_at = task.updated_at
                 if progress is not None:
                     task.progress = progress
                 if message is not None:
@@ -150,6 +169,8 @@ class TaskManager:
                     task.error = deepcopy(error)
                 if progress_detail is not None:
                     task.progress_detail = deepcopy(progress_detail)
+                if self.repository:
+                    self.repository.save(task)
     
     def complete_task(self, task_id: str, result: Dict):
         """标记任务完成"""
@@ -177,9 +198,17 @@ class TaskManager:
             if task_type:
                 tasks = [t for t in tasks if t.task_type == task_type]
             return [t.to_dict() for t in sorted(tasks, key=lambda x: x.created_at, reverse=True)]
+
+    def active_count(self, owner_id):
+        with self._task_lock:
+            return sum(task.metadata.get('owner_id') == owner_id and
+                       task.status in {TaskStatus.PENDING, TaskStatus.PROCESSING}
+                       for task in self._tasks.values())
     
     def cleanup_old_tasks(self, max_age_hours: int = 24):
         """清理旧任务"""
+        if self.repository:
+            return  # Retention of persistent tasks is an explicit operator decision.
         from datetime import timedelta
         cutoff = datetime.now() - timedelta(hours=max_age_hours)
         
@@ -205,5 +234,8 @@ class TaskManager:
             self._cancellations[task_id].cancel()
             task.status = TaskStatus.CANCELLED
             task.updated_at = datetime.now()
+            task.finished_at = task.updated_at
             task.message = 'Tarea cancelada; una solicitud externa en curso puede continuar.'
+            if self.repository:
+                self.repository.save(task)
             return True

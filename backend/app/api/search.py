@@ -10,6 +10,7 @@ from app.services.legal_repository import LegalSearchError
 from app.models.task import TaskManager, TaskStatus
 from app.utils.cancellation import OperationCancelled, check_cancelled
 from app.utils.api_response import api_error
+from app.services.runtime_security import authenticated_user_id
 
 
 # ===============================================================
@@ -104,13 +105,14 @@ def task_payload(task):
     metadata = task.metadata or {}
     status = {TaskStatus.PENDING: "queued", TaskStatus.PROCESSING: "running",
               TaskStatus.COMPLETED: "completed", TaskStatus.FAILED: "failed",
-              TaskStatus.CANCELLED: "cancelled"}[task.status]
+              TaskStatus.CANCELLED: "cancelled", TaskStatus.INTERRUPTED: "interrupted"}[task.status]
     return {"task_id": task.task_id, "tool": "search", "status": status,
             "stage": detail.get("current_stage"), "progress": task.progress,
             "stages": detail.get("stages", []), "partial_result": {},
             "final_result": task.result, "warnings": (task.result or {}).get("warnings", []),
             "error": task.error, "counts": detail.get("counts", {}),
-            "timings_ms": detail.get("timings_ms", {}), "metadata": metadata}
+            "timings_ms": detail.get("timings_ms", {}),
+            "metadata": {key: value for key, value in metadata.items() if key != 'owner_id'}}
 
 
 logger = logging.getLogger(
@@ -143,7 +145,10 @@ def start_search_task():
         return api_error("INVALID_SEARCH", "Las opciones de búsqueda deben ser booleanas.", g.request_id, 400)
     manager = task_manager()
     manager.cleanup_old_tasks()
-    task_id = manager.create_task("search", {"tool": "search", "filters": filters})
+    if manager.active_count(authenticated_user_id()) >= current_app.config['ACTIVE_TASKS_PER_USER']:
+        return api_error('RATE_LIMITED', 'Hay demasiadas tareas activas.', g.request_id, 429)
+    task_id = manager.create_task("search", {"tool": "search", "filters": filters,
+                                             "owner_id": authenticated_user_id()})
     app = current_app._get_current_object()
     threading.Thread(target=run_search_task, args=(app, manager, task_id, query.strip(),
         {"modulo": modulo, "solo_vigentes": solo_vigentes}, options), daemon=True).start()
@@ -153,7 +158,7 @@ def start_search_task():
 @search_bp.route("/tasks/<task_id>", methods=["GET"])
 def search_task_status(task_id):
     task = task_manager().get_task(task_id)
-    if not task or task.task_type != "search":
+    if not task or task.task_type != "search" or task.metadata.get('owner_id') != authenticated_user_id():
         return api_error("TASK_NOT_FOUND", "No se encontró la búsqueda.", g.request_id, 404)
     return jsonify(success=True, **task_payload(task))
 
@@ -161,7 +166,7 @@ def search_task_status(task_id):
 @search_bp.route("/tasks/<task_id>/cancel", methods=["POST"])
 def cancel_search_task(task_id):
     task = task_manager().get_task(task_id)
-    if not task or task.task_type != "search":
+    if not task or task.task_type != "search" or task.metadata.get('owner_id') != authenticated_user_id():
         return api_error("TASK_NOT_FOUND", "No se encontró la búsqueda.", g.request_id, 404)
     task_manager().cancel_task(task_id)
     updated = task_manager().get_task(task_id)

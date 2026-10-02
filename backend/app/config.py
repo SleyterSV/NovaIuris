@@ -21,7 +21,16 @@ class Config:
     """Flask配置类"""
     
     # Flask配置
+    APP_ENV = os.environ.get('APP_ENV', 'development').lower()
     SECRET_KEY = os.environ.get('SECRET_KEY')
+    SUPABASE_URL = os.environ.get('SUPABASE_URL')
+    SUPABASE_PUBLISHABLE_KEY = os.environ.get('SUPABASE_PUBLISHABLE_KEY')
+    SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+    EMBEDDING_API_KEY = os.environ.get('OPENAI_API_KEY')
+    AUTH_TIMEOUT_SECONDS = int(os.environ.get('AUTH_TIMEOUT_SECONDS', '5'))
+    PROVIDER_MAX_RETRIES = int(os.environ.get('PROVIDER_MAX_RETRIES', '2'))
+    LLM_TIMEOUT_SECONDS = int(os.environ.get('LLM_TIMEOUT_SECONDS', '60'))
+    ACTIVE_TASKS_PER_USER = int(os.environ.get('ACTIVE_TASKS_PER_USER', '3'))
     DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     
     CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.environ.get(
@@ -77,6 +86,7 @@ class Config:
     DOCUMENT_STAGING_MAX_AGE_SECONDS = int(os.getenv('DOCUMENT_STAGING_MAX_AGE_SECONDS', str(24 * 60 * 60)))
     CASE_CORPUS_RETENTION_DAYS = int(os.getenv('CASE_CORPUS_RETENTION_DAYS', '30'))
     CASE_CORPUS_DB_PATH = os.getenv('CASE_CORPUS_DB_PATH', os.path.join(os.path.dirname(__file__), '../uploads/case_corpus.sqlite3'))
+    TASK_DB_PATH = os.getenv('TASK_DB_PATH', os.path.join(os.path.dirname(__file__), '../uploads/runtime_tasks.sqlite3'))
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '../uploads')
     ALLOWED_EXTENSIONS = {'pdf', 'md', 'txt', 'markdown'}
     

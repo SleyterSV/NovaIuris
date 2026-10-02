@@ -4,6 +4,9 @@ NovaIuris Backend - Flask应用工厂
 
 import os
 import warnings
+import hashlib
+from time import perf_counter
+from pathlib import Path
 
 # 抑制 multiprocessing resource_tracker 的警告（来自第三方库如 transformers）
 # 需要在所有其他导入之前设置
@@ -18,6 +21,7 @@ from flask_cors import CORS
 
 from .config import Config
 from .utils.logger import setup_logger, get_logger
+from .services.runtime_security import verify_supabase_user
 
 
 def create_app(config_class=Config):
@@ -25,10 +29,59 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     
-    if os.getenv('APP_ENV', '').lower() == 'production' and not app.config.get('SECRET_KEY'):
-        raise RuntimeError('SECRET_KEY must be configured in production')
+    environment = app.config.get('APP_ENV', 'development')
+    if environment not in {'development', 'test', 'production'}:
+        raise RuntimeError('APP_ENV must be development, test or production')
+    if environment == 'production':
+        required = ('SECRET_KEY', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY',
+                    'SUPABASE_KEY', 'EMBEDDING_API_KEY', 'LLM_API_KEY', 'ZEP_API_KEY',
+                    'CASE_CORPUS_DB_PATH', 'TASK_DB_PATH')
+        if any(not app.config.get(key) for key in required):
+            raise RuntimeError('Production runtime configuration incomplete')
+        if len(app.config['SECRET_KEY']) < 32:
+            raise RuntimeError('Production SECRET_KEY is too short')
+        if not app.config['SUPABASE_URL'].startswith('https://'):
+            raise RuntimeError('Production Supabase URL must use HTTPS')
+        if app.config.get('DEBUG') or not app.config.get('RATE_LIMIT_ENABLED'):
+            raise RuntimeError('Production debug and rate limiting configuration unsafe')
+        origins = app.config.get('CORS_ALLOWED_ORIGINS') or []
+        if not origins or any(origin == '*' or not origin.startswith('https://') for origin in origins):
+            raise RuntimeError('Production CORS origins must be explicit HTTPS origins')
+        bounds = {'CASE_RESEARCH_MAX_QUERIES': (1, 12), 'CASE_REPORT_MAX_SOURCES': (1, 50),
+                  'CASE_DOCUMENT_CONTEXT_TOP_K': (1, 30), 'CASE_DOCUMENT_MAX_FILES': (1, 30),
+                  'CASE_DOCUMENT_MAX_FILE_BYTES': (1, 50 * 1024 * 1024),
+                  'CASE_DOCUMENT_MAX_CASE_BYTES': (1, 300 * 1024 * 1024),
+                  'CASE_DOCUMENT_MAX_REQUEST_BYTES': (1, 310 * 1024 * 1024),
+                  'CASE_DOCUMENT_MAX_UNCOMPRESSED_BYTES': (1, 150 * 1024 * 1024),
+                  'CASE_DOCUMENT_MAX_PAGES': (1, 10000),
+                  'CASE_DOCUMENT_EMBEDDING_BATCH_SIZE': (1, 128),
+                  'RATE_LIMIT_DOCUMENTS': (1, 100),
+                  'ACTIVE_TASKS_PER_USER': (1, 10), 'AUTH_TIMEOUT_SECONDS': (1, 15),
+                  'PROVIDER_MAX_RETRIES': (0, 2), 'LLM_TIMEOUT_SECONDS': (1, 180),
+                  'NOVACOURT_GRAPH_TIMEOUT_SECONDS': (1, 1800),
+                  'NOVACOURT_SIMULATION_TIMEOUT_SECONDS': (1, 1800)}
+        if any(not lower <= app.config.get(key, -1) <= upper
+               for key, (lower, upper) in bounds.items()):
+            raise RuntimeError('Production runtime limit outside safe range')
+        if app.config['CASE_DOCUMENT_MAX_FILE_BYTES'] > app.config['CASE_DOCUMENT_MAX_CASE_BYTES'] or app.config['CASE_DOCUMENT_MAX_CASE_BYTES'] >= app.config['CASE_DOCUMENT_MAX_REQUEST_BYTES']:
+            raise RuntimeError('Production upload limits are inconsistent')
+        project_root = Path(__file__).resolve().parents[2]
+        for key in ('CASE_CORPUS_DB_PATH', 'TASK_DB_PATH'):
+            configured = Path(app.config[key])
+            target = configured.resolve()
+            if not configured.is_absolute() or target.is_relative_to(project_root):
+                raise RuntimeError('Production runtime database must use an external persistent volume')
     limiter = CostEndpointRateLimiter(config_class)
     app.extensions['cost_limiter'] = limiter
+    if environment == 'production':
+        from .models.task import TaskManager
+        from .services.task_repository import TaskRepository, DocumentTaskRepository
+        from .services.document_tasks import DocumentTaskManager
+        app.extensions['task_manager'] = TaskManager(TaskRepository(app.config['TASK_DB_PATH']))
+        app.extensions['document_task_repository'] = DocumentTaskRepository(app.config['TASK_DB_PATH'])
+        app.extensions['document_task_manager'] = DocumentTaskManager(
+            app.config['DOCUMENT_STAGING_MAX_AGE_SECONDS'],
+            repository=app.extensions['document_task_repository'])
 
     # 设置JSON编码：确保中文直接显示（而不是 \uXXXX 格式）
     # Flask >= 2.3 使用 app.json.ensure_ascii，旧版本使用 JSON_AS_ASCII 配置
@@ -61,7 +114,23 @@ def create_app(config_class=Config):
     @app.before_request
     def identify_request():
         g.request_id = str(uuid4())
-        allowed, retry_after = limiter.check(request.remote_addr, request.path) if request.method == "POST" else (True, 0)
+        g.request_started = perf_counter()
+        if environment == 'production' and (request.path.startswith(('/api/graph/', '/api/simulation/', '/api/report/', '/api/export/')) or request.path == '/api/search'):
+            return api_error('LEGACY_DISABLED', 'Esta ruta ya no está disponible.', g.request_id, 410)
+        if environment == 'production' and request.method == 'OPTIONS':
+            g.authenticated_user_id = None
+            return None  # Browser preflight carries no bearer token.
+        if environment == 'production' and request.path.startswith('/api/'):
+            header = request.headers.get('Authorization', '')
+            token = header[7:] if header.startswith('Bearer ') else ''
+            verifier = app.config.get('AUTH_VERIFIER') or verify_supabase_user
+            g.authenticated_user_id = verifier(token, app.config) if token else None
+            if not g.authenticated_user_id:
+                return api_error('AUTH_REQUIRED', 'Se requiere una sesión válida.', g.request_id, 401)
+        else:
+            # Explicit local/test identity; request JSON and headers cannot set it.
+            g.authenticated_user_id = 'local-development-user'
+        allowed, retry_after = limiter.check(g.authenticated_user_id or request.remote_addr, request.path) if request.method == "POST" else (True, 0)
         if not allowed:
             response, status = api_error('RATE_LIMITED', 'Demasiadas solicitudes. Inténtalo más tarde.', g.request_id, 429)
             response.headers['Retry-After'] = str(retry_after)
@@ -70,6 +139,9 @@ def create_app(config_class=Config):
     @app.after_request
     def protect_response(response):
         response.headers['X-Request-ID'] = g.request_id
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['X-Frame-Options'] = 'DENY'
         if response.is_json and response.status_code >= 400:
             payload = response.get_json(silent=True) or {}
             error = payload.get('error')
@@ -81,7 +153,11 @@ def create_app(config_class=Config):
             else:
                 safe, _ = api_error(error['code'], error['message'], g.request_id, response.status_code)
                 response.set_data(safe.get_data())
-        logger.info('request_id=%s method=%s status=%s', g.request_id, request.method, response.status_code)
+        identity = getattr(g, 'authenticated_user_id', None)
+        safe_user = hashlib.sha256(identity.encode()).hexdigest()[:12] if identity else '-'
+        logger.info('event=http_request request_id=%s user_hash=%s endpoint=%s method=%s status=%s duration_ms=%s',
+                    g.request_id, safe_user, request.endpoint, request.method,
+                    response.status_code, round((perf_counter() - g.request_started) * 1000))
         return response
 
     @app.errorhandler(Exception)
@@ -123,6 +199,16 @@ def create_app(config_class=Config):
     @app.route('/health')
     def health():
         return {'status': 'ok', 'service': 'NovaIuris Backend'}
+
+    @app.route('/ready')
+    def ready():
+        try:
+            import sqlite3
+            from .services.runtime_security import CaseOwnershipRepository
+            CaseOwnershipRepository(app.config['CASE_CORPUS_DB_PATH'])
+        except (OSError, ValueError, sqlite3.Error):
+            return {'status': 'unavailable'}, 503
+        return {'status': 'ready'}
     
     if should_log_startup:
         logger.info("NovaIuris Backend 启动完成")

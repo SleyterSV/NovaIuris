@@ -25,6 +25,7 @@ jobs:
       - run: uv sync --frozen
       - run: uv run --frozen python -m unittest discover -s tests -p 'test_*.py'
       - run: uv run --frozen python -m compileall -q app tests
+      - run: uv run --frozen python scripts/smoke_providers.py --dry-run
 
   frontend:
     runs-on: ubuntu-latest
