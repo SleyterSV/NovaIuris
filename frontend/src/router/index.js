@@ -7,7 +7,7 @@ import {
 // VISTAS PRINCIPALES
 // =====================================================
 
-import Home from "../views/Home.vue";
+import MikeView from "../views/MikeView.vue";
 
 
 // =====================================================
@@ -22,33 +22,30 @@ const routes = [
 
     {
       path: "/",
-      name: "Home",
-      component: Home,
+      name: "Mike",
+      component: MikeView,
 
       meta: {
-        title: "Nova Iuris | Inteligencia Jurídica"
+        title: "MYKE | Legal Intelligence"
       }
     },
 
     {
       path: "/mike",
-      name: "Mike",
-      component: () =>
-        import("../views/MikeView.vue"),
+      redirect: to => ({ path:'/', query:to.query }),
 
       meta: {
-        title: "MIKE | Legal Intelligence"
+        title: "MYKE | Legal Intelligence"
       }
     },
 
     {
       path: "/novasearch",
       name: "NovaSearch",
-      component: () =>
-        import("../views/NovaSearchView.vue"),
+      redirect: to => ({ path:'/', query:{ tool:'search', ...(typeof to.query.q === 'string' ? { q:to.query.q } : {}) } }),
 
       meta: {
-        title: "Nova Search | Nova Iuris"
+        title: "MYKE | Buscar"
       }
     },
 
@@ -68,10 +65,10 @@ const routes = [
   {
     path: "/novacase",
     name: "NovaCase",
-    component: () => import("../views/NovaCaseView.vue"),
+    redirect: { path:'/', query:{ tool:'case' } },
 
     meta: {
-      title: "Nova Case | Nova Iuris"
+      title: "MYKE | Analizar"
     }
   },
 
@@ -84,13 +81,16 @@ const routes = [
   {
     path: "/novacourt",
     name: "NovaCourt",
-    component: () =>
-      import("../views/NovaCourtView.vue"),
+    redirect: to => ({ path:'/', query:{ tool:'court', ...(typeof to.query.case_id === 'string' ? { case_id:to.query.case_id } : {}) } }),
 
     meta: {
-      title: "Nova Court | Nova Iuris"
+      title: "MYKE | Simular"
     }
   },
+  { path:'/buscar', redirect:{ path:'/', query:{ tool:'search' } } },
+  { path:'/analizar', redirect:{ path:'/', query:{ tool:'case' } } },
+  { path:'/simular', redirect:{ path:'/', query:{ tool:'court' } } },
+  { path:'/about', name:'AboutMYKE', component:() => import('../views/MainView.vue'), meta:{ title:'Acerca de MYKE' } },
 
 
   // ===================================================
@@ -101,8 +101,7 @@ const routes = [
   {
     path: "/process/:projectId",
     name: "Process",
-    component: () => import("../views/MainView.vue"),
-    props: true,
+    redirect: { path:'/', query:{ tool:'case' } },
 
     meta: {
       title: "Procesando Caso | Nova Iuris"
@@ -220,7 +219,7 @@ router.afterEach((to) => {
 
   document.title =
     to.meta.title ||
-    "Nova Iuris | Inteligencia Jurídica";
+    "MYKE | Legal Intelligence";
 
 });
 

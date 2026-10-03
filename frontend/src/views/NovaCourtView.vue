@@ -6,7 +6,7 @@
              CABECERA
         ====================================================== -->
 
-        <NovaCourtHeader />
+        <NovaCourtHeader v-if="!embedded" />
         <PipelineProgress v-if="isLoading" :progress="novaCourt.progress.value" :current="novaCourt.currentStage.value" :stages="novaCourt.stages.value" />
         <button v-if="isLoading" type="button" @click="novaCourt.cancel">Cancelar tarea</button>
         <p v-for="warning in novaCourt.warnings.value" :key="warning.stage" role="status">{{ warning.message }}</p>
@@ -16,7 +16,7 @@
              ENTRADA DEL CASO
         ====================================================== -->
 
-        <section class="novacourt-section novacourt-section-input">
+        <section v-if="!embedded" class="novacourt-section novacourt-section-input">
 
             <NovaCourtInput
                 v-model="caseText"
@@ -362,6 +362,8 @@ import GraphPanel
 ========================================================= */
 
 const novaCourt = useNovaCourt()
+const props = defineProps({ embedded:Boolean, request:{ type:Object, default:null } })
+const emit = defineEmits(['task-state'])
 const route = useRoute()
 const router = useRouter()
 const requestedCaseId = typeof route.query.case_id === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(route.query.case_id) && !route.query.case_id.includes("..") ? route.query.case_id : null
@@ -369,10 +371,10 @@ const reuseTaskId = ref(requestedCaseId && typeof globalThis.history?.state?.reu
     ? globalThis.history.state.reuseTaskId : null)
 const continuingCase = ref(Boolean(requestedCaseId))
 const activeCaseId = ref(requestedCaseId || crypto.randomUUID())
-const requestedDocumentIds = requestedCaseId && typeof route.query.document_ids === "string"
+let requestedDocumentIds = requestedCaseId && typeof route.query.document_ids === "string"
     ? [...new Set(route.query.document_ids.split(",").filter(id => id.length > 0 && id.length <= 128))].slice(0, 20)
     : []
-const originalCaseText = requestedCaseId && globalThis.history?.state?.caseText
+let originalCaseText = requestedCaseId && globalThis.history?.state?.caseText
     ? String(globalThis.history.state.caseText) : ''
 const selectedDocumentIds = ref([])
 if (requestedCaseId && globalThis.history?.state?.caseText) novaCourt.caseText.value = String(globalThis.history.state.caseText)
@@ -495,8 +497,10 @@ async function handleSimulation(text) {
 
         const sameDocuments = selectedDocumentIds.value.length === requestedDocumentIds.length &&
             selectedDocumentIds.value.every(id => requestedDocumentIds.includes(id))
+        emit('task-state', { tool:'court', running:true })
         await analyzeCase(effectiveText, { caseId:activeCaseId.value, documentIds:selectedDocumentIds.value,
-            reuseTaskId: effectiveText === originalCaseText && sameDocuments ? reuseTaskId.value : null })
+            reuseTaskId: effectiveText === originalCaseText && sameDocuments ? reuseTaskId.value : null,
+            onTask:taskId => emit('task-state', { tool:'court', running:true, taskId }) })
         reuseTaskId.value = null
 
     }
@@ -523,8 +527,30 @@ async function handleSimulation(text) {
         }
 
     }
+    finally { emit('task-state', { tool:'court', running:false }) }
 
 }
+
+watch(() => props.request, request => {
+    if (!request) return
+    const reuse = request.reuse
+    if (reuse) {
+        continuingCase.value = true
+        activeCaseId.value = reuse.caseId
+        requestedDocumentIds = [...reuse.documentIds]
+        selectedDocumentIds.value = [...reuse.documentIds]
+        originalCaseText = reuse.caseText
+        reuseTaskId.value = reuse.reuseTaskId
+    } else {
+        continuingCase.value = false
+        activeCaseId.value = request.caseId
+        requestedDocumentIds = []
+        selectedDocumentIds.value = [...(request.documentIds || [])]
+        originalCaseText = ''
+        reuseTaskId.value = null
+    }
+    handleSimulation(request.text)
+}, { immediate:true })
 
 
 /* =========================================================

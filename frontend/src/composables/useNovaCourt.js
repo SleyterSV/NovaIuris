@@ -23,6 +23,7 @@ export function useNovaCourt() {
         reuseTaskId:taskOptions.reuseTaskId,
         onProgress(task) {
           if (currentGeneration !== generation) return
+          if (task.task_id) taskOptions.onTask?.(task.task_id)
           progress.value = task.progress; currentStage.value = task.message
           stages.value = task.stages; warnings.value = task.warnings
           if (task.partial_result?.success) result.value = task.partial_result

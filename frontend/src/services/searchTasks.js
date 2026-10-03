@@ -37,7 +37,9 @@ export async function runSearchTask({ query, filters, signal, onProgress, pollIn
       onProgress?.(task)
       if (task.status === 'completed') return task.final_result || {}
       if (task.status === 'failed' || task.status === 'interrupted') {
-        const error = new Error(task.error?.message || 'No fue posible completar la búsqueda jurídica.')
+        const error = new Error(task.status === 'interrupted'
+          ? 'La tarea fue interrumpida y debe ejecutarse nuevamente.'
+          : 'No fue posible completar la búsqueda jurídica. Inténtalo nuevamente.')
         error.code = task.error?.code
         throw error
       }

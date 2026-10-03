@@ -40,7 +40,9 @@ export async function runAnalysisTask(tool, text, options = {}) {
         if (task.final_result?.case_id !== caseId) throw new Error('El resultado no corresponde al caso enviado.')
         return normalizeCaseResult(task.final_result)
       }
-      if (['failed', 'cancelled', 'interrupted'].includes(task.status)) throw new Error(task.error?.message || 'No fue posible completar el análisis.')
+      if (task.status === 'interrupted') throw new Error('La tarea fue interrumpida y debe ejecutarse nuevamente.')
+      if (task.status === 'cancelled') throw new DOMException('Cancelado', 'AbortError')
+      if (task.status === 'failed') throw new Error('No fue posible completar el análisis. Inténtalo nuevamente.')
       await pause(options.signal, options.pollInterval ?? 1500)
     }
   } catch (error) {

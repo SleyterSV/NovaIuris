@@ -52,7 +52,7 @@ export function useNovaSearch() {
     controller?.abort()
   }
 
-  async function performSearch() {
+  async function performSearch(onTask = null) {
     const query = searchQuery.value.trim()
     if (query.length < 5) {
       searchError.value = query ? 'Describe con mayor detalle la consulta jurídica.' : 'Escribe una consulta jurídica antes de buscar.'
@@ -71,7 +71,7 @@ export function useNovaSearch() {
       const data = await runSearchTask({ query, filters: { ...filters }, signal: activeController.signal,
         onProgress: task => {
           if (activeId !== requestId) return
-          if (task.task_id) taskId = task.task_id
+          if (task.task_id) { taskId = task.task_id; onTask?.(task.task_id) }
           searchStage.value = task.stage || ''
           searchProgress.value = Number.isFinite(task.progress) ? task.progress : 0
           progressStages.value = task.stages || []

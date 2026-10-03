@@ -6,7 +6,7 @@
              CABECERA PRINCIPAL
         ====================================================== -->
 
-        <header class="case-header">
+        <header v-if="!embedded" class="case-header">
 
             <div class="header-inner">
 
@@ -105,7 +105,7 @@
                  ENTRADA DEL CASO
             ================================================== -->
 
-            <section class="workspace-section">
+            <section v-if="!embedded" class="workspace-section">
 
                 <CaseInput
                     :case-id="inputCaseId" :loading="loading"
@@ -275,6 +275,7 @@
                             <article v-for="(link, index) in canonicalResult.evidence.evidence_links" :key="`${link.issue_id || 'link'}-${index}`">
                                 <MarkdownRenderer :content="link.what_it_supports" />
                                 <p v-if="link.limitations"><strong>Limitaciones:</strong> {{ link.limitations }}</p>
+                                <TraceabilityChain :issue="issuesForLink(link)[0] || null" :facts="factsForLink(link)" :sources="sourcesForLink(link)" @select-source="selectedSource = $event" />
                                 <p v-for="issue in issuesForLink(link)" :key="issue.issue_id" class="fact-reference">
                                     Problema relacionado: {{ issue.text }}
                                 </p>
@@ -349,7 +350,7 @@
 
                 </CaseTabs>
                 <SourceModal :source="selectedSource" :case-id="canonicalResult?.case_id" @close="selectedSource = null" />
-                <button v-if="hasResults && caseTaskCompleted && canonicalResult?.case_id" type="button" @click="continueInNovaCourt">Simular este caso en NovaCourt</button>
+                <button v-if="hasResults && caseTaskCompleted && canonicalResult?.case_id" type="button" @click="continueInNovaCourt">Simular este caso</button>
 
             </section>
 
@@ -454,12 +455,14 @@
 <script setup>
 import { useRouter } from "vue-router"
 import { normalizeCaseResult } from "@/utils/caseContract.js"
+import { caseReuseContext } from "@/utils/mikeWorkspace.js"
 import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue"
 import { normalizeRenderableContent } from "@/utils/content.js"
 
 import {
     ref,
     computed,
+    watch,
     onBeforeUnmount
 } from "vue"
 
@@ -481,6 +484,7 @@ import AnalysisProgress
 import ExecutiveSummary
     from "@/components/common/ExecutiveSummary.vue"
 import SourcesList from "@/components/common/SourcesList.vue"
+import TraceabilityChain from "@/components/common/TraceabilityChain.vue"
 import SourceModal from "@/components/common/SourceModal.vue"
 
 import CaseTabs
@@ -510,6 +514,9 @@ import StrategyView
 ========================================================= */
 
 const canonicalResult = ref(null)
+const lastCaseText = ref('')
+const props = defineProps({ embedded: Boolean, request: { type:Object, default:null } })
+const emit = defineEmits(['case-completed', 'reuse-case', 'task-state'])
 const completedTaskId = ref(null)
 const caseTaskCompleted = ref(false)
 const inputCaseId = ref(crypto.randomUUID())
@@ -589,7 +596,9 @@ function finishProgress(result) {
 
 async function handleAnalyze(payload) {
     if (loading.value) return
+    emit('task-state', { tool:'case', running:true })
     const caseText = payload.caseText
+    lastCaseText.value = caseText
     const caseId = payload.caseId
     const documentIds = payload.documentIds || []
     controller = new AbortController()
@@ -649,6 +658,7 @@ async function handleAnalyze(payload) {
 
         }
         caseTaskCompleted.value = true
+        emit('case-completed', { result:response, taskId:completedTaskId.value, caseText })
 
 
         /* =================================================
@@ -712,6 +722,7 @@ async function handleAnalyze(payload) {
     finally {
 
         loading.value = false
+        emit('task-state', { tool:'case', running:false })
 
     }
 
@@ -811,7 +822,11 @@ function sourcesForLink(link) {
 function continueInNovaCourt() {
   const result = canonicalResult.value
   if (!result?.case_id) return
-  router.push({ path:"/novacourt", query:{ case_id:result.case_id, document_ids:(result.document_ids || []).join(",") },
+  if (props.embedded) {
+    emit('reuse-case', caseReuseContext(result, completedTaskId.value, lastCaseText.value))
+    return
+  }
+  router.push({ path:"/mike", query:{ tool:'court', case_id:result.case_id, document_ids:(result.document_ids || []).join(",") },
     state:{ caseText:result.case, reuseTaskId:completedTaskId.value } })
 }
 
@@ -867,6 +882,9 @@ const keywordCount = computed(() => {
 
 })
 
+watch(() => props.request, request => {
+    if (request) handleAnalyze({ caseText:request.text, caseId:request.caseId, documentIds:request.documentIds })
+}, { immediate:true })
 </script>
 
 

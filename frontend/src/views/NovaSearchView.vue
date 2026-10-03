@@ -52,6 +52,15 @@ const {
 } = useNovaSearch()
 
 const route = useRoute()
+const props = defineProps({ embedded: Boolean, request: { type: Object, default: null } })
+const emit = defineEmits(['task-state'])
+watch(() => props.request, request => {
+    if (!request) return
+    searchQuery.value = String(request.text || '').slice(0, 10000)
+    emit('task-state', { tool:'search', running:true })
+    performSearch(taskId => emit('task-state', { tool:'search', running:true, taskId }))
+        .finally(() => emit('task-state', { tool:'search', running:false }))
+}, { immediate: true })
 watch(() => route.query.q, value => {
     if (typeof value === 'string') searchQuery.value = value.slice(0, 10000)
 }, { immediate: true })
@@ -146,7 +155,7 @@ function useSuggestion(value) {
              CABECERA DEL MÓDULO
         ====================================== -->
 
-        <NovaSearchHeader />
+        <NovaSearchHeader v-if="!embedded" />
 
 
         <!-- =====================================
@@ -158,7 +167,7 @@ function useSuggestion(value) {
             aria-label="Consulta jurídica"
         >
 
-            <NovaSearchInput
+            <NovaSearchInput v-if="!embedded"
                 v-model="searchQuery"
                 :loading="isSearching"
                 @search="performSearch"
