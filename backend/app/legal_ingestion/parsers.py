@@ -7,12 +7,13 @@ from .identity import normalize_text, search_normalize, content_hash
 from .models import Block, LegalUnit
 
 
-ARTICLE = re.compile(r"^art[íi]culo\s+([0-9]+(?:[-–][A-Za-z0-9]+)?|[A-Za-z]+)\s*(?:[.°º]?[–-]|[.:])?\s*(.*)$", re.I)
+ARTICLE = re.compile(r"^art[íi]culo\s+([0-9]+(?:[-–][A-Za-z0-9]+)?|[IVX]{1,4}|[úu]nico)(?=\s|[.°º:–-]|$)\s*(?:[.°º]?[–-]|[.:])?\s*(.*)$", re.I)
 HIERARCHY = re.compile(r"^(libro|secci[oó]n|t[íi]tulo|cap[íi]tulo)\s+([IVXLCDM\d]+(?:\s*[-–].*)?)$", re.I)
 AMENDMENT = re.compile(r"^(?:art[íi]culo\s+\d+\s+)?(?:modificado|incorporado|sustituido|derogado)\s+por\b|^\(?art[íi]culo\s+modificado\b", re.I)
 CONCORDANCE = re.compile(r"^concordancias?\s*[:.]", re.I)
-SECTION = re.compile(r"^(sumilla|materia|antecedentes?|fundamentos?(?:\s+de\s+derecho)?|considerandos?|decisi[oó]n|parte\s+resolutiva|resuelve|fallo|voto\s+(?:singular|en\s+discordia|separado))(?:\s*[:.]\s*(.*))?\s*$", re.I)
-FOUNDATION = re.compile(r"^(?:fundamento\s+)?(\d{1,3})\s*[.)-]\s+(.+)$", re.I)
+SECTION = re.compile(r"^(sumilla|materia|antecedentes?|visto|fundamentos?(?:\s+de\s+derecho)?|considerandos?|atendiendo\s+a\s+que|an[áa]lisis(?:\s+de\s+la\s+controversia|\s+del\s+caso\s+concreto)?|decisi[oó]n|parte\s+resolutiva|resuelve|ha\s+resuelto|por\s+estos\s+fundamentos|fallo|voto\s+(?:singular|en\s+discordia|separado))(?:\s*[:.]\s*(.*))?\s*$", re.I)
+ROMAN_SECTION = re.compile(r"^[IVXLCDM]+[.)]\s*(.+?)\s*[:.]?\s*$", re.I)
+FOUNDATION = re.compile(r"^(?:fundamento\s+)?(\d{1,3}|(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno|d[ée]cimo|und[ée]cimo|duod[ée]cimo|vig[ée]simo|trig[ée]simo)(?:\s+(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno))?)\s*[.°º)-]+-?\s+(.+)$", re.I)
 EXPEDIENTE = re.compile(r"(?:exp(?:ediente)?\.?\s*(?:n[.°ºo]*\s*)?|casaci[oó]n\s*(?:n[.°ºo]*\s*)?)(\d{1,8}[-/–]\d{2,4}(?:[-/–][A-Za-z0-9]+)*)", re.I)
 
 
@@ -35,6 +36,22 @@ class NormativeParser:
     name = "normative"
 
     def parse(self, blocks: list[Block]) -> list[LegalUnit]:
+        expanded = []
+        for block in blocks:
+            lines = block.text.splitlines()
+            if len(lines) < 2 or not any(ARTICLE.match(line.strip()) for line in lines[1:]):
+                expanded.append(block)
+                continue
+            segment = []
+            for line in lines:
+                if ARTICLE.match(line.strip()) and segment:
+                    expanded.append(Block("\n".join(segment).strip(), block.page, block.index,
+                                          block.style, block.kind, block.links))
+                    segment = []
+                segment.append(line)
+            if segment:
+                expanded.append(Block("\n".join(segment).strip(), block.page, block.index,
+                                      block.style, block.kind, block.links))
         units = []
         hierarchy = {"book": None, "section": None, "title": None, "chapter": None}
         article_blocks: list[Block] = []
@@ -48,7 +65,7 @@ class NormativeParser:
                                    number=article_number, heading=article_heading, hierarchy=hierarchy.copy()))
                 article_blocks = []
 
-        for block in blocks:
+        for block in expanded:
             line = search_normalize(block.text)
             level = HIERARCHY.match(line)
             if level:
@@ -74,10 +91,11 @@ class NormativeParser:
                 units.append(_unit("concordance", len(units) + 1, [block],
                                    number=article_number, hierarchy=hierarchy.copy()))
                 continue
-            if article_blocks:
-                article_blocks.append(block)
-            elif line.lower().startswith(("disposición", "disposicion")):
+            if re.match(r"^disposici[oó]n\b", line, re.I):
+                flush_article()
                 units.append(_unit("disposition", len(units) + 1, [block], hierarchy=hierarchy.copy()))
+            elif article_blocks:
+                article_blocks.append(block)
         flush_article()
         for index, unit in enumerate(units, 1):
             unit.sequence = index
@@ -85,33 +103,42 @@ class NormativeParser:
 
 
 def case_law_metadata(blocks: list[Block], filename: str) -> dict:
-    header = "\n".join(block.text for block in blocks[:35])
+    header = "\n".join(block.text for block in blocks[:60])
     context = f"{filename}\n{header}"
-    lowered = context.casefold()
     expediente = EXPEDIENTE.search(context)
-    sumilla = next(((SECTION.match(block.text).group(2) or "").strip() for block in blocks[:60]
-                    if SECTION.match(block.text) and SECTION.match(block.text).group(1).casefold() == "sumilla"), None)
-    if sumilla == "":
-        for index, block in enumerate(blocks[:60]):
-            matched = SECTION.match(block.text)
-            if matched and matched.group(1).casefold() == "sumilla":
-                sumilla = blocks[index + 1].text.strip() if index + 1 < len(blocks) and not SECTION.match(blocks[index + 1].text) else None
-                break
-    court = ("Tribunal Constitucional" if "tribunal constitucional" in lowered else
-             "Corte Suprema" if "corte suprema" in lowered else None)
-    resolution_type = ("casación" if "casación" in lowered else
-                       "auto" if re.search(r"\bauto\b", lowered) else
-                       "sentencia" if "sentencia" in lowered else None)
+    sumilla = None
+    for index, block in enumerate(blocks[:60]):
+        matched = SECTION.match(block.text)
+        if matched and matched.group(1).casefold() == "sumilla":
+            parts = [matched.group(2).strip()] if matched.group(2) else []
+            for following in blocks[index + 1:index + 16]:
+                if following.page is not None and block.page is not None and following.page != block.page:
+                    break
+                if SECTION.match(following.text) or ROMAN_SECTION.match(following.text):
+                    break
+                if sum(len(part) for part in parts) >= 650:
+                    break
+                parts.append(following.text.strip())
+            sumilla = " ".join(part for part in parts if part) or None
+            break
+    compact_header = re.sub(r"\s+", " ", header).casefold()
+    court = ("Tribunal Constitucional" if "tribunal constitucional" in compact_header else
+             "Corte Suprema" if "corte suprema" in compact_header else None)
+    opening = " ".join(block.text for block in blocks[:16]).casefold()
+    resolution_type = ("casación" if re.search(r"\bcasaci[oó]n\s+n[.°ºo]*\s*\d", opening) else
+                       "auto" if "auto del tribunal" in opening else
+                       "sentencia" if "sentencia" in opening else None)
     # Binding force requires an explicit declaration in the document, not a headline.
     precedent_binding = True if re.search(r"(?:se\s+establece|constituye|tiene\s+car[aá]cter\s+de)\s+(?:un\s+)?precedente\s+vinculante", header, re.I) else None
     def labeled(label):
         match = re.search(rf"(?im)^\s*{label}\s*[:.]\s*([^\n]+)", header)
         return match.group(1).strip() if match else None
-    chamber = labeled(r"sala(?:\s+[^:\n]{1,50})?")
+    chamber_match = re.search(r"\b(?:sala\s+(?:primera|segunda|tercera|cuarta)|(?:primera|segunda|tercera|cuarta)\s+sala)\b", compact_header, re.I)
+    chamber = chamber_match.group(0).title() if chamber_match else None
     ponente = labeled(r"(?:magistrado\s+)?ponente")
     materia = labeled("materia")
     instancia = labeled("instancia")
-    date_match = re.search(r"\b(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|setiembre|septiembre|octubre|noviembre|diciembre)\s+de\s+(\d{4})\b", header, re.I)
+    date_match = re.search(r"\b(?:en\s+)?lima\s*,\s*(?:a\s+los\s+)?(\d{1,2})(?:\s+d[ií]as?\s+del\s+mes)?\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|setiembre|septiembre|octubre|noviembre|diciembre)\s+de\s+(\d{4})\b", compact_header, re.I)
     months = {name: index for index, name in enumerate(("enero","febrero","marzo","abril","mayo","junio","julio","agosto","setiembre","octubre","noviembre","diciembre"), 1)}
     months["septiembre"] = 9
     resolution_date = None
@@ -145,22 +172,40 @@ class JurisprudenceParser:
         for block in blocks:
             line = search_normalize(block.text)
             heading = SECTION.match(line)
+            roman = ROMAN_SECTION.match(line)
+            if not heading and roman:
+                label = roman.group(1).casefold().strip()
+                if any(word in label for word in ("decisión", "fallo", "resuelve")):
+                    flush()
+                    kind, number, buffer = "decision", None, [block]
+                    continue
+                if any(word in label for word in ("considerando", "fundamento", "análisis")):
+                    flush()
+                    kind, number, buffer = "foundation", None, [block]
+                    continue
+                if any(word in label for word in ("materia", "causal", "antecedente")):
+                    flush()
+                    kind, number, buffer = "antecedent", None, [block]
+                    continue
             if heading:
                 flush()
                 label = heading.group(1).casefold()
                 kind = ("sumilla" if label == "sumilla" else "matter" if label == "materia" else
-                        "antecedent" if label.startswith("antecedente") else
-                        "foundation" if label.startswith(("fundamento", "considerando")) else
+                        "antecedent" if label.startswith(("antecedente", "visto")) else
+                        "foundation" if label.startswith(("fundamento", "considerando", "atendiendo", "análisis", "analisis")) else
                         "separate_opinion" if label.startswith("voto") else "decision")
                 number = None
                 buffer = [block]
                 continue
             numbered = FOUNDATION.match(line)
-            if numbered and kind == "foundation":
+            if numbered and (kind == "foundation" or (kind is not None and not numbered.group(1).isdigit())):
+                if kind != "foundation":
+                    flush()
+                    kind, number, buffer = "foundation", None, []
                 if number == numbered.group(1) and buffer:
                     buffer.append(block)
                     continue
-                if number is None and len(buffer) == 1 and SECTION.match(search_normalize(buffer[0].text)):
+                if number is None and len(buffer) == 1 and (SECTION.match(search_normalize(buffer[0].text)) or ROMAN_SECTION.match(search_normalize(buffer[0].text))):
                     buffer = []
                 else:
                     flush()

@@ -48,7 +48,8 @@ def stage_file(path, *, family="auto", max_unit_tokens=800) -> StagedDocument:
     warnings = list(extracted.warnings)
     if removed:
         warnings.append(f"page_furniture_removed:{removed}")
-    metadata = case_law_metadata(blocks, extracted.filename) if chosen == "jurisprudence" else {}
+    # Repeated PDF headers may carry the only case number; read identity before removing them.
+    metadata = case_law_metadata(extracted.blocks, extracted.filename) if chosen == "jurisprudence" else {}
     if chosen == "jurisprudence" and not any(unit.unit_type == "decision" for unit in parsed):
         warnings.append("decision_not_detected")
     units = []

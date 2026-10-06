@@ -21,10 +21,20 @@ def validate_staged(document) -> list[str]:
     if document.document_type in {"judgment", "order", "cassation", "precedent"}:
         if not document.metadata.get("court") or not document.metadata.get("expediente"):
             problems.append("jurisprudence_identity_missing")
+        if not document.metadata.get("resolution_type") or not document.metadata.get("resolution_date"):
+            problems.append("jurisprudence_date_or_type_missing")
     if not document.units:
         problems.append("no_legal_units")
     if document.extraction_quality in {"low", "ocr_required"}:
         problems.append("extraction_review_required")
+    if any((unit.part_count or 0) > 8 for unit in document.units):
+        problems.append("oversized_structure_review_required")
+    if document.source_format == "pdf" and any(unit.part_count and unit.page_start != unit.page_end for unit in document.units):
+        problems.append("split_page_provenance_review_required")
+    numbered_foundations = [int(unit.unit_number) for unit in document.units
+                            if unit.unit_type == "foundation" and unit.unit_number and unit.unit_number.isdigit()]
+    if numbered_foundations and max(numbered_foundations) > max(100, len(document.units) * 5):
+        problems.append("foundation_numbering_review_required")
     hashes = set()
     for index, unit in enumerate(document.units, 1):
         if not unit.text.strip() or not unit.normalized_text.strip():

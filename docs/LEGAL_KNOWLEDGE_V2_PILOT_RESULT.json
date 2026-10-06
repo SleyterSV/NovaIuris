@@ -1,0 +1,1552 @@
+{
+  "scope": "10.4B-1 offline dry-run; no embeddings or database writes",
+  "documents": [
+    {
+      "path": "raw_docs/CONSTITUCION POLITICA.docx",
+      "filename": "CONSTITUCION POLITICA.docx",
+      "bytes": 257167,
+      "source_format": "docx",
+      "document_type": "constitution",
+      "family": "normative",
+      "document_hash": "e272bf52fff02c3c49996dc772118a62215071af2007e5097b8f029ec6482d10",
+      "source_file_hash": "d509e8321b38f95ee7fcea44b9b5aad8b46d69e655f27ede749336a4f77bc9cd",
+      "before": {
+        "status": "staged",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 251,
+        "unit_types": {
+          "article": 227,
+          "concordance": 24
+        },
+        "page_units": 0,
+        "page_range": [
+          null,
+          null
+        ],
+        "split_parts": 25,
+        "duplicate_extra": 0,
+        "duplicate_hashes": [],
+        "content_hash_samples": [
+          "f81624c4b251a868ce44e8e646831a0fdabb0cc1fa116f989f582f060e3bb4e7",
+          "a137f162ffb04b40798eae5e4cbda5cf3b13023b03f6e83139f26ae63bf82c81",
+          "5314db16c861bda83bd84a178b36000b4ab664f942f56c94ea67a8a0b6d8456a"
+        ],
+        "metadata": {
+          "family": "normative",
+          "parser_name": "normative",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 0
+        },
+        "warnings": []
+      },
+      "after": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 253,
+        "unit_types": {
+          "article": 229,
+          "concordance": 24
+        },
+        "page_units": 0,
+        "page_range": [
+          null,
+          null
+        ],
+        "split_parts": 25,
+        "duplicate_extra": 0,
+        "duplicate_hashes": [],
+        "content_hash_samples": [
+          "f81624c4b251a868ce44e8e646831a0fdabb0cc1fa116f989f582f060e3bb4e7",
+          "a137f162ffb04b40798eae5e4cbda5cf3b13023b03f6e83139f26ae63bf82c81",
+          "bdd7cd4bd307ce6a419170835dc5e0c2c790ddbee47df827fcecf41417897829"
+        ],
+        "metadata": {
+          "family": "normative",
+          "parser_name": "normative",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 0
+        },
+        "warnings": [
+          "oversized_structure_review_required"
+        ],
+        "examples": [
+          {
+            "position": 1,
+            "type": "article",
+            "number": "1",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": "I",
+              "chapter": "I"
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 36,
+            "excerpt": "Artículo  1.- La defensa de la persona humana y el respeto de su dignidad son el fin supremo de la sociedad y del Estado.\nJURISPRUDENCIA DE LA CORTE SUPREMA DE JUSTICIA\nDerechos fundamentales de la persona"
+          },
+          {
+            "position": 127,
+            "type": "article",
+            "number": "114",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": "IV",
+              "chapter": "IV"
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 46,
+            "excerpt": "Artículo 114.- El ejercicio de la Presidencia de la República se suspende por:\n1. Incapacidad temporal del Presidente, declarada por el Congreso, o\n2. Hallarse éste sometido a proceso judicial, conforme al artículo 117 de la Constitución.\nImpedimento temporal o permanente del eje"
+          },
+          {
+            "position": 253,
+            "type": "article",
+            "number": "ÚNICO",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": "VI",
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 7,
+            "excerpt": "Artículo Único de la Ley N° 31355"
+          }
+        ]
+      },
+      "publishable": false
+    },
+    {
+      "path": "raw_docs/CODIGO CIVIL.docx",
+      "filename": "CODIGO CIVIL.docx",
+      "bytes": 603262,
+      "source_format": "docx",
+      "document_type": "code",
+      "family": "normative",
+      "document_hash": "88f117ff3d6aa95ce69eee3661b5598b64c551a92a434a01446f137c22f8782f",
+      "source_file_hash": "d5e002093c14535bec270940bb73f9e6f862ff4381c000f6b1e3cc7db214d6dd",
+      "before": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 2239,
+        "unit_types": {
+          "article": 2163,
+          "concordance": 54,
+          "disposition": 22
+        },
+        "page_units": 0,
+        "page_range": [
+          null,
+          null
+        ],
+        "split_parts": 12,
+        "duplicate_extra": 11,
+        "duplicate_hashes": [
+          {
+            "hash": "5176efbb2ea9e67787e507ba16087f269400d6ab22a2fdbefcc5a5447418d82a",
+            "count": 2
+          },
+          {
+            "hash": "e5687bbb3491194686a25d61f8381bcc466fb7c3528d5acd689aff61d8292b6a",
+            "count": 2
+          },
+          {
+            "hash": "ee3125137b1031d91a0b15be068aa7441efea7d8d2ad9b3f811b0cebba9bd309",
+            "count": 7
+          },
+          {
+            "hash": "b85e2c10008b7b33a99d5770daf0d1357ee274913e1a743a94e852771e3b804c",
+            "count": 2
+          },
+          {
+            "hash": "e9f98ca4a4aedc4e9bc3db0f8abd1e751b9a19b32027faf047c007299e0e9292",
+            "count": 2
+          },
+          {
+            "hash": "7a2a50a53e8f261e8e653e09aff19df2097cc30821fe57d2194f87c9a6bf9984",
+            "count": 2
+          }
+        ],
+        "content_hash_samples": [
+          "72be272afab37a94e575d1dc6c1b9301e9012b24d7dd9f2b70fceee440671afc",
+          "58af38e01ca8a492df2896190cb0d68c2f74002ea0c07f510c70daaf2daa0ad5",
+          "a58e31f9bb58fd4076044b9d00d75c444d3cf42c9436f496dd8b2ecc1124871c"
+        ],
+        "metadata": {
+          "family": "normative",
+          "parser_name": "normative",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 11
+        },
+        "warnings": [
+          "duplicate_unit_hashes:11",
+          "duplicate_unit_hash"
+        ]
+      },
+      "after": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 2227,
+        "unit_types": {
+          "article": 2168,
+          "concordance": 54,
+          "disposition": 5
+        },
+        "page_units": 0,
+        "page_range": [
+          null,
+          null
+        ],
+        "split_parts": 12,
+        "duplicate_extra": 2,
+        "duplicate_hashes": [
+          {
+            "hash": "c1fa8a3ad3c743701b44b9a68418f4f8d72e32d045b4b9574fcdb4bbda2fc08a",
+            "count": 2
+          },
+          {
+            "hash": "e27950090b463eebfe888e495f4a1b8b26ab5e07e99cec08965e6de215d4ce68",
+            "count": 2
+          }
+        ],
+        "content_hash_samples": [
+          "72be272afab37a94e575d1dc6c1b9301e9012b24d7dd9f2b70fceee440671afc",
+          "58af38e01ca8a492df2896190cb0d68c2f74002ea0c07f510c70daaf2daa0ad5",
+          "e01a75e1090318617e155897099f16ff6c6bbd01a01f97c8e1fb7aa0aeca7e88"
+        ],
+        "metadata": {
+          "family": "normative",
+          "parser_name": "normative",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 2
+        },
+        "warnings": [
+          "duplicate_unit_hashes:2",
+          "oversized_structure_review_required",
+          "duplicate_unit_hash"
+        ],
+        "examples": [
+          {
+            "position": 1,
+            "type": "article",
+            "number": "1",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 145,
+            "excerpt": "Artículo 1.- Promúlgase el CÓDIGO CIVIL aprobado por la Comisión Revisora creada por la Ley Nº 23403, según el texto adjunto, que consta de 2,132 artículos distribuidos en doce partes, como sigue:\nTITULO PRELIMINAR     : Artículo I a X;\nLIBRO I               : Derechos de las Per"
+          },
+          {
+            "position": 1114,
+            "type": "article",
+            "number": "1051",
+            "heading": null,
+            "hierarchy": {
+              "book": "V",
+              "section": null,
+              "title": "VI",
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 57,
+            "excerpt": "Artículo 1051.-   La servidumbre legal de paso se establece en beneficio de los predios que no tengan salida a los caminos públicos.\nEsta servidumbre cesa cuando el propietario del predio dominante adquiere otro que le de salida o cuando se abre un camino que de acceso inmediato "
+          },
+          {
+            "position": 2227,
+            "type": "article",
+            "number": "659-B",
+            "heading": null,
+            "hierarchy": {
+              "book": "VII - SECCION SEGUNDA - TITULO VI - CAPITULO SEXTO",
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 94,
+            "excerpt": "Artículo 659-B.- Definición de apoyos\nLos apoyos son formas de asistencia libremente elegidos por una persona mayor de edad para facilitar el ejercicio de sus derechos, incluyendo el apoyo en la comunicación, en la comprensión de los actos jurídicos y de las consecuencias de esto"
+          }
+        ]
+      },
+      "publishable": false
+    },
+    {
+      "path": "raw_docs/(TUO) CODIGO PROCESAL CIVIL.docx",
+      "filename": "(TUO) CODIGO PROCESAL CIVIL.docx",
+      "bytes": 474236,
+      "source_format": "docx",
+      "document_type": "code",
+      "family": "normative",
+      "document_hash": "169a4aff961a70fa9090f5cf53ccc47f943654931e66c22f9ff6e9267e717321",
+      "source_file_hash": "a5a468d0696b363b8c7c8428b2bdb17cf8a5ab55de55d6a3985d6df6b0990f88",
+      "before": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 997,
+        "unit_types": {
+          "article": 948,
+          "concordance": 31,
+          "disposition": 18
+        },
+        "page_units": 0,
+        "page_range": [
+          null,
+          null
+        ],
+        "split_parts": 37,
+        "duplicate_extra": 1,
+        "duplicate_hashes": [
+          {
+            "hash": "9099da730d99c82e2500473a166156def49d80f801399d14a68f62b140ea3210",
+            "count": 2
+          }
+        ],
+        "content_hash_samples": [
+          "83e6adee9280faef283e688c325483ae95211d85621e91fd345eb09b34bf7f74",
+          "0719fdf8d7566759616d03a1971d90b2917dea9645c80a58f0d68363855afaf3",
+          "93eff2d903ae56b4c6c35b6d35b77c5ddaf6b4a625ff4f03b12eaf2a0218ab59"
+        ],
+        "metadata": {
+          "family": "normative",
+          "parser_name": "normative",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 1
+        },
+        "warnings": [
+          "duplicate_unit_hashes:1",
+          "duplicate_unit_hash"
+        ]
+      },
+      "after": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 991,
+        "unit_types": {
+          "article": 959,
+          "concordance": 31,
+          "disposition": 1
+        },
+        "page_units": 0,
+        "page_range": [
+          null,
+          null
+        ],
+        "split_parts": 34,
+        "duplicate_extra": 0,
+        "duplicate_hashes": [],
+        "content_hash_samples": [
+          "83e6adee9280faef283e688c325483ae95211d85621e91fd345eb09b34bf7f74",
+          "0719fdf8d7566759616d03a1971d90b2917dea9645c80a58f0d68363855afaf3",
+          "93eff2d903ae56b4c6c35b6d35b77c5ddaf6b4a625ff4f03b12eaf2a0218ab59"
+        ],
+        "metadata": {
+          "family": "normative",
+          "parser_name": "normative",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 0
+        },
+        "warnings": [
+          "oversized_structure_review_required"
+        ],
+        "examples": [
+          {
+            "position": 1,
+            "type": "article",
+            "number": "1",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 19,
+            "excerpt": "Artículo 1.- Autorizar la publicación del Texto Único Ordenado del Código Procesal Civil promulgado mediante Decreto Legislativo N° 768."
+          },
+          {
+            "position": 496,
+            "type": "article",
+            "number": "432",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": "I",
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 65,
+            "excerpt": "Artículo  432.- Cuando el demandado no se encontrara en el lugar donde se le demanda, el emplazamiento se hará por medio de exhorto a la autoridad judicial de la localidad en que se halle.\nEn este caso, el plazo para contestar la demanda se aumentará con arreglo al Cuadro de Dist"
+          },
+          {
+            "position": 991,
+            "type": "article",
+            "number": "834",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": "II",
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 103,
+            "excerpt": "Artículo 834. Inclusión de otro heredero y audiencia\nDentro de los quince días contados desde la publicación referida en el artículo 833, el que se considere heredero puede apersonarse acreditando su calidad con la copia certificada de la partida correspondiente, o instrumento pú"
+          }
+        ]
+      },
+      "publishable": false
+    },
+    {
+      "path": "raw_docs/TEXTO UNICO ORDENADO DEL CODIGO TRIBUTARIO.docx",
+      "filename": "TEXTO UNICO ORDENADO DEL CODIGO TRIBUTARIO.docx",
+      "bytes": 348660,
+      "source_format": "docx",
+      "document_type": "code",
+      "family": "normative",
+      "document_hash": "26876c0b0e00127a6cad4c5b0b5856ddb4c6583ca1e9ffa938a6f2d9e5610bf4",
+      "source_file_hash": "995f3e38d6406ba16aaf6adac66e1192e7730624bef641eb4221707b572683ad",
+      "before": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 239,
+        "unit_types": {
+          "article": 207,
+          "concordance": 28,
+          "disposition": 4
+        },
+        "page_units": 0,
+        "page_range": [
+          null,
+          null
+        ],
+        "split_parts": 124,
+        "duplicate_extra": 4,
+        "duplicate_hashes": [
+          {
+            "hash": "baaa64ca040efdce20b3d4bcba0ec14774474c0688939ad6b3e7aa9caa41e257",
+            "count": 3
+          },
+          {
+            "hash": "8160c200c6c2762d4379e8478ec977b5c067423c0ae6429f2a06fa39b1fdb1e2",
+            "count": 2
+          },
+          {
+            "hash": "4394be68c13bd29676eaa5052d5946cc64001a7e2baef38d83df7d4d8bfa98e5",
+            "count": 2
+          }
+        ],
+        "content_hash_samples": [
+          "4959193c2f54ca267311246fcb18bfa4f5c9c38508f5a472565d66ce062bc6fa",
+          "9b4a3cf79239f5f1a6a42a6e944f5fb19a21aa80608611c7a4ee47332a2584f4",
+          "49d93eba6b20a1d812ddbc939c95f34917bd5add1f069aba946ab2bf32969bef"
+        ],
+        "metadata": {
+          "family": "normative",
+          "parser_name": "normative",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 4
+        },
+        "warnings": [
+          "duplicate_unit_hashes:4",
+          "duplicate_unit_hash"
+        ]
+      },
+      "after": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 232,
+        "unit_types": {
+          "article": 203,
+          "concordance": 28,
+          "disposition": 1
+        },
+        "page_units": 0,
+        "page_range": [
+          null,
+          null
+        ],
+        "split_parts": 120,
+        "duplicate_extra": 2,
+        "duplicate_hashes": [
+          {
+            "hash": "baaa64ca040efdce20b3d4bcba0ec14774474c0688939ad6b3e7aa9caa41e257",
+            "count": 3
+          }
+        ],
+        "content_hash_samples": [
+          "4959193c2f54ca267311246fcb18bfa4f5c9c38508f5a472565d66ce062bc6fa",
+          "ddf37b07cd76e6d0a9229972e89b675df1264b916f25b5907e7988dc133a5452",
+          "49d93eba6b20a1d812ddbc939c95f34917bd5add1f069aba946ab2bf32969bef"
+        ],
+        "metadata": {
+          "family": "normative",
+          "parser_name": "normative",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 2
+        },
+        "warnings": [
+          "duplicate_unit_hashes:2",
+          "oversized_structure_review_required",
+          "duplicate_unit_hash"
+        ],
+        "examples": [
+          {
+            "position": 1,
+            "type": "article",
+            "number": "1",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 52,
+            "excerpt": "Artículo 1.- Texto Único Ordenado del Código Tributario\nApruébese el nuevo Texto Único Ordenado del Código Tributario que consta de un Título Preliminar con dieciséis (16) Normas, cuatro (4) Libros, doscientos cinco (205) Artículos, setenta y tres (73) Disposiciones Finales, vein"
+          },
+          {
+            "position": 117,
+            "type": "article",
+            "number": "102-E",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": "VII",
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 27,
+            "excerpt": "Artículo 102-E.- INTERCAMBIO DE INFORMACIÓN ESPONTÁNEO\nLa SUNAT puede intercambiar información de manera espontánea cuando obtuviera información que considere que sea de interés para la autoridad competente."
+          },
+          {
+            "position": 232,
+            "type": "article",
+            "number": "180",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": "II",
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              2,
+              2
+            ],
+            "tokens": 442,
+            "excerpt": "i) Para las infracciones sancionadas con el 0,6% de los IN conforme a las Tablas de Infracciones y Sanciones: Una multa equivalente al dos por ciento (2%) del monto consignado en la casilla total patrimonio de la Declaración Jurada Anual correspondiente al ejercicio anterior, o e"
+          }
+        ]
+      },
+      "publishable": false
+    },
+    {
+      "path": "raw_docs/LEY GENERAL DE SOCIEDADES.docx",
+      "filename": "LEY GENERAL DE SOCIEDADES.docx",
+      "bytes": 170859,
+      "source_format": "docx",
+      "document_type": "law",
+      "family": "normative",
+      "document_hash": "2f2278692c5c360665e9855790839546d739e51e03719c683e04101066dbef74",
+      "source_file_hash": "de870d17dc96f573f537cffa000375fed28492883b1b2993d178d0ea2ad40c22",
+      "before": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 486,
+        "unit_types": {
+          "disposition": 4,
+          "article": 458,
+          "concordance": 24
+        },
+        "page_units": 0,
+        "page_range": [
+          null,
+          null
+        ],
+        "split_parts": 12,
+        "duplicate_extra": 2,
+        "duplicate_hashes": [
+          {
+            "hash": "8160c200c6c2762d4379e8478ec977b5c067423c0ae6429f2a06fa39b1fdb1e2",
+            "count": 2
+          },
+          {
+            "hash": "7f47b67dee1624a378630c958958b2f2bd1360fefdfaf35b9ecc8323430f53ad",
+            "count": 2
+          }
+        ],
+        "content_hash_samples": [
+          "5656ac94ea396c63105fa3cf7a6bc91b41c2d4dec355b83f4b535bdf0d8e88f1",
+          "270111707be73faff5eea0f3fdea313ed54cbb1f04a9d97b5b05c4fd3dfb90d9",
+          "550100de248ad467d8d866cb860f2cd8211b9822fca7e6716891ae7d30b91dcc"
+        ],
+        "metadata": {
+          "family": "normative",
+          "parser_name": "normative",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 2
+        },
+        "warnings": [
+          "duplicate_unit_hashes:2",
+          "duplicate_unit_hash"
+        ]
+      },
+      "after": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 483,
+        "unit_types": {
+          "article": 458,
+          "concordance": 24,
+          "disposition": 1
+        },
+        "page_units": 0,
+        "page_range": [
+          null,
+          null
+        ],
+        "split_parts": 12,
+        "duplicate_extra": 1,
+        "duplicate_hashes": [
+          {
+            "hash": "7f47b67dee1624a378630c958958b2f2bd1360fefdfaf35b9ecc8323430f53ad",
+            "count": 2
+          }
+        ],
+        "content_hash_samples": [
+          "9f78d71b8ab082279babc4e23f44a4838193bc8d23de87162abe8f2e515b51a8",
+          "270111707be73faff5eea0f3fdea313ed54cbb1f04a9d97b5b05c4fd3dfb90d9",
+          "550100de248ad467d8d866cb860f2cd8211b9822fca7e6716891ae7d30b91dcc"
+        ],
+        "metadata": {
+          "family": "normative",
+          "parser_name": "normative",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 1
+        },
+        "warnings": [
+          "duplicate_unit_hashes:1",
+          "duplicate_unit_hash"
+        ],
+        "examples": [
+          {
+            "position": 1,
+            "type": "article",
+            "number": "1",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 23,
+            "excerpt": "Artículo 1.- La Sociedad\nQuienes constituyenla(*) NOTA SPIJ Sociedad convienen en aportar bienes o servicios para el ejercicio en común de actividades económicas."
+          },
+          {
+            "position": 242,
+            "type": "article",
+            "number": "224",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": "III",
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 47,
+            "excerpt": "Artículo 224.- Derecho de información de los accionistas\nA partir del día siguiente de la publicación de la convocatoria a la junta general, cualquier accionista puede obtener en las oficinas de la sociedad, en forma gratuita, copias de los documentos a que se refieren los artícu"
+          },
+          {
+            "position": 483,
+            "type": "article",
+            "number": "448",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": "III",
+              "chapter": null
+            },
+            "pages": [
+              null,
+              null
+            ],
+            "part": [
+              8,
+              8
+            ],
+            "tokens": 38,
+            "excerpt": "En la presente edición de Normas Legales del diario oficial \"El Peruano\", dice: \"ala\", debiendo decir: \"a la\"\nNOTA SPIJ (*)\nEn la presente edición de Normas Legales del diario oficial \"El Peruano\", dice: \"accione8\", debiendo decir: \"acciones\""
+          }
+        ]
+      },
+      "publishable": false
+    },
+    {
+      "path": "backend/raw_docs/jurisprudencia/TC_declara_fundado_hábeas_corpus_por_falta_de_motivación_a_la___.pdf",
+      "filename": "TC_declara_fundado_hábeas_corpus_por_falta_de_motivación_a_la___.pdf",
+      "bytes": 450538,
+      "source_format": "pdf",
+      "document_type": "judgment",
+      "family": "jurisprudence",
+      "document_hash": "0d3f217ce5398270a3450066c542fb1b8d4569fee5f5b59a735a2da619247d4a",
+      "source_file_hash": "054ed36a04b84cbccddaa14111883b105434d6c31c2f4a3a8b06c66b7c9d182a",
+      "before": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 40,
+        "unit_types": {
+          "antecedent": 2,
+          "foundation": 38
+        },
+        "page_units": 40,
+        "page_range": [
+          1,
+          18
+        ],
+        "split_parts": 2,
+        "duplicate_extra": 2,
+        "duplicate_hashes": [
+          {
+            "hash": "44a1e3c543f059999c611c4c6dff806ab28e59a403809e07fca32758c540d196",
+            "count": 2
+          },
+          {
+            "hash": "2756b7ceecfb78ae34ef472a0c0f8c00c575d4c5068247596b47d7da50401ce4",
+            "count": 2
+          }
+        ],
+        "content_hash_samples": [
+          "955eb7913191cce770f20128039f7df706b83fd758529e9d819cbcffa658c6b5",
+          "2756b7ceecfb78ae34ef472a0c0f8c00c575d4c5068247596b47d7da50401ce4",
+          "c53be6b05f775eb8b61bd27e1141fcf510b14a6939abde18c4d32ac87c701dbd"
+        ],
+        "metadata": {
+          "court": "Tribunal Constitucional",
+          "expediente": "00800-2024-PHC/TC",
+          "resolution_type": "auto",
+          "sumilla": null,
+          "precedent_binding": null,
+          "issuer": "Tribunal Constitucional",
+          "chamber": null,
+          "ponente": null,
+          "materia": null,
+          "instancia": null,
+          "resolution_date": "2023-07-25",
+          "family": "jurisprudence",
+          "parser_name": "jurisprudence",
+          "removed_page_furniture": 18,
+          "duplicate_unit_hashes": 2
+        },
+        "warnings": [
+          "page_furniture_removed:18",
+          "decision_not_detected",
+          "duplicate_unit_hashes:2",
+          "duplicate_unit_hash"
+        ]
+      },
+      "after": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 30,
+        "unit_types": {
+          "antecedent": 2,
+          "foundation": 26,
+          "decision": 2
+        },
+        "page_units": 30,
+        "page_range": [
+          1,
+          18
+        ],
+        "split_parts": 4,
+        "duplicate_extra": 0,
+        "duplicate_hashes": [],
+        "content_hash_samples": [
+          "955eb7913191cce770f20128039f7df706b83fd758529e9d819cbcffa658c6b5",
+          "273cf588ec0707d22d31f7074d9f97e712dbcb8be70e5f9aa737b5882141dde5",
+          "c53be6b05f775eb8b61bd27e1141fcf510b14a6939abde18c4d32ac87c701dbd"
+        ],
+        "metadata": {
+          "court": "Tribunal Constitucional",
+          "expediente": "00800-2024-PHC/TC",
+          "resolution_type": "sentencia",
+          "sumilla": null,
+          "precedent_binding": null,
+          "issuer": "Tribunal Constitucional",
+          "chamber": "Sala Segunda",
+          "ponente": null,
+          "materia": null,
+          "instancia": null,
+          "resolution_date": "2026-06-22",
+          "family": "jurisprudence",
+          "parser_name": "jurisprudence",
+          "removed_page_furniture": 18,
+          "duplicate_unit_hashes": 0
+        },
+        "warnings": [
+          "page_furniture_removed:18",
+          "split_page_provenance_review_required"
+        ],
+        "examples": [
+          {
+            "position": 1,
+            "type": "antecedent",
+            "number": null,
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              1,
+              5
+            ],
+            "part": [
+              1,
+              2
+            ],
+            "tokens": 789,
+            "excerpt": "ANTECEDENTES\nCon fecha 25 de julio de 2023, doña interpone\ndemanda de habeas corpus2 a favor de don contra la\nSegunda Sala Penal de Apelaciones de la Corte Superior de Justicia de Cusco\nintegrada por los magistrados Paredes Matheus, Sarmiento Núñez y Silva\nAstete. Alega la vulner"
+          },
+          {
+            "position": 16,
+            "type": "foundation",
+            "number": "18",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              9,
+              9
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 238,
+            "excerpt": "18.- Ahora bien, los fundamentos expuestos por la señora juez para resolver el\npresente incidente no guardan consonancia con la comparecencia restringida dictada\nen favor de . De hecho, del análisis efectuado por la A-quo\nsobre la vinculación de los imputados en la comisión del d"
+          },
+          {
+            "position": 30,
+            "type": "foundation",
+            "number": "9",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              17,
+              18
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 130,
+            "excerpt": "9. Siendo esto así, resulta lógico deducir que, en relación a la exigencia de\nla motivación judicial del llamado peligro procesal, en el presente caso,\nel Colegiado ha cumplido con su obligación constitucional y legal de\nmotivar la concurrencia del llamado peligro procesal, refer"
+          }
+        ]
+      },
+      "publishable": false
+    },
+    {
+      "path": "backend/raw_docs/jurisprudencia/_Auto__No_todos_los_casos_que_conozca_el_TC__vía_RAC____.pdf",
+      "filename": "_Auto__No_todos_los_casos_que_conozca_el_TC__vía_RAC____.pdf",
+      "bytes": 176074,
+      "source_format": "pdf",
+      "document_type": "order",
+      "family": "jurisprudence",
+      "document_hash": "0c2a1e064a9929036b002bd0b5e555f8959143c5399fba62c3e8335ecce76988",
+      "source_file_hash": "450109c2b506278bef1c11edb76f73dc1b1f557a6983d83512b748c5c6ff4728",
+      "before": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 1,
+        "unit_types": {
+          "decision": 1
+        },
+        "page_units": 1,
+        "page_range": [
+          3,
+          3
+        ],
+        "split_parts": 0,
+        "duplicate_extra": 0,
+        "duplicate_hashes": [],
+        "content_hash_samples": [
+          "e412835519038057b13f080e31d86266ba5fe347a7912a95b06a55d573d42576"
+        ],
+        "metadata": {
+          "court": "Tribunal Constitucional",
+          "expediente": null,
+          "resolution_type": "auto",
+          "sumilla": null,
+          "precedent_binding": null,
+          "issuer": "Tribunal Constitucional",
+          "chamber": null,
+          "ponente": null,
+          "materia": null,
+          "instancia": null,
+          "resolution_date": "2025-10-23",
+          "family": "jurisprudence",
+          "parser_name": "jurisprudence",
+          "removed_page_furniture": 3,
+          "duplicate_unit_hashes": 0
+        },
+        "warnings": [
+          "page_furniture_removed:3",
+          "jurisprudence_identity_missing"
+        ]
+      },
+      "after": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 12,
+        "unit_types": {
+          "antecedent": 1,
+          "foundation": 10,
+          "decision": 1
+        },
+        "page_units": 12,
+        "page_range": [
+          1,
+          3
+        ],
+        "split_parts": 0,
+        "duplicate_extra": 0,
+        "duplicate_hashes": [],
+        "content_hash_samples": [
+          "13847c790d58c8ecf053aeeeeeaa5dfb7bd1516e61402c867432ca46442ed6f4",
+          "89c52fe39179878872fa319ce0ef033506831517d447b84a845332d79e6d4e08",
+          "e412835519038057b13f080e31d86266ba5fe347a7912a95b06a55d573d42576"
+        ],
+        "metadata": {
+          "court": "Tribunal Constitucional",
+          "expediente": "04810-2024-PA/TC",
+          "resolution_type": "auto",
+          "sumilla": null,
+          "precedent_binding": null,
+          "issuer": "Tribunal Constitucional",
+          "chamber": null,
+          "ponente": null,
+          "materia": null,
+          "instancia": null,
+          "resolution_date": "2025-10-23",
+          "family": "jurisprudence",
+          "parser_name": "jurisprudence",
+          "removed_page_furniture": 3,
+          "duplicate_unit_hashes": 0
+        },
+        "warnings": [
+          "page_furniture_removed:3",
+          "foundation_numbering_review_required"
+        ],
+        "examples": [
+          {
+            "position": 1,
+            "type": "antecedent",
+            "number": null,
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              1,
+              1
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 39,
+            "excerpt": "VISTO\nEl pedido de nulidad —entendido como aclaración— presentado por la\nSociedad Minera Cerro Verde S.A.A., con fecha 1 de agosto de 2025, contra\nla sentencia de fecha 29 de mayo de 2025, dictada por este Tribunal\nConstitucional; y"
+          },
+          {
+            "position": 7,
+            "type": "foundation",
+            "number": "211",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              2,
+              2
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 88,
+            "excerpt": "211. Dentro de esta lógica discursiva, el Tribunal Constitucional admitirá a\ntrámite todos los recursos de agravio conforme al mandato constitucional\nprevisto en el artículo 202, inciso 2, de la Constitución, y definirá las causas\nque tendrán informes oral es de acuerdo con los p"
+          },
+          {
+            "position": 12,
+            "type": "decision",
+            "number": null,
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              3,
+              3
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 23,
+            "excerpt": "RESUELVE\nDeclarar IMPROCEDENTE el pedido de nulidad, entendido como\naclaración.\nPublíquese y notifíquese.\nSS.\nDOMÍNGUEZ HARO\nGUTIÉRREZ TICSE\nOCHOA CARDICH\nPONENTE OCHOA CARDICH"
+          }
+        ]
+      },
+      "publishable": false
+    },
+    {
+      "path": "backend/raw_docs/jurisprudencia/Requisitos_para_la_validez_del_contrato_modal_por_suplencia__Casación_20221_2023____.pdf",
+      "filename": "Requisitos_para_la_validez_del_contrato_modal_por_suplencia__Casación_20221_2023____.pdf",
+      "bytes": 190529,
+      "source_format": "pdf",
+      "document_type": "cassation",
+      "family": "jurisprudence",
+      "document_hash": "189bf0a9ef69087948e1082f785818e4bf8bf7b011ba65e2862c610e2a10c6c7",
+      "source_file_hash": "182269118766f2b39d0e8279fffe16b7bdad84c9c9327733f6c96399866f6275",
+      "before": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 6,
+        "unit_types": {
+          "sumilla": 6
+        },
+        "page_units": 6,
+        "page_range": [
+          1,
+          14
+        ],
+        "split_parts": 6,
+        "duplicate_extra": 0,
+        "duplicate_hashes": [],
+        "content_hash_samples": [
+          "8ad0b8bf51b4b2230a8943019df977f4274eb5ed5be7c4fe4a415fbffb638a1e",
+          "00e03a2a910162a055586db8437058452bc1a02c1ae6c774c4675df4f03e0388",
+          "a7badf371f14f47f555f44b8063c62185b521d71da7f73626ae04cd43982d809"
+        ],
+        "metadata": {
+          "court": "Corte Suprema",
+          "expediente": "20221-2023",
+          "resolution_type": "casación",
+          "sumilla": "Será válido el contrato modal de suplencia que cumpl a con",
+          "precedent_binding": null,
+          "issuer": "Corte Suprema",
+          "chamber": null,
+          "ponente": null,
+          "materia": null,
+          "instancia": null,
+          "resolution_date": null,
+          "family": "jurisprudence",
+          "parser_name": "jurisprudence",
+          "removed_page_furniture": 14,
+          "duplicate_unit_hashes": 0
+        },
+        "warnings": [
+          "page_furniture_removed:14",
+          "decision_not_detected"
+        ]
+      },
+      "after": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 30,
+        "unit_types": {
+          "antecedent": 2,
+          "sumilla": 1,
+          "foundation": 26,
+          "decision": 1
+        },
+        "page_units": 30,
+        "page_range": [
+          1,
+          14
+        ],
+        "split_parts": 0,
+        "duplicate_extra": 0,
+        "duplicate_hashes": [],
+        "content_hash_samples": [
+          "3475205cb7a39f0a334d0be9406457255f27b302046f5ba014deb537e0e77e66",
+          "6c466c98164d9af433cde8b0ef3caf584fee231eba442cdd27bdacef835cd378",
+          "292b168d1a05b35e5a890aeacd93fa1b72f639e337d63b5024d9e562912ce5aa"
+        ],
+        "metadata": {
+          "court": "Corte Suprema",
+          "expediente": "20221-2023",
+          "resolution_type": "casación",
+          "sumilla": "Será válido el contrato modal de suplencia que cumpl a con especificar: i) el trabajador estable de la empresa ; ii) las razones que originan la suspensión de su contrato d e trabajo; y, iii) la plaza liberada en la cual es co ntratado el trabajador suplente. Asimismo, el trabajador suplent e deberá asumir las obligaciones o responsabilidades propias o de igual naturaleza al puesto o función d e trabajo encargado (el cual se sujeta al puesto o cargo, en referencia al desempeño de las funciones conforme a criterios constitucionales).",
+          "precedent_binding": null,
+          "issuer": "Corte Suprema",
+          "chamber": "Cuarta Sala",
+          "ponente": null,
+          "materia": null,
+          "instancia": null,
+          "resolution_date": null,
+          "family": "jurisprudence",
+          "parser_name": "jurisprudence",
+          "removed_page_furniture": 14,
+          "duplicate_unit_hashes": 0
+        },
+        "warnings": [
+          "page_furniture_removed:14",
+          "jurisprudence_date_or_type_missing"
+        ],
+        "examples": [
+          {
+            "position": 1,
+            "type": "antecedent",
+            "number": null,
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              1,
+              1
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 99,
+            "excerpt": "I. MATERIA DEL RECURSO DE CASACIÓN\nSe trata del recurso de casación interpuesto por la Procuraduría Pública del Poder\nJudicial, contra la sentencia de vista de fecha veintitrés de noviembre de dos mil\nveintidós, que confirma la sentencia apelada de fec ha dieciocho de abril de do"
+          },
+          {
+            "position": 16,
+            "type": "foundation",
+            "number": "DUODÉCIMO",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              6,
+              7
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 598,
+            "excerpt": "DUODÉCIMO.- Adviértase, que un contrato modal se considerará co mo uno a plazo\nindeterminado si se configura alguno de los supuest os de desnaturalización regulados\nen el artículo 77 de la LPCL, es decir, el contrato modal celebrado en contravención al\norden público acarrea como "
+          },
+          {
+            "position": 30,
+            "type": "decision",
+            "number": null,
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              13,
+              14
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 110,
+            "excerpt": "IV. DECISIÓN\nPor estas consideraciones, declararon: INFUNDADO el recurso de casación\ninterpuesto por la Procuraduría Pública del Poder Judicial ; en consecuencia, NO\nCORTE SUPREMA DE JUSTICIA DE LA REPÚBLICA\nCASACIÓN N.° 20221-2023\nLAMBAYEQUE\nINCUMPLIMIENTO DE NORMAS LABORALES\nPR"
+          }
+        ]
+      },
+      "publishable": false
+    },
+    {
+      "path": "backend/raw_docs/jurisprudencia/_Precedente_vinculante__Bonificación_por_preparación_de_clases_debe_calcularse_sobre_la___.pdf",
+      "filename": "_Precedente_vinculante__Bonificación_por_preparación_de_clases_debe_calcularse_sobre_la___.pdf",
+      "bytes": 354368,
+      "source_format": "pdf",
+      "document_type": "judgment",
+      "family": "jurisprudence",
+      "document_hash": "cb34069a2a14a0e5e7525241170f24e71bc37b2be855e4c823d50ceb567decb2",
+      "source_file_hash": "5b030d4c7e87b4d44a77969a43c25e6e41c6ee7d931a9e9d3c9f33edc96cc2fe",
+      "before": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 21,
+        "unit_types": {
+          "sumilla": 21
+        },
+        "page_units": 21,
+        "page_range": [
+          1,
+          12
+        ],
+        "split_parts": 21,
+        "duplicate_extra": 0,
+        "duplicate_hashes": [],
+        "content_hash_samples": [
+          "4f10dc74061730d802c1ec65d03418714d8c38fc85720a8a12d26cf396cc6aaf",
+          "0927afb98be42d02c1e9c3e6c38277b417e3755aacbc312859181b2d3d205f1d",
+          "432e2c2c95d5539a3e61fd2e9fd30676c1eeda1c97fd374c323cd6c258ff58a6"
+        ],
+        "metadata": {
+          "court": null,
+          "expediente": "34397-2023",
+          "resolution_type": "casación",
+          "sumilla": "PRECEDENTE VINCULANTE",
+          "precedent_binding": null,
+          "issuer": null,
+          "chamber": null,
+          "ponente": null,
+          "materia": null,
+          "instancia": null,
+          "resolution_date": "2025-11-22",
+          "family": "jurisprudence",
+          "parser_name": "jurisprudence",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 0
+        },
+        "warnings": [
+          "decision_not_detected",
+          "jurisprudence_identity_missing"
+        ]
+      },
+      "after": {
+        "status": "review_required",
+        "quality": "high",
+        "ocr_required": false,
+        "total_units": 120,
+        "unit_types": {
+          "sumilla": 1,
+          "antecedent": 2,
+          "foundation": 111,
+          "decision": 6
+        },
+        "page_units": 120,
+        "page_range": [
+          1,
+          12
+        ],
+        "split_parts": 8,
+        "duplicate_extra": 0,
+        "duplicate_hashes": [],
+        "content_hash_samples": [
+          "8ea6e5d27c0fc57d820c3eece607ad167e8592c3c82b24d96056555ca9335930",
+          "e1390aa371d2487667dee5070f96252603823a1a149882b066ec1d1e25cf7bf1",
+          "4e8a3380869093b2d6877810a3b9a127c060caa36ca0b985bc1c921f5e4f7097"
+        ],
+        "metadata": {
+          "court": "Corte Suprema",
+          "expediente": "34397-2023",
+          "resolution_type": "casación",
+          "sumilla": "PRECEDENTE VINCULANTE “La base de cálculo de la boniﬁ cación especial mensual por preparación de clases y evaluación, es la remuneración total o íntegra, que incluye los conceptos otorgados por el Decreto Ley N° 25671, Decreto Supremo N° 081-93, Decreto de Urgencia N° 080-94, Decreto de Urgencia N° 090-96, Decreto Supremo N° 019-94, Decreto Supremo Extraordinario N° 021-92-PCM, Decreto Supremo N° 261 91-EF, Decreto de Urgencia N° 073-97, Decreto de Urgencia N° 011-99 y Decreto Supremo N° 65-2003”. Palabras claves: boniﬁ cación por preparación de clase, docente de educación básica regular, remuneración equitativa y suﬁ ciente, carrera docente y antinomias.",
+          "precedent_binding": null,
+          "issuer": "Corte Suprema",
+          "chamber": "Tercera Sala",
+          "ponente": null,
+          "materia": null,
+          "instancia": null,
+          "resolution_date": null,
+          "family": "jurisprudence",
+          "parser_name": "jurisprudence",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 0
+        },
+        "warnings": [
+          "jurisprudence_date_or_type_missing",
+          "split_page_provenance_review_required"
+        ],
+        "examples": [
+          {
+            "position": 1,
+            "type": "sumilla",
+            "number": null,
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              1,
+              1
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 195,
+            "excerpt": "Sumilla: PRECEDENTE VINCULANTE\n“La base de cálculo de la boniﬁ cación especial mensual\npor preparación de clases y evaluación, es la remuneración\ntotal o íntegra, que incluye los conceptos otorgados por\nel Decreto Ley N° 25671, Decreto Supremo N° 081-93,\nDecreto de Urgencia N° 08"
+          },
+          {
+            "position": 61,
+            "type": "foundation",
+            "number": "47",
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              6,
+              6
+            ],
+            "part": [
+              null,
+              null
+            ],
+            "tokens": 84,
+            "excerpt": "47. En ese sentido, cuando la base de cálculo de\nla boni ﬁ cación se asienta en la remuneración total o\níntegra -independientemente de su de ﬁ nición infralegal-\ndeberá entenderse como su ﬁ ciente en el sentido que su\ncontenido debe ser maximizado, y que su aplicación al\ncaso con"
+          },
+          {
+            "position": 120,
+            "type": "decision",
+            "number": null,
+            "heading": null,
+            "hierarchy": {
+              "book": null,
+              "section": null,
+              "title": null,
+              "chapter": null
+            },
+            "pages": [
+              10,
+              12
+            ],
+            "part": [
+              6,
+              6
+            ],
+            "tokens": 30,
+            "excerpt": "de comunicación que afecten a la comprensión del acto judicial en el que\nparticipe una persona en condición de vulnerabilidad, garantizando que ésta\npueda comprender su alcance y significado.\nW-2461016-1"
+          }
+        ]
+      },
+      "publishable": false
+    },
+    {
+      "path": "backend/raw_docs/jurisprudencia/Jueces_incluyen_gráficos_en_su_resolución_para_hacerla_más_comprensible__Expediente___.pdf",
+      "filename": "Jueces_incluyen_gráficos_en_su_resolución_para_hacerla_más_comprensible__Expediente___.pdf",
+      "bytes": 1994761,
+      "source_format": "pdf",
+      "document_type": "regulation",
+      "family": "normative",
+      "document_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_file_hash": "e3c6a70de689174aade682f3ca6305ffa974ba6f40e297ee4dce27534b1ba656",
+      "before": {
+        "status": "review_required",
+        "quality": "ocr_required",
+        "ocr_required": true,
+        "total_units": 0,
+        "unit_types": {},
+        "page_units": 0,
+        "page_range": [
+          null,
+          null
+        ],
+        "split_parts": 0,
+        "duplicate_extra": 0,
+        "duplicate_hashes": [],
+        "content_hash_samples": [],
+        "metadata": {
+          "family": "normative",
+          "parser_name": "normative",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 0
+        },
+        "warnings": [
+          "ocr_required",
+          "no_legal_units",
+          "extraction_review_required"
+        ]
+      },
+      "after": {
+        "status": "review_required",
+        "quality": "ocr_required",
+        "ocr_required": true,
+        "total_units": 0,
+        "unit_types": {},
+        "page_units": 0,
+        "page_range": [
+          null,
+          null
+        ],
+        "split_parts": 0,
+        "duplicate_extra": 0,
+        "duplicate_hashes": [],
+        "content_hash_samples": [],
+        "metadata": {
+          "family": "normative",
+          "parser_name": "normative",
+          "removed_page_furniture": 0,
+          "duplicate_unit_hashes": 0
+        },
+        "warnings": [
+          "ocr_required",
+          "no_legal_units",
+          "extraction_review_required"
+        ],
+        "examples": []
+      },
+      "publishable": false
+    }
+  ]
+}

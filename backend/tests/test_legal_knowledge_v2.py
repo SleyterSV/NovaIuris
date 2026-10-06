@@ -8,7 +8,7 @@ from unittest.mock import patch
 from app.legal_ingestion.cleaners import remove_repeated_page_furniture
 from app.legal_ingestion.extractors import extract, is_html_document
 from app.legal_ingestion.identity import content_hash, document_hash, normalize_text
-from app.legal_ingestion.models import Block
+from app.legal_ingestion.models import Block, ExtractedDocument
 from app.legal_ingestion.parsers import NormativeParser, JurisprudenceParser, case_law_metadata
 from app.legal_ingestion.quality import validate_staged
 from app.legal_ingestion.service import dry_run, stage_file
@@ -47,6 +47,21 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         self.assertEqual(articles[0].title, "II")
         self.assertEqual([unit.unit_type for unit in units].count("amendment_note"), 1)
 
+    def test_plural_disposition_heading_is_not_a_legal_unit(self):
+        blocks = [Block("DISPOSICIONES GENERALES"), Block("Artículo 1.- Regla"),
+                  Block("DISPOSICIÓN PRIMERA.- Vigencia especial")]
+        units = NormativeParser().parse(blocks)
+        self.assertEqual([u.unit_type for u in units], ["article", "disposition"])
+        self.assertNotIn("DISPOSICIONES GENERALES", units[0].text)
+
+    def test_embedded_article_headings_are_separate_and_prose_is_not_a_number(self):
+        blocks = [Block("Artículo 659-A.- Apoyos\nRegla primera.\nArtículo 659-B.- Salvaguardias\nRegla segunda."),
+                  Block("Artículo afectado por la modificación")]
+        units = NormativeParser().parse(blocks)
+        self.assertEqual([u.unit_number for u in units], ["659-A", "659-B"])
+        self.assertNotIn("Artículo 659-B", units[0].text)
+        self.assertIn("Artículo afectado", units[1].text)
+
     def test_foundations_and_decision_keep_pages(self):
         blocks = [Block("SUMILLA: Reposición", page=1), Block("ANTECEDENTES", page=1),
                   Block("Se interpuso la demanda.", page=1), Block("FUNDAMENTOS", page=2),
@@ -58,6 +73,99 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
                          ["sumilla", "antecedent", "foundation", "foundation", "decision"])
         self.assertEqual((units[2].page_start, units[2].page_end), (2, 3))
         self.assertIn("Declarar fundada", units[-1].text)
+
+    def test_cassation_roman_sections_and_ordinal_foundations(self):
+        blocks = [Block("SUMILLA:"), Block("Regla laboral."),
+                  Block("I. MATERIA DEL RECURSO DE CASACIÓN"), Block("Recurso presentado."),
+                  Block("III. CONSIDERANDO:"), Block("PRIMERO.- Razón inicial."),
+                  Block("SEGUNDO.- Razón siguiente."), Block("IV. DECISIÓN"),
+                  Block("Declararon infundado el recurso.")]
+        units = JurisprudenceParser().parse(blocks)
+        self.assertEqual([u.unit_type for u in units],
+                         ["sumilla", "antecedent", "foundation", "foundation", "decision"])
+        self.assertEqual([u.unit_number for u in units if u.unit_type == "foundation"],
+                         ["PRIMERO", "SEGUNDO"])
+
+    def test_tc_auto_sections_and_case_number_survive_header_cleaning(self):
+        blocks = []
+        for page in (1, 2, 3):
+            blocks.append(Block("EXP. N.° 04810-2024-PA/TC", page=page))
+            blocks.append(Block("AUTO DEL TRIBUNAL CONSTITUCIONAL", page=page))
+            blocks.append(Block("VISTO" if page == 1 else "ATENDIENDO A QUE" if page == 2 else "HA RESUELTO", page=page))
+            blocks.append(Block("El pedido." if page == 1 else "1. Razón." if page == 2 else "Declarar improcedente.", page=page))
+        extracted = ExtractedDocument("auto_tc.pdf", "pdf", blocks, "a" * 64)
+        with patch("app.legal_ingestion.service.extract", return_value=extracted):
+            staged = stage_file("auto_tc.pdf")
+        self.assertEqual(staged.metadata["expediente"], "04810-2024-PA/TC")
+        self.assertEqual(staged.metadata["resolution_type"], "auto")
+        self.assertIn("decision", [u.unit_type for u in staged.units])
+
+    def test_tc_decision_and_header_date_are_not_lost_to_case_history(self):
+        blocks = [Block("Sala Segunda. Sentencia 0864/2026"),
+                  Block("SENTENCIA DEL TRIBUNAL CONSTITUCIONAL"),
+                  Block("En Lima, a los 22 días del mes de junio de 2026"),
+                  Block("ANTECEDENTES"), Block("Demanda presentada el 25 de julio de 2023."),
+                  Block("FUNDAMENTOS"), Block("1. Razonamiento."),
+                  Block("HA RESUELTO"), Block("Declarar fundada la demanda.")]
+        metadata = case_law_metadata(blocks, "sentencia_tc.pdf")
+        self.assertEqual(metadata["resolution_date"], "2026-06-22")
+        self.assertEqual(metadata["resolution_type"], "sentencia")
+        self.assertEqual(JurisprudenceParser().parse(blocks)[-1].unit_type, "decision")
+
+    def test_court_detected_with_pdf_spacing(self):
+        metadata = case_law_metadata([Block("CORTE  SUPREMA  DE JUSTICIA DE LA REPÚBLICA"),
+                                      Block("CASACIÓN N° 34397-2023")], "precedente.pdf")
+        self.assertEqual(metadata["court"], "Corte Suprema")
+
+    def test_pdf_sumilla_collects_wrapped_lines_on_same_page(self):
+        blocks = [Block("SUMILLA :", page=1), Block("Será válido el contrato", page=1),
+                  Block("que cumpla los requisitos.", page=1), Block("III. CONSIDERANDO:", page=2)]
+        metadata = case_law_metadata(blocks, "casación.pdf")
+        self.assertEqual(metadata["sumilla"], "Será válido el contrato que cumpla los requisitos.")
+
+    def test_unpunctuated_date_is_not_a_foundation(self):
+        blocks = [Block("ATENDIENDO A QUE"), Block("1. Fundamento."),
+                  Block("29 de mayo de 2025 fue la resolución."), Block("HA RESUELTO"),
+                  Block("Declarar improcedente.")]
+        units = JurisprudenceParser().parse(blocks)
+        self.assertEqual([u.unit_number for u in units if u.unit_type == "foundation"], ["1"])
+        self.assertIn("29 de mayo", units[0].text)
+
+    def test_case_without_resolution_date_requires_review(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "casación.txt"
+            path.write_text("CORTE SUPREMA DE JUSTICIA\nCASACIÓN N.° 20221-2023\nIII. CONSIDERANDO:\nPRIMERO.- Razón.\nIV. DECISIÓN\nDeclararon infundado.", encoding="utf-8")
+            staged = stage_file(path, family="jurisprudence")
+        self.assertEqual(staged.ingestion_status, "review_required")
+        self.assertIn("jurisprudence_date_or_type_missing", staged.warnings)
+
+    def test_split_pdf_across_pages_requires_provenance_review(self):
+        blocks = [Block("SENTENCIA DEL TRIBUNAL CONSTITUCIONAL", page=1),
+                  Block("EXP. N.° 1234-2024-PA/TC", page=1),
+                  Block("Lima, 2 de enero de 2025", page=1), Block("FUNDAMENTOS", page=1),
+                  Block("1. Primero principio completo.", page=1),
+                  Block("Otro párrafo jurídico completo.", page=2),
+                  Block("HA RESUELTO", page=2), Block("Declarar fundada.", page=2)]
+        extracted = ExtractedDocument("sentencia.pdf", "pdf", blocks, "a" * 64)
+        with patch("app.legal_ingestion.service.extract", return_value=extracted):
+            staged = stage_file("sentencia.pdf", max_unit_tokens=4)
+        self.assertIn("split_page_provenance_review_required", staged.warnings)
+
+    def test_implausible_foundation_number_requires_review(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "auto_tc.txt"
+            path.write_text("TRIBUNAL CONSTITUCIONAL\nEXP. N.° 04810-2024-PA/TC\nLima, 23 de octubre de 2025\nATENDIENDO A QUE\n1. Primera razón.\n211. Texto cuya numeración requiere cotejo.\nRESUELVE\nDeclarar improcedente.", encoding="utf-8")
+            staged = stage_file(path, family="jurisprudence")
+        self.assertEqual(staged.ingestion_status, "review_required")
+        self.assertIn("foundation_numbering_review_required", staged.warnings)
+
+    def test_very_long_split_requires_review(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "ley.txt"
+            path.write_text("Artículo 1.- Regla.\n" + "\n".join("Texto legal completo." for _ in range(10)), encoding="utf-8")
+            staged = stage_file(path, family="normative", max_unit_tokens=3)
+        self.assertEqual(staged.ingestion_status, "review_required")
+        self.assertIn("oversized_structure_review_required", staged.warnings)
 
     def test_oversized_unit_splits_at_paragraphs(self):
         unit = NormativeParser().parse([Block("Artículo 1.- Inicio"),
@@ -135,7 +243,7 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         metadata = case_law_metadata(blocks, "sentencia.pdf")
         self.assertEqual(metadata["court"], "Tribunal Constitucional")
         self.assertEqual(metadata["expediente"], "1234-2024-PA/TC")
-        self.assertEqual(metadata["sumilla"], "Tutela judicial")
+        self.assertTrue(metadata["sumilla"].startswith("Tutela judicial"))
         self.assertIs(metadata["precedent_binding"], True)
 
     def test_bad_extraction_and_no_units_require_review(self):
