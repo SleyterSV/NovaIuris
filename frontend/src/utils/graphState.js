@@ -1,4 +1,4 @@
-const statuses = new Set(['not_requested', 'building', 'ready', 'failed', 'timeout'])
+const statuses = new Set(['not_requested', 'building', 'ready', 'empty', 'failed', 'timeout'])
 
 // One boundary for legacy and current Court graph payloads.
 export function normalizeGraphState(graph, previous = null) {
@@ -15,7 +15,7 @@ export function normalizeGraphState(graph, previous = null) {
   return {
     ...source,
     status, graph_id: graphId, case_id: caseId, version,
-    stage: source.stage ?? null, is_final: source.is_final ?? status === 'ready',
+    stage: source.stage ?? null, is_final: source.is_final ?? ['ready', 'empty', 'failed', 'timeout'].includes(status),
     nodes, edges,
     counts: source.counts ?? { node_count: nodes.length, edge_count: edges.length },
     warnings: Array.isArray(source.warnings) ? source.warnings : [],

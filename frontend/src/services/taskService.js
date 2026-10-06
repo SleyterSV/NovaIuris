@@ -31,9 +31,20 @@ export async function runAnalysisTask(tool, text, options = {}) {
     taskId = started.task_id
     if (started.case_id !== caseId) throw new Error('La tarea no corresponde al caso enviado.')
     options.onTask?.(started)
+    let statusFailures = 0
     for (;;) {
       if (options.signal?.aborted) throw new DOMException('Cancelado', 'AbortError')
-      const task = await requestJson(`/tasks/${encodeURIComponent(taskId)}?case_id=${encodeURIComponent(caseId)}`, { signal:options.signal })
+      let task
+      try {
+        task = await requestJson(`/tasks/${encodeURIComponent(taskId)}?case_id=${encodeURIComponent(caseId)}`, { signal:options.signal })
+        statusFailures = 0
+      } catch (error) {
+        if (tool !== 'court' || options.signal?.aborted || error?.status && error.status < 500 && error.status !== 429) throw error
+        statusFailures++
+        if (statusFailures >= 5) throw new Error('La tarea continúa procesándose. No se pudo consultar su estado; vuelve a abrirla más tarde.')
+        await pause(options.signal, Math.min(10000, 1000 * 2 ** statusFailures))
+        continue
+      }
       if (task.case_id !== caseId || task.task_id !== taskId || task.tool !== tool) throw new Error('La respuesta no corresponde al caso enviado.')
       options.onProgress?.(task)
       if (task.status === 'completed') {
@@ -46,7 +57,7 @@ export async function runAnalysisTask(tool, text, options = {}) {
       await pause(options.signal, options.pollInterval ?? 1500)
     }
   } catch (error) {
-    if (taskId) {
+    if (taskId && (tool !== 'court' || error?.name === 'AbortError' && options.signal?.reason !== 'detach')) {
       try { await requestJson(`/tasks/${encodeURIComponent(taskId)}/cancel`, {
         method:'POST', body:JSON.stringify({case_id:caseId}) }) } catch { /* Server unreachable. */ }
     }

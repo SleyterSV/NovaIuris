@@ -49,7 +49,7 @@ assert.equal(legacy.counts.node_count, 1)
 
 const partial = normalizeGraphState({ status: 'failed', version: 1,
   nodes: first.nodes, edges: [], message: 'Zep unavailable' })
-assert.equal(partial.is_final, false)
+assert.equal(partial.is_final, true)
 assert.equal(partial.nodes.length, 1)
 const panel = await readFile(new URL('../src/components/novacourt/GraphPanel.vue', import.meta.url), 'utf8')
 assert.match(panel, /node\?\.entity_type/)

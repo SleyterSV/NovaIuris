@@ -97,6 +97,7 @@ def normalize_simulator_output(output: Any) -> Dict[str, Any]:
             "session_id": payload.get("session_id"),
             "metrics": {},
             "base_legal": payload.get("base_legal") if isinstance(payload.get("base_legal"), str) else "",
+            "retry_count": payload.get("retry_count", 0),
         },
     )
 
@@ -155,14 +156,18 @@ class NovaCourtSimulationOrchestrator:
             if cancellation_token is not None and cancellation_token.is_cancelled():
                 raise
             return simulation_result("timeout", message="La simulación superó el límite de espera.")
-        except Exception:
-            return simulation_result(
+        except Exception as error:
+            result = simulation_result(
                 "failed",
                 message=(
                     "No fue posible completar la simulación judicial. "
                     "El análisis y el grafo permanecen disponibles."
                 ),
             )
+            result["metadata"].update({"failed_stage": getattr(error, "novacourt_failed_stage", "simulation"),
+                                       "retry_count": getattr(error, "novacourt_retry_count", 0),
+                                       "reason": getattr(error, "novacourt_reason", "provider_error")})
+            return result
         finally:
             # No bloquea la respuesta si una dependencia remota continúa en el
             # hilo tras el timeout; el futuro se cancela si aún no inició.

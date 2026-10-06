@@ -7,6 +7,43 @@ import { renderToString } from 'vue/server-renderer'
 import { runAnalysisTask } from '../src/services/taskService.js'
 import { normalizeSimulationState } from '../src/utils/simulationState.js'
 
+test('detaching Court observation leaves the backend task running', async () => {
+  const original = globalThis.fetch
+  const calls = []
+  const controller = new AbortController()
+  globalThis.fetch = async (url) => {
+    calls.push(String(url))
+    if (String(url).endsWith('/novacourt/analyze')) return Response.json({ success:true, task_id:'TASK-A', case_id:'CASE-A' })
+    return Response.json({ success:true, task_id:'TASK-A', case_id:'CASE-A', tool:'court', status:'processing' })
+  }
+  try {
+    await assert.rejects(runAnalysisTask('court', 'Caso', {
+      caseId:'CASE-A', onTask:() => controller.abort('detach'), signal:controller.signal
+    }), { name:'AbortError' })
+    assert.equal(calls.filter(url => url.endsWith('/cancel')).length, 0)
+  } finally { globalThis.fetch = original }
+})
+
+test('transient Court status failure resumes the same task', async () => {
+  const original = globalThis.fetch
+  let polls = 0, starts = 0
+  globalThis.fetch = async (url) => {
+    if (String(url).endsWith('/novacourt/analyze')) {
+      starts++
+      return Response.json({ success:true, task_id:'TASK-A', case_id:'CASE-A' })
+    }
+    polls++
+    if (polls === 1) return Response.json({ success:false }, { status:503 })
+    return Response.json({ success:true, task_id:'TASK-A', case_id:'CASE-A', tool:'court',
+      status:'completed', final_result:{ success:true, case_id:'CASE-A' } })
+  }
+  try {
+    const result = await runAnalysisTask('court', 'Caso', { caseId:'CASE-A', pollInterval:0 })
+    assert.equal(result.case_id, 'CASE-A')
+    assert.equal(starts, 1)
+    assert.equal(polls, 2)
+  } finally { globalThis.fetch = original }
+})
 test('Court sends explicit reuse identity and polls once; independent case sends no reuse', async () => {
   const original = globalThis.fetch
   const payloads = []

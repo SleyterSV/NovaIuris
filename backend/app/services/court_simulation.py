@@ -41,14 +41,16 @@ class LegalDebateSimulator:
         """Canonical Court path: reuse verified CaseResult context without reingestion."""
         check_cancelled(cancellation_token)
         labels = roles or {"position_a": "Parte promotora", "position_b": "Parte contraria"}
+        retry_metrics = {"count": 0}
         result = nova_iuris_tribunal.invoke(
             {"caso": "Simulación jurídica argumentativa", "dossier_rag": context, "mensajes": []},
             config={"configurable": {"cancellation_token": cancellation_token,
-                                    "court_roles": labels}})
+                                    "court_roles": labels, "retry_metrics": retry_metrics}})
         check_cancelled(cancellation_token)
         return {"fiscal": result.get("argumento_fiscal", ""),
                 "defensa": result.get("argumento_defensa", ""),
-                "juez": result.get("veredicto_juez", "")}
+                "juez": result.get("veredicto_juez", ""),
+                "retry_count": retry_metrics["count"]}
 
     @staticmethod
     def _vectorizar_expediente_vivo(texto_completo: str, session_id: str, cancellation_token=None) -> bool:

@@ -8,6 +8,8 @@ from copy import deepcopy
 from ..models.task import TaskManager, TaskStatus
 from ..utils.case_contract import normalize_case_result
 from ..utils.cancellation import OperationCancelled, check_cancelled
+from ..utils.cancellation import CancellationToken
+from ..config import Config
 from ..utils.novacourt_graph import graph_result
 from ..utils.novacourt_simulation import simulation_result
 from ..services.source_contracts import resolve_citations
@@ -63,8 +65,9 @@ class NovaCourtPipelineService:
 
     def _run(self, task_id, case_text, reused_result=None):
         task = self.tasks.get_task(task_id)
-        token = self.tasks.cancellation_token(task_id)
+        task_token = self.tasks.cancellation_token(task_id)
         case_id, tool = task.metadata["case_id"], task.metadata["tool"]
+        token = CancellationToken(parent=task_token, timeout=Config.NOVACOURT_TASK_TIMEOUT_SECONDS) if tool == "court" else task_token
         stages = [{"id": key, "label": label, "status": "pending"}
                   for key, label in CASE_STAGES + (COURT_STAGES if tool == "court" else ())]
         lookup = {item["id"]: item for item in stages}
@@ -150,7 +153,7 @@ class NovaCourtPipelineService:
                             check_cancelled(token)
                             timings[stage] = round((perf_counter() - started_branch) * 1000)
                             if not isinstance(value, dict) or value.get("status") not in {
-                                    "ready", "failed", "timeout", "not_requested"}:
+                                    "ready", "empty", "failed", "timeout", "not_requested"}:
                                 if field == "graph" and isinstance(partial.get("graph"), dict):
                                     previous = partial["graph"]
                                     value = graph_result("failed", graph_id=previous.get("graph_id"),
@@ -160,7 +163,8 @@ class NovaCourtPipelineService:
                                         warnings=[{"code": "FAILED", "message": "Grafo parcial"}])
                                 else:
                                     value = (graph_result if field == "graph" else simulation_result)(
-                                        "failed", message="No fue posible completar esta etapa.")
+                                        "failed", message="No fue posible completar esta etapa.",
+                                        metadata={"failed_stage": stage, "reason": "unexpected_branch_result"})
                             if value.get("case_id") not in (None, case_id):
                                 value = (graph_result if field == "graph" else simulation_result)(
                                     "failed", message="Identidad de caso no válida.")
@@ -169,18 +173,20 @@ class NovaCourtPipelineService:
                             status = value["status"]
                             if status in {"failed", "timeout"}:
                                 warnings.append({"stage": stage, "code": status,
-                                                 "message": "El análisis principal permanece disponible."})
+                                                 "message": "Esta etapa no pudo finalizar."})
                             partial[field] = deepcopy(value)
-                            update(stage, "completed" if status == "ready" else
+                            update(stage, "completed" if status in {"ready", "empty"} else
                                    "skipped" if status == "not_requested" else "failed")
                 finally:
                     executor.shutdown(wait=False, cancel_futures=True)
                 update("court_citations", "running")
+                check_cancelled(token)
                 citation_started = perf_counter()
                 simulation = result["simulation"]
                 citation_failed = False
                 if simulation["status"] != "ready":
-                    simulation = simulation_result(simulation["status"], message=simulation.get("message"))
+                    simulation = simulation_result(simulation["status"], message=simulation.get("message"),
+                                                   metadata=simulation.get("metadata"))
                     simulation["case_id"] = case_id
                     result["simulation"] = simulation
                 if simulation["status"] == "ready":
@@ -205,7 +211,7 @@ class NovaCourtPipelineService:
                         simulation["case_id"] = case_id
                         result["simulation"] = simulation
                         warnings.append({"stage": "court_citations", "code": "CITATION_VALIDATION_FAILED",
-                                         "message": "La simulación no pudo verificarse; el análisis principal permanece disponible."})
+                                         "message": "La simulación no pudo verificarse."})
                 if simulation["status"] == "ready":
                     for section, content in zip(sections, resolved["answer"].split(separator)):
                         simulation.setdefault(section, {})["content"] = content
@@ -224,6 +230,7 @@ class NovaCourtPipelineService:
                     simulation["roles"] = {"position_a": simulation["position_a"].get("role_label", "Parte promotora"),
                                            "position_b": simulation["position_b"].get("role_label", "Parte contraria")}
                 result["court_status"] = "completed" if all(result[field]["status"] == "ready" for field in ("graph", "simulation")) else "partial"
+                report_started = perf_counter()
                 result["court_report_document"] = {"document_type": "court_simulation", "case_id": case_id,
                     "title": "Simulación jurídica argumentativa", "sections": [
                         {"id": section, "title": simulation.get(section, {}).get("role_label", title),
@@ -232,6 +239,7 @@ class NovaCourtPipelineService:
                         for section, title in (("prosecutor", "Posición promotora"), ("defense", "Posición contraria"),
                                                ("judge", "Decisión simulada")) if simulation.get(section, {}).get("content")],
                     "citations": simulation.get("citations", []), "sources": simulation.get("sources", [])}
+                court_report_status = "ready" if result["court_report_document"]["sections"] and simulation["status"] == "ready" else "partial"
                 result.setdefault("metadata", {}).update({"case_reused": bool(reused_result), "graph_status": result["graph"]["status"],
                     "simulation_status": simulation["status"], "sources_count": len(simulation.get("sources", [])),
                     "citations_count": len(simulation.get("citations", [])), "court_timings_ms": timings,
@@ -241,6 +249,13 @@ class NovaCourtPipelineService:
                     "simulation_provider_call_count": simulation.get("metadata", {}).get("provider_call_count"),
                     "graph_operation_count": result["graph"].get("metadata", {}).get("operation_count"),
                     "graph_poll_count": result["graph"].get("metadata", {}).get("poll_count"),
+                    "graph_wait_duration_ms": result["graph"].get("metadata", {}).get("graph_wait_duration_ms"),
+                    "graph_batch_count": result["graph"].get("metadata", {}).get("batch_count"),
+                    "graph_stage": result["graph"].get("stage"),
+                    "simulation_retry_count": simulation.get("metadata", {}).get("retry_count"),
+                    "simulation_failed_stage": simulation.get("metadata", {}).get("failed_stage"),
+                    "court_report_status": court_report_status,
+                    "report_duration_ms": round((perf_counter() - report_started) * 1000),
                     "graph_snapshot_count": result["graph"].get("metadata", {}).get("snapshot_count"),
                     "simulation_context_characters": simulation.get("metadata", {}).get("context_characters"),
                     "graph_input_characters": result["graph"].get("metadata", {}).get("input_characters"),
@@ -254,6 +269,21 @@ class NovaCourtPipelineService:
             check_cancelled(token)
             self.tasks.complete_task(task_id, result)
         except OperationCancelled:
-            self.tasks.cancel_task(task_id)
+            if task_token.is_cancelled() or token._event.is_set():
+                self.tasks.cancel_task(task_id)
+            elif tool == "court" and isinstance(locals().get("result"), dict) and result.get("success"):
+                result["graph"] = result.get("graph") or partial.get("graph") or graph_result("timeout", case_id=case_id)
+                simulation_at_deadline = result.get("simulation") or simulation_result("timeout")
+                if simulation_at_deadline.get("status") == "ready" and "citations" not in simulation_at_deadline:
+                    simulation_at_deadline = simulation_result("timeout", message="No se completó la verificación de citas.")
+                result["simulation"] = simulation_at_deadline
+                result["court_status"] = "partial"
+                result["court_report_document"] = {"document_type": "court_simulation", "case_id": case_id,
+                                                   "title": "Simulación jurídica argumentativa", "sections": [],
+                                                   "citations": [], "sources": []}
+                result.setdefault("warnings", []).append({"code": "COURT_TIMEOUT", "message": "La tarea superó el tiempo disponible."})
+                self.tasks.complete_task(task_id, result)
+            else:
+                self.tasks.fail_task(task_id, {"code": "COURT_TIMEOUT", "message": "La tarea superó el tiempo disponible."})
         except Exception:
             self.tasks.fail_task(task_id, {"code": "ANALYSIS_FAILED", "message": "No fue posible completar el análisis jurídico."})

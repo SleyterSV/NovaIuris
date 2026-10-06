@@ -174,6 +174,11 @@ def build_report_document(markdown, case_id, citations, sources, generated_at=No
         elif heading is not None:
             body.append(line)
     append_section()
+    if str(markdown or "").strip() and not sections:
+        sections.append({"id": _identity("SECTION", case_id, 1, "Informe"),
+                         "title": "Informe", "content": str(markdown).strip(),
+                         "citation_ids": [item["citation_id"] for label, item in citation_by_label.items()
+                                          if re.search(rf"(?<!\w){re.escape(label)}(?!\w)", str(markdown))]})
     cited_ids = {item["source_id"] for item in citations}
     return {"document_type": "analysis_report", "document_profile": "analysis_report",
             "title": title, "case_id": case_id,

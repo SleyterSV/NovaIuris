@@ -1,6 +1,7 @@
 import unittest
 from copy import deepcopy
 from types import SimpleNamespace
+from itertools import chain, repeat
 from unittest.mock import patch
 from app.utils.cancellation import CancellationToken, OperationCancelled
 from app.services.graph_builder import GraphBuilderService, GraphProcessingTimeoutError as ProviderTimeout
@@ -31,7 +32,7 @@ class ReadyBuilder:
         pass
     def add_text_batches(self, graph_id, chunks, batch_size, cancellation_token=None):
         self.request = {'text': '\n'.join(chunks)}
-        return ['episode-1']
+        return [f'episode-{index}' for index in range(len(chunks))]
     def _wait_for_episodes(self, episodes, timeout=600, poll_interval=3, cancellation_token=None):
         self.request.update(timeout=timeout, poll_interval=poll_interval)
     def get_graph_data(self, graph_id, cancellation_token=None):
@@ -78,7 +79,7 @@ class NovaCourtGraphTests(unittest.TestCase):
         result = make_orchestrator(failing_factory).build(self.case)
 
         self.assertEqual(result["status"], "failed")
-        self.assertEqual(result["is_final"], False)
+        self.assertEqual(result["is_final"], True)
         self.assertGreater(len(result["nodes"]), 0)
         self.assertNotIn("secreto", result["message"])
         self.assertEqual(self.case["arguments"]["main_arguments"][0]["text"], "Reposición")
@@ -230,7 +231,7 @@ class NovaCourtGraphTests(unittest.TestCase):
     def test_global_remaining_deadline_and_partial_failure_version(self):
         case = self.rich_case()
         builder = ReadyBuilder()
-        ticks = iter([0, 4, 4, 4])
+        ticks = chain([0], repeat(4))
         with patch.object(NOVACOURT_GRAPH, "time", SimpleNamespace(monotonic=lambda: next(ticks))):
             result = make_orchestrator(lambda: builder).build(case)
         self.assertEqual(builder.request["timeout"], 8)
@@ -239,7 +240,7 @@ class NovaCourtGraphTests(unittest.TestCase):
         failed = make_orchestrator(lambda: (_ for _ in ()).throw(RuntimeError("private"))).build(
             case, snapshot_callback=partials.append)
         self.assertEqual((partials[0]["version"], failed["version"]), (1, 2))
-        self.assertFalse(failed["is_final"])
+        self.assertTrue(failed["is_final"])
         self.assertEqual(failed["nodes"], partials[0]["nodes"])
         self.assertTrue(failed["warnings"])
 
@@ -252,7 +253,7 @@ class NovaCourtGraphTests(unittest.TestCase):
         builder.client = SimpleNamespace(graph=SimpleNamespace(
             episode=SimpleNamespace(get=get_episode)))
         ticks = iter(i * .25 for i in range(30))
-        fake_time = SimpleNamespace(time=lambda: next(ticks), sleep=lambda _: None)
+        fake_time = SimpleNamespace(monotonic=lambda: next(ticks), sleep=lambda _: None)
         with patch("app.services.graph_builder.time", fake_time):
             with self.assertRaises(ProviderTimeout):
                 builder._wait_for_episodes(["episode-1"], timeout=1, poll_interval=2)

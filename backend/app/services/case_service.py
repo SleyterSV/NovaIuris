@@ -705,8 +705,11 @@ class CaseService:
                 case_id=case_id,
                 document_profile="analysis_report",
             )
+            if not isinstance(candidate, str) or not candidate.strip():
+                raise ValueError("Report content missing")
             if not self.report_service.validate_report(candidate):
-                raise ValueError("Report structure invalid")
+                report_warnings.append({"code": "REPORT_OPTIONAL_SECTIONS_MISSING",
+                                        "message": "El informe contiene secciones de presentaciÃ³n incompletas."})
         except OperationCancelled:
             raise
         except Exception as error:
@@ -726,7 +729,7 @@ class CaseService:
                 report = resolved["answer"]
                 citations = resolved["citations"]
                 cited_sources = resolved["sources_used"]
-                report_warnings = resolved["warnings"]
+                report_warnings.extend(resolved["warnings"])
                 report_document = build_report_document(report, case_id, citations, cited_sources)
                 stage('citations', 'completed')
             except OperationCancelled:

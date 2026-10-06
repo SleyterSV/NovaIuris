@@ -145,8 +145,8 @@ class AdapterTests(unittest.TestCase):
     def builder(self):
         builder = create_autospec(GraphBuilderService, instance=True, spec_set=True)
         builder.create_graph.return_value = 'graph-A'
-        builder.add_text_batches.return_value = ['episode-A']
-        builder.get_graph_data.return_value = {'graph_id':'graph-A', 'nodes':[{'uuid':'A'}], 'edges':[]}
+        builder.add_text_batches.side_effect = lambda graph_id, chunks, batch_size, cancellation_token=None: [f'episode-{i}' for i in range(len(chunks))]
+        builder.get_graph_data.return_value = {'graph_id':'graph-A', 'nodes':[{'uuid':'A'}], 'edges':[{'uuid':'E'}]}
         return builder
 
     def orchestrator(self, builder):

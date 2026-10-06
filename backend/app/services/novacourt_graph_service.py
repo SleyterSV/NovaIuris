@@ -15,7 +15,8 @@ class NovaCourtGraphService:
     """Construye el grafo sin convertir un fallo de Zep en fallo del análisis."""
 
     def __init__(self, builder_factory: Optional[Callable[[], Any]] = None):
-        self.builder_factory = builder_factory or GraphBuilderService
+        self.builder_factory = builder_factory or (lambda: GraphBuilderService(
+            provider_timeout=Config.NOVACOURT_PROVIDER_TIMEOUT_SECONDS))
 
     def build_for_case(self, case_result: Dict[str, Any], cancellation_token=None,
                        snapshot_callback=None) -> Dict[str, Any]:
@@ -27,6 +28,7 @@ class NovaCourtGraphService:
             chunk_size=Config.DEFAULT_CHUNK_SIZE,
             chunk_overlap=Config.DEFAULT_CHUNK_OVERLAP,
             batch_size=Config.NOVACOURT_GRAPH_BATCH_SIZE,
+            settle_seconds=Config.NOVACOURT_GRAPH_SETTLE_SECONDS,
         )
         graph = orchestrator.build(case_result, cancellation_token=cancellation_token,
                                    snapshot_callback=snapshot_callback)

@@ -6,7 +6,7 @@ export function useNovaCourt() {
   let controller
   let generation = 0
   const cancel = () => controller?.abort()
-  onBeforeUnmount(cancel)
+  onBeforeUnmount(() => controller?.abort('detach'))
   async function analyzeCase(text = caseText.value, taskOptions = {}) {
     if (isAnalyzing.value) return null
     const currentGeneration = ++generation

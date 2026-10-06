@@ -129,7 +129,7 @@ class GraphBuilderService:
     Grafo disponible para NovaCourt
     """
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, provider_timeout=None):
         """
         Inicializa el servicio y el cliente de Zep.
 
@@ -151,7 +151,7 @@ class GraphBuilderService:
                 "Verifica las variables de entorno del backend."
             )
 
-        self.client = Zep(api_key=self.api_key)
+        self.client = Zep(api_key=self.api_key, **({"timeout": provider_timeout} if provider_timeout else {}))
         self.task_manager = TaskManager()
 
         logger.info("GraphBuilderService inicializado correctamente.")
@@ -978,11 +978,11 @@ class GraphBuilderService:
 
             except Exception as error:
 
-                logger.exception(
-                    "Error enviando lote a Zep. "
-                    "graph_id=%s batch=%s",
+                logger.warning(
+                    "Error enviando lote a Zep. graph_id=%s batch=%s error_type=%s",
                     graph_id,
                     batch_number,
+                    type(error).__name__,
                 )
 
                 if progress_callback:
@@ -991,15 +991,16 @@ class GraphBuilderService:
                         t(
                             "progress.batchFailed",
                             batch=batch_number,
-                            error=str(error),
+                            error=type(error).__name__,
                         ),
                         0,
                     )
 
-                raise GraphBuilderError(
-                    f"No fue posible enviar el lote "
-                    f"{batch_number} a Zep: {error}"
-                ) from error
+                failure = GraphBuilderError(
+                    f"No fue posible enviar el lote {batch_number} a Zep ({type(error).__name__})")
+                failure.batch_index = batch_number
+                failure.http_status = getattr(error, "status_code", None)
+                raise failure from error
 
 
         return episode_uuids
@@ -1044,7 +1045,7 @@ class GraphBuilderService:
             return
 
 
-        start_time = time.time()
+        start_time = time.monotonic()
 
         pending_episodes = set(episode_uuids)
 
@@ -1068,7 +1069,7 @@ class GraphBuilderService:
         while pending_episodes:
             check_cancelled(cancellation_token)
 
-            elapsed_seconds = time.time() - start_time
+            elapsed_seconds = time.monotonic() - start_time
 
             if elapsed_seconds >= timeout:
 
@@ -1103,7 +1104,7 @@ class GraphBuilderService:
 
             for episode_uuid in list(pending_episodes):
                 check_cancelled(cancellation_token)
-                if time.time() - start_time >= timeout:
+                if time.monotonic() - start_time >= timeout:
                     break
 
                 try:
@@ -1132,13 +1133,18 @@ class GraphBuilderService:
 
                 except Exception as error:
 
+                    if getattr(error, "status_code", None) in {400, 401, 403, 404}:
+                        failure = GraphBuilderError("Zep episode status request rejected")
+                        failure.http_status = error.status_code
+                        raise failure from error
+
                     # Un fallo temporal de consulta no detiene
                     # todo el proceso inmediatamente.
                     logger.warning(
                         "No fue posible consultar temporalmente "
-                        "el episodio %s: %s",
+                        "el episodio %s error_type=%s",
                         episode_uuid,
-                        error,
+                        type(error).__name__,
                     )
 
 
@@ -1147,7 +1153,7 @@ class GraphBuilderService:
             # ------------------------------------------------
 
             elapsed = int(
-                time.time() - start_time
+                time.monotonic() - start_time
             )
 
             progress = (
@@ -1172,7 +1178,7 @@ class GraphBuilderService:
 
             if pending_episodes:
 
-                remaining = timeout - (time.time() - start_time)
+                remaining = timeout - (time.monotonic() - start_time)
                 sleep_for = min(max(0.1, poll_interval), max(0, remaining))
                 while sleep_for > 0:
                     check_cancelled(cancellation_token)

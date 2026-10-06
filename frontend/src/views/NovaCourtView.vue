@@ -808,7 +808,7 @@ const reportStatus = computed(() => {
         return "Informe disponible"
     }
 
-    return ""
+    return "Informe no disponible; el análisis del caso permanece disponible."
 
 })
 
@@ -823,7 +823,7 @@ const reportStatusType = computed(() => {
         return "completed"
     }
 
-    return "processing"
+    return "partial"
 
 })
 

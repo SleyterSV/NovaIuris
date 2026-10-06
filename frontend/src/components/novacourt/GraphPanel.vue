@@ -263,7 +263,7 @@
 
 
             <h3>
-                Red relacional pendiente
+                {{ graphData?.status === 'empty' ? 'Sin relaciones extraídas' : 'Red relacional pendiente' }}
             </h3>
 
 

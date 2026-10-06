@@ -5,8 +5,11 @@ import hashlib
 import json
 import re
 import time
+import logging
 from collections import Counter
 from .cancellation import CancellationToken, OperationCancelled
+
+logger = logging.getLogger(__name__)
 
 ENTITY_TYPES = ("CASE", "PARTY", "CLAIM", "LEGAL_ISSUE", "FACT", "EVIDENCE", "LAW",
                 "JURISPRUDENCE", "ARGUMENT", "COUNTERARGUMENT", "RISK", "PROCEDURAL_ACT", "DOCUMENT")
@@ -244,24 +247,25 @@ def build_legal_context(case_result):
 
 
 def graph_result(status, *, graph_id=None, case_id=None, version=0, stage=None,
-                 nodes=None, edges=None, message=None, metadata=None, warnings=None):
+                 nodes=None, edges=None, message=None, metadata=None, warnings=None, error_code=None):
     nodes, edges = _items(nodes), _items(edges)
     counts = {"node_count": len(nodes), "edge_count": len(edges),
               "by_type": dict(sorted(Counter(n.get("entity_type") for n in nodes).items()))}
     return {"status": status, "graph_id": graph_id, "case_id": case_id,
-            "version": version, "stage": stage, "is_final": status == "ready",
+            "version": version, "stage": stage, "is_final": status in {"ready", "empty", "failed", "timeout"},
             "nodes": nodes, "edges": edges, "counts": counts, "node_count": len(nodes),
             "edge_count": len(edges), "warnings": warnings or [],
-            "error": {"code": status.upper(), "message": message}
+            "error": {"code": error_code or status.upper(), "message": message}
             if status in {"failed", "timeout"} else None,
             "message": message or "", "metadata": metadata or {}}
 
 
 class NovaCourtGraphOrchestrator:
     def __init__(self, builder_factory, *, enabled, timeout, poll_interval,
-                 chunk_size, chunk_overlap, batch_size):
+                 chunk_size, chunk_overlap, batch_size, settle_seconds=30):
         self.builder_factory, self.enabled, self.timeout = builder_factory, enabled, timeout
         self.poll_interval, self.batch_size = poll_interval, batch_size
+        self.settle_seconds = settle_seconds
 
     def build(self, case_result, cancellation_token=None, snapshot_callback=None):
         case_id = case_result.get("case_id")
@@ -270,8 +274,10 @@ class NovaCourtGraphOrchestrator:
         started = time.monotonic()
         token = CancellationToken(parent=cancellation_token, timeout=self.timeout)
         graph_id, snapshot, batch_count = None, None, 0
+        stage = "prepare"
         operation_count, input_characters = 0, 0
         poll_count = 0
+        wait_duration_ms = 0
         try:
             token.check()
             contract = build_graph_input(case_result)
@@ -285,9 +291,11 @@ class NovaCourtGraphOrchestrator:
             token.check()
             builder = self.builder_factory()
             token.check()
+            stage = "create_graph"
             graph_id = builder.create_graph("NovaCourt Legal Analysis")
             operation_count += 1
             token.check()
+            stage = "prepare_episodes"
             builder.set_ontology(graph_id, LEGAL_ONTOLOGY)
             operation_count += 1
             records = [{"entity_type": n["entity_type"], "node_id": n["node_id"],
@@ -301,22 +309,45 @@ class NovaCourtGraphOrchestrator:
             batch_count = (len(episodes) + self.batch_size - 1) // self.batch_size
             input_characters = sum(map(len, episodes))
             token.check()
+            stage = "send_batch"
             episode_ids = builder.add_text_batches(graph_id, episodes, self.batch_size,
                                                    cancellation_token=token)
             operation_count += batch_count
             token.check()
+            if not episode_ids or len(episode_ids) != len(episodes):
+                raise ValueError("Graph episode acknowledgement count mismatch")
             remaining = max(0, self.timeout - (time.monotonic() - started))
             if not remaining:
                 raise OperationCancelled()
+            stage = "poll_batch"
+            wait_started = time.monotonic()
             builder._wait_for_episodes(episode_ids, timeout=remaining,
                                        poll_interval=self.poll_interval,
                                        cancellation_token=token)
             poll_count = getattr(builder, "last_poll_count", 0)
+            wait_duration_ms = round((time.monotonic() - wait_started) * 1000)
             token.check()
-            # Fetch once to verify Zep completion. Its extraction is not documentary authority.
-            builder.get_graph_data(graph_id, cancellation_token=token)
-            operation_count += 1
+            # Episode completion and graph materialization are separate states.
+            stage = "fetch_nodes"
+            settle_until = min(started + self.timeout, time.monotonic() + min(self.settle_seconds, self.timeout))
+            while True:
+                token.check()
+                provider_graph = builder.get_graph_data(graph_id, cancellation_token=token)
+                operation_count += 1
+                if not isinstance(provider_graph, dict) or not isinstance(provider_graph.get("nodes"), list) or not isinstance(provider_graph.get("edges"), list):
+                    raise ValueError("Invalid provider graph payload")
+                if provider_graph["nodes"] and provider_graph["edges"] or time.monotonic() >= settle_until:
+                    break
+                time.sleep(min(self.poll_interval, max(0, settle_until - time.monotonic())))
             token.check()
+            if not provider_graph["nodes"] or not provider_graph["edges"]:
+                return graph_result("empty", graph_id=graph_id, case_id=case_id, version=2,
+                                    stage="completed", nodes=[], edges=[],
+                                    metadata={"graph_build_duration_ms": round((time.monotonic()-started)*1000),
+                                              "snapshot_count": 2, "batch_count": batch_count,
+                                              "episode_count": len(episodes), "poll_count": poll_count,
+                                              "operation_count": operation_count, "graph_wait_duration_ms": wait_duration_ms,
+                                              "empty_reason": "provider_completed_empty"})
             return graph_result("ready", graph_id=graph_id, case_id=case_id, version=2,
                                 stage="completed", nodes=entities, edges=relations,
                                 metadata={"graph_build_duration_ms": round((time.monotonic()-started)*1000),
@@ -324,16 +355,26 @@ class NovaCourtGraphOrchestrator:
                                           "batch_count": batch_count, "episode_count": len(episodes),
                                           "input_characters": input_characters,
                                           "poll_count": poll_count,
+                                          "graph_wait_duration_ms": wait_duration_ms,
                                           "operation_count": operation_count})
         except OperationCancelled:
             if cancellation_token is not None and cancellation_token.is_cancelled():
                 raise
+            error_code, error_type = "GRAPH_TIMEOUT", "DeadlineExceeded"
             status, message = "timeout", "La construcción del grafo superó el límite de espera."
         except Exception as error:
             status = "timeout" if error.__class__.__name__ == "GraphProcessingTimeoutError" else "failed"
+            error_type = type(error).__name__
+            error_code = ("GRAPH_TIMEOUT" if status == "timeout" else
+                          "GRAPH_INVALID_PAYLOAD" if isinstance(error, ValueError) else "GRAPH_PROVIDER_ERROR")
             message = "No fue posible completar el grafo jurídico. El análisis del caso permanece disponible."
+        logger.warning("NovaCourt graph terminal case_id=%s graph_id=%s stage=%s operation=%s batch_index=%s attempt=%s elapsed_ms=%s remaining_ms=%s provider_status=%s http_status=%s error_type=%s",
+                       case_id, graph_id, stage, stage, getattr(locals().get("error"), "batch_index", None), 1,
+                       round((time.monotonic()-started)*1000),
+                       round(max(0, self.timeout-(time.monotonic()-started))*1000), status,
+                       getattr(locals().get("error"), "http_status", None) or getattr(locals().get("error"), "status_code", None), error_type)
         return graph_result(status, graph_id=graph_id, case_id=case_id,
-                            version=snapshot["version"] + 1 if snapshot else 0, stage="failed",
+                            version=snapshot["version"] + 1 if snapshot else 0, stage=stage,
                             nodes=snapshot["nodes"] if snapshot else [],
                             edges=snapshot["edges"] if snapshot else [], message=message,
                             warnings=[{"code": status.upper(), "message": "Grafo parcial"}] if snapshot else [],
@@ -341,4 +382,7 @@ class NovaCourtGraphOrchestrator:
                                       "snapshot_count": 1 if snapshot else 0,
                                       "batch_count": batch_count, "input_characters": input_characters,
                                       "poll_count": poll_count,
-                                      "operation_count": operation_count})
+                                      "graph_wait_duration_ms": wait_duration_ms,
+                                      "operation_count": operation_count, "failed_stage": stage,
+                                      "error_type": error_type,
+                                      "batch_index": getattr(locals().get("error"), "batch_index", None)}, error_code=error_code)

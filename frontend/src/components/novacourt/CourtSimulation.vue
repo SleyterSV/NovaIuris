@@ -3,6 +3,7 @@
   <h2>Simulación jurídica</h2>
   <p v-if="simulation.status !== 'ready'" role="status">{{ simulation.message || 'Simulación no disponible. El análisis del caso permanece disponible.' }}</p>
   <template v-else>
+    <p v-if="mode === 'decision' && !participants.length" role="status">Decisión simulada no disponible.</p>
     <p>Esta simulación argumentativa se prepara para revisión profesional; no predice una resolución real.</p>
     <section v-for="participant in participants" :key="participant.title">
       <h3>{{ participant.title }}</h3>
