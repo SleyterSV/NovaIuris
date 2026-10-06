@@ -1,0 +1,41 @@
+"""Publication gate for staged public legal documents."""
+from .identity import search_normalize
+
+
+def extraction_quality(blocks, ocr_required=False) -> str:
+    if ocr_required:
+        return "ocr_required"
+    text = " ".join(block.text for block in blocks)
+    if not text.strip():
+        return "low"
+    replacements = text.count("\ufffd")
+    if replacements / max(len(text), 1) > .005:
+        return "low"
+    return "medium" if len(search_normalize(text)) < 300 else "high"
+
+
+def validate_staged(document) -> list[str]:
+    problems = []
+    if not document.title.strip() or not document.document_hash:
+        problems.append("document_metadata_invalid")
+    if document.document_type in {"judgment", "order", "cassation", "precedent"}:
+        if not document.metadata.get("court") or not document.metadata.get("expediente"):
+            problems.append("jurisprudence_identity_missing")
+    if not document.units:
+        problems.append("no_legal_units")
+    if document.extraction_quality in {"low", "ocr_required"}:
+        problems.append("extraction_review_required")
+    hashes = set()
+    for index, unit in enumerate(document.units, 1):
+        if not unit.text.strip() or not unit.normalized_text.strip():
+            problems.append("empty_unit")
+        if unit.sequence != index:
+            problems.append("invalid_sequence")
+        if unit.content_hash in hashes:
+            problems.append("duplicate_unit_hash")
+        hashes.add(unit.content_hash)
+        if unit.page_start is not None and unit.page_end is not None and unit.page_end < unit.page_start:
+            problems.append("invalid_page_range")
+        if not unit.search_text.strip():
+            problems.append("missing_search_text")
+    return list(dict.fromkeys(problems))
