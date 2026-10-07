@@ -15,17 +15,21 @@ def split_oversized_unit(unit, max_tokens: int = 800):
         return [unit]
     paragraphs = [part.strip() for part in unit.text.splitlines() if part.strip()]
     atoms = []
-    for paragraph in paragraphs:
+    line_pages = unit.metadata.get("source_line_pages")
+    if line_pages is not None and len(line_pages) != len(paragraphs):
+        line_pages = None
+    for paragraph_index, paragraph in enumerate(paragraphs):
+        page = line_pages[paragraph_index] if line_pages is not None else None
         if len(paragraph.split()) <= max_tokens:
-            atoms.append(paragraph)
+            atoms.append((paragraph, page))
             continue
         sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ])", paragraph) if part.strip()]
         if any(len(sentence.split()) > max_tokens for sentence in sentences):
             raise OversizedUnitError("Legal unit has a sentence exceeding the embedding limit")
-        atoms.extend(sentences)
+        atoms.extend((sentence, page) for sentence in sentences)
     groups, current, count = [], [], 0
     for atom in atoms:
-        atom_count = len(atom.split())
+        atom_count = len(atom[0].split())
         if current and count + atom_count > max_tokens:
             groups.append(current)
             current, count = [], 0
@@ -38,7 +42,13 @@ def split_oversized_unit(unit, max_tokens: int = 800):
     output = []
     for index, group in enumerate(groups, 1):
         part = deepcopy(unit)
-        part.text = "\n".join(group)
+        part.text = "\n".join(atom[0] for atom in group)
+        if line_pages is not None:
+            part_pages = [atom[1] for atom in group if atom[1] is not None]
+            part.page_start = min(part_pages) if part_pages else None
+            part.page_end = max(part_pages) if part_pages else None
+            part.metadata["source_line_pages"] = [atom[1] for atom in group]
+            part.metadata["page_provenance"] = "source_lines"
         part.normalized_text = search_normalize(part.text)
         part.part_number, part.part_count = index, len(groups)
         part.token_count = len(part.text.split())

@@ -11,10 +11,24 @@ ARTICLE = re.compile(r"^art[íi]culo\s+([0-9]+(?:[-–][A-Za-z0-9]+)?|[IVX]{1,4}
 HIERARCHY = re.compile(r"^(libro|secci[oó]n|t[íi]tulo|cap[íi]tulo)\s+([IVXLCDM\d]+(?:\s*[-–].*)?)$", re.I)
 AMENDMENT = re.compile(r"^(?:art[íi]culo\s+\d+\s+)?(?:modificado|incorporado|sustituido|derogado)\s+por\b|^\(?art[íi]culo\s+modificado\b", re.I)
 CONCORDANCE = re.compile(r"^concordancias?\s*[:.]", re.I)
+PROVISIONS = re.compile(r"^disposiciones?\s+(?:finales?(?:\s+y\s+transitorias?)?|transitorias?|complementarias?)(?:\s+y\s+(?:finales?|transitorias?))?\s*$", re.I)
+ORDINAL_PROVISION = re.compile(r"^(primera|segunda|tercera|cuarta|quinta|sexta|s[eé]tima|octava|novena|d[eé]cima(?:\s+primera)?|[a-z]+[ée]sima)\s*[.\-–]", re.I)
 SECTION = re.compile(r"^(sumilla|materia|antecedentes?|visto|fundamentos?(?:\s+de\s+derecho)?|considerandos?|atendiendo\s+a\s+que|an[áa]lisis(?:\s+de\s+la\s+controversia|\s+del\s+caso\s+concreto)?|decisi[oó]n|parte\s+resolutiva|resuelve|ha\s+resuelto|por\s+estos\s+fundamentos|fallo|voto\s+(?:singular|en\s+discordia|separado))(?:\s*[:.]\s*(.*))?\s*$", re.I)
 ROMAN_SECTION = re.compile(r"^[IVXLCDM]+[.)]\s*(.+?)\s*[:.]?\s*$", re.I)
 FOUNDATION = re.compile(r"^(?:fundamento\s+)?(\d{1,3}|(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno|d[ée]cimo|und[ée]cimo|duod[ée]cimo|vig[ée]simo|trig[ée]simo)(?:\s+(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno))?)\s*[.°º)-]+-?\s+(.+)$", re.I)
 EXPEDIENTE = re.compile(r"(?:exp(?:ediente)?\.?\s*(?:n[.°ºo]*\s*)?|casaci[oó]n\s*(?:n[.°ºo]*\s*)?)(\d{1,8}[-/–]\d{2,4}(?:[-/–][A-Za-z0-9]+)*)", re.I)
+DAY_WORDS = {"uno": 1, "primero": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5,
+             "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
+             "once": 11, "doce": 12, "trece": 13, "catorce": 14, "quince": 15,
+             "dieciséis": 16, "dieciseis": 16, "diecisiete": 17, "dieciocho": 18,
+             "diecinueve": 19, "veinte": 20, "veintiuno": 21, "veintidós": 22,
+             "veintidos": 22, "veintitrés": 23, "veintitres": 23,
+             "veinticuatro": 24, "veinticinco": 25, "veintiséis": 26,
+             "veintiseis": 26, "veintisiete": 27, "veintiocho": 28,
+             "veintinueve": 29, "treinta": 30, "treinta y uno": 31}
+WORD_DATE = re.compile(r"\b(?:en\s+)?lima\s*,\s*(?P<day>treinta y uno|[a-záéíóú]+)\s+de\s+"
+                       r"(?P<month>enero|febrero|marzo|abril|mayo|junio|julio|agosto|setiembre|septiembre|octubre|noviembre|diciembre)\s+de\s+"
+                       r"(?P<year>dos mil(?:\s+[a-záéíóú]+)?)\b", re.I)
 
 
 def _unit(kind: str, sequence: int, blocks: list[Block], *, number=None, heading=None,
@@ -23,19 +37,24 @@ def _unit(kind: str, sequence: int, blocks: list[Block], *, number=None, heading
     pages = [block.page for block in blocks if block.page is not None]
     normalized = search_normalize(text)
     context = hierarchy or {}
-    return LegalUnit(kind, sequence, text, normalized,
+    unit = LegalUnit(kind, sequence, text, normalized,
                      content_hash(kind, number, heading, normalized, hierarchy=context),
                      unit_number=number, heading=heading,
                      page_start=min(pages) if pages else None,
                      page_end=max(pages) if pages else None,
                      parent_sequence=parent_sequence, excerpt=normalized[:240],
                      token_count=len(normalized.split()), **context)
+    unit.metadata["source_block_indexes"] = [block.index for block in blocks]
+    if pages:
+        unit.metadata["source_line_pages"] = [block.page for block in blocks for line in normalize_text(block.text).splitlines() if line]
+    return unit
 
 
 class NormativeParser:
     name = "normative"
 
     def parse(self, blocks: list[Block]) -> list[LegalUnit]:
+        self.postamble_start_index = None
         expanded = []
         for block in blocks:
             lines = block.text.splitlines()
@@ -57,6 +76,9 @@ class NormativeParser:
         article_blocks: list[Block] = []
         article_number = None
         article_heading = None
+        provision_blocks: list[Block] = []
+        provision_number = None
+        in_provisions = False
 
         def flush_article():
             nonlocal article_blocks
@@ -65,11 +87,48 @@ class NormativeParser:
                                    number=article_number, heading=article_heading, hierarchy=hierarchy.copy()))
                 article_blocks = []
 
+        def flush_provision():
+            nonlocal provision_blocks
+            if provision_blocks:
+                units.append(_unit("disposition", len(units) + 1, provision_blocks,
+                                   number=provision_number, hierarchy=hierarchy.copy()))
+                provision_blocks = []
+
         for block in expanded:
             line = search_normalize(block.text)
+            if in_provisions and re.match(r"^comun[ií]quese\s+al\s+señor\s+presidente\b", line, re.I):
+                flush_article()
+                flush_provision()
+                self.postamble_start_index = block.index
+                break
+            if PROVISIONS.match(line):
+                flush_article()
+                flush_provision()
+                in_provisions = True
+                continue
+            provision = ORDINAL_PROVISION.match(line) if in_provisions else None
+            if provision:
+                flush_article()
+                flush_provision()
+                provision_number = provision.group(1).upper()
+                provision_blocks = [block]
+                continue
+            if in_provisions and provision_blocks:
+                if AMENDMENT.match(line):
+                    units.append(_unit("amendment_note", len(units) + 1, [block],
+                                       number=provision_number, hierarchy=hierarchy.copy()))
+                    continue
+                if CONCORDANCE.match(line):
+                    units.append(_unit("concordance", len(units) + 1, [block],
+                                       number=provision_number, hierarchy=hierarchy.copy()))
+                    continue
+                provision_blocks.append(block)
+                continue
             level = HIERARCHY.match(line)
             if level:
                 flush_article()
+                flush_provision()
+                in_provisions = False
                 key = {"libro": "book", "sección": "section", "seccion": "section",
                        "título": "title", "titulo": "title", "capítulo": "chapter", "capitulo": "chapter"}[level.group(1).lower()]
                 hierarchy[key] = level.group(2)
@@ -79,6 +138,8 @@ class NormativeParser:
             article = ARTICLE.match(line)
             if article:
                 flush_article()
+                flush_provision()
+                in_provisions = False
                 article_number = article.group(1).upper()
                 article_heading = None
                 article_blocks = [block]
@@ -97,6 +158,7 @@ class NormativeParser:
             elif article_blocks:
                 article_blocks.append(block)
         flush_article()
+        flush_provision()
         for index, unit in enumerate(units, 1):
             unit.sequence = index
         return units
@@ -121,7 +183,8 @@ def case_law_metadata(blocks: list[Block], filename: str) -> dict:
                 parts.append(following.text.strip())
             sumilla = " ".join(part for part in parts if part) or None
             break
-    compact_header = re.sub(r"\s+", " ", header).casefold()
+    compact_original = re.sub(r"\s+", " ", header)
+    compact_header = compact_original.casefold()
     court = ("Tribunal Constitucional" if "tribunal constitucional" in compact_header else
              "Corte Suprema" if "corte suprema" in compact_header else None)
     opening = " ".join(block.text for block in blocks[:16]).casefold()
@@ -136,6 +199,13 @@ def case_law_metadata(blocks: list[Block], filename: str) -> dict:
     chamber_match = re.search(r"\b(?:sala\s+(?:primera|segunda|tercera|cuarta)|(?:primera|segunda|tercera|cuarta)\s+sala)\b", compact_header, re.I)
     chamber = chamber_match.group(0).title() if chamber_match else None
     ponente = labeled(r"(?:magistrado\s+)?ponente")
+    if ponente is None:
+        for block in reversed(blocks[-30:]):
+            signature = re.match(r"^\s*(?:MAGISTRADO\s+)?PONENTE\s*[:.]?\s+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.]+)\s*$",
+                                 block.text, re.I)
+            if signature:
+                ponente = signature.group(1).strip()
+                break
     materia = labeled("materia")
     instancia = labeled("instancia")
     date_match = re.search(r"\b(?:en\s+)?lima\s*,\s*(?:a\s+los\s+)?(\d{1,2})(?:\s+d[ií]as?\s+del\s+mes)?\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|setiembre|septiembre|octubre|noviembre|diciembre)\s+de\s+(\d{4})\b", compact_header, re.I)
@@ -147,11 +217,24 @@ def case_law_metadata(blocks: list[Block], filename: str) -> dict:
             resolution_date = date(int(date_match.group(3)), months[date_match.group(2).lower()], int(date_match.group(1))).isoformat()
         except ValueError:
             pass
+    resolution_date_text = None
+    if resolution_date is None:
+        written = WORD_DATE.search(compact_original)
+        if written:
+            day = DAY_WORDS.get(written.group("day").casefold())
+            year_words = written.group("year").casefold().split()
+            year = 2000 + (DAY_WORDS.get(year_words[2], 0) if len(year_words) == 3 else 0)
+            if day and (len(year_words) == 2 or year > 2000):
+                try:
+                    resolution_date = date(year, months[written.group("month").casefold()], day).isoformat()
+                    resolution_date_text = written.group(0)
+                except ValueError:
+                    pass
     return {"court": court, "expediente": expediente.group(1) if expediente else None,
             "resolution_type": resolution_type, "sumilla": sumilla,
             "precedent_binding": precedent_binding, "issuer": court, "chamber": chamber,
             "ponente": ponente, "materia": materia, "instancia": instancia,
-            "resolution_date": resolution_date}
+            "resolution_date": resolution_date, "resolution_date_text": resolution_date_text}
 
 
 class JurisprudenceParser:
@@ -169,7 +252,7 @@ class JurisprudenceParser:
                 units.append(_unit(kind, len(units) + 1, buffer, number=number))
             buffer = []
 
-        for block in blocks:
+        for block_index, block in enumerate(blocks):
             line = search_normalize(block.text)
             heading = SECTION.match(line)
             roman = ROMAN_SECTION.match(line)
@@ -199,6 +282,17 @@ class JurisprudenceParser:
                 continue
             numbered = FOUNDATION.match(line)
             if numbered and (kind == "foundation" or (kind is not None and not numbered.group(1).isdigit())):
+                # A remote judgment's numbered paragraph quoted after an
+                # explicit citation remains inside the citing foundation.
+                cited_intro = " ".join(item.text for item in blocks[max(0, block_index - 12):block_index]).casefold()
+                cited_tail = " ".join(item.text for item in blocks[max(0, block_index - 2):block_index]).casefold()
+                if (kind == "foundation" and numbered.group(1).isdigit()
+                        and number and number.isdigit()
+                        and int(numbered.group(1)) != int(number) + 1
+                        and re.search(r"(?:sentencia|resoluci[oó]n|parte resolutiva)", cited_intro)
+                        and re.search(r"(?:señala|establece|dispone)[^:]{0,100}lo siguiente\s*:\s*$", cited_tail)):
+                    buffer.append(block)
+                    continue
                 if kind != "foundation":
                     flush()
                     kind, number, buffer = "foundation", None, []

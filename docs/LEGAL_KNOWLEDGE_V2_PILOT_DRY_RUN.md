@@ -59,3 +59,36 @@ Los duplicados iniciales del Código Civil, Procesal Civil y parte de Tributario
 - No se usaron OpenAI, proveedores de embeddings ni publicación. MYKE runtime, Auth, NovaSearch y Fiscal.IA permanecieron sin cambios.
 
 **Decisión:** NO-GO para generar embeddings o cargar el piloto. Resolver los puntos de estructura y procedencia anteriores y repetir el quality gate antes de iniciar 10.4B-2.
+
+## Bloque 10.4B-1.5 — hardening y adapter offline
+
+Se repitió el **mismo manifiesto de diez fuentes originales** con `python -m app.legal_ingestion.pilot_audit`. El ejecutor bloqueó conexiones de red; el resultado compacto está en [LEGAL_KNOWLEDGE_V2_HARDENING_RESULT.json](LEGAL_KNOWLEDGE_V2_HARDENING_RESULT.json). Los conteos son del gate automático, seguidos de revisión manual de los candidatos. No hubo embeddings ni escritura remota.
+
+| Fuente del piloto | Unidades antes → ahora | Estado final | Motivo bloqueante |
+|---|---:|---|---|
+| Constitución | 253 → 261 | review_required | Material editorial mezclado y unidades desproporcionadas; el artículo 206 incorpora una versión citada y el documento continúa con disposiciones y referencias. |
+| Código Civil | 2.227 → 2.227 | review_required | Dos artículos repetidos en la fuente, notas editoriales y estructura desproporcionada; requiere cotejo de versiones. |
+| TUO Código Procesal Civil | 991 → 986 | review_required | Índices, gráficos, referencias y concordancias se incorporan a unidades enormes; una unidad de artículo 148 llegó a 18 partes. |
+| TUO Código Tributario | 232 → 249 | review_required | Dos repeticiones **exactas y contextuales** de concordancia editorial quedaron colapsadas con posiciones conservadas; persisten anexos/notas y unidades excesivas. |
+| Ley General de Sociedades | 483 → 495 | review_required | Disposiciones finales/transitorias separadas, ley n.º 26887 identificada, y 196 bloques posteriores a la fórmula formal de promulgación excluidos con hash/procedencia. Persisten marcas `NOTA SPIJ` **dentro** de artículos; no es seguro publicar su texto sin cotejo. |
+| Sentencia TC | 30 → 30 | review_required | La paginación por parte ya usa páginas de las líneas originales; sigue habiendo voto separado dentro de la unidad de decisión. |
+| Auto TC 04810-2024-PA/TC | 12 → 10 | **staged, revisión manual conforme** | Ocho fundamentos propios, antecedente y decisión. `211.` y `2. INTERPRETAR` son citas de otra sentencia dentro de los fundamentos 5 y 6. Identidad, fecha, ponente Ochoa Cardich y páginas 1–3 comprobadas en el texto extraído. |
+| Casación 20221-2023 | 30 → 30 | review_required | Fecha escrita en palabras extraída como 2025-04-07 y texto original preservado. Persisten ordinales jurídicos fusionados y espacios espurios de la extracción PDF. |
+| Precedente 34397-2023 | 120 → 120 | review_required | Fecha propia 2025-10-15 extraída. La sumilla afirma precedente vinculante, pero el fallo no lo confirma con evidencia detectada; columnas y notas al pie contaminan la decisión. |
+| PDF escaneado | 0 → 0 | review_required | `ocr_required=true`; no se intentó OCR. |
+
+Totales **antes → ahora**: publicables automáticos **0 → 1**, revisión **10 → 9**, unidades **4.378 → 4.408**, artículos **4.017 → 3.910**, fundamentos **173 → 171**, decisiones **10 → 10**, duplicados internos no resueltos **5 → 2**, partes divididas **215 → 216**, incidencias de procedencia de página **2 → 0**, incidencias de metadatos mínimos **2 → 0**, OCR **1 → 1**. La caída del número de artículos refleja disposiciones separadas, no pérdida de artículos jurídicos. Los dos duplicados restantes son artículos del Código Civil y se conservan para cotejo. Las concordancias editoriales colapsadas llevan `source_occurrences` con todos sus índices de origen. Los DOCX conservan páginas nulas; no se fabricó paginación.
+
+### Gate y límites de fuente
+
+Se bloquean identidad o fecha jurisprudencial ausente, OCR/calidad baja, unidades vacías o desproporcionadas, duplicados de contenido no resueltos, procedencia de página no verificable, material SPIJ/fe de erratas dentro del texto legal, fundamentos ordinales fusionados, votos mezclados con el fallo y una pretensión de precedente sin evidencia del fallo. Una nota editorial posterior al cierre formal puede quedar excluida solo con índice de inicio, número de bloques y SHA-256 del tramo excluido. Esto no corrige notas **incrustadas** en artículos. `staged` exige además revisión manual antes de cualquier carga.
+
+### Publication Adapter V2
+
+`backend/app/legal_ingestion/publication.py` está **READY para pruebas offline**. Un servidor inyecta una conexión PostgreSQL DB-API mediante `postgres_connection_factory(dsn)`; no se abre conexión al importar o preparar. `prepare()` mapea documento, unidades y relaciones explícitas, preserva metadatos, fechas, páginas, hashes y UUID estables, y permite `embedding=None` para staging. `publish()` rechaza revisión/OCR, hashes duplicados y unidades indexables sin vector numérico finito de **1536** dimensiones. No se generó ningún vector en este bloque; los tests usan vectores ficticios locales.
+
+Cada publicación usa **una transacción PostgreSQL** para run → documento en `processing` → unidades/relaciones en lotes configurables (100 por defecto) → documento `ready` y run `completed`. Un candado transaccional por `(document_hash, parser_version)` evita carreras de inserción; un reintento de la misma versión ya lista registra `duplicates_skipped=1` sin duplicar unidades. Una versión existente incompleta exige reconciliación y no se reporta como éxito; otra versión conserva otra identidad. Ante un fallo, se revierte toda la publicación y se intenta registrar un run `failed` separado con tipo, mensaje depurado y conteos intentados. Si la base no está disponible, el registro de fallo también puede ser imposible; el error se propaga. No se crean relaciones inferidas. La ruta real sigue **sin ejecutar** y deberá comprobarse contra PostgreSQL antes de la primera carga.
+
+`psycopg2-binary==2.9.10` quedó declarado y fijado en `uv.lock`; las credenciales de conexión deben permanecer exclusivamente en el servidor. Las cuatro tablas de MYKE Legal se consultaron al final mediante SQL de solo lectura: `legal_documents=0`, `legal_units=0`, `legal_relations=0`, `legal_ingestion_runs=0`.
+
+Verificación: `compileall` PASS; **200 tests backend PASS** (183 previos). **NO-GO para 10.4B-2**: existe jurisprudencia limpia (auto TC), pero ninguna norma/código del piloto satisface todavía el gate y la revisión manual. Se necesitan originales normativos más limpios o cotejo/corrección verificable de las notas y versiones antes de generar embeddings.

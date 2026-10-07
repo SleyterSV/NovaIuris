@@ -1,6 +1,8 @@
 """Deterministic offline staging; publishing requires a separate future adapter."""
 from collections import Counter
+import hashlib
 from pathlib import Path
+import re
 from . import PARSER_VERSION
 from .cleaners import remove_repeated_page_furniture
 from .extractors import extract
@@ -44,12 +46,48 @@ def stage_file(path, *, family="auto", max_unit_tokens=800) -> StagedDocument:
     chosen = _family(extracted.filename, blocks, family)
     parser = JurisprudenceParser() if chosen == "jurisprudence" else NormativeParser()
     parsed = parser.parse(blocks)
+    postamble = ([block for block in blocks if block.index >= parser.postamble_start_index]
+                 if chosen == "normative" and parser.postamble_start_index is not None else [])
+    # Identical editorial concordances can occur more than once in the same
+    # provision. Collapse only this exact, contextual repetition and retain
+    # every source position for an audit; substantive articles stay untouched.
+    concordances = {}
+    distinct = []
+    repeated_concordances = 0
+    for unit in parsed:
+        key = (unit.unit_number, unit.book, unit.section, unit.title,
+               unit.chapter, unit.normalized_text)
+        if unit.unit_type == "concordance" and key in concordances:
+            original = concordances[key]
+            original.metadata.setdefault("source_occurrences", [original.metadata["source_block_indexes"]])
+            original.metadata["source_occurrences"].append(unit.metadata["source_block_indexes"])
+            repeated_concordances += 1
+        else:
+            if unit.unit_type == "concordance":
+                concordances[key] = unit
+            distinct.append(unit)
+    parsed = distinct
     quality = extraction_quality(blocks, extracted.ocr_required)
     warnings = list(extracted.warnings)
     if removed:
         warnings.append(f"page_furniture_removed:{removed}")
+    if repeated_concordances:
+        warnings.append(f"editorial_concordance_repeated:{repeated_concordances}")
+    if postamble:
+        warnings.append(f"editorial_postamble_excluded:{len(postamble)}")
     # Repeated PDF headers may carry the only case number; read identity before removing them.
     metadata = case_law_metadata(extracted.blocks, extracted.filename) if chosen == "jurisprudence" else {}
+    if chosen == "normative":
+        opening = "\n".join(block.text for block in blocks[:15])
+        law_number = re.search(r"(?im)^\s*ley\s+n[.°ºo]*\s*(\d{4,7})\b", opening)
+        if law_number:
+            metadata["number"] = law_number.group(1)
+        if postamble:
+            metadata["excluded_postamble"] = {
+                "start_block_index": parser.postamble_start_index,
+                "block_count": len(postamble),
+                "sha256": hashlib.sha256("\n".join(block.text for block in postamble).encode("utf-8")).hexdigest(),
+                "reason": "formal promulgation closes legal provisions; following signatures and editorial appendix are not legal units"}
     if chosen == "jurisprudence" and not any(unit.unit_type == "decision" for unit in parsed):
         warnings.append("decision_not_detected")
     units = []
@@ -77,7 +115,8 @@ def stage_file(path, *, family="auto", max_unit_tokens=800) -> StagedDocument:
         extraction_quality=quality, ingestion_status="staged", ocr_required=extracted.ocr_required,
         metadata={**metadata, "family": chosen, "parser_name": parser.name,
                   "source_file_hash": extracted.source_file_hash, "removed_page_furniture": removed,
-                  "duplicate_unit_hashes": duplicates_detected},
+                  "duplicate_unit_hashes": duplicates_detected,
+                  "editorial_concordances_collapsed": repeated_concordances},
         units=units, warnings=warnings)
     staged.document_id = stable_document_id(staged.document_hash, PARSER_VERSION)
     for unit in units:

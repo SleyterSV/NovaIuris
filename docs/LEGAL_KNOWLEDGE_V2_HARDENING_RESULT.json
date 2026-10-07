@@ -1,0 +1,293 @@
+{
+  "scope": "10.4B-1.5 offline repeat of the same ten sources",
+  "documents": [
+    {
+      "path": "raw_docs/CONSTITUCION POLITICA.docx",
+      "document_hash": "e272bf52fff02c3c49996dc772118a62215071af2007e5097b8f029ec6482d10",
+      "status": "review_required",
+      "publishable": false,
+      "ocr_required": false,
+      "extraction_quality": "high",
+      "metadata": {},
+      "total_units": 261,
+      "unit_types": {
+        "article": 212,
+        "concordance": 24,
+        "disposition": 25
+      },
+      "split_parts": 24,
+      "duplicate_extra": 0,
+      "editorial_concordances_collapsed": 0,
+      "page_issues": [],
+      "metadata_issues": [],
+      "warnings": [
+        "editorial_material_mixed_with_law",
+        "oversized_structure_review_required"
+      ]
+    },
+    {
+      "path": "raw_docs/CODIGO CIVIL.docx",
+      "document_hash": "88f117ff3d6aa95ce69eee3661b5598b64c551a92a434a01446f137c22f8782f",
+      "status": "review_required",
+      "publishable": false,
+      "ocr_required": false,
+      "extraction_quality": "high",
+      "metadata": {},
+      "total_units": 2227,
+      "unit_types": {
+        "article": 2168,
+        "concordance": 54,
+        "disposition": 5
+      },
+      "split_parts": 12,
+      "duplicate_extra": 2,
+      "editorial_concordances_collapsed": 0,
+      "page_issues": [],
+      "metadata_issues": [],
+      "warnings": [
+        "duplicate_unit_hashes:2",
+        "editorial_material_mixed_with_law",
+        "oversized_structure_review_required",
+        "duplicate_unit_hash"
+      ]
+    },
+    {
+      "path": "raw_docs/(TUO) CODIGO PROCESAL CIVIL.docx",
+      "document_hash": "169a4aff961a70fa9090f5cf53ccc47f943654931e66c22f9ff6e9267e717321",
+      "status": "review_required",
+      "publishable": false,
+      "ocr_required": false,
+      "extraction_quality": "high",
+      "metadata": {},
+      "total_units": 986,
+      "unit_types": {
+        "article": 902,
+        "concordance": 31,
+        "disposition": 53
+      },
+      "split_parts": 38,
+      "duplicate_extra": 0,
+      "editorial_concordances_collapsed": 0,
+      "page_issues": [],
+      "metadata_issues": [],
+      "warnings": [
+        "editorial_material_mixed_with_law",
+        "oversized_structure_review_required"
+      ]
+    },
+    {
+      "path": "raw_docs/TEXTO UNICO ORDENADO DEL CODIGO TRIBUTARIO.docx",
+      "document_hash": "26876c0b0e00127a6cad4c5b0b5856ddb4c6583ca1e9ffa938a6f2d9e5610bf4",
+      "status": "review_required",
+      "publishable": false,
+      "ocr_required": false,
+      "extraction_quality": "high",
+      "metadata": {},
+      "total_units": 249,
+      "unit_types": {
+        "article": 177,
+        "concordance": 26,
+        "disposition": 46
+      },
+      "split_parts": 126,
+      "duplicate_extra": 0,
+      "editorial_concordances_collapsed": 2,
+      "page_issues": [],
+      "metadata_issues": [],
+      "warnings": [
+        "editorial_concordance_repeated:2",
+        "editorial_material_mixed_with_law",
+        "oversized_structure_review_required"
+      ]
+    },
+    {
+      "path": "raw_docs/LEY GENERAL DE SOCIEDADES.docx",
+      "document_hash": "2f2278692c5c360665e9855790839546d739e51e03719c683e04101066dbef74",
+      "status": "review_required",
+      "publishable": false,
+      "ocr_required": false,
+      "extraction_quality": "high",
+      "metadata": {
+        "number": "26887",
+        "excluded_postamble": {
+          "start_block_index": 2184,
+          "block_count": 196,
+          "sha256": "3bd3768f01793c259d0b6a840cf2fb9aeac1284d71356ac367940a753a506bbe",
+          "reason": "formal promulgation closes legal provisions; following signatures and editorial appendix are not legal units"
+        }
+      },
+      "total_units": 495,
+      "unit_types": {
+        "article": 451,
+        "concordance": 24,
+        "disposition": 20
+      },
+      "split_parts": 4,
+      "duplicate_extra": 0,
+      "editorial_concordances_collapsed": 0,
+      "page_issues": [],
+      "metadata_issues": [],
+      "warnings": [
+        "editorial_postamble_excluded:196",
+        "editorial_material_mixed_with_law"
+      ]
+    },
+    {
+      "path": "backend/raw_docs/jurisprudencia/TC_declara_fundado_hábeas_corpus_por_falta_de_motivación_a_la___.pdf",
+      "document_hash": "0d3f217ce5398270a3450066c542fb1b8d4569fee5f5b59a735a2da619247d4a",
+      "status": "review_required",
+      "publishable": false,
+      "ocr_required": false,
+      "extraction_quality": "high",
+      "metadata": {
+        "court": "Tribunal Constitucional",
+        "chamber": "Sala Segunda",
+        "expediente": "00800-2024-PHC/TC",
+        "resolution_type": "sentencia",
+        "resolution_date": "2026-06-22"
+      },
+      "total_units": 30,
+      "unit_types": {
+        "antecedent": 2,
+        "decision": 2,
+        "foundation": 26
+      },
+      "split_parts": 4,
+      "duplicate_extra": 0,
+      "editorial_concordances_collapsed": 0,
+      "page_issues": [],
+      "metadata_issues": [],
+      "warnings": [
+        "page_furniture_removed:18",
+        "separate_opinion_mixed_with_decision"
+      ]
+    },
+    {
+      "path": "backend/raw_docs/jurisprudencia/_Auto__No_todos_los_casos_que_conozca_el_TC__vía_RAC____.pdf",
+      "document_hash": "0c2a1e064a9929036b002bd0b5e555f8959143c5399fba62c3e8335ecce76988",
+      "status": "staged",
+      "publishable": true,
+      "ocr_required": false,
+      "extraction_quality": "high",
+      "metadata": {
+        "court": "Tribunal Constitucional",
+        "expediente": "04810-2024-PA/TC",
+        "resolution_type": "auto",
+        "resolution_date": "2025-10-23",
+        "ponente": "OCHOA CARDICH"
+      },
+      "total_units": 10,
+      "unit_types": {
+        "antecedent": 1,
+        "decision": 1,
+        "foundation": 8
+      },
+      "split_parts": 0,
+      "duplicate_extra": 0,
+      "editorial_concordances_collapsed": 0,
+      "page_issues": [],
+      "metadata_issues": [],
+      "warnings": [
+        "page_furniture_removed:3"
+      ]
+    },
+    {
+      "path": "backend/raw_docs/jurisprudencia/Requisitos_para_la_validez_del_contrato_modal_por_suplencia__Casación_20221_2023____.pdf",
+      "document_hash": "189bf0a9ef69087948e1082f785818e4bf8bf7b011ba65e2862c610e2a10c6c7",
+      "status": "review_required",
+      "publishable": false,
+      "ocr_required": false,
+      "extraction_quality": "high",
+      "metadata": {
+        "court": "Corte Suprema",
+        "chamber": "Cuarta Sala",
+        "expediente": "20221-2023",
+        "resolution_type": "casación",
+        "resolution_date": "2025-04-07",
+        "resolution_date_text": "Lima, siete de abril de dos mil veinticinco"
+      },
+      "total_units": 30,
+      "unit_types": {
+        "antecedent": 2,
+        "decision": 1,
+        "foundation": 26,
+        "sumilla": 1
+      },
+      "split_parts": 0,
+      "duplicate_extra": 0,
+      "editorial_concordances_collapsed": 0,
+      "page_issues": [],
+      "metadata_issues": [],
+      "warnings": [
+        "page_furniture_removed:14",
+        "multiple_foundations_in_one_unit"
+      ]
+    },
+    {
+      "path": "backend/raw_docs/jurisprudencia/_Precedente_vinculante__Bonificación_por_preparación_de_clases_debe_calcularse_sobre_la___.pdf",
+      "document_hash": "cb34069a2a14a0e5e7525241170f24e71bc37b2be855e4c823d50ceb567decb2",
+      "status": "review_required",
+      "publishable": false,
+      "ocr_required": false,
+      "extraction_quality": "high",
+      "metadata": {
+        "court": "Corte Suprema",
+        "chamber": "Tercera Sala",
+        "expediente": "34397-2023",
+        "resolution_type": "casación",
+        "resolution_date": "2025-10-15",
+        "resolution_date_text": "Lima, quince de octubre de dos mil veinticinco"
+      },
+      "total_units": 120,
+      "unit_types": {
+        "antecedent": 2,
+        "decision": 6,
+        "foundation": 111,
+        "sumilla": 1
+      },
+      "split_parts": 8,
+      "duplicate_extra": 0,
+      "editorial_concordances_collapsed": 0,
+      "page_issues": [],
+      "metadata_issues": [],
+      "warnings": [
+        "precedent_claim_unverified"
+      ]
+    },
+    {
+      "path": "backend/raw_docs/jurisprudencia/Jueces_incluyen_gráficos_en_su_resolución_para_hacerla_más_comprensible__Expediente___.pdf",
+      "document_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "review_required",
+      "publishable": false,
+      "ocr_required": true,
+      "extraction_quality": "ocr_required",
+      "metadata": {},
+      "total_units": 0,
+      "unit_types": {},
+      "split_parts": 0,
+      "duplicate_extra": 0,
+      "editorial_concordances_collapsed": 0,
+      "page_issues": [],
+      "metadata_issues": [],
+      "warnings": [
+        "ocr_required",
+        "no_legal_units",
+        "extraction_review_required"
+      ]
+    }
+  ],
+  "totals": {
+    "documents": 10,
+    "publishable": 1,
+    "review_required": 9,
+    "units": 4408,
+    "articles": 3910,
+    "fundaments": 171,
+    "decisions": 10,
+    "duplicates": 2,
+    "oversized_parts": 216,
+    "page_issues": 0,
+    "metadata_issues": 0,
+    "ocr_required": 1
+  }
+}

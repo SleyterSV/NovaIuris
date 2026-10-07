@@ -1,4 +1,5 @@
 """Publication gate for staged public legal documents."""
+import re
 from .identity import search_normalize
 
 
@@ -19,6 +20,10 @@ def validate_staged(document) -> list[str]:
     if not document.title.strip() or not document.document_hash:
         problems.append("document_metadata_invalid")
     if document.document_type in {"judgment", "order", "cassation", "precedent"}:
+        if (document.metadata.get("sumilla") and
+            re.search(r"\bPRECEDENTE\s+VINCULANTE\b", document.metadata["sumilla"], re.I) and
+            document.metadata.get("precedent_binding") is not True):
+            problems.append("precedent_claim_unverified")
         if not document.metadata.get("court") or not document.metadata.get("expediente"):
             problems.append("jurisprudence_identity_missing")
         if not document.metadata.get("resolution_type") or not document.metadata.get("resolution_date"):
@@ -27,9 +32,26 @@ def validate_staged(document) -> list[str]:
         problems.append("no_legal_units")
     if document.extraction_quality in {"low", "ocr_required"}:
         problems.append("extraction_review_required")
+    if any(unit.unit_type in {"article", "disposition"} and
+           re.search(r"\bNOTA\s+SPIJ\b|\bFE\s+DE\s+ERRATAS\b|En la presente edición de Normas Legales", unit.text, re.I)
+           for unit in document.units):
+        problems.append("editorial_material_mixed_with_law")
+    if document.document_type in {"judgment", "order", "cassation", "precedent"}:
+        if any(unit.unit_type == "decision" and
+               re.search(r"\bVOTO\s+(?:SINGULAR|EN\s+DISCORDIA|SEPARADO)\b", unit.text, re.I)
+               for unit in document.units):
+            problems.append("separate_opinion_mixed_with_decision")
+        if any(unit.unit_type == "foundation" and
+               re.search(r"\n(?:PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO|SEXTO|SÉTIMO|OCTAVO|NOVENO|DÉCIMO\w*|DECIMO\w*|UNDÉCIMO|DUODÉCIMO|VIGÉSIMO(?:\s+\w+)?|TRIGÉSIMO(?:\s+\w+)?)[.°º)-]+", unit.text, re.I)
+               for unit in document.units):
+            problems.append("multiple_foundations_in_one_unit")
     if any((unit.part_count or 0) > 8 for unit in document.units):
         problems.append("oversized_structure_review_required")
-    if document.source_format == "pdf" and any(unit.part_count and unit.page_start != unit.page_end for unit in document.units):
+    if document.source_format == "pdf" and any(
+        unit.part_count and (unit.page_start is None or unit.page_end is None or
+                             unit.metadata.get("page_provenance") != "source_lines")
+        for unit in document.units
+    ):
         problems.append("split_page_provenance_review_required")
     numbered_foundations = [int(unit.unit_number) for unit in document.units
                             if unit.unit_type == "foundation" and unit.unit_number and unit.unit_number.isdigit()]

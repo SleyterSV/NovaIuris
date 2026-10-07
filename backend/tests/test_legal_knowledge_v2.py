@@ -54,6 +54,33 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         self.assertEqual([u.unit_type for u in units], ["article", "disposition"])
         self.assertNotIn("DISPOSICIONES GENERALES", units[0].text)
 
+    def test_final_provisions_do_not_extend_last_article(self):
+        blocks = [Block("Artículo 448.- Regla"), Block("Texto del artículo."),
+                  Block("DISPOSICIONES FINALES"), Block("PRIMERA.- Vigencia"),
+                  Block("La ley entra en vigor."), Block("SEGUNDA.- Derogación"),
+                  Block("Queda derogada la norma anterior.")]
+        units = NormativeParser().parse(blocks)
+        self.assertEqual([u.unit_type for u in units], ["article", "disposition", "disposition"])
+        self.assertEqual([u.unit_number for u in units[1:]], ["PRIMERA", "SEGUNDA"])
+        self.assertNotIn("Vigencia", units[0].text)
+
+    def test_compound_ordinal_provision_is_separate(self):
+        units = NormativeParser().parse([Block("DISPOSICIONES TRANSITORIAS"),
+            Block("DECIMA.- Extinción"), Block("Regla de extinción."),
+            Block("DECIMA PRIMERA.- Publicaciones"), Block("Regla de publicación.")])
+        self.assertEqual([u.unit_number for u in units], ["DECIMA", "DECIMA PRIMERA"])
+
+    def test_formal_promulgation_closes_provisions_before_editorial_appendix(self):
+        parser = NormativeParser()
+        units = parser.parse([Block("DISPOSICIONES TRANSITORIAS", index=0),
+            Block("PRIMERA.- Regla", index=1), Block("Texto jurídico.", index=2),
+            Block("Comuníquese al señor Presidente de la República para su promulgación.", index=3),
+            Block("CONCORDANCIAS A LA LEY", index=4), Block("NOTA SPIJ (*)", index=5)])
+        self.assertEqual(len(units), 1)
+        self.assertEqual(units[0].unit_type, "disposition")
+        self.assertNotIn("NOTA SPIJ", units[0].text)
+        self.assertEqual(parser.postamble_start_index, 3)
+
     def test_embedded_article_headings_are_separate_and_prose_is_not_a_number(self):
         blocks = [Block("Artículo 659-A.- Apoyos\nRegla primera.\nArtículo 659-B.- Salvaguardias\nRegla segunda."),
                   Block("Artículo afectado por la modificación")]
@@ -100,6 +127,12 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         self.assertEqual(staged.metadata["resolution_type"], "auto")
         self.assertIn("decision", [u.unit_type for u in staged.units])
 
+    def test_ponente_signature_at_end_is_metadata(self):
+        blocks = [Block("AUTO DEL TRIBUNAL CONSTITUCIONAL"), Block("EXP. N.° 04810-2024-PA/TC"),
+                  Block("Lima, 23 de octubre de 2025"), Block("RESUELVE"),
+                  Block("Declarar improcedente."), Block("PONENTE OCHOA CARDICH")]
+        self.assertEqual(case_law_metadata(blocks, "auto.pdf")["ponente"], "OCHOA CARDICH")
+
     def test_tc_decision_and_header_date_are_not_lost_to_case_history(self):
         blocks = [Block("Sala Segunda. Sentencia 0864/2026"),
                   Block("SENTENCIA DEL TRIBUNAL CONSTITUCIONAL"),
@@ -116,6 +149,24 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         metadata = case_law_metadata([Block("CORTE  SUPREMA  DE JUSTICIA DE LA REPÚBLICA"),
                                       Block("CASACIÓN N° 34397-2023")], "precedente.pdf")
         self.assertEqual(metadata["court"], "Corte Suprema")
+
+    def test_written_resolution_date_requires_lima_heading(self):
+        blocks = [Block("CORTE SUPREMA"), Block("CASACIÓN N.° 20221-2023"),
+                  Block("Lima, siete de abril de dos mil veinticinco -"),
+                  Block("Sentencia apelada de veintitrés de noviembre de dos mil veintidós")]
+        metadata = case_law_metadata(blocks, "casación.pdf")
+        self.assertEqual(metadata["resolution_date"], "2025-04-07")
+        self.assertEqual(metadata["resolution_date_text"], "Lima, siete de abril de dos mil veinticinco")
+
+    def test_number_from_quoted_judgment_stays_in_citing_foundation(self):
+        blocks = [Block("ATENDIENDO A QUE"), Block("5. El Tribunal publicó la Sentencia 47/2023,"),
+                  Block("entre sus fundamentos, señala lo siguiente:"),
+                  Block("211. Dentro de esta lógica discursiva se admitirá el recurso."),
+                  Block("6. Por tanto, corresponde resolver."), Block("RESUELVE"),
+                  Block("Declarar improcedente.")]
+        units = JurisprudenceParser().parse(blocks)
+        self.assertEqual([u.unit_number for u in units if u.unit_type == "foundation"], ["5", "6"])
+        self.assertIn("211.", units[0].text)
 
     def test_pdf_sumilla_collects_wrapped_lines_on_same_page(self):
         blocks = [Block("SUMILLA :", page=1), Block("Será válido el contrato", page=1),
@@ -139,6 +190,25 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         self.assertEqual(staged.ingestion_status, "review_required")
         self.assertIn("jurisprudence_date_or_type_missing", staged.warnings)
 
+    def test_editorial_marker_inside_article_blocks_publication(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "ley.txt"
+            path.write_text("Artículo 1.- La sociedad constituyenla(*) NOTA SPIJ conforme a ley.", encoding="utf-8")
+            staged = stage_file(path, family="normative")
+        self.assertIn("editorial_material_mixed_with_law", staged.warnings)
+        self.assertEqual(staged.ingestion_status, "review_required")
+
+    def test_unverified_precedent_claim_blocks_publication(self):
+        blocks = [Block("CORTE SUPREMA"), Block("CASACIÓN N.° 34397-2023"),
+                  Block("Lima, 15 de octubre de 2025"),
+                  Block("SUMILLA: PRECEDENTE VINCULANTE sobre remuneración"),
+                  Block("FUNDAMENTOS"), Block("1. Razón."), Block("DECISIÓN"),
+                  Block("Declararon infundado.")]
+        extracted = ExtractedDocument("casación.pdf", "pdf", blocks, "a" * 64)
+        with patch("app.legal_ingestion.service.extract", return_value=extracted):
+            staged = stage_file("casación.pdf")
+        self.assertIn("precedent_claim_unverified", staged.warnings)
+
     def test_split_pdf_across_pages_requires_provenance_review(self):
         blocks = [Block("SENTENCIA DEL TRIBUNAL CONSTITUCIONAL", page=1),
                   Block("EXP. N.° 1234-2024-PA/TC", page=1),
@@ -149,7 +219,8 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         extracted = ExtractedDocument("sentencia.pdf", "pdf", blocks, "a" * 64)
         with patch("app.legal_ingestion.service.extract", return_value=extracted):
             staged = stage_file("sentencia.pdf", max_unit_tokens=4)
-        self.assertIn("split_page_provenance_review_required", staged.warnings)
+        self.assertNotIn("split_page_provenance_review_required", staged.warnings)
+        self.assertTrue(all(part.page_start == part.page_end for part in staged.units if part.part_count))
 
     def test_implausible_foundation_number_requires_review(self):
         with tempfile.TemporaryDirectory() as folder:
