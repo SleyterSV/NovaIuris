@@ -9,10 +9,11 @@ from .models import Block, LegalUnit
 
 ARTICLE = re.compile(r"^art[íi]culo\s+([0-9]+(?:[-–][A-Za-z0-9]+)?|[IVX]{1,4}|[úu]nico)(?=\s|[.°º:–-]|$)\s*(?:[.°º]?[–-]|[.:])?\s*(.*)$", re.I)
 HIERARCHY = re.compile(r"^(libro|secci[oó]n|t[íi]tulo|cap[íi]tulo)\s+([IVXLCDM\d]+(?:\s*[-–].*)?)$", re.I)
+PRELIMINARY_TITLE = re.compile(r"^t[íi]tulo\s+preliminar$", re.I)
 AMENDMENT = re.compile(r"^(?:art[íi]culo\s+\d+\s+)?(?:modificado|incorporado|sustituido|derogado)\s+por\b|^\(?art[íi]culo\s+modificado\b", re.I)
 CONCORDANCE = re.compile(r"^concordancias?\s*[:.]", re.I)
-PROVISIONS = re.compile(r"^disposiciones?\s+(?:finales?(?:\s+y\s+transitorias?)?|transitorias?|complementarias?)(?:\s+y\s+(?:finales?|transitorias?))?\s*$", re.I)
-ORDINAL_PROVISION = re.compile(r"^(primera|segunda|tercera|cuarta|quinta|sexta|s[eé]tima|octava|novena|d[eé]cima(?:\s+primera)?|[a-z]+[ée]sima)\s*[.\-–]", re.I)
+PROVISIONS = re.compile(r"^disposici[oó]n(?:es)?\s+(?:(?:complementarias?|finales?|transitorias?|modificatorias?|derogatorias?)\s*(?:y\s+)?){1,4}$", re.I)
+ORDINAL_PROVISION = re.compile(r"^([úu]nica|primera|segunda|tercera|cuarta|quinta|sexta|s[eé]tima|octava|novena|d[eé]cima(?:\s+primera)?|[a-z]+[ée]sima)\s*[.\-–]", re.I)
 SECTION = re.compile(r"^(sumilla|materia|antecedentes?|visto|fundamentos?(?:\s+de\s+derecho)?|considerandos?|atendiendo\s+a\s+que|an[áa]lisis(?:\s+de\s+la\s+controversia|\s+del\s+caso\s+concreto)?|decisi[oó]n|parte\s+resolutiva|resuelve|ha\s+resuelto|por\s+estos\s+fundamentos|fallo|voto\s+(?:singular|en\s+discordia|separado))(?:\s*[:.]\s*(.*))?\s*$", re.I)
 ROMAN_SECTION = re.compile(r"^[IVXLCDM]+[.)]\s*(.+?)\s*[:.]?\s*$", re.I)
 FOUNDATION = re.compile(r"^(?:fundamento\s+)?(\d{1,3}|(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno|d[ée]cimo|und[ée]cimo|duod[ée]cimo|vig[ée]simo|trig[ée]simo)(?:\s+(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno))?)\s*[.°º)-]+-?\s+(.+)$", re.I)
@@ -78,6 +79,7 @@ class NormativeParser:
         article_heading = None
         provision_blocks: list[Block] = []
         provision_number = None
+        provision_heading = None
         in_provisions = False
 
         def flush_article():
@@ -90,8 +92,13 @@ class NormativeParser:
         def flush_provision():
             nonlocal provision_blocks
             if provision_blocks:
-                units.append(_unit("disposition", len(units) + 1, provision_blocks,
-                                   number=provision_number, hierarchy=hierarchy.copy()))
+                unit = _unit("disposition", len(units) + 1, provision_blocks,
+                             number=provision_number, hierarchy=hierarchy.copy())
+                unit.metadata["provision_heading"] = provision_heading
+                unit.content_hash = content_hash(unit.unit_type, unit.unit_number, unit.heading,
+                                                 unit.normalized_text, provision_heading,
+                                                 hierarchy=hierarchy.copy())
+                units.append(unit)
                 provision_blocks = []
 
         for block in expanded:
@@ -104,6 +111,7 @@ class NormativeParser:
             if PROVISIONS.match(line):
                 flush_article()
                 flush_provision()
+                provision_heading = line
                 in_provisions = True
                 continue
             provision = ORDINAL_PROVISION.match(line) if in_provisions else None
@@ -112,6 +120,12 @@ class NormativeParser:
                 flush_provision()
                 provision_number = provision.group(1).upper()
                 provision_blocks = [block]
+                continue
+            if PRELIMINARY_TITLE.match(line):
+                flush_article()
+                flush_provision()
+                in_provisions = False
+                hierarchy = {"book": None, "section": None, "title": "PRELIMINAR", "chapter": None}
                 continue
             if in_provisions and provision_blocks:
                 if AMENDMENT.match(line):
@@ -141,7 +155,11 @@ class NormativeParser:
                 flush_provision()
                 in_provisions = False
                 article_number = article.group(1).upper()
-                article_heading = None
+                candidate_heading = article.group(2).strip()
+                article_heading = (candidate_heading if len(block.text.splitlines()) == 1
+                                   and 0 < len(candidate_heading.split()) <= 18
+                                   and not re.search(r"[.;:!?]$", candidate_heading)
+                                   else None)
                 article_blocks = [block]
                 continue
             if AMENDMENT.match(line) and article_blocks:

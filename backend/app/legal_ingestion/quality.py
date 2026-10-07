@@ -19,6 +19,8 @@ def validate_staged(document) -> list[str]:
     problems = []
     if not document.title.strip() or not document.document_hash:
         problems.append("document_metadata_invalid")
+    if document.document_type in {"law", "code", "regulation"} and not document.metadata.get("number"):
+        problems.append("normative_number_missing")
     if document.document_type in {"judgment", "order", "cassation", "precedent"}:
         if (document.metadata.get("sumilla") and
             re.search(r"\bPRECEDENTE\s+VINCULANTE\b", document.metadata["sumilla"], re.I) and
@@ -36,6 +38,20 @@ def validate_staged(document) -> list[str]:
            re.search(r"\bNOTA\s+SPIJ\b|\bFE\s+DE\s+ERRATAS\b|En la presente edición de Normas Legales", unit.text, re.I)
            for unit in document.units):
         problems.append("editorial_material_mixed_with_law")
+    if any(unit.unit_type in {"article", "disposition"} and
+           re.search(r"\(\*\)\s*(?:[^\n]{0,90})?\b(?:modificad[oa]|incorporad[oa]|derogad[oa]|sustituid[oa])\s+por\b|\bTEXTO\s+INCORPORADO\s*:", unit.text, re.I)
+           for unit in document.units):
+        problems.append("versioned_amendment_mixed_with_law")
+    numeric_articles = [(int(unit.unit_number), unit.book) for unit in document.units
+                        if unit.unit_type == "article" and unit.unit_number and unit.unit_number.isdigit()
+                        and unit.part_number in (None, 1)]
+    highest_by_book = {}
+    for number, book in numeric_articles:
+        highest = highest_by_book.get(book, 0)
+        if highest >= 50 and number < highest - 20:
+            problems.append("article_numbering_restart_review_required")
+            break
+        highest_by_book[book] = max(highest, number)
     if document.document_type in {"judgment", "order", "cassation", "precedent"}:
         if any(unit.unit_type == "decision" and
                re.search(r"\bVOTO\s+(?:SINGULAR|EN\s+DISCORDIA|SEPARADO)\b", unit.text, re.I)
@@ -47,6 +63,9 @@ def validate_staged(document) -> list[str]:
             problems.append("multiple_foundations_in_one_unit")
     if any((unit.part_count or 0) > 8 for unit in document.units):
         problems.append("oversized_structure_review_required")
+    if any(unit.unit_type == "disposition" and (unit.token_count or 0) < 5
+           for unit in document.units):
+        problems.append("incomplete_disposition")
     if document.source_format == "pdf" and any(
         unit.part_count and (unit.page_start is None or unit.page_end is None or
                              unit.metadata.get("page_provenance") != "source_lines")

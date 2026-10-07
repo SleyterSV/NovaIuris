@@ -47,6 +47,15 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         self.assertEqual(articles[0].title, "II")
         self.assertEqual([unit.unit_type for unit in units].count("amendment_note"), 1)
 
+    def test_preliminary_title_resets_index_hierarchy_and_article_heading(self):
+        units = NormativeParser().parse([Block("TÍTULO VII"), Block("CAPÍTULO IV"),
+            Block("DISPOSICIONES COMPLEMENTARIAS FINALES"), Block("TÍTULO PRELIMINAR"),
+            Block("Artículo I.- Contenido"), Block("El código establece las reglas."),
+            Block("TÍTULO I"), Block("Artículo 1.- Objeto"), Block("El objeto se define.")])
+        self.assertEqual([u.title for u in units], ["PRELIMINAR", "I"])
+        self.assertIsNone(units[0].chapter)
+        self.assertEqual([u.heading for u in units], ["Contenido", "Objeto"])
+
     def test_plural_disposition_heading_is_not_a_legal_unit(self):
         blocks = [Block("DISPOSICIONES GENERALES"), Block("Artículo 1.- Regla"),
                   Block("DISPOSICIÓN PRIMERA.- Vigencia especial")]
@@ -69,6 +78,25 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
             Block("DECIMA.- Extinción"), Block("Regla de extinción."),
             Block("DECIMA PRIMERA.- Publicaciones"), Block("Regla de publicación.")])
         self.assertEqual([u.unit_number for u in units], ["DECIMA", "DECIMA PRIMERA"])
+
+    def test_complementary_provision_sections_and_embedded_amending_article(self):
+        units = NormativeParser().parse([
+            Block("DISPOSICIONES COMPLEMENTARIAS FINALES", index=1),
+            Block("PRIMERA.- Vigencia", index=2), Block("La ley entra en vigor mañana.", index=3),
+            Block("DISPOSICIONES COMPLEMENTARIAS MODIFICATORIAS", index=4),
+            Block("PRIMERA.- Modificación", index=5),
+            Block("Modifícase el texto siguiente:", index=6),
+            Block("“Artículo 38.- Nuevo texto de otra norma.”", index=7),
+            Block("DISPOSICIÓN COMPLEMENTARIA TRANSITORIA", index=8),
+            Block("ÚNICA.- Procedimientos en trámite", index=9),
+            Block("Los trámites existentes continúan.", index=10)])
+        self.assertEqual([u.unit_type for u in units], ["disposition"] * 3)
+        self.assertEqual([u.unit_number for u in units], ["PRIMERA", "PRIMERA", "ÚNICA"])
+        self.assertIn("Artículo 38", units[1].text)
+        self.assertIn("MODIFICATORIAS", units[1].metadata["provision_heading"])
+        self.assertNotIn("DISPOSICIÓN COMPLEMENTARIA TRANSITORIA", units[1].text)
+        self.assertEqual(units[2].metadata["provision_heading"], "DISPOSICIÓN COMPLEMENTARIA TRANSITORIA")
+        self.assertNotEqual(units[0].content_hash, units[1].content_hash)
 
     def test_formal_promulgation_closes_provisions_before_editorial_appendix(self):
         parser = NormativeParser()
@@ -197,6 +225,25 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
             staged = stage_file(path, family="normative")
         self.assertIn("editorial_material_mixed_with_law", staged.warnings)
         self.assertEqual(staged.ingestion_status, "review_required")
+
+    def test_versioned_amendment_inside_article_requires_review(self):
+        blocks = [Block("LEY N° 29571"), Block("Artículo 1.- Protección"),
+                  Block("El consumidor tiene derecho a protección."),
+                  Block("(*) Literal modificado por la Ley N° 31040, cuyo texto es el siguiente:")]
+        source = ExtractedDocument("codigo.docx", "docx", blocks, "a" * 64)
+        with patch("app.legal_ingestion.service.extract", return_value=source):
+            staged = stage_file("codigo.docx")
+        self.assertIn("versioned_amendment_mixed_with_law", staged.warnings)
+
+    def test_large_article_number_restart_requires_review(self):
+        blocks = [Block("LEY N° 29571"), Block("Artículo 1.- Inicio"),
+                  Block("Regla inicial."), Block("Artículo 150.- Cierre"),
+                  Block("Regla de cierre."), Block("TEXTO INCORPORADO:"),
+                  Block("Artículo 37.- Texto de otra versión"), Block("Regla adicional.")]
+        source = ExtractedDocument("codigo.docx", "docx", blocks, "a" * 64)
+        with patch("app.legal_ingestion.service.extract", return_value=source):
+            staged = stage_file("codigo.docx")
+        self.assertIn("article_numbering_restart_review_required", staged.warnings)
 
     def test_unverified_precedent_claim_blocks_publication(self):
         blocks = [Block("CORTE SUPREMA"), Block("CASACIÓN N.° 34397-2023"),
@@ -351,6 +398,30 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         self.assertEqual(report["detected"], "jurisprudence")
         self.assertEqual(report["status"], "review_required")
         self.assertIn("jurisprudence_identity_missing", report["warnings"])
+
+    def test_promulgating_instrument_is_bounded_before_separate_tuo_annex(self):
+        lines = ["Decreto Supremo que aprueba el texto único ordenado",
+                 "DECRETO SUPREMO N° 006-2026-JUS", "EL PRESIDENTE DE LA REPÚBLICA",
+                 "DECRETA:", "Artículo 1. Objeto", "Se aprueba el texto único ordenado.",
+                 "DISPOSICIÓN COMPLEMENTARIA DEROGATORIA", "ÚNICA. Derogación",
+                 "Derogar el decreto anterior.",
+                 "Dado en la Casa de Gobierno, en Lima, el día de hoy.",
+                 "Presidente de la República", "TEXTO ÚNICO ORDENADO DE LA LEY",
+                 "TÍTULO PRELIMINAR", "Artículo I. Anexo", "El anexo tiene reglas distintas."]
+        blocks = [Block(line, index=i) for i, line in enumerate(lines)]
+        source = ExtractedDocument("norma.docx", "docx", blocks, "a" * 64)
+        with patch("app.legal_ingestion.service.extract", return_value=source):
+            decree = stage_file("norma.docx", segment="promulgating_instrument")
+            whole = stage_file("norma.docx")
+        self.assertEqual(decree.document_type, "regulation")
+        self.assertEqual(decree.metadata["number"], "006-2026-JUS")
+        self.assertIn("Casa de Gobierno", decree.metadata["issued_date_text"])
+        self.assertEqual(decree.metadata["source_segment"]["annex_start_block_index"], 11)
+        self.assertEqual([u.unit_type for u in decree.units], ["article", "disposition"])
+        self.assertNotIn("Artículo I. Anexo", str(decree.to_dict()))
+        self.assertIn("I", [u.unit_number for u in whole.units if u.unit_type == "article"])
+        self.assertNotEqual(decree.document_hash, whole.document_hash)
+        self.assertEqual(decree.ingestion_status, "staged")
 
     def test_batch_embeddings_assert_dimension(self):
         units = [SimpleNamespace(search_text=str(i)) for i in range(3)]

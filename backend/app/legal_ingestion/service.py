@@ -8,7 +8,7 @@ from .cleaners import remove_repeated_page_furniture
 from .extractors import extract
 from .identity import document_hash, stable_document_id
 from .models import StagedDocument
-from .parsers import JurisprudenceParser, NormativeParser, case_law_metadata
+from .parsers import ARTICLE, JurisprudenceParser, NormativeParser, case_law_metadata
 from .quality import extraction_quality, validate_staged
 from .units import OversizedUnitError, contextual_search_text, split_oversized_unit
 
@@ -40,9 +40,47 @@ def _document_type(filename, family):
     return "regulation"
 
 
-def stage_file(path, *, family="auto", max_unit_tokens=800) -> StagedDocument:
+def _promulgating_instrument(blocks):
+    """Bound an approving decree before its separately titled TUO annex."""
+    opening = "\n".join(block.text for block in blocks[:12])
+    identity = re.search(r"(?im)^\s*DECRETO\s+SUPREMO\s+N[.°ºo]*\s*(\d{1,4}-\d{4}-[A-Z][A-Z0-9-]*)\b", opening)
+    if not identity:
+        raise ValueError("No uniquely identified supreme decree in the source header")
+    decree = next((i for i, block in enumerate(blocks[:60])
+                   if re.match(r"^DECRETA\s*:\s*$", block.text, re.I)), None)
+    if decree is None:
+        raise ValueError("No decree operative section found")
+    first_article = next((i for i in range(decree + 1, len(blocks))
+                          if ARTICLE.match(blocks[i].text)), None)
+    if first_article is None:
+        raise ValueError("No decree articles found")
+    closure = next((i for i in range(first_article + 1, len(blocks))
+                    if re.match(r"^Dado\s+en\s+la\s+Casa\s+de\s+Gobierno\b", blocks[i].text, re.I)), None)
+    if closure is None:
+        raise ValueError("No formal decree closure found")
+    annex = next((i for i in range(closure + 1, len(blocks))
+                  if re.match(r"^TEXTO\s+[ÚU]NICO\s+ORDENADO\b", blocks[i].text, re.I)), None)
+    if annex is None or any(ARTICLE.match(block.text) for block in blocks[closure:annex]):
+        raise ValueError("A separately titled TUO annex was not safely bounded")
+    selected = blocks[:closure]
+    return selected, {"document_scope": "promulgating_instrument",
+        "number": identity.group(1), "issuer": "Presidencia de la República",
+        "issued_date_text": blocks[closure].text,
+        "source_segment": {"start_block_index": selected[0].index,
+                           "end_block_index": selected[-1].index,
+                           "annex_start_block_index": blocks[annex].index,
+                           "blocks_excluded_from_instrument": len(blocks) - len(selected)}}
+
+
+def stage_file(path, *, family="auto", max_unit_tokens=800, segment=None) -> StagedDocument:
     extracted = extract(path)
-    blocks, removed = remove_repeated_page_furniture(extracted.blocks)
+    segment_metadata = {}
+    source_blocks = extracted.blocks
+    if segment is not None:
+        if segment != "promulgating_instrument" or family == "jurisprudence":
+            raise ValueError("Unsupported legal source segment")
+        source_blocks, segment_metadata = _promulgating_instrument(extracted.blocks)
+    blocks, removed = remove_repeated_page_furniture(source_blocks)
     chosen = _family(extracted.filename, blocks, family)
     parser = JurisprudenceParser() if chosen == "jurisprudence" else NormativeParser()
     parsed = parser.parse(blocks)
@@ -88,6 +126,7 @@ def stage_file(path, *, family="auto", max_unit_tokens=800) -> StagedDocument:
                 "block_count": len(postamble),
                 "sha256": hashlib.sha256("\n".join(block.text for block in postamble).encode("utf-8")).hexdigest(),
                 "reason": "formal promulgation closes legal provisions; following signatures and editorial appendix are not legal units"}
+        metadata.update(segment_metadata)
     if chosen == "jurisprudence" and not any(unit.unit_type == "decision" for unit in parsed):
         warnings.append("decision_not_detected")
     units = []
@@ -108,8 +147,9 @@ def stage_file(path, *, family="auto", max_unit_tokens=800) -> StagedDocument:
         warnings.append(f"duplicate_unit_hashes:{duplicates_detected}")
     for index, unit in enumerate(units, 1):
         unit.sequence = index
-    title = Path(extracted.filename).stem.replace("_", " ").strip()
-    staged = StagedDocument(title=title, document_type=_document_type(extracted.filename, chosen),
+    title = (blocks[0].text.strip() if segment_metadata else
+             Path(extracted.filename).stem.replace("_", " ").strip())
+    staged = StagedDocument(title=title, document_type="regulation" if segment_metadata else _document_type(extracted.filename, chosen),
         document_hash=document_hash(blocks), source_file_name=extracted.filename,
         source_format=extracted.source_format, parser_version=PARSER_VERSION,
         extraction_quality=quality, ingestion_status="staged", ocr_required=extracted.ocr_required,
