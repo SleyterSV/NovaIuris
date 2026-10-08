@@ -1,0 +1,21 @@
+{
+  "scope": "10.6A.1 manual review tied to original source and parser output",
+  "approved": [
+    {
+      "source_path": "backend/raw_docs/jurisprudencia/_Auto__Medida_cautelar_mantiene_sus_efectos_hasta_que_se_emita_sentencia___.pdf",
+      "source_file_hash": "a0d666fa34d52af8384a607eae5b7d0a878aa29a410252cb85a532d704b806fa",
+      "document_hash": "d0c4523802f4d1eefe78c81c81c5719cd5964bc2ccae936f02265695fa27d36a",
+      "parser_version": "legal-v2.1.0",
+      "expected_unit_count": 12,
+      "manual_review": "PASS: pages 1-4 visually checked; court, case number, date, antecedent, foundations 1-10, operative decision and page spans checked; repeated caption removed; no separate opinion or OCR. Publisher watermark remains source provenance; no official URL asserted."
+    },
+    {
+      "source_path": "backend/raw_docs/jurisprudencia/TC_admitió_a_Delia_Espinoza_como_tercero_con_interés_en_el___.pdf",
+      "source_file_hash": "fa1debf469bf8a39fd56fa287c9aa058f21387b37e6810938cf21212104a5d3d",
+      "document_hash": "daea7f219c340796d877097aea19d7df8ac6114d9b2f155147c1c3d5d1813857",
+      "parser_version": "legal-v2.1.0",
+      "expected_unit_count": 11,
+      "manual_review": "PASS: pages 1-5 visually checked; court, case number, date, antecedent, foundations 1-8, admitting decision and separate magistrate vote checked; wrapped cited Auto number stays in foundation 8; page spans and hashes checked. No official URL asserted."
+    }
+  ]
+}

@@ -17,7 +17,7 @@ Hay claves externas y cascada al eliminar documentos de prueba; las relaciones h
 
 ## Extracción y estructura
 
-`app/legal_ingestion` usa `legal-v2.0.0`. PDF mantiene orden y número de página; DOCX mantiene orden de párrafos y tablas, estilos de encabezado y marcadores de lista. HTML, incluso con extensión `.doc` de SPIJ, se detecta por contenido; el parser estándar elimina scripts y estilos, conserva encabezados, texto y enlaces HTTP. El limpiador quita solo encabezados/pies repetidos en al menos tres páginas y protege encabezados jurídicos. PDFs con poco texto extraíble se marcan `ocr_required`; OCR no forma parte de este bloque.
+El piloto publicado conserva `legal-v2.0.0`; la recuperación del corpus usa `legal-v2.1.0`. PDF mantiene orden y número de página; DOCX mantiene orden de párrafos y tablas, estilos de encabezado y marcadores de lista. HTML, incluso con extensión `.doc` de SPIJ, se detecta por contenido; el parser estándar elimina scripts y estilos, conserva encabezados, texto y enlaces HTTP. El limpiador reconoce encabezados/pies repetidos en las cinco primeras o últimas líneas de al menos tres páginas y protege encabezados jurídicos. PDFs con poco texto extraíble se marcan `ocr_required`; OCR no forma parte de este bloque.
 
 `NormativeParser` identifica libro, sección, título, capítulo, artículo, disposición, modificación y concordancia. El artículo completo es la unidad primaria. `JurisprudenceParser` identifica sumilla, materia, antecedentes, fundamentos numerados, decisión y votos, con página inicial/final. Reconoce metadatos documentales cuando figuran explícitos; no sustituye la sumilla real por un extracto inventado. Un `excerpt` es solo vista previa.
 

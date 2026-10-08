@@ -364,6 +364,143 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         self.assertTrue(metadata["sumilla"].startswith("Tutela judicial"))
         self.assertIs(metadata["precedent_binding"], True)
 
+    def test_resolution_heading_overrides_editorial_filename(self):
+        blocks = [Block("EXP. N.º 00102-2022-Q/TC"),
+                  Block("AUTO DEL TRIBUNAL CONSTITUCIONAL"),
+                  Block("Lima, 9 de abril de 2026"),
+                  Block("VISTO"), Block("El escrito de la parte recurrente."),
+                  Block("ATENDIENDO A QUE"), Block("1. La solicitud es improcedente."),
+                  Block("RESUELVE"), Block("Declarar improcedente la solicitud.")]
+        source = ExtractedDocument("TC_llama_atencion.pdf", "pdf", blocks, "a" * 64)
+        with patch("app.legal_ingestion.service.extract", return_value=source):
+            staged = stage_file("TC_llama_atencion.pdf")
+        self.assertEqual(staged.document_type, "order")
+        self.assertEqual(staged.metadata["resolution_type"], "auto")
+
+    def test_tc_primary_date_with_al_dia_del_mes(self):
+        blocks = [Block("EXP. N.º 00005-2025-PCC/TC"),
+                  Block("AUTO DEL TRIBUNAL CONSTITUCIONAL"),
+                  Block("En Lima, al día 1 del mes de diciembre de 2025, se emite el auto."),
+                  Block("VISTO"), Block("RESUELVE")]
+        metadata = case_law_metadata(blocks, "auto.pdf")
+        self.assertEqual(metadata["resolution_date"], "2025-12-01")
+        self.assertEqual(metadata["resolution_type"], "auto")
+
+    def test_repeated_multiline_pdf_header_is_removed_without_legal_heading(self):
+        blocks = []
+        for page in range(1, 5):
+            for line in ("EXP. N.º 00005-2025-PCC/TC", "JURADO NACIONAL DE",
+                         "ELECCIONES", "AUTO 2 - MEDIDA CAUTELAR",
+                         "FUNDAMENTOS", f"{page}. Razón jurídica de la página {page}."):
+                blocks.append(Block(line, page=page, index=len(blocks)))
+        cleaned, removed = remove_repeated_page_furniture(blocks)
+        self.assertEqual(removed, 16)
+        self.assertEqual(sum(b.text == "FUNDAMENTOS" for b in cleaned), 4)
+        self.assertEqual(sum(b.text.startswith("1. Razón") for b in cleaned), 1)
+
+    def test_separate_vote_does_not_extend_main_decision_or_foundations(self):
+        blocks = [Block("SENTENCIA DEL TRIBUNAL CONSTITUCIONAL", page=1),
+                  Block("FUNDAMENTOS", page=1), Block("1. Razón de mayoría.", page=1),
+                  Block("HA RESUELTO", page=2), Block("Declarar fundada la demanda.", page=2),
+                  Block("FUNDAMENTO DE VOTO DEL MAGISTRADO", page=3),
+                  Block("DOMÍNGUEZ HARO", page=3),
+                  Block("ANÁLISIS DEL CASO EN CONCRETO", page=3),
+                  Block("1. Considero que procede por otra razón.", page=3),
+                  Block("DECISIÓN", page=3), Block("Comparto el fallo.", page=3)]
+        units = JurisprudenceParser().parse(blocks)
+        self.assertEqual([u.unit_type for u in units],
+                         ["foundation", "decision", "separate_opinion"])
+        self.assertNotIn("DOMÍNGUEZ HARO", units[1].text)
+        self.assertEqual((units[-1].page_start, units[-1].page_end), (3, 3))
+
+    def test_vote_phrase_inside_reasoning_is_not_a_heading(self):
+        units = JurisprudenceParser().parse([
+            Block("FUNDAMENTOS"), Block("1. El fundamento de voto del magistrado consta en autos."),
+            Block("RESUELVE"), Block("Declarar improcedente la petición.")])
+        self.assertEqual([u.unit_type for u in units], ["foundation", "decision"])
+
+    def test_named_separate_votes_remain_outside_majority_decision(self):
+        units = JurisprudenceParser().parse([
+            Block("RESUELVE"), Block("Declarar fundada la demanda."),
+            Block("VOTO DEL MAGISTRADO HERNÁNDEZ CHÁVEZ"),
+            Block("1. Concuerdo con el resultado."),
+            Block("VOTO SINGULAR DE LA MAGISTRADA LEDESMA NARVÁEZ"),
+            Block("1. Discrepo del resultado."),
+            Block("RESUELVE"), Block("Declarar improcedente la demanda.")])
+        self.assertEqual([u.unit_type for u in units],
+                         ["decision", "separate_opinion", "separate_opinion"])
+        self.assertIn("Declarar improcedente", units[-1].text)
+        self.assertNotIn("Discrepo", units[0].text)
+
+    def test_cassation_autos_y_vistos_closes_sumilla(self):
+        blocks = [Block("CORTE SUPREMA DE JUSTICIA DE LA REPÚBLICA", page=1),
+                  Block("RECURSO CASACIÓN N.º 1913-2023/VENTANILLA", page=1),
+                  Block("SUMILLA: Cuestión jurídica relevante.", page=1),
+                  Block("Regla interpretativa.", page=1),
+                  Block("AUTOS y VISTOS: el recurso interpuesto", page=1),
+                  Block("Se impugna la resolución.", page=1),
+                  Block("FUNDAMENTOS", page=2), Block("PRIMERO.- Razón.", page=2),
+                  Block("DECISIÓN", page=3), Block("Declararon fundado el recurso.", page=3)]
+        metadata = case_law_metadata(blocks, "casacion.pdf")
+        units = JurisprudenceParser().parse(blocks)
+        self.assertNotIn("AUTOS y VISTOS", metadata["sumilla"])
+        self.assertEqual([u.unit_type for u in units],
+                         ["sumilla", "antecedent", "foundation", "decision"])
+
+    def test_primary_court_and_chamber_do_not_follow_cited_court(self):
+        blocks = [Block("CORTE SUPERIOR DE JUSTICIA DE LIMA"),
+                  Block("PRIMERA SALA CONSTITUCIONAL"),
+                  Block("EXP. N.º 19340-2025-0-1801-JR-DC-06"),
+                  Block("Resolución N.º 15"),
+                  Block("La Corte Suprema resolvió otro caso."),
+                  Block("VISTOS")]
+        metadata = case_law_metadata(blocks, "habeas.pdf")
+        self.assertEqual(metadata["court"], "Corte Superior")
+        self.assertEqual(metadata["chamber"], "Primera Sala Constitucional")
+
+    def test_penal_chamber_from_cassation_header(self):
+        blocks = [Block("CORTE SUPREMA DE JUSTICIA DE LA REPÚBLICA"),
+                  Block("SALA PENAL PERMANENTE"),
+                  Block("RECURSO CASACIÓN N.º 1913-2023/VENTANILLA")]
+        metadata = case_law_metadata(blocks, "casacion.pdf")
+        self.assertEqual(metadata["court"], "Corte Suprema")
+        self.assertEqual(metadata["chamber"], "Sala Penal Permanente")
+
+    def test_corte_superior_header_prevents_false_normative_family(self):
+        blocks = [Block("CORTE SUPERIOR DE JUSTICIA DE LIMA"),
+                  Block("PRIMERA SALA CONSTITUCIONAL"),
+                  Block("Expediente : N.º 19340-2025-0-1801-JR-DC-06"),
+                  Block("VISTOS"), Block("La Constitución protege el derecho."),
+                  Block("CONSIDERANDO"), Block("PRIMERO.- Análisis de la causa."),
+                  Block("RESUELVE"), Block("Declarar improcedente la demanda.")]
+        source = ExtractedDocument("En_mayoria_habeas_corpus.pdf", "pdf", blocks, "b" * 64)
+        with patch("app.legal_ingestion.service.extract", return_value=source):
+            staged = stage_file("En_mayoria_habeas_corpus.pdf")
+        self.assertEqual(staged.metadata["family"], "jurisprudence")
+        self.assertEqual(staged.metadata["court"], "Corte Superior")
+        self.assertEqual([u.unit_type for u in staged.units],
+                         ["antecedent", "foundation", "decision"])
+
+    def test_compound_ordinal_foundations_are_separate(self):
+        units = JurisprudenceParser().parse([
+            Block("FUNDAMENTOS"), Block("Duodécimo. Razón previa.", page=1),
+            Block("Decimotercero. Nueva razón.", page=2),
+            Block("Decimocuarto. Razón final.", page=2),
+            Block("DECISIÓN", page=3), Block("Declararon fundado el recurso.", page=3)])
+        self.assertEqual([u.unit_number for u in units[:3]],
+                         ["Duodécimo", "Decimotercero", "Decimocuarto"])
+        self.assertEqual([u.page_start for u in units[:3]], [1, 2, 2])
+
+    def test_wrapped_case_reference_does_not_start_new_foundation(self):
+        units = JurisprudenceParser().parse([
+            Block("ATENDIENDO A QUE"), Block("8. Se cita el Auto", page=2),
+            Block("5 - 00004-2024-PCC/TC, fundamento 6).", page=3),
+            Block("9. Corresponde resolver el pedido.", page=3),
+            Block("RESUELVE", page=4), Block("Admitir la solicitud.", page=4)])
+        self.assertEqual([u.unit_number for u in units[:2]], ["8", "9"])
+        self.assertIn("00004-2024-PCC/TC", units[0].text)
+        self.assertEqual((units[0].page_start, units[0].page_end), (2, 3))
+
     def test_bad_extraction_and_no_units_require_review(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "sentencia.txt"

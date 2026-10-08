@@ -1,5 +1,7 @@
 # Legal Knowledge V2 — calificación del corpus original (bloque 10.6A)
 
+> Esta es la línea base histórica de 10.6A. La recalificación con parser `legal-v2.1.0`, dos fuentes aprobadas y Batch 001 se documenta en [Corpus Recovery 10.6A.1](LEGAL_KNOWLEDGE_V2_CORPUS_RECOVERY.md); no se sobrescriben los resultados originales de este bloque.
+
 ## Método y alcance
 
 Se calificaron **135 archivos originales**: 13 DOCX normativos de `raw_docs/` y 122 PDF de `backend/raw_docs/jurisprudencia/`. El inventario anterior había identificado 13 JSON en `processed_docs`; son derivados y no se usaron. Se ejecutó `stage_file()` sobre cada fuente elegible, con `socket.connect` y `socket.create_connection` bloqueados durante todo el dry-run. No hubo OpenAI, embeddings nuevos ni escritura en ninguna base. El [JSON de auditoría](LEGAL_KNOWLEDGE_V2_CORPUS_QUALIFICATION.json) conserva ruta, tamaño, formato, hashes, metadatos extraídos, tipos y cantidad de unidades, warnings, clasificación y colas; no guarda texto jurídico completo ni vectores.

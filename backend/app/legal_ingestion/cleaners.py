@@ -14,19 +14,21 @@ def remove_repeated_page_furniture(blocks: list[Block]) -> tuple[list[Block], in
         return blocks, 0
     candidates = Counter()
     for page_blocks in pages.values():
-        edges = page_blocks[:1] if len(page_blocks) == 1 else page_blocks[:1] + page_blocks[-1:]
+        edges = page_blocks[:5] + page_blocks[-5:]
+        seen_on_page = set()
         for block in edges:
             key = search_normalize(block.text).casefold()
-            if len(key) <= 120:
+            if 2 <= len(key) <= 120 and key not in seen_on_page:
                 candidates[key] += 1
+                seen_on_page.add(key)
     repeated = {key for key, count in candidates.items() if count >= max(3, len(pages) - 1)}
     kept, removed = [], 0
     for block in blocks:
         page_blocks = pages.get(block.page, [])
-        edge = page_blocks and (block is page_blocks[0] or block is page_blocks[-1])
+        edge = page_blocks and any(block is item for item in page_blocks[:5] + page_blocks[-5:])
         key = search_normalize(block.text).casefold()
         # Never strip a line that starts a legal unit, even if repeated.
-        legal_start = re.match(r"^(art[ií]culo|fundamento|decisi[oó]n|resuelve|sumilla|libro|secci[oó]n|t[ií]tulo|cap[ií]tulo)\b", key)
+        legal_start = re.match(r"^(art[ií]culos?|fundamentos?|decisi[oó]n|resuelve|sumilla|libro|secci[oó]n|t[ií]tulo|cap[ií]tulo|visto|antecedentes|considerando|primero|segundo|tercero)\b", key)
         if edge and key in repeated and not legal_start:
             removed += 1
         else:

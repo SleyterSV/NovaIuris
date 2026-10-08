@@ -14,9 +14,10 @@ AMENDMENT = re.compile(r"^(?:art[íi]culo\s+\d+\s+)?(?:modificado|incorporado|su
 CONCORDANCE = re.compile(r"^concordancias?\s*[:.]", re.I)
 PROVISIONS = re.compile(r"^disposici[oó]n(?:es)?\s+(?:(?:complementarias?|finales?|transitorias?|modificatorias?|derogatorias?)\s*(?:y\s+)?){1,4}$", re.I)
 ORDINAL_PROVISION = re.compile(r"^([úu]nica|primera|segunda|tercera|cuarta|quinta|sexta|s[eé]tima|octava|novena|d[eé]cima(?:\s+primera)?|[a-z]+[ée]sima)\s*[.\-–]", re.I)
-SECTION = re.compile(r"^(sumilla|materia|antecedentes?|visto|fundamentos?(?:\s+de\s+derecho)?|considerandos?|atendiendo\s+a\s+que|an[áa]lisis(?:\s+de\s+la\s+controversia|\s+del\s+caso\s+concreto)?|decisi[oó]n|parte\s+resolutiva|resuelve|ha\s+resuelto|por\s+estos\s+fundamentos|fallo|voto\s+(?:singular|en\s+discordia|separado))(?:\s*[:.]\s*(.*))?\s*$", re.I)
+SECTION = re.compile(r"^(sumilla|materia|antecedentes?|autos\s+y\s+vistos?|vistos?|fundamentos?(?:\s+de\s+derecho)?|considerandos?|atendiendo\s+a\s+que|an[áa]lisis(?:\s+de\s+la\s+controversia|\s+del\s+caso\s+concreto)?|decisi[oó]n|parte\s+resolutiva|resuelve|ha\s+resuelto|por\s+estos\s+fundamentos|fallo|(?:fundamento\s+de\s+)?voto\s+(?:singular|en\s+discordia|separado|concurrente)(?:\s+del?\s+magistrad[oa])?|fundamento\s+de\s+voto\s+del?\s+magistrad[oa])(?:\s*[:.]\s*(.*))?\s*$", re.I)
+VOTE_HEADING = re.compile(r"^(?:fundamento\s+de\s+voto|voto(?:\s+(?:singular|en\s+discordia|separado|concurrente))?)(?:\s+(?:del?|de\s+la)\s+(?:magistrad[oa]|juez)(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.]{2,80})?)?$", re.I)
 ROMAN_SECTION = re.compile(r"^[IVXLCDM]+[.)]\s*(.+?)\s*[:.]?\s*$", re.I)
-FOUNDATION = re.compile(r"^(?:fundamento\s+)?(\d{1,3}|(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno|d[ée]cimo|und[ée]cimo|duod[ée]cimo|vig[ée]simo|trig[ée]simo)(?:\s+(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno))?)\s*[.°º)-]+-?\s+(.+)$", re.I)
+FOUNDATION = re.compile(r"^(?:fundamento\s+)?(\d{1,3}|(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno|d[ée]cimo(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno)?|und[ée]cimo|duod[ée]cimo|vig[ée]simo|trig[ée]simo)(?:\s+(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno))?)\s*[.°º)-]+-?\s+(.+)$", re.I)
 EXPEDIENTE = re.compile(r"(?:exp(?:ediente)?\.?\s*(?:n[.°ºo]*\s*)?|casaci[oó]n\s*(?:n[.°ºo]*\s*)?)(\d{1,8}[-/–]\d{2,4}(?:[-/–][A-Za-z0-9]+)*)", re.I)
 DAY_WORDS = {"uno": 1, "primero": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5,
              "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
@@ -203,8 +204,13 @@ def case_law_metadata(blocks: list[Block], filename: str) -> dict:
             break
     compact_original = re.sub(r"\s+", " ", header)
     compact_header = compact_original.casefold()
-    court = ("Tribunal Constitucional" if "tribunal constitucional" in compact_header else
-             "Corte Suprema" if "corte suprema" in compact_header else None)
+    primary_header = re.sub(r"\s+", " ", " ".join(block.text for block in blocks[:12])).casefold()
+    court_hits = [(match.start(), name) for phrase, name in
+                  ((r"tribunal\s+constitucional", "Tribunal Constitucional"),
+                   (r"corte\s+suprema", "Corte Suprema"),
+                   (r"corte\s+superior", "Corte Superior"))
+                  for match in re.finditer(phrase, primary_header)]
+    court = min(court_hits)[1] if court_hits else None
     opening = " ".join(block.text for block in blocks[:16]).casefold()
     resolution_type = ("casación" if re.search(r"\bcasaci[oó]n\s+n[.°ºo]*\s*\d", opening) else
                        "auto" if "auto del tribunal" in opening else
@@ -214,7 +220,7 @@ def case_law_metadata(blocks: list[Block], filename: str) -> dict:
     def labeled(label):
         match = re.search(rf"(?im)^\s*{label}\s*[:.]\s*([^\n]+)", header)
         return match.group(1).strip() if match else None
-    chamber_match = re.search(r"\b(?:sala\s+(?:primera|segunda|tercera|cuarta)|(?:primera|segunda|tercera|cuarta)\s+sala)\b", compact_header, re.I)
+    chamber_match = re.search(r"\b(?:sala\s+(?:primera|segunda|tercera|cuarta|penal\s+(?:permanente|transitoria))|(?:primera|segunda|tercera|cuarta)\s+sala(?:\s+constitucional)?)\b", primary_header, re.I)
     chamber = chamber_match.group(0).title() if chamber_match else None
     ponente = labeled(r"(?:magistrado\s+)?ponente")
     if ponente is None:
@@ -226,7 +232,7 @@ def case_law_metadata(blocks: list[Block], filename: str) -> dict:
                 break
     materia = labeled("materia")
     instancia = labeled("instancia")
-    date_match = re.search(r"\b(?:en\s+)?lima\s*,\s*(?:a\s+los\s+)?(\d{1,2})(?:\s+d[ií]as?\s+del\s+mes)?\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|setiembre|septiembre|octubre|noviembre|diciembre)\s+de\s+(\d{4})\b", compact_header, re.I)
+    date_match = re.search(r"\b(?:en\s+)?lima\s*,\s*(?:a\s+los\s+|al\s+d[ií]a\s+)?(\d{1,2})(?:\s+d[ií]as?\s+del\s+mes|\s+del\s+mes)?\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|setiembre|septiembre|octubre|noviembre|diciembre)\s+de\s+(\d{4})\b", compact_header, re.I)
     months = {name: index for index, name in enumerate(("enero","febrero","marzo","abril","mayo","junio","julio","agosto","setiembre","octubre","noviembre","diciembre"), 1)}
     months["septiembre"] = 9
     resolution_date = None
@@ -274,6 +280,13 @@ class JurisprudenceParser:
             line = search_normalize(block.text)
             heading = SECTION.match(line)
             roman = ROMAN_SECTION.match(line)
+            if VOTE_HEADING.fullmatch(line):
+                flush()
+                kind, number, buffer = "separate_opinion", None, [block]
+                continue
+            if kind == "separate_opinion":
+                buffer.append(block)
+                continue
             if not heading and roman:
                 label = roman.group(1).casefold().strip()
                 if any(word in label for word in ("decisión", "fallo", "resuelve")):
@@ -291,15 +304,22 @@ class JurisprudenceParser:
             if heading:
                 flush()
                 label = heading.group(1).casefold()
-                kind = ("sumilla" if label == "sumilla" else "matter" if label == "materia" else
-                        "antecedent" if label.startswith(("antecedente", "visto")) else
+                kind = ("separate_opinion" if VOTE_HEADING.match(label) else
+                        "sumilla" if label == "sumilla" else "matter" if label == "materia" else
+                        "antecedent" if label.startswith(("antecedente", "visto", "auto")) else
                         "foundation" if label.startswith(("fundamento", "considerando", "atendiendo", "análisis", "analisis")) else
-                        "separate_opinion" if label.startswith("voto") else "decision")
+                        "decision")
                 number = None
                 buffer = [block]
                 continue
             numbered = FOUNDATION.match(line)
             if numbered and (kind == "foundation" or (kind is not None and not numbered.group(1).isdigit())):
+                # A wrapped case reference such as "Auto 5 - 00004-2024-PCC/TC"
+                # can begin at the left margin like a numbered foundation.
+                if (numbered.group(1).isdigit() and
+                        re.match(r"\d{2,}-\d{4}(?:[-/][A-Za-z0-9]+)*", numbered.group(2))):
+                    buffer.append(block)
+                    continue
                 # A remote judgment's numbered paragraph quoted after an
                 # explicit citation remains inside the citing foundation.
                 cited_intro = " ".join(item.text for item in blocks[max(0, block_index - 12):block_index]).casefold()

@@ -21,15 +21,21 @@ def _family(filename, blocks, requested):
     title = Path(filename).stem.casefold()
     if any(word in title for word in ("sentencia", "casación", "casacion", "precedente", "auto", "tc_")):
         return "jurisprudence"
+    first = " ".join(block.text for block in blocks[:12]).casefold()
+    if (re.search(r"\bcorte\s+superior\s+de\s+justicia\b", first) and
+            re.search(r"\bexp(?:ediente)?\s*[.:nº° ]", first)):
+        return "jurisprudence"
     if any(word in title for word in ("constituci", "código", "codigo", "ley", "tributario")):
         return "normative"
-    first = " ".join(block.text for block in blocks[:12]).casefold()
     return "jurisprudence" if any(word in first for word in ("tribunal constitucional", "corte suprema", "casación n")) else "normative"
 
 
-def _document_type(filename, family):
+def _document_type(filename, family, metadata=None):
     name = Path(filename).stem.casefold()
     if family == "jurisprudence":
+        resolution = (metadata or {}).get("resolution_type")
+        if resolution in {"casación", "auto", "sentencia"}:
+            return {"casación": "cassation", "auto": "order", "sentencia": "judgment"}[resolution]
         return "cassation" if "casaci" in name else "order" if "auto" in name else "judgment"
     if "constituci" in name:
         return "constitution"
@@ -149,7 +155,7 @@ def stage_file(path, *, family="auto", max_unit_tokens=800, segment=None) -> Sta
         unit.sequence = index
     title = (blocks[0].text.strip() if segment_metadata else
              Path(extracted.filename).stem.replace("_", " ").strip())
-    staged = StagedDocument(title=title, document_type="regulation" if segment_metadata else _document_type(extracted.filename, chosen),
+    staged = StagedDocument(title=title, document_type="regulation" if segment_metadata else _document_type(extracted.filename, chosen, metadata),
         document_hash=document_hash(blocks), source_file_name=extracted.filename,
         source_format=extracted.source_format, parser_version=PARSER_VERSION,
         extraction_quality=quality, ingestion_status="staged", ocr_required=extracted.ocr_required,
