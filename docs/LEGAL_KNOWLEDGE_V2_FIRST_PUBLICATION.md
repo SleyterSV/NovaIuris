@@ -1,6 +1,6 @@
 # Legal Knowledge V2 — primera publicación manual (bloque 10.4B-2A)
 
-**Estado:** la CLI de publicación se preparó y probó offline en 10.4B-2A. El usuario confirmó posteriormente la primera carga manual: 2 documentos, 15 unidades, 0 relaciones y 2 runs; `decree` y `auto` devolvieron `ALREADY_PRESENT_AND_IDENTICAL`. Codex no ejecutó esa publicación. El retrieval real sigue pendiente de prueba manual.
+**Estado:** bloque 10.4B-2 cerrado. La primera carga manual publicó 2 documentos, 15 unidades, 0 relaciones y 2 runs; `decree` y `auto` devolvieron `ALREADY_PRESENT_AND_IDENTICAL`. Las cuatro consultas de retrieval posteriores a la corrección fueron ejecutadas manualmente y calificadas GOOD. Codex no ejecutó la publicación ni las consultas con embeddings reales.
 
 ## Alcance cerrado
 
@@ -36,7 +36,7 @@ Antes del primer `publish`, los conteos deben ser `0/0/0/0`. Después del decret
 
 Los comandos `counts` e `idempotency-check` son de solo lectura. `publish` llama al `PublicationAdapter` existente, que inserta documento, unidades, relaciones explícitas y run en una transacción con commit/rollback. La CLI no modifica MYKE runtime, Auth, NovaSearch ni fuentes V1.
 
-**La secuencia anterior es histórica y no debe repetirse ahora:** `preflight` exige la base vacía y `publish` rechaza un documento idéntico ya presente. Los conteos de la carga fueron comunicados por el usuario; Codex no los consultó en esta sesión.
+**La secuencia anterior es histórica y no debe repetirse ahora:** `preflight` exige la base vacía y `publish` rechaza un documento idéntico ya presente. En el cierre, Codex confirmó los conteos mediante SQL remoto de solo lectura.
 
 ## Prueba manual del RPC V2 (CLI read-only)
 
@@ -75,9 +75,30 @@ Las [pruebas SQL de aceptación](../supabase/tests/legal_knowledge_v2_retrieval_
 
 **Aplicación:** `supabase db push --linked --project-ref emelxkoztshmzukydqzj --skip-vault` con CLI 2.120.0, después de un `--dry-run` que enumeró **solo** `20261008024534_legal_knowledge_v2_retrieval_hardening.sql` (sin seeds ni roles). El historial remoto confirmó foundation y corrección aplicadas. El conector MCP había rechazado `apply_migration` por permisos; se usó el flujo soportado del CLI. Los conteos posteriores permanecieron **2/15/0/2**.
 
-**Pruebas SQL del RPC:** antes de la corrección, seis pruebas dieron 3 PASS y 3 FAIL (`decision_intent`, `foundation_intent`, `long_question_lexical`). Después de agregar una prueba de cita/provenance, dieron **7/7 PASS**. Con un vector ya publicado de un fundamento, la pregunta Q3 devolvió `decision` primero, página 3 y `lexical_score=0.6`, incluso cuando ese vector favorecía otro fundamento. Con el vector ya publicado del artículo 3, Q4 conservó artículo 3 primero y `lexical_score=1.7`. Estos son controles de ranking sin nuevas llamadas al proveedor; **no equivalen** a repetir Q1–Q4 con embeddings de sus preguntas reales.
+**Pruebas SQL del RPC:** antes de la corrección, seis pruebas dieron 3 PASS y 3 FAIL (`decision_intent`, `foundation_intent`, `long_question_lexical`). Después de agregar una prueba de cita/provenance, dieron **7/7 PASS**. Con un vector ya publicado de un fundamento, la pregunta Q3 devolvió `decision` primero, página 3 y `lexical_score=0.6`, incluso cuando ese vector favorecía otro fundamento. Con el vector ya publicado del artículo 3, Q4 conservó artículo 3 primero y `lexical_score=1.7`. Estos controles de ranking no generaron llamadas al proveedor; la validación posterior de Q1–Q4 con embeddings de pregunta reales se documenta a continuación.
 
-**Validación pendiente:** repetir Q1–Q4 desde el PowerShell que tiene `OPENAI_API_KEY` y `MYKE_LEGAL_DATABASE_URL`, revisar top-1/top-3 y provenance, y registrar sus resultados antes de decidir GO para 10.5. Codex no accedió a esas credenciales ni generó embeddings de consulta en esta etapa.
+### Validación manual final: antes y después
+
+Los resultados **después** provienen de las cuatro consultas ejecutadas manualmente por el usuario con embeddings de pregunta reales. Codex verificó por SQL de solo lectura la migración, los conteos y los campos de procedencia; no volvió a generar embeddings ni a ejecutar el RPC con esas preguntas.
+
+| Consulta | Antes de la corrección | Después de la corrección | Evaluación |
+| --- | --- | --- | --- |
+| Q1: norma que aprueba el TUO y dispone su publicación | Artículos relevantes entre los tres primeros; `lexical_score=0` en las consultas previas. | Artículos relevantes entre los tres primeros; scores léxicos positivos. | GOOD |
+| Q2: por qué no todo RAC requiere audiencia | Fundamento 7 en rank 1; `lexical_score=0` en las consultas previas. | Fundamento 7 en rank 1; score léxico positivo. | GOOD |
+| Q3: decisión del TC en el expediente 04810-2024-PA/TC | `decision` en rank 6; similarity `0.682114718972083`; `lexical_score=0`. | `decision` en rank 1, página 3; `lexical_score=0.6`. | GOOD |
+| Q4: dónde publicar el TUO de la Ley 27444 | Artículo 3 «Publicación» en rank 1; `lexical_score=0` en las consultas previas. | Artículo 3 «Publicación» en rank 1; similarity ≈ `0.713`; `lexical_score=1.7`. | GOOD |
+
+Los valores exactos de similarity y lexical score de Q1 y Q2 posteriores no se conservaron en el reporte manual; solo se confirmó que sus scores léxicos son positivos. La comparación anterior de Q1, Q2 y Q4 refleja los resultados reales previos comunicados durante el bloque; no se atribuyen rangos o scores adicionales que no fueron registrados.
+
+### Confirmación remota de cierre
+
+El historial remoto de migraciones de **MYKE Legal** (`emelxkoztshmzukydqzj`) coincide con el local para `20261006162217` (foundation) y `20261008024534` (retrieval hardening). SQL de solo lectura confirmó `legal_documents=2`, `legal_units=15`, `legal_relations=0` y `legal_ingestion_runs=2`. Son los mismos conteos de la primera publicación; durante el cierre no hubo inserts ni regeneración de los vectores del corpus.
+
+Las 15 unidades tienen embedding no nulo de dimensión 1536, identidad y hash de contenido; cinco pertenecen al Decreto Supremo 006-2026-JUS y diez al Auto TC 04810-2024-PA/TC. La unidad `decision` del Auto conserva `unit_id`, `document_id`, tipo `order`, página 3 y el texto del fallo. El artículo 3 «Publicación» conserva esos IDs, tipo `regulation`, número de artículo y heading. El DOCX del decreto no aporta paginación física confiable, por lo que sus campos de página son nulos; `official_url` es nulo en ambos documentos porque no se extrajo una URL oficial verificable. La cita futura debe usar los identificadores y metadatos presentes sin inventar página ni URL.
+
+**Resultado:** primera publicación, embeddings 1536, idempotencia, retrieval vectorial, aporte léxico, intención `decision` y procedencia: PASS. **GO para el bloque 10.5** (comparación V1 vs V2). Este cierre no inicia 10.5 ni modifica el runtime.
+
+Comandos empleados para la validación manual posterior a la migración (registro histórico; no es necesario repetirlos para este cierre):
 
 ```powershell
 cd D:\NovaIuris\backend
