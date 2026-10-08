@@ -54,3 +54,35 @@ python -m app.legal_ingestion.publication_entrypoint search "¿Cuál es la difer
 `search` admite `--top-k` de 1 a 50 (predeterminado 5), `--document-type regulation|order`, `--rama`, `--expediente` y `--json`. Genera un embedding nuevo para la pregunta con `text-embedding-3-small`, valida 1536 valores numéricos finitos y ejecuta `public.match_legal_knowledge_v2` con `query_text` y filtros parametrizados. La conexión se marca `readonly=True` antes del primer SQL y se cierra con rollback. No muestra el vector ni las credenciales. Cada resultado muestra rank, documento, tipo/número/encabezado de unidad, páginas, similarity, lexical score, UUID, URL oficial si existe y excerpt limitado a 240 caracteres.
 
 Evaluar top-1 y top-3, coherencia jurídica, scores y provenance de cada consulta antes de declarar GO para 10.5. La última consulta es de control para observar si la búsqueda distingue ambos temas; no presupone que una misma unidad responda a los dos.
+
+## Cierre 10.4B-2: diagnóstico y corrección del retrieval
+
+Los conteos comprobados por SQL de solo lectura antes de la corrección fueron **2 documentos / 15 unidades / 0 relaciones / 2 runs**. La unidad `decision` del Auto TC conserva el fallo (“Declarar IMPROCEDENTE el pedido de nulidad, entendido como aclaración”), página 3, `search_tsv` poblado y embedding de 1536 dimensiones. En la pregunta explícita sobre la decisión, el usuario midió **rank 6**, similarity **0.682114718972083**, lexical score **0.0**. No se requiere reparsing, reinserción ni regeneración de vectores.
+
+### Causa léxica medida en PostgreSQL
+
+El RPC aplicado usaba `plainto_tsquery('spanish', query_text)` para candidatos y `ts_rank_cd`. PostgreSQL convirtió la pregunta “¿Dónde debe publicarse el Texto Único Ordenado de la Ley 27444?” en ocho lexemas unidos por `AND`; produjo **0 matches y rank 0** en las 15 unidades. La pregunta completa sobre la decisión también produjo **0 matches y rank 0**. `websearch_to_tsquery` de esas preguntas sin operadores explícitos mantuvo la conjunción y también produjo **0 matches**. La columna generada **sí contiene datos**: `publicación` produjo 9 matches y rank máximo 0.4; `Texto Único Ordenado`, 5 matches y máximo 0.440952; `Tribunal Constitucional`, 10 matches y máximo 0.312937; `audiencia`, 6 matches; `decisión`, 2 matches. Un `to_tsquery` formado con los lexemas españoles unidos por `OR` produjo puntajes positivos en las preguntas largas. El texto de consulta llega al RPC desde la CLI como parámetro.
+
+La causa es la exigencia de coincidencia de **todos** los términos de la pregunta natural dentro de una sola unidad, no un fallo de `search_tsv`, idioma, embeddings o publicación. El contexto documental repetido en `search_text` puede elevar el score parcial de varias unidades; por eso el nuevo aporte léxico al orden se limita a **0.01** unidades de distancia vectorial.
+
+### Causa y regla de intención
+
+La pregunta “cuál fue la decisión” describe el tipo de unidad, mientras el cuerpo real empieza “RESUELVE / Declarar IMPROCEDENTE…”. El vector de la decisión obtuvo 0.682114718972083 pero quedó sexto entre los diez del Auto. El ranking anterior carecía de una regla para una intención de tipo jurídico explícita. La corrección general reconoce `decisión`, `resolvió`, `resuelve`, `fallo` y `parte resolutiva` → `decision`; `fundamento`, `razón`, `razones` o `por qué` → `foundation`; `artículo` → `article`. Se comprobaron los patrones en PostgreSQL, incluido que “derecho fundamental” **no** activa `foundation`. No hay nombres de archivos, expedientes o IDs codificados en la regla.
+
+La migración [20261008024534_legal_knowledge_v2_retrieval_hardening.sql](../supabase/migrations/20261008024534_legal_knowledge_v2_retrieval_hardening.sql) conserva firma, filtros, HNSW, RLS y permisos del RPC. Para full-text usa `websearch_to_tsquery` si la unidad coincide con la expresión completa; si no, usa lexemas españoles parciales unidos por `OR`. `lexical_score` reporta el rank real de la expresión elegida. **Orden final:** primero la clase de unidad pedida explícitamente, si existe; dentro de esa clase, distancia vectorial menos `0.01 * min(lexical_score, 1)`, luego similitud e ID para desempate. Sin intención explícita, prevalece el vector con ese pequeño componente léxico acotado. La prioridad de tipo es una regla de orden, no un boost numérico oculto.
+
+Las [pruebas SQL de aceptación](../supabase/tests/legal_knowledge_v2_retrieval_acceptance.sql) usan vectores **ya publicados** para comprobar coincidencia léxica de pregunta larga, prioridad de `decision` y `foundation`, artículo 3, ranking sin intención, filtro de expediente y provenance de la decisión. Son de solo lectura y no sustituyen las cuatro preguntas reales con embeddings de consulta.
+
+**Aplicación:** `supabase db push --linked --project-ref emelxkoztshmzukydqzj --skip-vault` con CLI 2.120.0, después de un `--dry-run` que enumeró **solo** `20261008024534_legal_knowledge_v2_retrieval_hardening.sql` (sin seeds ni roles). El historial remoto confirmó foundation y corrección aplicadas. El conector MCP había rechazado `apply_migration` por permisos; se usó el flujo soportado del CLI. Los conteos posteriores permanecieron **2/15/0/2**.
+
+**Pruebas SQL del RPC:** antes de la corrección, seis pruebas dieron 3 PASS y 3 FAIL (`decision_intent`, `foundation_intent`, `long_question_lexical`). Después de agregar una prueba de cita/provenance, dieron **7/7 PASS**. Con un vector ya publicado de un fundamento, la pregunta Q3 devolvió `decision` primero, página 3 y `lexical_score=0.6`, incluso cuando ese vector favorecía otro fundamento. Con el vector ya publicado del artículo 3, Q4 conservó artículo 3 primero y `lexical_score=1.7`. Estos son controles de ranking sin nuevas llamadas al proveedor; **no equivalen** a repetir Q1–Q4 con embeddings de sus preguntas reales.
+
+**Validación pendiente:** repetir Q1–Q4 desde el PowerShell que tiene `OPENAI_API_KEY` y `MYKE_LEGAL_DATABASE_URL`, revisar top-1/top-3 y provenance, y registrar sus resultados antes de decidir GO para 10.5. Codex no accedió a esas credenciales ni generó embeddings de consulta en esta etapa.
+
+```powershell
+cd D:\NovaIuris\backend
+python -m app.legal_ingestion.publication_entrypoint search "¿Qué norma aprueba el Texto Único Ordenado y qué dispone sobre su publicación?" --top-k 5 --json
+python -m app.legal_ingestion.publication_entrypoint search "¿Por qué el Tribunal Constitucional señala que no todos los casos conocidos mediante recurso de agravio constitucional requieren audiencia?" --top-k 5 --json
+python -m app.legal_ingestion.publication_entrypoint search "¿Cuál fue la decisión del Tribunal Constitucional en el expediente 04810-2024-PA/TC?" --top-k 10 --document-type order --expediente 04810-2024-PA/TC --json
+python -m app.legal_ingestion.publication_entrypoint search "¿Dónde debe publicarse el Texto Único Ordenado de la Ley 27444?" --top-k 5 --json
+```
