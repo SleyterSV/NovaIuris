@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 from contextlib import contextmanager
+import json
 import os
 from pathlib import Path
 import sys
@@ -11,11 +12,14 @@ import sys
 from .service import stage_file
 from .units import embedding_batches
 
-from .publication import PublicationAdapter, postgres_connection_factory
+from .publication import PublicationAdapter, _vector, postgres_connection_factory
 
 PROJECT_REF = "emelxkoztshmzukydqzj"
 MODEL = "text-embedding-3-small"
 DIMENSION = 1536
+SEARCH_COLUMNS = ("unit_id", "document_id", "document_title", "document_type",
+                  "unit_type", "unit_number", "heading", "excerpt", "page_start",
+                  "page_end", "similarity", "lexical_score", "official_url")
 ROOT = Path(__file__).resolve().parents[3]
 PILOT = {
     "decree": ("raw_docs/LEY DEL PROCEDIMIENTO ADMINISTRATIVO GENERAL.docx",
@@ -69,11 +73,13 @@ def _stage(which):
 
 
 @contextmanager
-def _database(adapter):
+def _database(adapter, *, read_only=False):
     connection = adapter.connection_factory()
     try:
         if connection.autocommit:
             raise PilotError("DATABASE_AUTOCOMMIT_FORBIDDEN")
+        if read_only:
+            connection.set_session(readonly=True)
         cursor = connection.cursor()
         cursor.execute("""select
             to_regclass('public.legal_documents') is not null,
@@ -146,6 +152,52 @@ def _inspect(which):
           f"REVIEW_REQUIRED=false OCR_REQUIRED=false WARNINGS={','.join(document.warnings) or 'none'}")
 
 
+def _search(args):
+    query = args.query.strip()
+    if not query:
+        raise PilotError("SEARCH_QUERY_EMPTY")
+    if not 1 <= args.top_k <= 50:
+        raise PilotError("SEARCH_TOP_K_INVALID")
+    _dsn()
+    _embedding_configured()
+    from app.services.embedding_service import EmbeddingService
+    provider = EmbeddingService()
+    if provider.MODEL != MODEL:
+        raise PilotError("EMBEDDING_MODEL_MISMATCH")
+    vector = _vector(provider.generate_embedding(query))
+    adapter = configured_publication_adapter()
+    with _database(adapter, read_only=True) as (_, cursor):
+        cursor.execute("""select unit_id, document_id, document_title, document_type,
+                              unit_type, unit_number, heading, excerpt, page_start,
+                              page_end, similarity, lexical_score, official_url
+                       from public.match_legal_knowledge_v2(
+                           query_embedding => %s::extensions.vector(1536),
+                           query_text => %s, match_count => %s,
+                           filter_document_type => %s, filter_rama => %s,
+                           filter_expediente => %s)""",
+                       (vector, query, args.top_k, args.document_type,
+                        args.rama, args.expediente))
+        rows = cursor.fetchall()
+    results = []
+    for rank, row in enumerate(rows, 1):
+        if len(row) != len(SEARCH_COLUMNS):
+            raise PilotError("SEARCH_RESULT_SHAPE_INVALID")
+        result = dict(zip(SEARCH_COLUMNS, row))
+        result["rank"] = rank
+        result["unit_id"] = str(result["unit_id"])
+        result["document_id"] = str(result["document_id"])
+        result["excerpt"] = (result["excerpt"] or "")[:240]
+        results.append(result)
+    if args.json:
+        print(json.dumps({"model": MODEL, "dimension": DIMENSION, "results": results},
+                         ensure_ascii=False, allow_nan=False))
+    else:
+        print(f"MODEL={MODEL} DIMENSION={DIMENSION} RESULTS={len(results)}")
+        for result in results:
+            print(" ".join(f"{key.upper()}={json.dumps(result[key], ensure_ascii=False)}"
+                           for key in ("rank", *SEARCH_COLUMNS)))
+
+
 def _run(command, which=None):
     if command == "inspect":
         _inspect(which)
@@ -204,9 +256,19 @@ def main(argv=None):
         commands.add_parser(name)
     for name in ("inspect", "publish", "idempotency-check"):
         commands.add_parser(name).add_argument("document", choices=tuple(PILOT))
+    search = commands.add_parser("search")
+    search.add_argument("query")
+    search.add_argument("--top-k", type=int, default=5)
+    search.add_argument("--document-type", choices=("regulation", "order"))
+    search.add_argument("--rama")
+    search.add_argument("--expediente")
+    search.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
-        _run(args.command, getattr(args, "document", None))
+        if args.command == "search":
+            _search(args)
+        else:
+            _run(args.command, getattr(args, "document", None))
     except PilotError as exc:
         print(f"ERROR={exc}", file=sys.stderr)
         return 1

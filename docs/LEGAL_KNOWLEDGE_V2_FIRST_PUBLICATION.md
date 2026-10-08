@@ -1,6 +1,6 @@
 # Legal Knowledge V2 — primera publicación manual (bloque 10.4B-2A)
 
-**Estado:** CLI preparada y probada offline. Este bloque no ejecutó conexiones productivas, embeddings reales ni inserts. Los resultados de publicación y retrieval pertenecen al bloque 10.4B-2 y deben documentarse después de su ejecución manual.
+**Estado:** la CLI de publicación se preparó y probó offline en 10.4B-2A. El usuario confirmó posteriormente la primera carga manual: 2 documentos, 15 unidades, 0 relaciones y 2 runs; `decree` y `auto` devolvieron `ALREADY_PRESENT_AND_IDENTICAL`. Codex no ejecutó esa publicación. El retrieval real sigue pendiente de prueba manual.
 
 ## Alcance cerrado
 
@@ -14,7 +14,7 @@ Antes de ejecutar, el PowerShell que lanzará Python debe tener **ambas** variab
 
 `preflight`, `counts`, `idempotency-check` y `publish` abren una conexión PostgreSQL solo cuando el usuario los ejecuta. Antes de publicar comprueban las cuatro tablas V2, la función `match_legal_knowledge_v2`, la extensión vector y `autocommit=False`. La lectura de idempotencia compara documento, estado de run, hashes, UUID, secuencia, tipo, número, páginas y dimensión de cada vector. `NOT_PRESENT` permite la primera publicación; `ALREADY_PRESENT_AND_IDENTICAL` impide repetir embeddings/inserts; `CONFLICT` exige investigación. No se hace una segunda publicación para probar idempotencia.
 
-## Secuencia manual desde el PowerShell con credenciales
+## Secuencia de la primera publicación manual (ya completada)
 
 Ejecutar cada comando por separado. **Detenerse y revisar** cualquier código de salida distinto de cero, conteo inesperado o estado `CONFLICT`. La CLI imprime códigos de error genéricos para no revelar mensajes del proveedor o la base.
 
@@ -36,4 +36,21 @@ Antes del primer `publish`, los conteos deben ser `0/0/0/0`. Después del decret
 
 Los comandos `counts` e `idempotency-check` son de solo lectura. `publish` llama al `PublicationAdapter` existente, que inserta documento, unidades, relaciones explícitas y run en una transacción con commit/rollback. La CLI no modifica MYKE runtime, Auth, NovaSearch ni fuentes V1.
 
-**La secuencia anterior no sustituye la validación SQL de filas, la RPC vectorial real, retrieval y provenance del bloque 10.4B-2.** No declarar GO para 10.5 hasta que esas verificaciones se completen y se documenten con resultados reales.
+**La secuencia anterior es histórica y no debe repetirse ahora:** `preflight` exige la base vacía y `publish` rechaza un documento idéntico ya presente. Los conteos de la carga fueron comunicados por el usuario; Codex no los consultó en esta sesión.
+
+## Prueba manual del RPC V2 (CLI read-only)
+
+Desde el PowerShell que tiene `MYKE_LEGAL_DATABASE_URL` y `OPENAI_API_KEY` como variables de proceso:
+
+```powershell
+cd D:\NovaIuris\backend
+python -m app.legal_ingestion.publication_entrypoint search "¿Qué aprueba el Decreto Supremo 006-2026-JUS?"
+python -m app.legal_ingestion.publication_entrypoint search "¿Qué norma deroga la disposición única del Decreto Supremo 006-2026-JUS?" --top-k 5 --document-type regulation
+python -m app.legal_ingestion.publication_entrypoint search "¿Por qué no todos los casos conocidos por el Tribunal Constitucional vía recurso de agravio constitucional requieren sentencia?" --top-k 5 --document-type order
+python -m app.legal_ingestion.publication_entrypoint search "¿Qué resuelve el Auto TC 04810-2024-PA/TC sobre el recurso de agravio constitucional?" --top-k 5 --expediente 04810-2024-PA/TC
+python -m app.legal_ingestion.publication_entrypoint search "¿Cuál es la diferencia entre la aprobación del TUO de la Ley del Procedimiento Administrativo General y los criterios del TC sobre el recurso de agravio constitucional?" --top-k 5 --json
+```
+
+`search` admite `--top-k` de 1 a 50 (predeterminado 5), `--document-type regulation|order`, `--rama`, `--expediente` y `--json`. Genera un embedding nuevo para la pregunta con `text-embedding-3-small`, valida 1536 valores numéricos finitos y ejecuta `public.match_legal_knowledge_v2` con `query_text` y filtros parametrizados. La conexión se marca `readonly=True` antes del primer SQL y se cierra con rollback. No muestra el vector ni las credenciales. Cada resultado muestra rank, documento, tipo/número/encabezado de unidad, páginas, similarity, lexical score, UUID, URL oficial si existe y excerpt limitado a 240 caracteres.
+
+Evaluar top-1 y top-3, coherencia jurídica, scores y provenance de cada consulta antes de declarar GO para 10.5. La última consulta es de control para observar si la búsqueda distingue ambos temas; no presupone que una misma unidad responda a los dos.

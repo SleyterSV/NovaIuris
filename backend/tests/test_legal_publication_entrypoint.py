@@ -251,5 +251,125 @@ class PublicationEntrypointTests(unittest.TestCase):
         self.assertEqual(errors.getvalue().strip(), "ERROR=RuntimeError")
 
 
+class SearchCommandTests(unittest.TestCase):
+    DSN = PublicationEntrypointTests.DSN
+
+    @staticmethod
+    def _provider(vector):
+        calls = []
+        def generate(text):
+            calls.append(text)
+            return vector
+        return SimpleNamespace(MODEL=publication_entrypoint.MODEL,
+                               generate_embedding=generate), calls
+
+    @staticmethod
+    def _database(rows=()):
+        class Cursor:
+            def __init__(self):
+                self.sql = None
+                self.params = None
+            def execute(self, sql, params):
+                self.sql, self.params = sql, params
+            def fetchall(self):
+                return rows
+        cursor = Cursor()
+        read_only_flags = []
+        @contextmanager
+        def database(_adapter, *, read_only=False):
+            read_only_flags.append(read_only)
+            yield None, cursor
+        return database, cursor, read_only_flags
+
+    def test_empty_query_and_invalid_top_k_stop_before_provider(self):
+        for args, code in ((["search", "  "], "SEARCH_QUERY_EMPTY"),
+                           (["search", "consulta", "--top-k", "0"], "SEARCH_TOP_K_INVALID"),
+                           (["search", "consulta", "--top-k", "51"], "SEARCH_TOP_K_INVALID")):
+            with self.subTest(args=args), redirect_stderr(io.StringIO()) as errors:
+                self.assertEqual(publication_entrypoint.main(args), 1)
+                self.assertIn(code, errors.getvalue())
+
+    def test_search_requires_both_process_credentials(self):
+        with patch.dict(os.environ, {}, clear=True), redirect_stderr(io.StringIO()) as errors:
+            self.assertEqual(publication_entrypoint.main(["search", "consulta"]), 1)
+        self.assertIn("DATABASE_NOT_CONFIGURED", errors.getvalue())
+        with patch.dict(os.environ, {"MYKE_LEGAL_DATABASE_URL": self.DSN}, clear=True), \
+             redirect_stderr(io.StringIO()) as errors:
+            self.assertEqual(publication_entrypoint.main(["search", "consulta"]), 1)
+        self.assertIn("EMBEDDING_PROVIDER_NOT_CONFIGURED", errors.getvalue())
+
+    def test_wrong_dimension_nan_and_infinity_never_open_database(self):
+        for vector in ([0.1] * 3, [float("nan")] * 1536, [float("inf")] * 1536):
+            provider, calls = self._provider(vector)
+            with self.subTest(length=len(vector), first=vector[0]), \
+                 patch.dict(os.environ, {"MYKE_LEGAL_DATABASE_URL": self.DSN,
+                                      "OPENAI_API_KEY": "test-key"}, clear=True), \
+                 patch.dict(sys.modules, {"app.services.embedding_service":
+                                      SimpleNamespace(EmbeddingService=lambda: provider)}), \
+                 patch.object(publication_entrypoint, "_database",
+                              side_effect=AssertionError("database opened")), \
+                 redirect_stderr(io.StringIO()) as errors:
+                self.assertEqual(publication_entrypoint.main(["search", "consulta"]), 1)
+                self.assertNotIn("test-key", errors.getvalue())
+            self.assertEqual(calls, ["consulta"])
+
+    def test_rpc_mapping_filters_json_and_read_only(self):
+        provider, calls = self._provider([0.1] * 1536)
+        row = ("unit-uuid", "document-uuid", "Título de prueba", "order", "foundation",
+               "3", "Fundamento", "Extracto", 2, 3, 0.82, 0.13, None)
+        database, cursor, flags = self._database([row])
+        with patch.dict(os.environ, {"MYKE_LEGAL_DATABASE_URL": self.DSN,
+                                     "OPENAI_API_KEY": "test-key"}, clear=True), \
+             patch.dict(sys.modules, {"app.services.embedding_service":
+                                      SimpleNamespace(EmbeddingService=lambda: provider)}), \
+             patch.object(publication_entrypoint, "configured_publication_adapter", return_value=object()), \
+             patch.object(publication_entrypoint, "_database", database), \
+             patch.object(PublicationAdapter, "publish", side_effect=AssertionError("published")), \
+             redirect_stdout(io.StringIO()) as output:
+            status = publication_entrypoint.main(["search", "  agravio constitucional  ",
+                "--top-k", "3", "--document-type", "order", "--rama", "constitucional",
+                "--expediente", "04810-2024-PA/TC", "--json"])
+        self.assertEqual(status, 0)
+        self.assertEqual(calls, ["agravio constitucional"])
+        self.assertEqual(flags, [True])
+        self.assertTrue(cursor.sql.lstrip().startswith("select"))
+        self.assertIn("public.match_legal_knowledge_v2", cursor.sql)
+        self.assertEqual(cursor.params[1:], ("agravio constitucional", 3, "order",
+                                              "constitucional", "04810-2024-PA/TC"))
+        self.assertTrue(cursor.params[0].startswith("["))
+        result = __import__("json").loads(output.getvalue())
+        self.assertEqual(result["results"][0]["rank"], 1)
+        self.assertEqual(result["results"][0]["unit_id"], "unit-uuid")
+        self.assertEqual(result["results"][0]["lexical_score"], 0.13)
+        self.assertNotIn(self.DSN, output.getvalue())
+        self.assertNotIn("test-key", output.getvalue())
+        self.assertNotIn(cursor.params[0], output.getvalue())
+
+    def test_read_only_connection_is_requested_before_any_sql(self):
+        class Connection:
+            autocommit = False
+            def __init__(self):
+                self.calls = []
+            def set_session(self, *, readonly):
+                self.calls.append(("set_session", readonly))
+            def cursor(self):
+                return self
+            def execute(self, sql):
+                self.calls.append(("execute", sql))
+            def fetchone(self):
+                return (True,) * 6
+            def rollback(self):
+                self.calls.append(("rollback",))
+            def close(self):
+                self.calls.append(("close",))
+        connection = Connection()
+        with publication_entrypoint._database(
+                SimpleNamespace(connection_factory=lambda: connection), read_only=True):
+            pass
+        self.assertEqual(connection.calls[0], ("set_session", True))
+        self.assertEqual(connection.calls[1][0], "execute")
+        self.assertEqual(connection.calls[-2:], [("rollback",), ("close",)])
+
+
 if __name__ == "__main__":
     unittest.main()
