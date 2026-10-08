@@ -3,7 +3,7 @@ import io
 import json
 import tempfile
 import unittest
-from contextlib import redirect_stdout, redirect_stderr
+from contextlib import contextmanager, redirect_stdout, redirect_stderr
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -63,7 +63,8 @@ class CorpusCliTests(unittest.TestCase):
     def test_resume_skips_identical_without_generating_embeddings(self):
         document = SimpleNamespace(units=[1], document_hash="f" * 64)
         with patch.object(corpus_cli, "_stage_entry", return_value=document), patch.object(
-                corpus_cli, "_presence", return_value="ALREADY_PRESENT_AND_IDENTICAL"):
+                corpus_cli, "_presence", return_value="ALREADY_PRESENT_AND_IDENTICAL"), patch.object(
+                corpus_cli, "_current_counts", return_value=(3, 16, 0, 3)):
             with redirect_stdout(io.StringIO()) as output:
                 corpus_cli._publish([{}], object())
         self.assertIn("EMBEDDINGS=0", output.getvalue())
@@ -79,19 +80,59 @@ class CorpusCliTests(unittest.TestCase):
         document = SimpleNamespace(units=[SimpleNamespace(search_text="legal unit")],
                                    document_hash="f" * 64)
         adapter = Mock()
-        adapter.publish.return_value = SimpleNamespace(duplicates_skipped=0, units_created=1,
+        adapter.publish.return_value = SimpleNamespace(duplicates_skipped=0, documents_created=1, units_created=1,
                                                        relations_created=0, document_id="doc", run_id="run")
         provider = Mock()
         provider.MODEL = corpus_cli.MODEL
         provider.generate_embeddings.return_value = [[0.1] * 1536]
         with patch.object(corpus_cli, "_stage_entry", return_value=document), patch.object(
                 corpus_cli, "_presence", return_value="NOT_PRESENT"), patch(
-                "app.services.embedding_service.EmbeddingService", return_value=provider):
+                "app.services.embedding_service.EmbeddingService", return_value=provider), patch.object(
+                corpus_cli, "_current_counts", side_effect=[(2, 15, 0, 2), (3, 16, 0, 3)]), patch.object(
+                corpus_cli, "_verify_published") as verify:
             with redirect_stdout(io.StringIO()) as output:
                 corpus_cli._publish([{}], adapter)
         provider.generate_embeddings.assert_called_once_with(["legal unit"])
         self.assertEqual(len(adapter.publish.call_args.kwargs["embeddings"]), 1)
-        self.assertIn("STATUS=COMPLETED", output.getvalue())
+        verify.assert_called_once()
+        self.assertIn("STATUS=COMPLETED_AND_VERIFIED", output.getvalue())
+
+    def test_first_postpublication_failure_stops_before_second_embedding(self):
+        documents = [SimpleNamespace(units=[SimpleNamespace(search_text=f"unit {i}")],
+                                     document_hash=str(i) * 64) for i in (1, 2)]
+        adapter = Mock()
+        adapter.publish.return_value = SimpleNamespace(duplicates_skipped=0, documents_created=1,
+                                                       units_created=1, relations_created=0,
+                                                       document_id="doc", run_id="run")
+        provider = Mock()
+        provider.MODEL = corpus_cli.MODEL
+        provider.generate_embeddings.return_value = [[0.1] * 1536]
+        with patch.object(corpus_cli, "_stage_entry", side_effect=documents), patch.object(
+                corpus_cli, "_presence", return_value="NOT_PRESENT"), patch.object(
+                corpus_cli, "_current_counts", return_value=(2, 15, 0, 2)), patch.object(
+                corpus_cli, "_verify_published", side_effect=corpus_cli.BatchError("POSTPUBLICATION_IDENTITY_FAILED")), patch(
+                "app.services.embedding_service.EmbeddingService", return_value=provider):
+            with self.assertRaisesRegex(corpus_cli.BatchError, "POSTPUBLICATION_IDENTITY_FAILED"):
+                corpus_cli._publish([{}, {}], adapter)
+        adapter.publish.assert_called_once()
+        provider.generate_embeddings.assert_called_once()
+
+    def test_postpublication_requires_completed_matching_run(self):
+        document = SimpleNamespace(units=[1, 2])
+        result = SimpleNamespace(document_id="doc", run_id="run")
+        cursor = Mock()
+        cursor.fetchone.return_value = ("run", "completed", 1, 2, 0)
+
+        @contextmanager
+        def database(*args, **kwargs):
+            yield None, cursor
+
+        with patch.object(corpus_cli, "_database", database), patch.object(
+                corpus_cli, "_identity", return_value="ALREADY_PRESENT_AND_IDENTICAL"):
+            corpus_cli._verify_published(object(), document, result)
+            cursor.fetchone.return_value = ("other-run", "completed", 1, 2, 0)
+            with self.assertRaisesRegex(corpus_cli.BatchError, "POSTPUBLICATION_RUN_FAILED"):
+                corpus_cli._verify_published(object(), document, result)
 
 
 if __name__ == "__main__":

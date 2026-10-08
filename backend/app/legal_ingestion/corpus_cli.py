@@ -9,7 +9,7 @@ import sys
 
 from .corpus_audit import ROOT, OUTPUT as QUALIFICATION
 from .publication import PublicationAdapter, postgres_connection_factory
-from .publication_entrypoint import (_database, _dsn, _embedding_configured,
+from .publication_entrypoint import (_counts, _database, _dsn, _embedding_configured,
                                      _identity, MODEL)
 from .service import stage_file
 from .units import embedding_batches
@@ -77,6 +77,27 @@ def _presence(adapter, document):
         return _identity(cursor, document, adapter)
 
 
+def _current_counts(adapter):
+    with _database(adapter, read_only=True) as (_, cursor):
+        return tuple(_counts(cursor))
+
+
+def _verify_published(adapter, document, result):
+    """Reopen Postgres after commit; halt the batch if the committed row is incomplete."""
+    with _database(adapter, read_only=True) as (_, cursor):
+        if _identity(cursor, document, adapter) != "ALREADY_PRESENT_AND_IDENTICAL":
+            raise BatchError("POSTPUBLICATION_IDENTITY_FAILED")
+        cursor.execute("""select d.ingestion_run_id, r.status, r.documents_created,
+                                 r.units_created, r.relations_created
+                          from public.legal_documents d
+                          join public.legal_ingestion_runs r on r.id=d.ingestion_run_id
+                          where d.id=%s""", (result.document_id,))
+        row = cursor.fetchone()
+        if row is None or (str(row[0]), *row[1:]) != (
+                result.run_id, "completed", 1, len(document.units), 0):
+            raise BatchError("POSTPUBLICATION_RUN_FAILED")
+
+
 def _inspect(entries, *, adapter=None):
     for index, entry in enumerate(entries, 1):
         document = _stage_entry(entry)
@@ -93,13 +114,22 @@ def _publish(entries, adapter):
     # Validate every manifest entry and source before paying for any embedding.
     documents = [_stage_entry(entry) for entry in entries]
     provider = None
+    prior_units = 0
     for index, document in enumerate(documents, 1):
         state = _presence(adapter, document)
-        if state == "ALREADY_PRESENT_AND_IDENTICAL":
-            print(f"BATCH=001 ITEM={index} STATUS=ALREADY_PRESENT_AND_IDENTICAL EMBEDDINGS=0")
-            continue
-        if state != "NOT_PRESENT":
+        if state not in {"NOT_PRESENT", "ALREADY_PRESENT_AND_IDENTICAL"}:
             raise BatchError("DOCUMENT_CONFLICT")
+        expected_before = (2 + index - 1, 15 + prior_units, 0, 2 + index - 1)
+        expected_after = (expected_before[0] + 1, expected_before[1] + len(document.units),
+                          0, expected_before[3] + 1)
+        if state == "ALREADY_PRESENT_AND_IDENTICAL":
+            if _current_counts(adapter) != expected_after:
+                raise BatchError("DATABASE_COUNTS_UNEXPECTED")
+            print(f"BATCH=001 ITEM={index} STATUS=ALREADY_PRESENT_AND_IDENTICAL EMBEDDINGS=0")
+            prior_units += len(document.units)
+            continue
+        if _current_counts(adapter) != expected_before:
+            raise BatchError("DATABASE_COUNTS_UNEXPECTED")
         if provider is None:
             from app.services.embedding_service import EmbeddingService
             provider = EmbeddingService()
@@ -110,13 +140,17 @@ def _publish(entries, adapter):
         if len(vectors) != len(document.units):
             raise BatchError("EMBEDDING_COUNT_MISMATCH")
         result = adapter.publish(document, embeddings=vectors, relations=())
-        if result.duplicates_skipped:
-            print(f"BATCH=001 ITEM={index} STATUS=ALREADY_PRESENT_AND_IDENTICAL EMBEDDINGS={len(vectors)}")
-        else:
-            print(f"BATCH=001 ITEM={index} STATUS=COMPLETED UNITS={result.units_created} "
-                  f"RELATIONS={result.relations_created} DOCUMENT_ID={result.document_id} "
-                  f"RUN_ID={result.run_id}")
-        # The next item starts only after PublicationAdapter committed this one.
+        if (result.duplicates_skipped or result.documents_created != 1 or
+                result.units_created != len(document.units) or result.relations_created != 0):
+            raise BatchError("POSTPUBLICATION_RESULT_UNEXPECTED")
+        _verify_published(adapter, document, result)
+        if _current_counts(adapter) != expected_after:
+            raise BatchError("POSTPUBLICATION_COUNTS_FAILED")
+        print(f"BATCH=001 ITEM={index} STATUS=COMPLETED_AND_VERIFIED UNITS={result.units_created} "
+              f"RELATIONS={result.relations_created} DOCUMENT_ID={result.document_id} "
+              f"RUN_ID={result.run_id} COUNTS={'/'.join(map(str, expected_after))}")
+        prior_units += len(document.units)
+        # Only a committed and read-back-verified document allows the next item.
 
 
 def main(argv=None):
