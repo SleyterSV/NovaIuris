@@ -78,7 +78,12 @@ def _promulgating_instrument(blocks):
                            "blocks_excluded_from_instrument": len(blocks) - len(selected)}}
 
 
-def stage_file(path, *, family="auto", max_unit_tokens=800, segment=None) -> StagedDocument:
+def stage_file(path, *, family="auto", max_unit_tokens=800, segment=None,
+               parser_version=None) -> StagedDocument:
+    version = parser_version or PARSER_VERSION
+    if version not in {"legal-v2.1.0", PARSER_VERSION}:
+        raise ValueError("Unsupported legal parser version")
+    legacy = version == "legal-v2.1.0"
     extracted = extract(path)
     segment_metadata = {}
     source_blocks = extracted.blocks
@@ -86,9 +91,11 @@ def stage_file(path, *, family="auto", max_unit_tokens=800, segment=None) -> Sta
         if segment != "promulgating_instrument" or family == "jurisprudence":
             raise ValueError("Unsupported legal source segment")
         source_blocks, segment_metadata = _promulgating_instrument(extracted.blocks)
-    blocks, removed = remove_repeated_page_furniture(source_blocks)
-    chosen = _family(extracted.filename, blocks, family)
-    parser = JurisprudenceParser() if chosen == "jurisprudence" else NormativeParser()
+    blocks, removed = remove_repeated_page_furniture(source_blocks,
+                                                      strip_verification=not legacy,
+                                                      expanded_top=not legacy)
+    chosen = _family(extracted.filename, source_blocks if not legacy else blocks, family)
+    parser = JurisprudenceParser(legacy=legacy) if chosen == "jurisprudence" else NormativeParser()
     parsed = parser.parse(blocks)
     postamble = ([block for block in blocks if block.index >= parser.postamble_start_index]
                  if chosen == "normative" and parser.postamble_start_index is not None else [])
@@ -121,6 +128,13 @@ def stage_file(path, *, family="auto", max_unit_tokens=800, segment=None) -> Sta
         warnings.append(f"editorial_postamble_excluded:{len(postamble)}")
     # Repeated PDF headers may carry the only case number; read identity before removing them.
     metadata = case_law_metadata(extracted.blocks, extracted.filename) if chosen == "jurisprudence" else {}
+    if chosen == "jurisprudence" and not legacy:
+        for block in extracted.blocks:
+            url = re.fullmatch(r"URL:\s*(https://(?:www\.)?tc\.gob\.pe/jurisprudencia/\S+)",
+                               block.text.strip(), re.I)
+            if url:
+                metadata["official_url"] = url.group(1)
+                break
     if chosen == "normative":
         opening = "\n".join(block.text for block in blocks[:15])
         law_number = re.search(r"(?im)^\s*ley\s+n[.°ºo]*\s*(\d{4,7})\b", opening)
@@ -157,14 +171,14 @@ def stage_file(path, *, family="auto", max_unit_tokens=800, segment=None) -> Sta
              Path(extracted.filename).stem.replace("_", " ").strip())
     staged = StagedDocument(title=title, document_type="regulation" if segment_metadata else _document_type(extracted.filename, chosen, metadata),
         document_hash=document_hash(blocks), source_file_name=extracted.filename,
-        source_format=extracted.source_format, parser_version=PARSER_VERSION,
+        source_format=extracted.source_format, parser_version=version,
         extraction_quality=quality, ingestion_status="staged", ocr_required=extracted.ocr_required,
         metadata={**metadata, "family": chosen, "parser_name": parser.name,
                   "source_file_hash": extracted.source_file_hash, "removed_page_furniture": removed,
                   "duplicate_unit_hashes": duplicates_detected,
                   "editorial_concordances_collapsed": repeated_concordances},
         units=units, warnings=warnings)
-    staged.document_id = stable_document_id(staged.document_hash, PARSER_VERSION)
+    staged.document_id = stable_document_id(staged.document_hash, version)
     for unit in units:
         unit.search_text = contextual_search_text(staged, unit)
     problems = validate_staged(staged)

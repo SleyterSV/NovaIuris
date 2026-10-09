@@ -1,7 +1,7 @@
 {
-  "scope": "10.6A.1 offline corpus recovery",
+  "scope": "10.6A.2 offline corpus qualification after manual review",
   "physical_originals": 135,
-  "parser_version": "legal-v2.1.0",
+  "parser_version": "legal-v2.1.1",
   "records": [
     {
       "source_path": "raw_docs/(TUO) CODIGO PROCESAL CIVIL.docx",
@@ -13,7 +13,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "169a4aff961a70fa9090f5cf53ccc47f943654931e66c22f9ff6e9267e717321",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "code",
       "source_format": "docx",
       "source_quality": "high",
@@ -57,7 +57,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "88f117ff3d6aa95ce69eee3661b5598b64c551a92a434a01446f137c22f8782f",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "code",
       "source_format": "docx",
       "source_quality": "high",
@@ -104,7 +104,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "f6fe3b61988432d838c110871b389740a7d530edb2ed40fcca4e6b904ce50f0f",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "code",
       "source_format": "docx",
       "source_quality": "high",
@@ -144,7 +144,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "0aaf7089784f04bded0b4761636d7819b610cd3bbf5f8b3a37e8230344120786",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "code",
       "source_format": "docx",
       "source_quality": "high",
@@ -188,7 +188,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "7a1368fa66414b58052a6eff49886774fab89065030bb8d755382234553c2d7d",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "code",
       "source_format": "docx",
       "source_quality": "high",
@@ -231,7 +231,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "2cec442e83b82a65f29a253b32519c360448456c6eb79c09a6a967693883e404",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "code",
       "source_format": "docx",
       "source_quality": "high",
@@ -279,7 +279,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "e272bf52fff02c3c49996dc772118a62215071af2007e5097b8f029ec6482d10",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "constitution",
       "source_format": "docx",
       "source_quality": "high",
@@ -321,7 +321,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "a2068eb4cb6ccfb99638a52816e62ef3dfd68af3f463666476991a3ef24de49f",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "law",
       "source_format": "docx",
       "source_quality": "high",
@@ -361,7 +361,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "2f2278692c5c360665e9855790839546d739e51e03719c683e04101066dbef74",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "law",
       "source_format": "docx",
       "source_quality": "high",
@@ -406,7 +406,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "0623b05cc4fe51bc2bda83d3929c0ffbb7c7ca9846f605e6e6fca80886f6d0e0",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "law",
       "source_format": "docx",
       "source_quality": "high",
@@ -449,7 +449,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "b1f3b9ebc9ed544fb53d9bbdb872a41d4034c0ee15c7d5d631d29166533fd1de",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "constitution",
       "source_format": "docx",
       "source_quality": "high",
@@ -491,7 +491,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "3096e45c8a4843b9bfde17fee4118653c177885a204bcf9b8f024d9badb3d34f",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "code",
       "source_format": "docx",
       "source_quality": "high",
@@ -535,7 +535,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "26876c0b0e00127a6cad4c5b0b5856ddb4c6583ca1e9ffa938a6f2d9e5610bf4",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "code",
       "source_format": "docx",
       "source_quality": "high",
@@ -577,41 +577,10 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "d0c4523802f4d1eefe78c81c81c5719cd5964bc2ccae936f02265695fa27d36a",
-      "parser_version": "legal-v2.1.0",
-      "document_type": "order",
-      "source_format": "pdf",
-      "source_quality": "high",
-      "gate_status": "staged",
-      "ocr_required": false,
-      "metadata": {
-        "court": "Tribunal Constitucional",
-        "expediente": "00005-2025-PCC/TC",
-        "resolution_type": "auto",
-        "resolution_date": "2025-12-01"
-      },
-      "total_units": 12,
-      "unit_types": {
-        "antecedent": 1,
-        "decision": 1,
-        "foundation": 10
-      },
-      "warnings": [
-        "page_furniture_removed:16"
-      ],
-      "duplicate_unit_hashes": 0,
-      "oversized_parts": 0,
-      "page_issue_count": 0,
-      "pages": [
-        1,
-        4
-      ],
-      "search_text_chars": 8832,
-      "token_count": 1157,
-      "category": "PUBLISHABLE",
-      "reason": "GATE_AND_MANUAL_REVIEW_PASS",
-      "manual_review_status": "PASS",
-      "eligible_for_10_6B": true
+      "category": "ALREADY_PUBLISHED",
+      "reason": "SOURCE_ALREADY_PUBLISHED",
+      "manual_review_status": "EXCLUDED",
+      "eligible_for_10_6B": false
     },
     {
       "source_path": "backend/raw_docs/jurisprudencia/_Auto__No_todos_los_casos_que_conozca_el_TC__vía_RAC____.pdf",
@@ -637,7 +606,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
       "document_hash": "684ee208f4ce9657e0f712cf873eefd8a5b1e8f69d3144b2444d499057c9580e",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -682,8 +651,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "f1217027fdd03136fd6ba4ed7d7521e62c09532c47c29ca7b4489798c29146e1",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "924a3fd02ffd2cce7c3cffeb42a4a68945f8ccfc8aac0bcb71edf85ca57e8929",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -693,17 +662,18 @@
         "court": "Tribunal Constitucional",
         "expediente": "5547-2017-27-1601-JR-PE-06",
         "resolution_type": "sentencia",
-        "resolution_date": "2025-09-16"
+        "resolution_date": "2025-09-16",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2025/04235-2023-HC.pdf"
       },
-      "total_units": 62,
+      "total_units": 61,
       "unit_types": {
         "antecedent": 2,
         "decision": 1,
-        "foundation": 53,
+        "foundation": 52,
         "separate_opinion": 6
       },
       "warnings": [
-        "page_furniture_removed:148"
+        "page_furniture_removed:153"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 8,
@@ -712,8 +682,8 @@
         1,
         37
       ],
-      "search_text_chars": 88439,
-      "token_count": 12833,
+      "search_text_chars": 87835,
+      "token_count": 12773,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -728,8 +698,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "15e55c65b0878c2cf12d49e0df31cc3f9e635bbe644a9bc80082da7e17129d75",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "71a45b26c27e6a8b947fe2eb76ba66937f7911b7ad738011e60c16b9d1ec5fe0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -750,7 +720,7 @@
         "sumilla": 1
       },
       "warnings": [
-        "page_furniture_removed:28",
+        "page_furniture_removed:29",
         "precedent_claim_unverified"
       ],
       "duplicate_unit_hashes": 0,
@@ -777,7 +747,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "aeed2459009edaf706f7d4b0b94e02acd67e006261d92805b30bb2191f4439ad",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "regulation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -815,7 +785,7 @@
       "before_category": "OCR_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "ocr_required",
@@ -855,31 +825,38 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "2776880e7d92555edbf609c108a251c7ccd0115094f81da52328a0119567f9d4",
-      "parser_version": "legal-v2.1.0",
-      "document_type": "regulation",
+      "document_hash": "59fa18ebd0440c8e28f67ba68351f4a4efa295a46906ae72dd6a37827ec0b01f",
+      "parser_version": "legal-v2.1.1",
+      "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
       "gate_status": "review_required",
       "ocr_required": false,
-      "metadata": {},
-      "total_units": 7,
+      "metadata": {
+        "court": "Corte Suprema",
+        "chamber": "Sala Penal Permanente",
+        "resolution_date": "2024-08-02"
+      },
+      "total_units": 23,
       "unit_types": {
-        "article": 7
+        "antecedent": 1,
+        "decision": 2,
+        "foundation": 20
       },
       "warnings": [
-        "page_furniture_removed:80",
-        "normative_number_missing"
+        "page_furniture_removed:120",
+        "jurisprudence_identity_missing",
+        "jurisprudence_date_or_type_missing"
       ],
       "duplicate_unit_hashes": 0,
-      "oversized_parts": 7,
+      "oversized_parts": 0,
       "page_issue_count": 0,
       "pages": [
-        2,
+        1,
         20
       ],
-      "search_text_chars": 33471,
-      "token_count": 5414,
+      "search_text_chars": 37629,
+      "token_count": 5800,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -895,7 +872,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "0822894ca59de798a27089c956ff7e03a2c44798b6a21614abd63df7305723df",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -906,11 +883,11 @@
         "chamber": "Sala Penal Permanente",
         "instancia": "SENTENCIA DE APELACIÓN"
       },
-      "total_units": 36,
+      "total_units": 37,
       "unit_types": {
         "antecedent": 1,
         "decision": 1,
-        "foundation": 34
+        "foundation": 35
       },
       "warnings": [
         "page_furniture_removed:51",
@@ -924,8 +901,8 @@
         1,
         17
       ],
-      "search_text_chars": 32934,
-      "token_count": 5106,
+      "search_text_chars": 33018,
+      "token_count": 5103,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -940,8 +917,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "14da95eee5c4e0411e94699345f0f83f921943c695a4c7a681076de9132ff01a",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "9c1254c60c225c0f275fb681e4935df7cfb3ffd494a9fa802e6e28d8cdae26aa",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -954,13 +931,13 @@
         "chamber": "Sala Penal Permanente",
         "resolution_date": "2026-02-27"
       },
-      "total_units": 14,
+      "total_units": 15,
       "unit_types": {
         "antecedent": 2,
-        "foundation": 12
+        "foundation": 13
       },
       "warnings": [
-        "page_furniture_removed:36",
+        "page_furniture_removed:54",
         "decision_not_detected",
         "multiple_foundations_in_one_unit"
       ],
@@ -971,8 +948,8 @@
         1,
         10
       ],
-      "search_text_chars": 21585,
-      "token_count": 3135,
+      "search_text_chars": 21391,
+      "token_count": 3087,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -988,7 +965,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "d0702a3908810156a0cf26dff998ac1ab099138f7974ce3843eb8d5ab5485503",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1035,7 +1012,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "3c5828a156617c99b226fdc20d76e280e7c012ea5bc4ca6617d5c265988d8753",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1065,7 +1042,7 @@
         2,
         70
       ],
-      "search_text_chars": 183814,
+      "search_text_chars": 183802,
       "token_count": 26420,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
@@ -1081,8 +1058,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "560007467484b5b5ced3dc66d698ce0491c84577109a2ac4d9e2fea00f1c746b",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "0e513b17db43b7cbcc00995a256bf53703654abe7e063bf83e84e0f9f6eedede",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1094,14 +1071,14 @@
         "chamber": "Sala Penal Permanente",
         "resolution_date": "2026-03-20"
       },
-      "total_units": 21,
+      "total_units": 23,
       "unit_types": {
         "antecedent": 2,
         "decision": 1,
-        "foundation": 18
+        "foundation": 20
       },
       "warnings": [
-        "page_furniture_removed:36",
+        "page_furniture_removed:54",
         "jurisprudence_identity_missing",
         "multiple_foundations_in_one_unit",
         "foundation_numbering_review_required"
@@ -1113,8 +1090,8 @@
         1,
         9
       ],
-      "search_text_chars": 18005,
-      "token_count": 2589,
+      "search_text_chars": 17827,
+      "token_count": 2533,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -1130,7 +1107,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "0f673fd520234e695e39c93c6fe829371c3aafb891cc7d2aed4c6c513063ffad",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1176,7 +1153,7 @@
       "before_category": "OCR_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "regulation",
       "source_format": "pdf",
       "source_quality": "ocr_required",
@@ -1215,7 +1192,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
       "document_hash": "bf020f47e75c666d4bd55b4c03d341f93da71ca27af6d12d7bae2edc87c9ee92",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1227,11 +1204,11 @@
         "resolution_type": "casación",
         "resolution_date": "2025-08-13"
       },
-      "total_units": 22,
+      "total_units": 23,
       "unit_types": {
         "antecedent": 1,
         "decision": 2,
-        "foundation": 19
+        "foundation": 20
       },
       "warnings": [
         "page_furniture_removed:80"
@@ -1243,7 +1220,7 @@
         6,
         16
       ],
-      "search_text_chars": 23108,
+      "search_text_chars": 23232,
       "token_count": 3470,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
@@ -1259,8 +1236,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "11135b87086c54fd2aade5db1daefd100871e041c5c4fb89f73551b96c2f9763",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "1098cec827953e46d033db36cf42dcde33ee852c6b870f640a8f6391ab2c4d12",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1280,7 +1257,7 @@
         "sumilla": 1
       },
       "warnings": [
-        "page_furniture_removed:20",
+        "page_furniture_removed:25",
         "jurisprudence_identity_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -1290,8 +1267,8 @@
         1,
         5
       ],
-      "search_text_chars": 15027,
-      "token_count": 2241,
+      "search_text_chars": 14999,
+      "token_count": 2237,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -1321,8 +1298,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "401cfc32c5d31c7ce2e5d9e901093b506c077fb6699908cd479f925bce07d17c",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "0a050899838e37c395de1ad7dea7fa933990fb4849a58a307d0ed78c20e5f1e7",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1334,7 +1311,7 @@
       "total_units": 0,
       "unit_types": {},
       "warnings": [
-        "page_furniture_removed:72",
+        "page_furniture_removed:90",
         "decision_not_detected",
         "jurisprudence_identity_missing",
         "jurisprudence_date_or_type_missing",
@@ -1363,8 +1340,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "18bad6936076107cd7a90250efa309009cead6c32e0d9b6ca4b1c2b1379ed7bc",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "17ff7d8fc95195c11e69b92ed92288b5f7726693811e0d603433ec05f7896753",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1383,7 +1360,7 @@
         "foundation": 13
       },
       "warnings": [
-        "page_furniture_removed:48"
+        "page_furniture_removed:72"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 0,
@@ -1392,8 +1369,8 @@
         7,
         12
       ],
-      "search_text_chars": 10661,
-      "token_count": 1503,
+      "search_text_chars": 10412,
+      "token_count": 1468,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -1409,7 +1386,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "23c40bef2bdd8ec4f19ff7a7c1a25cd5300ac6d882955238457cec6e95bf3d4d",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1457,7 +1434,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
       "document_hash": "e3d9cb07562495dc75187b7616e6066259d7e15d945aa98d70af45398c8c4fe7",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1502,8 +1479,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "0328c313f00636c6b5f46321a2f6ff15532af9c2444d38542097d1dbd9c3bd5e",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "d12729cb2a66b86ce3aacc40b4652ea16778a10f09b5ac3032dba479595351b1",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1516,26 +1493,26 @@
         "chamber": "Sala Penal Permanente",
         "resolution_date": "2026-01-30"
       },
-      "total_units": 24,
+      "total_units": 25,
       "unit_types": {
         "antecedent": 1,
         "decision": 1,
-        "foundation": 22
+        "foundation": 23
       },
       "warnings": [
-        "page_furniture_removed:48",
+        "page_furniture_removed:72",
         "multiple_foundations_in_one_unit",
         "foundation_numbering_review_required"
       ],
       "duplicate_unit_hashes": 0,
-      "oversized_parts": 2,
+      "oversized_parts": 0,
       "page_issue_count": 0,
       "pages": [
         1,
         12
       ],
-      "search_text_chars": 35790,
-      "token_count": 5324,
+      "search_text_chars": 35455,
+      "token_count": 5258,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -1550,8 +1527,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "cb6158110c8c4e246a31dad8691d7954ad4717c5eeedfb57208b8ae1cf81f698",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "4c00e176592d455228efec46154f0208bd313313240cdf2a8ef94688c7f2be75",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1562,7 +1539,8 @@
         "expediente": "02047-2025-PA/TC",
         "resolution_type": "sentencia",
         "chamber": "Sala Segunda",
-        "resolution_date": "2026-01-08"
+        "resolution_date": "2026-01-08",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/02047-2025-AA%20.pdf"
       },
       "total_units": 24,
       "unit_types": {
@@ -1572,7 +1550,7 @@
         "separate_opinion": 2
       },
       "warnings": [
-        "page_furniture_removed:33"
+        "page_furniture_removed:38"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 0,
@@ -1581,8 +1559,8 @@
         1,
         11
       ],
-      "search_text_chars": 22019,
-      "token_count": 3018,
+      "search_text_chars": 21568,
+      "token_count": 2962,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -1598,7 +1576,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "00b1e4037fc462cb1023a72246a9506c893ef23da61f6d2fe12d9c3d99e56089",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "regulation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1639,8 +1617,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
-      "document_hash": "3f8d30a754295a7901deb18316ea81fa90aec76e487ef7a07d873253af1c026f",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "ed9dfc05a8e2f8bad13ef5626eecf7a377a25cec86996c55781f6c5a0cf80f99",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1660,7 +1638,7 @@
         "foundation": 20
       },
       "warnings": [
-        "page_furniture_removed:64"
+        "page_furniture_removed:96"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 2,
@@ -1669,8 +1647,8 @@
         1,
         16
       ],
-      "search_text_chars": 31146,
-      "token_count": 4674,
+      "search_text_chars": 30722,
+      "token_count": 4610,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -1685,8 +1663,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "d5f4f617a57c3b5780863b8ec1b7f38223ab5fd07f3c9d0cc8788da793c080e9",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "8a5582f2dc77aec3c553de4be886b1bff6a5c3971f49301be93f9b3dbdcd6ec4",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1701,7 +1679,7 @@
       "total_units": 0,
       "unit_types": {},
       "warnings": [
-        "page_furniture_removed:24",
+        "page_furniture_removed:36",
         "decision_not_detected",
         "jurisprudence_date_or_type_missing",
         "no_legal_units"
@@ -1730,7 +1708,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
       "document_hash": "9334f5217a1f5246414e1102eaf369ed406505834014bbfe958db11ad6570d69",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1741,10 +1719,10 @@
         "chamber": "Primera Sala Constitucional",
         "materia": "Habeas Corpus"
       },
-      "total_units": 28,
+      "total_units": 29,
       "unit_types": {
         "decision": 8,
-        "foundation": 19,
+        "foundation": 20,
         "matter": 1
       },
       "warnings": [
@@ -1758,7 +1736,7 @@
         1,
         27
       ],
-      "search_text_chars": 78938,
+      "search_text_chars": 79068,
       "token_count": 12085,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
@@ -1774,8 +1752,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "48dede51b5c4157f7c9c97ce9f1aa52fba78e02ea7f32712ff109ed6eb4d9d8b",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "1672e2e06642284b8d1c0db7666993a2c1fa6e75ee543565eb9d79205835c3ae",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1794,7 +1772,7 @@
         "matter": 1
       },
       "warnings": [
-        "page_furniture_removed:33",
+        "page_furniture_removed:34",
         "jurisprudence_date_or_type_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -1820,8 +1798,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "3a0899a18d90a626749af196825965dccfb49bf02eb61ff830939bef24830ecd",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "7b21f0587b2be0eb50992a7c3d633892ed7219cc70a9543ee90e6ecd0a9cfb95",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1840,7 +1818,7 @@
         "foundation": 21
       },
       "warnings": [
-        "page_furniture_removed:28",
+        "page_furniture_removed:35",
         "jurisprudence_identity_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -1850,8 +1828,8 @@
         1,
         7
       ],
-      "search_text_chars": 20032,
-      "token_count": 2970,
+      "search_text_chars": 19972,
+      "token_count": 2958,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -1866,8 +1844,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "17efe156c5c03138c67b61a83e03ccf78f73e5f0ee70fd4bb2054d043e7bcce2",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "d7c32bdd7b6e933727da1b5cb3ae18f8e40aef524d1d79b6f8b27e44af84d257",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1879,14 +1857,14 @@
         "chamber": "Sala Penal Permanente",
         "resolution_date": "2025-10-01"
       },
-      "total_units": 17,
+      "total_units": 18,
       "unit_types": {
         "antecedent": 2,
         "decision": 1,
-        "foundation": 14
+        "foundation": 15
       },
       "warnings": [
-        "page_furniture_removed:32",
+        "page_furniture_removed:48",
         "jurisprudence_identity_missing",
         "foundation_numbering_review_required"
       ],
@@ -1897,8 +1875,8 @@
         1,
         8
       ],
-      "search_text_chars": 15107,
-      "token_count": 2251,
+      "search_text_chars": 14951,
+      "token_count": 2202,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -1914,7 +1892,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "d8951e60c233b271a798388a2572fcf95b94858464305de2efad0f682db57a05",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "regulation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -1954,7 +1932,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "a985fa83999d0f7f65b9b14cf0ca6b1b3bdadd9c9735bc497c488af41bff3db1",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2000,7 +1978,7 @@
       "before_category": "OCR_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "regulation",
       "source_format": "pdf",
       "source_quality": "ocr_required",
@@ -2039,7 +2017,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "a479f36f3a22aabca0157caa8276a95144dd8056da5da4f362d6c6501ff3b63f",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2080,7 +2058,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "e59a5535bb69660b93a00f7db264a15a0397bb90c886356558e255957c8b4571",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2093,11 +2071,11 @@
         "chamber": "Sala Penal Permanente",
         "ponente": "CESAR SAN MARTIN CASTRO"
       },
-      "total_units": 15,
+      "total_units": 16,
       "unit_types": {
         "antecedent": 1,
         "decision": 1,
-        "foundation": 12,
+        "foundation": 13,
         "sumilla": 1
       },
       "warnings": [
@@ -2111,7 +2089,7 @@
         1,
         8
       ],
-      "search_text_chars": 23497,
+      "search_text_chars": 23622,
       "token_count": 3841,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
@@ -2127,8 +2105,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
-      "document_hash": "048eb4ffeea81bc68df53130b381d3f7c22eb04372d3755f3f678971985d070f",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "1d039f2be5f219a65a870e26796dc70ce047f79ee7ef11c46383cf5d2e4f85c9",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2141,14 +2119,14 @@
         "chamber": "Sala Penal Permanente",
         "resolution_date": "2025-10-09"
       },
-      "total_units": 14,
+      "total_units": 15,
       "unit_types": {
         "antecedent": 1,
         "decision": 1,
-        "foundation": 12
+        "foundation": 13
       },
       "warnings": [
-        "page_furniture_removed:32"
+        "page_furniture_removed:48"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 0,
@@ -2157,12 +2135,12 @@
         1,
         8
       ],
-      "search_text_chars": 13131,
-      "token_count": 2013,
-      "category": "REVIEW_REQUIRED",
-      "reason": "MANUAL_REVIEW_PENDING",
-      "manual_review_status": "PENDING",
-      "eligible_for_10_6B": false
+      "search_text_chars": 13053,
+      "token_count": 1985,
+      "category": "PUBLISHABLE",
+      "reason": "GATE_AND_MANUAL_REVIEW_PASS",
+      "manual_review_status": "PASS",
+      "eligible_for_10_6B": true
     },
     {
       "source_path": "backend/raw_docs/jurisprudencia/La_no_efectiva_y_válida_notificación_de_la_sentencia_condenatoria_al___.pdf",
@@ -2173,8 +2151,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
-      "document_hash": "254ed78a82bc01c07c0f342d9eeb997beeea2b041b02799e9749ab34134a8b9c",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "4c1cfc71444dfcffd38e440cb3de003581af73542d9bb63e2991686f0a4e485a",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2186,16 +2164,17 @@
         "resolution_type": "sentencia",
         "chamber": "Sala Segunda",
         "ponente": "DOMÍNGUEZ HARO",
-        "resolution_date": "2026-02-25"
+        "resolution_date": "2026-02-25",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/01649-2024-HC.pdf"
       },
-      "total_units": 30,
+      "total_units": 29,
       "unit_types": {
         "antecedent": 3,
         "decision": 1,
-        "foundation": 26
+        "foundation": 25
       },
       "warnings": [
-        "page_furniture_removed:60"
+        "page_furniture_removed:80"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 3,
@@ -2204,8 +2183,8 @@
         1,
         15
       ],
-      "search_text_chars": 32895,
-      "token_count": 4781,
+      "search_text_chars": 32192,
+      "token_count": 4707,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -2221,29 +2200,36 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "32e4dc5b3d1bea89972b32a5e6bca7df573aaab85417a7dfef3be3973db46b13",
-      "parser_version": "legal-v2.1.0",
-      "document_type": "regulation",
+      "parser_version": "legal-v2.1.1",
+      "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
       "gate_status": "review_required",
       "ocr_required": false,
-      "metadata": {},
-      "total_units": 0,
-      "unit_types": {},
+      "metadata": {
+        "court": "Corte Suprema",
+        "chamber": "Sala Penal Permanente"
+      },
+      "total_units": 7,
+      "unit_types": {
+        "antecedent": 1,
+        "decision": 1,
+        "foundation": 5
+      },
       "warnings": [
         "page_furniture_removed:27",
-        "normative_number_missing",
-        "no_legal_units"
+        "jurisprudence_identity_missing",
+        "jurisprudence_date_or_type_missing"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 0,
       "page_issue_count": 0,
       "pages": [
-        null,
-        null
+        1,
+        9
       ],
-      "search_text_chars": 0,
-      "token_count": 0,
+      "search_text_chars": 15127,
+      "token_count": 2443,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -2259,7 +2245,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "11d9a58cbfd0b91898ab7ac6226983fc74549090d58673abf4d8d844d0e97c9b",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2304,7 +2290,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "cdf6d6e9af27b0b47d54cc78b21c61fe75dffa9e1db922f6c34512c1cd4e54b7",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2349,7 +2335,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "9842f9b866e6a1ed3ef49565d98fa447bebfbdd434807408a424bad83460946a",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2359,28 +2345,27 @@
         "court": "Corte Suprema",
         "resolution_type": "sentencia"
       },
-      "total_units": 696,
+      "total_units": 698,
       "unit_types": {
         "antecedent": 3,
         "decision": 27,
-        "foundation": 656,
+        "foundation": 658,
         "sumilla": 10
       },
       "warnings": [
         "page_furniture_removed:2259",
         "jurisprudence_identity_missing",
         "jurisprudence_date_or_type_missing",
-        "multiple_foundations_in_one_unit",
         "oversized_structure_review_required"
       ],
       "duplicate_unit_hashes": 0,
-      "oversized_parts": 594,
+      "oversized_parts": 596,
       "page_issue_count": 0,
       "pages": [
         95,
         753
       ],
-      "search_text_chars": 2645649,
+      "search_text_chars": 2645899,
       "token_count": 434193,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
@@ -2396,8 +2381,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "12ab87dad5646cd3bae7064e0874221fbbb4658b52832207eb9433eda1caf5ed",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "f6b484affdfad6a91673a42461a51e3e90b170f428affdc427b5c54c4936ffe5",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2407,7 +2392,8 @@
         "court": "Tribunal Constitucional",
         "expediente": "00013-2024-PI/TC",
         "resolution_type": "sentencia",
-        "resolution_date": "2026-01-22"
+        "resolution_date": "2026-01-22",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/00013-2024-AI.pdf"
       },
       "total_units": 175,
       "unit_types": {
@@ -2417,6 +2403,7 @@
         "separate_opinion": 26
       },
       "warnings": [
+        "page_furniture_removed:5",
         "separate_opinion_mixed_with_decision",
         "oversized_structure_review_required"
       ],
@@ -2444,7 +2431,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "13ef78c2a447714c332ea6fc17ce8a1eb1fe130189b77dfe87cb8c4ebe16cb82",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "regulation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2484,8 +2471,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "4bdee4ef1f1163acd66190a2e6352a8638fd972bd13fb9ab32638750bd6efe17",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "b3340ac7c7d0e222473797c688eac630cbff8447dae67736a023299a5ac2d1e1",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2504,7 +2491,7 @@
         "separate_opinion": 1
       },
       "warnings": [
-        "page_furniture_removed:23",
+        "page_furniture_removed:24",
         "jurisprudence_identity_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -2531,7 +2518,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "874ebc073bc9f9c16c4a1346a1321c0e064d6efb648550a457c837dc785d2114",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2577,7 +2564,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "078b5a2f87453b2a79153321b289e1ec1508bc4432999b9c288ff2a594f368fe",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2619,7 +2606,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "4043137c1aa824dc21462c91f0477c207355eef7a1f1cff73d013886a391d260",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2660,8 +2647,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "a6e01fc414698c17996ff25a4a6140c805838013bf916e041431e5ed469acb49",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "8b1b35c5928abfaff5d3dfaa687187a6e254404ff71d081b39a09c5ace1ed640",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2670,7 +2657,8 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "00018-2023-PI/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/00018-2023-AI.pdf"
       },
       "total_units": 84,
       "unit_types": {
@@ -2680,7 +2668,7 @@
         "separate_opinion": 14
       },
       "warnings": [
-        "page_furniture_removed:138",
+        "page_furniture_removed:143",
         "jurisprudence_date_or_type_missing",
         "separate_opinion_mixed_with_decision",
         "oversized_structure_review_required"
@@ -2708,8 +2696,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "126088d11a46b77a64c9e055bcff9d593aacd96417599ad084b860de4faef722",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "9dc4482f6921a9c3288a3346f2c1fa04f9d007335765bd9ec9c5207efc086ce2",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2720,16 +2708,17 @@
         "chamber": "Segunda Sala",
         "resolution_date": "2022-10-06"
       },
-      "total_units": 21,
+      "total_units": 19,
       "unit_types": {
         "decision": 1,
-        "foundation": 19,
+        "foundation": 17,
         "sumilla": 1
       },
       "warnings": [
-        "page_furniture_removed:90",
+        "page_furniture_removed:108",
         "jurisprudence_identity_missing",
-        "jurisprudence_date_or_type_missing"
+        "jurisprudence_date_or_type_missing",
+        "multiple_foundations_in_one_unit"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 2,
@@ -2738,8 +2727,8 @@
         1,
         18
       ],
-      "search_text_chars": 35854,
-      "token_count": 5318,
+      "search_text_chars": 35186,
+      "token_count": 5250,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -2755,7 +2744,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "5010e3b514f7eb8beba4d90a62cdedd6e37281409802f909ed269c6cdd1d80b7",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2797,7 +2786,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "d69fa06b0aaf8e6e18817f3018134eac73aab1675d42b468885a447fd69d67f2",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2838,7 +2827,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "ea83f11b3e98f2410de3eea321d724677fe1e14245853a3c853667206c8a7aa3",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2883,8 +2872,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "f6c111f12d3ee5ecc3d1773e7ba4f3e41c5a9d1c44de8f529672cfc4436af665",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "617dacfe985dd1af9bda421e16f371738eded1c50e87919d17a202ec5ba917f6",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2899,7 +2888,7 @@
         "foundation": 10
       },
       "warnings": [
-        "page_furniture_removed:18",
+        "page_furniture_removed:19",
         "jurisprudence_identity_missing",
         "jurisprudence_date_or_type_missing",
         "foundation_numbering_review_required"
@@ -2928,7 +2917,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "64ffddbc5756a84a3d403b294edc1c30edf7c6183cac7111fee49467f27c67cd",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -2971,7 +2960,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "3f1008d5af319d636d26ee9e08eae6e4030e194955a605ea6826875d25432272",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3013,7 +3002,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "182aa2bec7b5bccd05abae835503769826e2b25d28a71878eeaec4d546926fdb",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3022,10 +3011,10 @@
       "metadata": {
         "resolution_date": "2026-01-20"
       },
-      "total_units": 106,
+      "total_units": 107,
       "unit_types": {
         "antecedent": 10,
-        "foundation": 95,
+        "foundation": 96,
         "sumilla": 1
       },
       "warnings": [
@@ -3042,7 +3031,7 @@
         2,
         28
       ],
-      "search_text_chars": 137143,
+      "search_text_chars": 137249,
       "token_count": 19997,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
@@ -3058,8 +3047,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "5bbecf140803ab5319b379bf374041c17e60c8a3d6b5dc3ed73e401ae653003a",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "009eff87601f93330029237161a52bf5b5009ce9f48e34f137b730be80ecd2c9",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3075,7 +3064,7 @@
         "foundation": 60
       },
       "warnings": [
-        "page_furniture_removed:18",
+        "page_furniture_removed:19",
         "jurisprudence_identity_missing",
         "jurisprudence_date_or_type_missing"
       ],
@@ -3103,7 +3092,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "e14dd8fdbf085c182c4e5be3120cca091d4deb2163c58fc0d9ccb0fe3a27378e",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3148,7 +3137,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "7d6f964347daa7e62b83d390969c391605feb8bbd58241a86179444be62477b4",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3190,7 +3179,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "3665572e85c582fb784e77af0fe5de6a827e807b05fc7cd7a62c22e52a399f6e",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3231,8 +3220,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "5f5b50560978db02028a15eb2d854401df344b1eec8a7984900f0ca738405604",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "cdea2d6e914e7b2e1110f527be3ee6de8cd7feef15a48c9ee057b1beb4e9d85d",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3249,7 +3238,7 @@
         "sumilla": 1
       },
       "warnings": [
-        "page_furniture_removed:28",
+        "page_furniture_removed:29",
         "jurisprudence_identity_missing",
         "jurisprudence_date_or_type_missing",
         "oversized_structure_review_required"
@@ -3277,8 +3266,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "93d5fe097b8fb8e1acf76bdbadaebf011942dce6ef41906ea9103a8a00dcf231",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "a5c988e38190922fe07a6c0ac0efcf2e2eced720314f0931c14c6293eb3ab031",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3287,7 +3276,8 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "01659-2024-PA/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2025/01659-2024-AA.pdf"
       },
       "total_units": 63,
       "unit_types": {
@@ -3297,7 +3287,7 @@
         "separate_opinion": 3
       },
       "warnings": [
-        "page_furniture_removed:69",
+        "page_furniture_removed:74",
         "jurisprudence_date_or_type_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -3307,8 +3297,8 @@
         1,
         23
       ],
-      "search_text_chars": 58687,
-      "token_count": 7808,
+      "search_text_chars": 58239,
+      "token_count": 7752,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -3324,7 +3314,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "f213e1c1c54f0a32d60497a9a33366eced567eac6a74f4df18136d15de912779",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3369,7 +3359,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "bca7bdafc27474b90a6f146c9d41c97ab166c7707983ffda9ef87cbb926d7497",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3414,8 +3404,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "461822cd1c65599906844fec5515a4377fa68869d9fdc971f3e263e1d041d0a6",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "7b8dff462c7939490ff27f55ad57bc2b0092378da772549ab53da9acfa9f1061",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3426,15 +3416,15 @@
         "chamber": "Sala Penal Transitoria",
         "resolution_date": "2025-10-23"
       },
-      "total_units": 22,
+      "total_units": 24,
       "unit_types": {
         "antecedent": 1,
         "decision": 2,
-        "foundation": 18,
+        "foundation": 20,
         "sumilla": 1
       },
       "warnings": [
-        "page_furniture_removed:32",
+        "page_furniture_removed:48",
         "jurisprudence_identity_missing",
         "jurisprudence_date_or_type_missing"
       ],
@@ -3445,8 +3435,8 @@
         1,
         8
       ],
-      "search_text_chars": 17045,
-      "token_count": 2410,
+      "search_text_chars": 17027,
+      "token_count": 2375,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -3462,7 +3452,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "d6209e0f280cef160799f0f4ba14a4d4084f1414b32c803f6aff6502d096e401",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3511,7 +3501,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "f62d239108842cbbac13e8fe04ad5ea34657b4c44fab037194f892f2ba5b5953",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3553,8 +3543,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "87f3b0d36bce954d3c3438ee0619a072a5055078a4cc513ef8999d961d0d1d33",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "67e9b8008f9ce290314a594c5e6f1176f710faefd2169bbcecf955dc8bc96d0a",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3567,15 +3557,15 @@
         "chamber": "Cuarta Sala",
         "resolution_date": "2025-04-07"
       },
-      "total_units": 35,
+      "total_units": 38,
       "unit_types": {
         "antecedent": 2,
         "decision": 1,
-        "foundation": 31,
+        "foundation": 34,
         "sumilla": 1
       },
       "warnings": [
-        "page_furniture_removed:70",
+        "page_furniture_removed:84",
         "multiple_foundations_in_one_unit"
       ],
       "duplicate_unit_hashes": 0,
@@ -3585,8 +3575,8 @@
         1,
         14
       ],
-      "search_text_chars": 34091,
-      "token_count": 4694,
+      "search_text_chars": 34063,
+      "token_count": 4629,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -3602,7 +3592,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "5e2a938f7532aa7eb6add6dd688282d84407c24799a7c8b9b1372bffbd90be43",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3643,7 +3633,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "3e6ac4d7f530aaa75b6c79c53ebedaf4c01f16751b0aadc63fc67f2ead404660",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3666,13 +3656,13 @@
         "multiple_foundations_in_one_unit"
       ],
       "duplicate_unit_hashes": 0,
-      "oversized_parts": 7,
+      "oversized_parts": 6,
       "page_issue_count": 0,
       "pages": [
         1,
         10
       ],
-      "search_text_chars": 33755,
+      "search_text_chars": 33758,
       "token_count": 5118,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
@@ -3688,8 +3678,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "2ca67fb6c951974b270024c006d575af14d1c532f29f325a6aa392317ae02a0b",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "ea4bdd2026a7c5716b2e0de74452d808b6eed92babefb7d025026a584561637e",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3700,17 +3690,18 @@
         "expediente": "04677-2025-PHC/TC",
         "resolution_type": "sentencia",
         "chamber": "Sala Segunda",
-        "resolution_date": "2026-04-17"
+        "resolution_date": "2026-04-17",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/04677-2025-HC.pdf"
       },
-      "total_units": 14,
+      "total_units": 13,
       "unit_types": {
         "antecedent": 1,
         "decision": 1,
-        "foundation": 9,
+        "foundation": 8,
         "separate_opinion": 3
       },
       "warnings": [
-        "page_furniture_removed:27"
+        "page_furniture_removed:32"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 2,
@@ -3719,8 +3710,8 @@
         1,
         9
       ],
-      "search_text_chars": 18587,
-      "token_count": 2610,
+      "search_text_chars": 17997,
+      "token_count": 2550,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -3735,8 +3726,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "f5a82a2ee4743a3c6b536bd3c48a2a82e003b80a71cb63af998797acfe8758f4",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "408528e6908483c992feb02550762c7cbee17bfe64e4309615f8805d80e1e679",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3747,15 +3738,15 @@
         "chamber": "Sala Penal Transitoria",
         "resolution_date": "2025-12-30"
       },
-      "total_units": 36,
+      "total_units": 37,
       "unit_types": {
         "antecedent": 1,
         "decision": 1,
-        "foundation": 33,
+        "foundation": 34,
         "sumilla": 1
       },
       "warnings": [
-        "page_furniture_removed:152",
+        "page_furniture_removed:190",
         "jurisprudence_identity_missing",
         "jurisprudence_date_or_type_missing",
         "multiple_foundations_in_one_unit",
@@ -3768,8 +3759,8 @@
         1,
         38
       ],
-      "search_text_chars": 118556,
-      "token_count": 18686,
+      "search_text_chars": 117744,
+      "token_count": 18575,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -3784,8 +3775,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "510f096000dac29f47dc364a1d14c7fce956a0e5b8e13ac1764d212493910505",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "3ecb2bd9c43908e30e486bb949de864b39b07a689b03b9ec5db96797743d43fb",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3796,27 +3787,27 @@
         "resolution_type": "sentencia",
         "chamber": "Sala Penal Transitoria"
       },
-      "total_units": 46,
+      "total_units": 47,
       "unit_types": {
         "antecedent": 1,
         "decision": 1,
-        "foundation": 44
+        "foundation": 45
       },
       "warnings": [
-        "page_furniture_removed:164",
+        "page_furniture_removed:205",
         "jurisprudence_identity_missing",
         "jurisprudence_date_or_type_missing",
         "multiple_foundations_in_one_unit"
       ],
       "duplicate_unit_hashes": 0,
-      "oversized_parts": 14,
+      "oversized_parts": 12,
       "page_issue_count": 0,
       "pages": [
         1,
         41
       ],
-      "search_text_chars": 85624,
-      "token_count": 13257,
+      "search_text_chars": 85101,
+      "token_count": 13137,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -3831,8 +3822,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "a887aef92ed10aaf40b81db2af7600eb6ad3b1c3254e2fd7717d9d0f39254a8b",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "92ad15156942152f5b8e035de4a7ea110c301e1601151356bad41c7bfe58a462",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3850,7 +3841,7 @@
         "sumilla": 1
       },
       "warnings": [
-        "page_furniture_removed:35",
+        "page_furniture_removed:42",
         "jurisprudence_identity_missing",
         "jurisprudence_date_or_type_missing"
       ],
@@ -3861,8 +3852,8 @@
         1,
         7
       ],
-      "search_text_chars": 11545,
-      "token_count": 1619,
+      "search_text_chars": 11390,
+      "token_count": 1591,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -3877,31 +3868,38 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "268aae138f174b8c2f4a981084c0a0539670da38025712131e2c5a7e42f7c9fc",
-      "parser_version": "legal-v2.1.0",
-      "document_type": "regulation",
+      "document_hash": "e4110cfdf94f7234607628f572239b2d9dbbb29b085d9f7728a0c75b46f68edd",
+      "parser_version": "legal-v2.1.1",
+      "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
       "gate_status": "review_required",
       "ocr_required": false,
-      "metadata": {},
-      "total_units": 3,
+      "metadata": {
+        "court": "Corte Suprema",
+        "resolution_type": "sentencia",
+        "chamber": "Sala Penal Transitoria",
+        "resolution_date": "2026-04-15"
+      },
+      "total_units": 9,
       "unit_types": {
-        "article": 3
+        "antecedent": 1,
+        "decision": 1,
+        "foundation": 7
       },
       "warnings": [
-        "page_furniture_removed:28",
-        "normative_number_missing"
+        "page_furniture_removed:42",
+        "jurisprudence_identity_missing"
       ],
       "duplicate_unit_hashes": 0,
-      "oversized_parts": 3,
+      "oversized_parts": 0,
       "page_issue_count": 0,
       "pages": [
         1,
         7
       ],
-      "search_text_chars": 13920,
-      "token_count": 2239,
+      "search_text_chars": 15620,
+      "token_count": 2414,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -3916,8 +3914,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "5a482581412ff2bfcd8837e341d0366c3bfe1add87dfc78fb9f145ccd3dde493",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "05486c59c13215f778b17ba0f53ca4236ad8d79cddb069507f8475f6e5910b57",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3930,7 +3928,7 @@
         "foundation": 63
       },
       "warnings": [
-        "page_furniture_removed:18",
+        "page_furniture_removed:19",
         "decision_not_detected",
         "jurisprudence_identity_missing",
         "jurisprudence_date_or_type_missing"
@@ -3958,8 +3956,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "ba235dbd066f69ff385b7cc6c96beb2f97f554eadcede7e1f36802a53f34677d",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "e2e98ea0094935291d1de2cd85fb0fdb824cff54089069cffc5d4e4605242c0e",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -3977,7 +3975,7 @@
         "separate_opinion": 3
       },
       "warnings": [
-        "page_furniture_removed:7",
+        "page_furniture_removed:14",
         "decision_not_detected"
       ],
       "duplicate_unit_hashes": 0,
@@ -3987,8 +3985,8 @@
         1,
         8
       ],
-      "search_text_chars": 22421,
-      "token_count": 3232,
+      "search_text_chars": 22235,
+      "token_count": 3208,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -4003,8 +4001,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "49fcebd7cf9efaa0356837c1c9ef58c5b70221c021c59699aefedddebebb9b28",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "5bc2ff20c6a471879cbbee452b0ab8d855be2c65e5b240cc0616bd51cddff63a",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4016,16 +4014,17 @@
         "resolution_type": "sentencia",
         "chamber": "Sala Primera",
         "ponente": "MORALES SARAVIA",
-        "resolution_date": "2025-12-01"
+        "resolution_date": "2025-12-01",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2025/03902-2023-HC.pdf"
       },
-      "total_units": 23,
+      "total_units": 22,
       "unit_types": {
         "antecedent": 2,
         "decision": 1,
-        "foundation": 20
+        "foundation": 19
       },
       "warnings": [
-        "page_furniture_removed:27"
+        "page_furniture_removed:32"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 2,
@@ -4034,8 +4033,8 @@
         1,
         9
       ],
-      "search_text_chars": 21199,
-      "token_count": 2997,
+      "search_text_chars": 20610,
+      "token_count": 2937,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -4050,8 +4049,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "ae254b645653d726cb8bafbfaa1aa9d423460cebf64d091accaa3151aa749320",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "ae9f33a522bab06098e80c4c6c4532481d29e1c484d380d705973b175e7c5704",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4060,17 +4059,18 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "00782-2023-PHC/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2024/00782-2023-HC.pdf"
       },
-      "total_units": 19,
+      "total_units": 18,
       "unit_types": {
         "antecedent": 3,
         "decision": 1,
-        "foundation": 12,
+        "foundation": 11,
         "separate_opinion": 3
       },
       "warnings": [
-        "page_furniture_removed:69",
+        "page_furniture_removed:75",
         "jurisprudence_date_or_type_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -4080,8 +4080,8 @@
         1,
         14
       ],
-      "search_text_chars": 27636,
-      "token_count": 3972,
+      "search_text_chars": 27040,
+      "token_count": 3912,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -4096,8 +4096,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
-      "document_hash": "321025c1b8c6b81ece67927d325e342df7b93568d38e91eac68f73dace35b1af",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "6504c064ca37cb913c40e43d75083d232f46a7ea1feed139de8661dab13fa293",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4108,14 +4108,15 @@
         "expediente": "00697-2024-PA/TC",
         "resolution_type": "sentencia",
         "chamber": "Sala Segunda",
-        "resolution_date": "2026-05-13"
+        "resolution_date": "2026-05-13",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/00697-2024-AA.pdf"
       },
       "total_units": 8,
       "unit_types": {
         "separate_opinion": 8
       },
       "warnings": [
-        "page_furniture_removed:68",
+        "page_furniture_removed:73",
         "decision_not_detected"
       ],
       "duplicate_unit_hashes": 0,
@@ -4125,8 +4126,8 @@
         1,
         17
       ],
-      "search_text_chars": 35841,
-      "token_count": 5362,
+      "search_text_chars": 35393,
+      "token_count": 5306,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -4141,8 +4142,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
-      "document_hash": "321025c1b8c6b81ece67927d325e342df7b93568d38e91eac68f73dace35b1af",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "6504c064ca37cb913c40e43d75083d232f46a7ea1feed139de8661dab13fa293",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4153,14 +4154,15 @@
         "expediente": "00697-2024-PA/TC",
         "resolution_type": "sentencia",
         "chamber": "Sala Segunda",
-        "resolution_date": "2026-05-13"
+        "resolution_date": "2026-05-13",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/00697-2024-AA.pdf"
       },
       "total_units": 8,
       "unit_types": {
         "separate_opinion": 8
       },
       "warnings": [
-        "page_furniture_removed:68",
+        "page_furniture_removed:73",
         "decision_not_detected"
       ],
       "duplicate_unit_hashes": 0,
@@ -4170,8 +4172,8 @@
         1,
         17
       ],
-      "search_text_chars": 35681,
-      "token_count": 5362,
+      "search_text_chars": 35233,
+      "token_count": 5306,
       "category": "REVIEW_REQUIRED",
       "reason": "EXACT_SOURCE_DUPLICATE",
       "canonical_source": "backend/raw_docs/jurisprudencia/TC__Las_entidades_no_pueden_restringir_la_presentación_de_documentos_digitales___.pdf",
@@ -4187,8 +4189,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
-      "document_hash": "1efe7b50b9f24f25a9c17bb6cf18e191abe465a7b3b61ba9d53d5230423858d6",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "c7a96ce15c4edd676252f3ba568e7d80de6ec9a5ac1c94e79069efd243c8eee9",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4200,16 +4202,17 @@
         "resolution_type": "sentencia",
         "chamber": "Sala Segunda",
         "ponente": "OCHOA CARDICH",
-        "resolution_date": "2026-01-20"
+        "resolution_date": "2026-01-20",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/04068-2023-AA.pdf"
       },
-      "total_units": 60,
+      "total_units": 59,
       "unit_types": {
         "antecedent": 2,
         "decision": 1,
-        "foundation": 57
+        "foundation": 56
       },
       "warnings": [
-        "page_furniture_removed:87"
+        "page_furniture_removed:92"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 4,
@@ -4218,8 +4221,8 @@
         1,
         30
       ],
-      "search_text_chars": 73634,
-      "token_count": 10323,
+      "search_text_chars": 73053,
+      "token_count": 10263,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -4234,8 +4237,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
-      "document_hash": "2ea61471d3ad21f4402885f07d46b48a7914d51825ed7a99ceb1b1f11a20d0c3",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "13bc8abe6fa09b588d00e5ad8b5e266ae3034018469ae80ab5efa3e67dbb0fc4",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4246,7 +4249,8 @@
         "expediente": "02545-2023-PA/TC",
         "resolution_type": "sentencia",
         "chamber": "Sala Segunda",
-        "resolution_date": "2025-11-06"
+        "resolution_date": "2025-11-06",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2025/02545-2023-AA.pdf"
       },
       "total_units": 96,
       "unit_types": {
@@ -4256,7 +4260,7 @@
         "separate_opinion": 1
       },
       "warnings": [
-        "page_furniture_removed:148"
+        "page_furniture_removed:153"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 0,
@@ -4265,8 +4269,8 @@
         1,
         37
       ],
-      "search_text_chars": 89090,
-      "token_count": 11794,
+      "search_text_chars": 88642,
+      "token_count": 11738,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -4282,7 +4286,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "e5c1a3dc1f09b9cbb4fcf0cba29c6ff3e62fc71730820bc5cd26d03b36f5d003",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4328,7 +4332,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "518b4b09215af7b801f508500c76599cce4e69ddcbb8f2f282d34e2b28364f19",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4371,42 +4375,10 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "daea7f219c340796d877097aea19d7df8ac6114d9b2f155147c1c3d5d1813857",
-      "parser_version": "legal-v2.1.0",
-      "document_type": "order",
-      "source_format": "pdf",
-      "source_quality": "high",
-      "gate_status": "staged",
-      "ocr_required": false,
-      "metadata": {
-        "court": "Tribunal Constitucional",
-        "expediente": "00006-2025-PCC/TC",
-        "resolution_type": "auto",
-        "resolution_date": "2026-04-16"
-      },
-      "total_units": 11,
-      "unit_types": {
-        "antecedent": 1,
-        "decision": 1,
-        "foundation": 8,
-        "separate_opinion": 1
-      },
-      "warnings": [
-        "page_furniture_removed:25"
-      ],
-      "duplicate_unit_hashes": 0,
-      "oversized_parts": 0,
-      "page_issue_count": 0,
-      "pages": [
-        1,
-        5
-      ],
-      "search_text_chars": 9336,
-      "token_count": 1225,
-      "category": "PUBLISHABLE",
-      "reason": "GATE_AND_MANUAL_REVIEW_PASS",
-      "manual_review_status": "PASS",
-      "eligible_for_10_6B": true
+      "category": "ALREADY_PUBLISHED",
+      "reason": "SOURCE_ALREADY_PUBLISHED",
+      "manual_review_status": "EXCLUDED",
+      "eligible_for_10_6B": false
     },
     {
       "source_path": "backend/raw_docs/jurisprudencia/TC_anula_sentencia_de_alimentos_porque_juez_no_valoró_informe_del___.pdf",
@@ -4418,7 +4390,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "5be327faacac61f7e2552ff1ee04bb21e26386c30f155b68df327e04868219f6",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4463,8 +4435,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "898b223136a0e3e9cc9cebd6b709db538ce01621a1f7ab2ac1b7396a843205fc",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "b90855b465aa9d83c6f65ceef3dbeb11afa2a0a6299b05f6935b22010ea1b7e6",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4473,7 +4445,8 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "00009-2024-PI/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2025/00009-2024-AI.pdf"
       },
       "total_units": 364,
       "unit_types": {
@@ -4483,7 +4456,7 @@
         "separate_opinion": 79
       },
       "warnings": [
-        "page_furniture_removed:988",
+        "page_furniture_removed:993",
         "jurisprudence_date_or_type_missing",
         "multiple_foundations_in_one_unit",
         "oversized_structure_review_required"
@@ -4511,8 +4484,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "a51cd3cc0a7d658e70bc1747ef6e8b14a94a757bfff14aa8002d582997dfcfcf",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "bf242d7c6ee94c63aa712e860f70c2bae693c7943cd8513601386661127f31e5",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4522,17 +4495,18 @@
         "court": "Tribunal Constitucional",
         "expediente": "01191-2025-PHC/TC",
         "resolution_type": "sentencia",
-        "resolution_date": "2026-06-16"
+        "resolution_date": "2026-06-16",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/01191-2025-HC.pdf"
       },
-      "total_units": 47,
+      "total_units": 46,
       "unit_types": {
         "antecedent": 3,
         "decision": 1,
-        "foundation": 37,
+        "foundation": 36,
         "separate_opinion": 6
       },
       "warnings": [
-        "page_furniture_removed:135",
+        "page_furniture_removed:208",
         "foundation_numbering_review_required"
       ],
       "duplicate_unit_hashes": 0,
@@ -4542,8 +4516,8 @@
         1,
         34
       ],
-      "search_text_chars": 78467,
-      "token_count": 11367,
+      "search_text_chars": 76167,
+      "token_count": 11076,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -4558,8 +4532,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "fc1e9b054a9f09c3f91cb52f3fe602ff82ca24f2071022f81835a2a00876ece3",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "5c164b6fbcaa94984a393e3bcf3c3c72138c66ffdbfad09417469f0ff456f8a3",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4570,17 +4544,18 @@
         "expediente": "00800-2024-PHC/TC",
         "resolution_type": "sentencia",
         "chamber": "Sala Segunda",
-        "resolution_date": "2026-06-22"
+        "resolution_date": "2026-06-22",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/00800-2024-HC.pdf"
       },
-      "total_units": 26,
+      "total_units": 25,
       "unit_types": {
         "antecedent": 2,
         "decision": 1,
-        "foundation": 19,
+        "foundation": 18,
         "separate_opinion": 4
       },
       "warnings": [
-        "page_furniture_removed:72"
+        "page_furniture_removed:113"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 6,
@@ -4589,8 +4564,8 @@
         1,
         18
       ],
-      "search_text_chars": 40874,
-      "token_count": 6044,
+      "search_text_chars": 39576,
+      "token_count": 5899,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -4605,8 +4580,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "4bf309ab0464b1504a8729bb1aaef5b9090644594a369a536b377ff461e5f3a3",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "7613fd8772363f42bb04f7e97f162e2fedd194cea9c43da36786a10e0ca10fa9",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4615,7 +4590,8 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "00004-2024-PI/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/00004-2024-AI.pdf"
       },
       "total_units": 79,
       "unit_types": {
@@ -4625,6 +4601,7 @@
         "separate_opinion": 4
       },
       "warnings": [
+        "page_furniture_removed:5",
         "jurisprudence_date_or_type_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -4650,8 +4627,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "4bf309ab0464b1504a8729bb1aaef5b9090644594a369a536b377ff461e5f3a3",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "7613fd8772363f42bb04f7e97f162e2fedd194cea9c43da36786a10e0ca10fa9",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4660,7 +4637,8 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "00004-2024-PI/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/00004-2024-AI.pdf"
       },
       "total_units": 79,
       "unit_types": {
@@ -4670,6 +4648,7 @@
         "separate_opinion": 4
       },
       "warnings": [
+        "page_furniture_removed:5",
         "jurisprudence_date_or_type_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -4696,8 +4675,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "a2fdd581fdae3cb1b7c07a5b2cef456613cddbd274307290f3fcf66279a921cc",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "fa12fb8f8d603e46e4eef2a137a6c673d27552dde6129935e64a70610fed99cf",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4706,7 +4685,8 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "0008-2025-PI/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/00008-2025-AI.pdf"
       },
       "total_units": 345,
       "unit_types": {
@@ -4716,7 +4696,7 @@
         "separate_opinion": 16
       },
       "warnings": [
-        "page_furniture_removed:216",
+        "page_furniture_removed:221",
         "jurisprudence_date_or_type_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -4757,8 +4737,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "e6956dfb8140632385d189489bd7875e494b61777a23190dff7792e5850172a1",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "f382a2a822dee511452df60197b96764ecca146831435c8088c621449aa5f500",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4768,17 +4748,18 @@
         "court": "Tribunal Constitucional",
         "expediente": "02939-2025-PHC/TC",
         "resolution_type": "sentencia",
-        "resolution_date": "2026-02-06"
+        "resolution_date": "2026-02-06",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/02939-2025-HC.pdf"
       },
-      "total_units": 79,
+      "total_units": 78,
       "unit_types": {
         "antecedent": 4,
         "decision": 1,
-        "foundation": 39,
+        "foundation": 38,
         "separate_opinion": 35
       },
       "warnings": [
-        "page_furniture_removed:368",
+        "page_furniture_removed:373",
         "oversized_structure_review_required"
       ],
       "duplicate_unit_hashes": 0,
@@ -4788,8 +4769,8 @@
         1,
         92
       ],
-      "search_text_chars": 215134,
-      "token_count": 32869,
+      "search_text_chars": 214545,
+      "token_count": 32809,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -4805,7 +4786,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "45124d3f76d9ada0c57292f2e2b4a59d9907f7e129aaf258acb650aa03846bed",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4846,8 +4827,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "591e8534ade2626c57d9050da8ffd5c582b0a7fc75cb60052b8f4e3f2f568e66",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "9246aa08c6c6b65a1930d894cab91be5f6ca3798b1846be53b530042890f31bc",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4856,7 +4837,8 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "00005-2025-PI/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/00005-2025-AI.pdf"
       },
       "total_units": 130,
       "unit_types": {
@@ -4866,7 +4848,7 @@
         "separate_opinion": 2
       },
       "warnings": [
-        "page_furniture_removed:64",
+        "page_furniture_removed:69",
         "jurisprudence_date_or_type_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -4892,8 +4874,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "0c9c39fb1432c3371c0ca1ebf6404236ff2c98c48b6145645a7376f9d757035f",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "8c70fd0dd6cfc20eb2d1ae9728329d3e005e72af67c28e49f16e1a215e23848b",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4902,17 +4884,18 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "resolution_type": "sentencia",
-        "resolution_date": "2026-04-30"
+        "resolution_date": "2026-04-30",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/04116-2025-AA.pdf"
       },
-      "total_units": 63,
+      "total_units": 62,
       "unit_types": {
         "antecedent": 2,
         "decision": 1,
-        "foundation": 55,
+        "foundation": 54,
         "separate_opinion": 5
       },
       "warnings": [
-        "page_furniture_removed:149",
+        "page_furniture_removed:155",
         "jurisprudence_identity_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -4922,8 +4905,8 @@
         1,
         30
       ],
-      "search_text_chars": 70228,
-      "token_count": 10109,
+      "search_text_chars": 69659,
+      "token_count": 10049,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -4939,7 +4922,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "e8e8359cce6a3327d04c857076b87dfe3667f8fb2e036a0496076acd3053ca11",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4979,8 +4962,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "17392bee6f2ce82f3ac01e880054f33776204c8702020972c36db67cb6751139",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "cb5378edc3594dd05f89ef559a3c43b216a5271f80e1668fa75fd3053444b38a",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -4989,17 +4972,18 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "01367-2019-PA/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2025/01367-2019-AA.pdf"
       },
-      "total_units": 141,
+      "total_units": 140,
       "unit_types": {
         "antecedent": 4,
         "decision": 1,
-        "foundation": 96,
+        "foundation": 95,
         "separate_opinion": 40
       },
       "warnings": [
-        "page_furniture_removed:222",
+        "page_furniture_removed:227",
         "jurisprudence_date_or_type_missing",
         "oversized_structure_review_required"
       ],
@@ -5010,8 +4994,8 @@
         4,
         111
       ],
-      "search_text_chars": 286766,
-      "token_count": 43024,
+      "search_text_chars": 286634,
+      "token_count": 43019,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -5026,8 +5010,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
-      "document_hash": "0187e69ac5114b848f4515ad6618abe3da65c0693cb7eb6d608dc293c0abc0c9",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "78e20e410b4100605ec2858b417bd56c49eba216133fe8fd9c23c1ad97a618a6",
+      "parser_version": "legal-v2.1.1",
       "document_type": "order",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5038,7 +5022,8 @@
         "expediente": "00102-2022-Q/TC",
         "resolution_type": "auto",
         "ponente": "GUTIÉRREZ TICSE",
-        "resolution_date": "2026-04-09"
+        "resolution_date": "2026-04-09",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/00102-2022-Q%20Aclaracion.pdf"
       },
       "total_units": 6,
       "unit_types": {
@@ -5046,7 +5031,9 @@
         "decision": 1,
         "foundation": 4
       },
-      "warnings": [],
+      "warnings": [
+        "page_furniture_removed:5"
+      ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 0,
       "page_issue_count": 0,
@@ -5054,8 +5041,8 @@
         1,
         2
       ],
-      "search_text_chars": 3896,
-      "token_count": 462,
+      "search_text_chars": 3436,
+      "token_count": 406,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -5070,8 +5057,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "130230726ecc95328f217bc201f4491f4da2356d37bbb14aabca74a210e4dc74",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "1e211a292a2bd2015009d83bda6eb78f28e0cdac123f48913b1dc116082c07eb",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5081,7 +5068,8 @@
         "court": "Tribunal Constitucional",
         "expediente": "01350-2024-PA/TC",
         "resolution_type": "sentencia",
-        "resolution_date": "2025-12-01"
+        "resolution_date": "2025-12-01",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/01350-2024-AA.pdf"
       },
       "total_units": 80,
       "unit_types": {
@@ -5091,7 +5079,7 @@
         "separate_opinion": 8
       },
       "warnings": [
-        "page_furniture_removed:153",
+        "page_furniture_removed:158",
         "foundation_numbering_review_required"
       ],
       "duplicate_unit_hashes": 0,
@@ -5101,8 +5089,8 @@
         1,
         51
       ],
-      "search_text_chars": 114709,
-      "token_count": 16838,
+      "search_text_chars": 114261,
+      "token_count": 16782,
       "category": "REVIEW_REQUIRED",
       "reason": "SAME_CASE_DIFFERENT_SOURCE_NOT_RECONCILED",
       "manual_review_status": "SOURCE_COMPARISON_PENDING",
@@ -5117,8 +5105,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "17392bee6f2ce82f3ac01e880054f33776204c8702020972c36db67cb6751139",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "cb5378edc3594dd05f89ef559a3c43b216a5271f80e1668fa75fd3053444b38a",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5127,17 +5115,18 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "01367-2019-PA/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2025/01367-2019-AA.pdf"
       },
-      "total_units": 141,
+      "total_units": 140,
       "unit_types": {
         "antecedent": 4,
         "decision": 1,
-        "foundation": 96,
+        "foundation": 95,
         "separate_opinion": 40
       },
       "warnings": [
-        "page_furniture_removed:222",
+        "page_furniture_removed:227",
         "jurisprudence_date_or_type_missing",
         "oversized_structure_review_required"
       ],
@@ -5148,8 +5137,8 @@
         4,
         111
       ],
-      "search_text_chars": 287612,
-      "token_count": 43024,
+      "search_text_chars": 287474,
+      "token_count": 43019,
       "category": "REVIEW_REQUIRED",
       "reason": "EXACT_SOURCE_DUPLICATE",
       "canonical_source": "backend/raw_docs/jurisprudencia/TC_exhorta_al_Congreso_de_la_República__en_el_ejercicio_de___.pdf",
@@ -5165,8 +5154,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "93d8a87e9b9943a077ed6f639b776a7c0691ffec01b577fbccbe5ebfb105e48a",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "6366c9c2f2545bbedea8ef1fc311cab04763869eea6013a0196aa8ccf87d7a3d",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5187,7 +5176,7 @@
         "separate_opinion": 6
       },
       "warnings": [
-        "page_furniture_removed:575",
+        "page_furniture_removed:805",
         "duplicate_unit_hashes:1",
         "oversized_structure_review_required",
         "duplicate_unit_hash"
@@ -5199,8 +5188,8 @@
         1,
         116
       ],
-      "search_text_chars": 285037,
-      "token_count": 38459,
+      "search_text_chars": 282301,
+      "token_count": 38003,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -5215,8 +5204,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "3d6331d16ab8a3477d0bdc0fd4392d9ce2acb6060c5c9d7def2dec0e36f46df6",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "592ed40b2bef4b64ed46bf42798a0ebaf52bf6461ad20db58a69c7bed61ab385",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5226,7 +5215,8 @@
         "court": "Tribunal Constitucional",
         "expediente": "01350-2024-PA/TC",
         "resolution_type": "sentencia",
-        "resolution_date": "2025-12-01"
+        "resolution_date": "2025-12-01",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/01350-2024-AA.pdf"
       },
       "total_units": 80,
       "unit_types": {
@@ -5236,7 +5226,7 @@
         "separate_opinion": 8
       },
       "warnings": [
-        "page_furniture_removed:254",
+        "page_furniture_removed:311",
         "foundation_numbering_review_required"
       ],
       "duplicate_unit_hashes": 0,
@@ -5246,8 +5236,8 @@
         1,
         51
       ],
-      "search_text_chars": 115541,
-      "token_count": 17081,
+      "search_text_chars": 114693,
+      "token_count": 16975,
       "category": "REVIEW_REQUIRED",
       "reason": "SAME_CASE_DIFFERENT_SOURCE_NOT_RECONCILED",
       "manual_review_status": "SOURCE_COMPARISON_PENDING",
@@ -5262,8 +5252,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "7d0b08cb9193bea015dccff94a40884909b6077cf1ac4dd8b02b5fa46d1409a9",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "d51354c2a420272a32900b35cec387d52cfa54d67158a25373d1faaf498fecca",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5274,7 +5264,8 @@
         "expediente": "04852-2023-PA/TC",
         "resolution_type": "sentencia",
         "chamber": "Sala Segunda",
-        "resolution_date": "2026-03-06"
+        "resolution_date": "2026-03-06",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/04852-2023-AA%20.pdf"
       },
       "total_units": 13,
       "unit_types": {
@@ -5284,7 +5275,7 @@
         "separate_opinion": 3
       },
       "warnings": [
-        "page_furniture_removed:27"
+        "page_furniture_removed:32"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 2,
@@ -5293,8 +5284,8 @@
         1,
         9
       ],
-      "search_text_chars": 16690,
-      "token_count": 2378,
+      "search_text_chars": 16239,
+      "token_count": 2322,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -5309,8 +5300,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "dbc25802a52e9f9c38d8617d1b7be8bee95e0e5f5418735d1632ef4e183f3a32",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "679841dcf30f8db332a4c83f53277914ca3741ead3cb0ebb0b2af543db25b7c5",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5319,17 +5310,18 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "04513-2022-PA/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/04513-2022-AA.pdf"
       },
-      "total_units": 106,
+      "total_units": 105,
       "unit_types": {
         "antecedent": 3,
         "decision": 1,
-        "foundation": 78,
+        "foundation": 77,
         "separate_opinion": 24
       },
       "warnings": [
-        "page_furniture_removed:320",
+        "page_furniture_removed:325",
         "jurisprudence_date_or_type_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -5339,8 +5331,8 @@
         3,
         80
       ],
-      "search_text_chars": 182535,
-      "token_count": 26310,
+      "search_text_chars": 182396,
+      "token_count": 26306,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -5355,8 +5347,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "cb6158110c8c4e246a31dad8691d7954ad4717c5eeedfb57208b8ae1cf81f698",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "4c00e176592d455228efec46154f0208bd313313240cdf2a8ef94688c7f2be75",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5367,7 +5359,8 @@
         "expediente": "02047-2025-PA/TC",
         "resolution_type": "sentencia",
         "chamber": "Sala Segunda",
-        "resolution_date": "2026-01-08"
+        "resolution_date": "2026-01-08",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/02047-2025-AA%20.pdf"
       },
       "total_units": 24,
       "unit_types": {
@@ -5377,7 +5370,7 @@
         "separate_opinion": 2
       },
       "warnings": [
-        "page_furniture_removed:33"
+        "page_furniture_removed:38"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 0,
@@ -5386,8 +5379,8 @@
         1,
         11
       ],
-      "search_text_chars": 22331,
-      "token_count": 3018,
+      "search_text_chars": 21880,
+      "token_count": 2962,
       "category": "REVIEW_REQUIRED",
       "reason": "EXACT_SOURCE_DUPLICATE",
       "canonical_source": "backend/raw_docs/jurisprudencia/El_TC_ordena_la_reposición_de_un_trabajador_CAS_que_realizaba___.pdf",
@@ -5403,8 +5396,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "17392bee6f2ce82f3ac01e880054f33776204c8702020972c36db67cb6751139",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "cb5378edc3594dd05f89ef559a3c43b216a5271f80e1668fa75fd3053444b38a",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5413,17 +5406,18 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "01367-2019-PA/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2025/01367-2019-AA.pdf"
       },
-      "total_units": 141,
+      "total_units": 140,
       "unit_types": {
         "antecedent": 4,
         "decision": 1,
-        "foundation": 96,
+        "foundation": 95,
         "separate_opinion": 40
       },
       "warnings": [
-        "page_furniture_removed:222",
+        "page_furniture_removed:227",
         "jurisprudence_date_or_type_missing",
         "oversized_structure_review_required"
       ],
@@ -5434,8 +5428,8 @@
         4,
         111
       ],
-      "search_text_chars": 289163,
-      "token_count": 43024,
+      "search_text_chars": 289014,
+      "token_count": 43019,
       "category": "REVIEW_REQUIRED",
       "reason": "EXACT_SOURCE_DUPLICATE",
       "canonical_source": "backend/raw_docs/jurisprudencia/TC_exhorta_al_Congreso_de_la_República__en_el_ejercicio_de___.pdf",
@@ -5451,8 +5445,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "1f89011ddaa48b8ccfac558b4f96f19e70ad6bafd0c09df8c07d42c8ad934326",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "998bf242757bec8d3e51dabe042d04edab0cb38c60511907bef68f08227f8a6c",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5462,17 +5456,18 @@
         "court": "Tribunal Constitucional",
         "expediente": "01736-2025-PHC/TC",
         "resolution_type": "sentencia",
-        "resolution_date": "2025-12-01"
+        "resolution_date": "2025-12-01",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/01736-2025-HC.pdf"
       },
-      "total_units": 43,
+      "total_units": 42,
       "unit_types": {
         "antecedent": 4,
         "decision": 1,
-        "foundation": 30,
+        "foundation": 29,
         "separate_opinion": 8
       },
       "warnings": [
-        "page_furniture_removed:62"
+        "page_furniture_removed:67"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 11,
@@ -5481,8 +5476,8 @@
         1,
         31
       ],
-      "search_text_chars": 70913,
-      "token_count": 10653,
+      "search_text_chars": 70321,
+      "token_count": 10593,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -5497,8 +5492,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
-      "document_hash": "7b2f173e0c2b7309124420f0fee569eba1c61fab2c44d3a68ad73e87a7100232",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "7f21ea2da5cb3fd54c945eff831447d7c6c2a03a4c557a3757a7020f9175101e",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5509,16 +5504,17 @@
         "expediente": "04826-2025-PHC/TC",
         "resolution_type": "sentencia",
         "ponente": "HERNÁNDEZ CHÁVEZ",
-        "resolution_date": "2026-03-31"
+        "resolution_date": "2026-03-31",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/04826-2025-HC.pdf"
       },
-      "total_units": 12,
+      "total_units": 11,
       "unit_types": {
         "antecedent": 3,
         "decision": 1,
-        "foundation": 8
+        "foundation": 7
       },
       "warnings": [
-        "page_furniture_removed:35"
+        "page_furniture_removed:40"
       ],
       "duplicate_unit_hashes": 0,
       "oversized_parts": 3,
@@ -5527,12 +5523,12 @@
         1,
         9
       ],
-      "search_text_chars": 19010,
-      "token_count": 2803,
-      "category": "REVIEW_REQUIRED",
-      "reason": "MANUAL_REVIEW_PENDING",
-      "manual_review_status": "PENDING",
-      "eligible_for_10_6B": false
+      "search_text_chars": 18412,
+      "token_count": 2745,
+      "category": "PUBLISHABLE",
+      "reason": "GATE_AND_MANUAL_REVIEW_PASS",
+      "manual_review_status": "PASS",
+      "eligible_for_10_6B": true
     },
     {
       "source_path": "backend/raw_docs/jurisprudencia/TC_se_aparta_de_la_STC_Exp__00413_2021_PHC_TC__No_corresponde_inaplicar___.pdf",
@@ -5543,8 +5539,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "01a3a8389f1e17c2930e1b43ee2b2d80ad7f43a6ea0f0299fb8edaecec87a942",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "760ef3f735f8bd237bda37addf2707a3443f73fdf46eb197b4514b2a23d1d457",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5553,29 +5549,30 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "expediente": "00350-2023-PHC/TC",
-        "resolution_type": "sentencia"
+        "resolution_type": "sentencia",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2024/00350-2023-HC.pdf"
       },
-      "total_units": 24,
+      "total_units": 23,
       "unit_types": {
-        "antecedent": 3,
+        "antecedent": 2,
         "decision": 1,
         "foundation": 15,
         "separate_opinion": 5
       },
       "warnings": [
-        "page_furniture_removed:100",
+        "page_furniture_removed:105",
         "jurisprudence_date_or_type_missing",
         "multiple_foundations_in_one_unit"
       ],
       "duplicate_unit_hashes": 0,
-      "oversized_parts": 7,
+      "oversized_parts": 6,
       "page_issue_count": 0,
       "pages": [
         1,
         25
       ],
-      "search_text_chars": 44896,
-      "token_count": 6928,
+      "search_text_chars": 44316,
+      "token_count": 6868,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -5591,7 +5588,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "6923bf8f6c4800f5b7c6041dbe6c6bd4aad221545f85bdf6e5a5f9949501ff4d",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5604,11 +5601,11 @@
         "chamber": "Sala Segunda",
         "resolution_date": "2025-12-16"
       },
-      "total_units": 17,
+      "total_units": 16,
       "unit_types": {
         "antecedent": 2,
         "decision": 1,
-        "foundation": 11,
+        "foundation": 10,
         "separate_opinion": 3
       },
       "warnings": [
@@ -5621,8 +5618,8 @@
         1,
         11
       ],
-      "search_text_chars": 24348,
-      "token_count": 3599,
+      "search_text_chars": 24214,
+      "token_count": 3595,
       "category": "REVIEW_REQUIRED",
       "reason": "MANUAL_REVIEW_PENDING",
       "manual_review_status": "PENDING",
@@ -5637,8 +5634,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "3b30beba470ced7c57bec6aabdbc664456e97da243bddd05413d02c62658b9ab",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "0012e0848462e8746119c4505715bb3d815656ce04febc6589d45cf3a1539002",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5647,17 +5644,18 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "resolution_type": "sentencia",
-        "resolution_date": "2025-11-18"
+        "resolution_date": "2025-11-18",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2025/01902-2023-AA.pdf"
       },
-      "total_units": 124,
+      "total_units": 123,
       "unit_types": {
         "antecedent": 2,
         "decision": 1,
-        "foundation": 99,
+        "foundation": 98,
         "separate_opinion": 22
       },
       "warnings": [
-        "page_furniture_removed:140",
+        "page_furniture_removed:145",
         "jurisprudence_identity_missing",
         "oversized_structure_review_required"
       ],
@@ -5668,8 +5666,8 @@
         1,
         70
       ],
-      "search_text_chars": 171499,
-      "token_count": 23962,
+      "search_text_chars": 170918,
+      "token_count": 23902,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -5685,7 +5683,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "0f8cc3341dfdb983e439df280a7387c5ca98d6c1b1066fb501cc965a1aebb9a5",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5730,7 +5728,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "staged",
       "document_hash": "fb338cbd78c754db29910611dd3db553c23e18eac3302c057c9696724d89c1ee",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5777,7 +5775,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "861c7477fff5c4a17df0b78b36605d61145ba01c609562af5ee0f1568779d0a8",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5818,8 +5816,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "bb05bc9ee42fdce90d9005b3791523b52319d09be822b4384726fec929b23c0d",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "60532b0b6c914b9df1ad237f7118b772f3a61fb7b4356dd52b9e9458a94bb2eb",
+      "parser_version": "legal-v2.1.1",
       "document_type": "cassation",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5832,14 +5830,14 @@
         "chamber": "Sala Penal Permanente",
         "resolution_date": "2024-10-01"
       },
-      "total_units": 19,
+      "total_units": 20,
       "unit_types": {
         "antecedent": 1,
         "decision": 1,
-        "foundation": 17
+        "foundation": 18
       },
       "warnings": [
-        "page_furniture_removed:32",
+        "page_furniture_removed:48",
         "multiple_foundations_in_one_unit"
       ],
       "duplicate_unit_hashes": 0,
@@ -5849,8 +5847,8 @@
         1,
         8
       ],
-      "search_text_chars": 24430,
-      "token_count": 3628,
+      "search_text_chars": 24276,
+      "token_count": 3593,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -5866,7 +5864,7 @@
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
       "document_hash": "c5054bf3f268b7ac66ac9cd7e7a735fc4e424b7fc57deaeafaf3c48304083ce0",
-      "parser_version": "legal-v2.1.0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5908,8 +5906,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "6d8976ec23915345d69c5155415bbf5d8ffbc3dc2dadd8bd10debd46c7ec1c60",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "c630041d8bdc570fa93e5bc03335ad048225853abc22252667dd13b51b050db0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5918,17 +5916,18 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "resolution_type": "sentencia",
-        "resolution_date": "2026-07-15"
+        "resolution_date": "2026-07-15",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/00110-2026-HC.pdf"
       },
-      "total_units": 69,
+      "total_units": 68,
       "unit_types": {
         "antecedent": 3,
         "decision": 1,
-        "foundation": 53,
+        "foundation": 52,
         "separate_opinion": 12
       },
       "warnings": [
-        "page_furniture_removed:239",
+        "page_furniture_removed:245",
         "jurisprudence_identity_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -5938,8 +5937,8 @@
         1,
         48
       ],
-      "search_text_chars": 115573,
-      "token_count": 17041,
+      "search_text_chars": 114999,
+      "token_count": 16981,
       "category": "REVIEW_REQUIRED",
       "reason": "QUALITY_GATE_BLOCKERS",
       "manual_review_status": "AUTOMATED_GATE_BLOCKED",
@@ -5954,8 +5953,8 @@
       "probable_type": "jurisprudence",
       "before_category": "REVIEW_REQUIRED",
       "before_gate_status": "review_required",
-      "document_hash": "6d8976ec23915345d69c5155415bbf5d8ffbc3dc2dadd8bd10debd46c7ec1c60",
-      "parser_version": "legal-v2.1.0",
+      "document_hash": "c630041d8bdc570fa93e5bc03335ad048225853abc22252667dd13b51b050db0",
+      "parser_version": "legal-v2.1.1",
       "document_type": "judgment",
       "source_format": "pdf",
       "source_quality": "high",
@@ -5964,17 +5963,18 @@
       "metadata": {
         "court": "Tribunal Constitucional",
         "resolution_type": "sentencia",
-        "resolution_date": "2026-07-15"
+        "resolution_date": "2026-07-15",
+        "official_url": "https://www.tc.gob.pe/jurisprudencia/2026/00110-2026-HC.pdf"
       },
-      "total_units": 69,
+      "total_units": 68,
       "unit_types": {
         "antecedent": 3,
         "decision": 1,
-        "foundation": 53,
+        "foundation": 52,
         "separate_opinion": 12
       },
       "warnings": [
-        "page_furniture_removed:239",
+        "page_furniture_removed:245",
         "jurisprudence_identity_missing"
       ],
       "duplicate_unit_hashes": 0,
@@ -5984,8 +5984,8 @@
         1,
         48
       ],
-      "search_text_chars": 115573,
-      "token_count": 17041,
+      "search_text_chars": 114999,
+      "token_count": 16981,
       "category": "REVIEW_REQUIRED",
       "reason": "EXACT_SOURCE_DUPLICATE",
       "canonical_source": "backend/raw_docs/jurisprudencia/URGENTE__TC_declara_nulo_todo_el_proceso_penal_seguido_contra_Ollanta_.pdf",
@@ -5995,30 +5995,31 @@
   ],
   "summary": {
     "classification": {
-      "ALREADY_PUBLISHED": 1,
+      "ALREADY_PUBLISHED": 3,
       "INVALID_SOURCE": 2,
       "OCR_REQUIRED": 3,
       "PUBLISHABLE": 2,
-      "REVIEW_REQUIRED": 127
+      "REVIEW_REQUIRED": 125
     },
-    "gross_units": 12346,
+    "gross_units": 12350,
     "unit_types": {
       "antecedent": 209,
-      "article": 6096,
+      "article": 6086,
       "concordance": 346,
-      "decision": 210,
+      "decision": 212,
       "disposition": 241,
-      "foundation": 4640,
+      "foundation": 4653,
       "matter": 40,
-      "separate_opinion": 534,
+      "separate_opinion": 533,
       "sumilla": 30
     },
     "publishable_by_type": {
-      "order": 2
+      "cassation": 1,
+      "judgment": 1
     },
-    "publishable_units": 23,
-    "new_embeddings_required": 23,
-    "new_embedding_text_chars": 18168,
+    "publishable_units": 26,
+    "new_embeddings_required": 26,
+    "new_embedding_text_chars": 31465,
     "exact_source_groups": 5,
     "exact_source_extra_files": 6,
     "same_case_different_source_groups": 2

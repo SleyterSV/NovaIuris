@@ -58,7 +58,7 @@ def validate_staged(document) -> list[str]:
                for unit in document.units):
             problems.append("separate_opinion_mixed_with_decision")
         if any(unit.unit_type == "foundation" and
-               re.search(r"\n(?:PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO|SEXTO|SÉTIMO|OCTAVO|NOVENO|DÉCIMO\w*|DECIMO\w*|UNDÉCIMO|DUODÉCIMO|VIGÉSIMO(?:\s+\w+)?|TRIGÉSIMO(?:\s+\w+)?)[.°º)-]+", unit.text, re.I)
+               re.search(r"\n(?:PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO|SEXTO|S[ÉE]PTIMO|S[ÉE]TIMO|OCTAVO|NOVENO|DÉCIMO\w*|DECIMO\w*|UNDÉCIMO|DUODÉCIMO|VIGÉSIMO(?:\s+\w+)?|TRIGÉSIMO(?:\s+\w+)?)[.°º)-]+", unit.text, re.I)
                for unit in document.units):
             problems.append("multiple_foundations_in_one_unit")
     if any((unit.part_count or 0) > 8 for unit in document.units):

@@ -15,6 +15,8 @@ from .service import stage_file
 ROOT = Path(__file__).resolve().parents[3]
 BASELINE = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_QUALIFICATION.json"
 REVIEWS = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_RECOVERY_REVIEW.json"
+REVIEWS_002 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_002_REVIEW.json"
+BATCH_001 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_001.json"
 OUTPUT = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_RECOVERY.json"
 
 
@@ -29,7 +31,8 @@ def audit(root: Path, baseline: dict, reviews: dict) -> dict:
     if len(rows) != baseline["physical_originals"]:
         raise ValueError("Baseline original count disagrees with its inventory")
     approved = {entry["source_file_hash"]: entry for entry in reviews.get("approved", [])}
-    published_sources = {row["source_file_hash"] for row in rows if row["already_published"]}
+    published_sources = ({row["source_file_hash"] for row in rows if row["already_published"]}
+                         | set(reviews.get("published_source_hashes", [])))
     exact_groups = defaultdict(list)
     for row in rows:
         exact_groups[row["source_file_hash"]].append(row["source_path"])
@@ -51,7 +54,7 @@ def audit(root: Path, baseline: dict, reviews: dict) -> dict:
                "source_file_hash": source_hash, "probable_type": prior["probable_type"],
                "before_category": prior["category"], "before_gate_status": prior.get("gate_status")}
         if source_hash in published_sources:
-            row.update(category="ALREADY_PUBLISHED", reason="PILOT_SOURCE_ALREADY_PUBLISHED",
+            row.update(category="ALREADY_PUBLISHED", reason="SOURCE_ALREADY_PUBLISHED",
                        manual_review_status="EXCLUDED", eligible_for_10_6B=False)
         elif relative.suffix.lower() == ".pdf" and is_html_document(data):
             row.update(category="INVALID_SOURCE", reason="HTML_EDITORIAL_PAGE_WITH_PDF_EXTENSION",
@@ -67,7 +70,7 @@ def audit(root: Path, baseline: dict, reviews: dict) -> dict:
                        metadata={key: value for key, value in document.metadata.items() if key in
                                  {"court", "chamber", "expediente", "resolution_type",
                                   "resolution_date", "number", "precedent_binding", "ponente",
-                                  "materia", "instancia"} and value is not None},
+                                  "materia", "instancia", "official_url"} and value is not None},
                        total_units=len(document.units), unit_types=counts,
                        warnings=document.warnings,
                        duplicate_unit_hashes=document.metadata.get("duplicate_unit_hashes", 0),
@@ -107,7 +110,7 @@ def audit(root: Path, baseline: dict, reviews: dict) -> dict:
     gross_units = Counter(key for row in output for key, value in row.get("unit_types", {}).items()
                           for _ in range(value))
     publishable = [row for row in output if row["category"] == "PUBLISHABLE"]
-    return {"scope": "10.6A.1 offline corpus recovery", "physical_originals": len(output),
+    return {"scope": "10.6A.2 offline corpus qualification after manual review", "physical_originals": len(output),
             "parser_version": publishable[0]["parser_version"] if publishable else None,
             "records": output,
             "summary": {"classification": dict(sorted(classifications.items())),
@@ -125,6 +128,10 @@ def audit(root: Path, baseline: dict, reviews: dict) -> dict:
 def main() -> None:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
     reviews = json.loads(REVIEWS.read_text(encoding="utf-8"))
+    reviews["published_source_hashes"] = [entry["source_file_hash"] for entry in
+                                           json.loads(BATCH_001.read_text(encoding="utf-8"))["documents"]]
+    if REVIEWS_002.is_file():
+        reviews["approved"].extend(json.loads(REVIEWS_002.read_text(encoding="utf-8"))["approved"])
     with patch.object(socket.socket, "connect", _offline), patch.object(socket, "create_connection", _offline):
         report = audit(ROOT, baseline, reviews)
     OUTPUT.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

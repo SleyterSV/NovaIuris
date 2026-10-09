@@ -1,0 +1,25 @@
+{
+  "batch_id": "002",
+  "documents": [
+    {
+      "stable_identifier": "f69b94ba-0dcb-5c4b-a53a-e614cc31e2d1",
+      "source_path": "backend/raw_docs/jurisprudencia/La_lectura_de_la_sentencia_es_solo_un_acto_formal_que___.pdf",
+      "source_file_hash": "075979f6ea7e78d8b29a9193d356a049b86f72796506499e8a4f37c2a35038ff",
+      "document_hash": "1d039f2be5f219a65a870e26796dc70ce047f79ee7ef11c46383cf5d2e4f85c9",
+      "parser_version": "legal-v2.1.1",
+      "expected_unit_count": 15,
+      "document_type": "cassation",
+      "quality_status": "PUBLISHABLE"
+    },
+    {
+      "stable_identifier": "6ec04617-5a6f-5f5f-aca4-aa4dac4c7846",
+      "source_path": "backend/raw_docs/jurisprudencia/TC_rechaza_hábeas_corpus_que_Santivañez_presentó_para_evitar_allanamiento_y___.pdf",
+      "source_file_hash": "440b38a6828c80898cb569a3c821d24ad72c145665848d0471ffbcdeb9ff2bc9",
+      "document_hash": "7f21ea2da5cb3fd54c945eff831447d7c6c2a03a4c557a3757a7020f9175101e",
+      "parser_version": "legal-v2.1.1",
+      "expected_unit_count": 11,
+      "document_type": "judgment",
+      "quality_status": "PUBLISHABLE"
+    }
+  ]
+}

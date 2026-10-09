@@ -12,6 +12,32 @@ from app.legal_ingestion import corpus_cli
 
 
 class CorpusCliTests(unittest.TestCase):
+    def test_published_batch_001_manifest_remains_reproducible_with_legacy_parser(self):
+        entries = corpus_cli._load_manifest(str(corpus_cli.MANIFEST))
+        self.assertEqual(len(entries), 2)
+        for entry in entries:
+            self.assertEqual(entry["parser_version"], "legal-v2.1.0")
+            document = corpus_cli._stage_entry(entry)
+            self.assertEqual(document.document_hash, entry["document_hash"])
+            self.assertEqual(document.document_id, entry["stable_identifier"])
+            self.assertEqual(len(document.units), entry["expected_unit_count"])
+
+    def test_batch_002_manifest_uses_new_parser_and_cannot_publish_yet(self):
+        entries = corpus_cli._load_manifest(str(corpus_cli.MANIFEST_002))
+        self.assertEqual(len(entries), 2)
+        for entry in entries:
+            self.assertEqual(entry["parser_version"], "legal-v2.1.1")
+            document = corpus_cli._stage_entry(entry)
+            self.assertEqual(document.document_hash, entry["document_hash"])
+            self.assertEqual(len(document.units), entry["expected_unit_count"])
+        with patch.object(corpus_cli, "_embedding_configured") as embedding, patch.object(
+                corpus_cli, "_adapter") as adapter, redirect_stderr(io.StringIO()) as output:
+            code = corpus_cli.main(["publish-batch", str(corpus_cli.MANIFEST_002)])
+        self.assertEqual(code, 1)
+        self.assertIn("BATCH_NOT_ENABLED_FOR_PUBLICATION", output.getvalue())
+        embedding.assert_not_called()
+        adapter.assert_not_called()
+
     def test_manifest_must_match_approved_qualification(self):
         row = {"source_path": "backend/raw_docs/jurisprudencia/auto.pdf",
                "source_file_hash": "a" * 64, "document_hash": "b" * 64,

@@ -1,0 +1,21 @@
+{
+  "scope": "10.6A.2 manual review tied to source and parser output",
+  "approved": [
+    {
+      "source_path": "backend/raw_docs/jurisprudencia/La_lectura_de_la_sentencia_es_solo_un_acto_formal_que___.pdf",
+      "source_file_hash": "075979f6ea7e78d8b29a9193d356a049b86f72796506499e8a4f37c2a35038ff",
+      "document_hash": "1d039f2be5f219a65a870e26796dc70ce047f79ee7ef11c46383cf5d2e4f85c9",
+      "parser_version": "legal-v2.1.1",
+      "expected_unit_count": 15,
+      "manual_review": "PASS: 8/8 original pages checked; Corte Suprema, Sala Penal Permanente, Casación 915-2022/ICA, 9 October 2025 and criminal-procedure matter verified. Opening summary is unlabelled in the source, so no sumilla metadata is claimed. First, middle and last units, two foundation series, Séptimo, decision (INFUNDADO, NO CASARON), and page spans 1-8 match. Publisher watermark, isolated page numerals, footnotes and occasional PDF spacing artifacts remain; they do not change the legal holding."
+    },
+    {
+      "source_path": "backend/raw_docs/jurisprudencia/TC_rechaza_hábeas_corpus_que_Santivañez_presentó_para_evitar_allanamiento_y___.pdf",
+      "source_file_hash": "440b38a6828c80898cb569a3c821d24ad72c145665848d0471ffbcdeb9ff2bc9",
+      "document_hash": "7f21ea2da5cb3fd54c945eff831447d7c6c2a03a4c557a3757a7020f9175101e",
+      "parser_version": "legal-v2.1.1",
+      "expected_unit_count": 11,
+      "manual_review": "PASS: 9/9 original pages checked; Tribunal Constitucional Pleno, 04826-2025-PHC/TC, 31 March 2026 verified. No formal sumilla or materia heading is present. First, middle and last units, antecedents, foundations 1-7, IMPROCEDENTE decision, page spans 1-9, and official URL printed in the source match. TC verification footer is absent from units. Three antecedent parts are technical size splits; source redactions are preserved as printed."
+    }
+  ]
+}

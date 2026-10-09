@@ -17,7 +17,8 @@ ORDINAL_PROVISION = re.compile(r"^([úu]nica|primera|segunda|tercera|cuarta|quin
 SECTION = re.compile(r"^(sumilla|materia|antecedentes?|autos\s+y\s+vistos?|vistos?|fundamentos?(?:\s+de\s+derecho)?|considerandos?|atendiendo\s+a\s+que|an[áa]lisis(?:\s+de\s+la\s+controversia|\s+del\s+caso\s+concreto)?|decisi[oó]n|parte\s+resolutiva|resuelve|ha\s+resuelto|por\s+estos\s+fundamentos|fallo|(?:fundamento\s+de\s+)?voto\s+(?:singular|en\s+discordia|separado|concurrente)(?:\s+del?\s+magistrad[oa])?|fundamento\s+de\s+voto\s+del?\s+magistrad[oa])(?:\s*[:.]\s*(.*))?\s*$", re.I)
 VOTE_HEADING = re.compile(r"^(?:fundamento\s+de\s+voto|voto(?:\s+(?:singular|en\s+discordia|separado|concurrente))?)(?:\s+(?:del?|de\s+la)\s+(?:magistrad[oa]|juez)(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.]{2,80})?)?$", re.I)
 ROMAN_SECTION = re.compile(r"^[IVXLCDM]+[.)]\s*(.+?)\s*[:.]?\s*$", re.I)
-FOUNDATION = re.compile(r"^(?:fundamento\s+)?(\d{1,3}|(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno|d[ée]cimo(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno)?|und[ée]cimo|duod[ée]cimo|vig[ée]simo|trig[ée]simo)(?:\s+(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno))?)\s*[.°º)-]+-?\s+(.+)$", re.I)
+FOUNDATION_V2_1_0 = re.compile(r"^(?:fundamento\s+)?(\d{1,3}|(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno|d[ée]cimo(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno)?|und[ée]cimo|duod[ée]cimo|vig[ée]simo|trig[ée]simo)(?:\s+(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno))?)\s*[.°º)-]+-?\s+(.+)$", re.I)
+FOUNDATION = re.compile(FOUNDATION_V2_1_0.pattern.replace("s[ée]timo", "s[ée]ptimo"), re.I)
 EXPEDIENTE = re.compile(r"(?:exp(?:ediente)?\.?\s*(?:n[.°ºo]*\s*)?|casaci[oó]n\s*(?:n[.°ºo]*\s*)?)(\d{1,8}[-/–]\d{2,4}(?:[-/–][A-Za-z0-9]+)*)", re.I)
 DAY_WORDS = {"uno": 1, "primero": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5,
              "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
@@ -264,17 +265,23 @@ def case_law_metadata(blocks: list[Block], filename: str) -> dict:
 class JurisprudenceParser:
     name = "jurisprudence"
 
+    def __init__(self, *, legacy=False):
+        self.legacy = legacy
+
     def parse(self, blocks: list[Block]) -> list[LegalUnit]:
         units: list[LegalUnit] = []
         kind = None
         buffer: list[Block] = []
         number = None
+        unit_heading = None
 
         def flush():
-            nonlocal buffer
+            nonlocal buffer, unit_heading
             if buffer and kind:
-                units.append(_unit(kind, len(units) + 1, buffer, number=number))
+                units.append(_unit(kind, len(units) + 1, buffer, number=number,
+                                   heading=unit_heading))
             buffer = []
+            unit_heading = None
 
         for block_index, block in enumerate(blocks):
             line = search_normalize(block.text)
@@ -312,7 +319,7 @@ class JurisprudenceParser:
                 number = None
                 buffer = [block]
                 continue
-            numbered = FOUNDATION.match(line)
+            numbered = (FOUNDATION_V2_1_0 if self.legacy else FOUNDATION).match(line)
             if numbered and (kind == "foundation" or (kind is not None and not numbered.group(1).isdigit())):
                 # A wrapped case reference such as "Auto 5 - 00004-2024-PCC/TC"
                 # can begin at the left margin like a numbered foundation.
@@ -337,7 +344,15 @@ class JurisprudenceParser:
                 if number == numbered.group(1) and buffer:
                     buffer.append(block)
                     continue
-                if number is None and len(buffer) == 1 and (SECTION.match(search_normalize(buffer[0].text)) or ROMAN_SECTION.match(search_normalize(buffer[0].text))):
+                header_only = (not self.legacy and number is None and 1 <= len(buffer) <= 3
+                               and SECTION.match(search_normalize(buffer[0].text))
+                               and all(len(item.text.split()) <= 5 and
+                                       not re.search(r"[.!?;:]|\d", item.text)
+                                       for item in buffer[1:]))
+                if header_only:
+                    unit_heading = buffer[-1].text.strip() if len(buffer) > 1 else None
+                    buffer = []
+                elif number is None and len(buffer) == 1 and (SECTION.match(search_normalize(buffer[0].text)) or ROMAN_SECTION.match(search_normalize(buffer[0].text))):
                     buffer = []
                 else:
                     flush()

@@ -16,6 +16,77 @@ from app.legal_ingestion.units import OversizedUnitError, embedding_batches, spl
 
 
 class LegalKnowledgeV2Tests(unittest.TestCase):
+    def test_septimo_is_its_own_foundation_and_legacy_parser_is_reproducible(self):
+        blocks = [Block("FUNDAMENTOS", page=1),
+                  Block("Sexto. Razón sexta.", page=1),
+                  Block("Séptimo. Razón séptima.", page=2),
+                  Block("Octavo. Razón octava.", page=2),
+                  Block("DECISIÓN", page=2), Block("Declararon infundado.", page=2)]
+        current = JurisprudenceParser().parse(blocks)
+        self.assertEqual([u.unit_number for u in current if u.unit_type == "foundation"],
+                         ["Sexto", "Séptimo", "Octavo"])
+        self.assertEqual((current[1].page_start, current[1].page_end), (2, 2))
+        legacy = JurisprudenceParser(legacy=True).parse(blocks)
+        self.assertEqual([u.unit_number for u in legacy if u.unit_type == "foundation"],
+                         ["Sexto", "Octavo"])
+
+    def test_heading_only_foundation_is_attached_to_numbered_unit(self):
+        blocks = [Block("FUNDAMENTOS", page=1), Block("Delimitación del petitorio", page=1),
+                  Block("1. El pedido debe examinarse.", page=1),
+                  Block("2. El Tribunal resuelve.", page=2),
+                  Block("HA RESUELTO", page=2), Block("Declarar fundada.", page=2)]
+        units = JurisprudenceParser().parse(blocks)
+        self.assertEqual([u.unit_type for u in units],
+                         ["foundation", "foundation", "decision"])
+        self.assertEqual(units[0].heading, "Delimitación del petitorio")
+        self.assertEqual(units[0].unit_number, "1")
+        self.assertEqual(len(JurisprudenceParser(legacy=True).parse(blocks)), 4)
+
+    def test_tc_verification_footer_removed_only_when_complete(self):
+        footer = ["Esta es una representación impresa cuya autenticidad puede ser contrastada con la representación imprimible",
+                  "localizada en la sede digital del Tribunal Constitucional. La verificación puede ser efectuada a partir de la fecha",
+                  "de publicación web de la presente resolución. Base legal: Decreto Legislativo N.° 1412, Decreto Supremo N.°",
+                  "029-2021-PCM y la Directiva N.° 002-2021-PCM/SGTD.",
+                  "URL: https://www.tc.gob.pe/jurisprudencia/2026/00001.pdf"]
+        blocks = [Block("4. Razón anterior.", page=1)] + [Block(line, page=1) for line in footer] + [
+            Block("El razonamiento continúa.", page=2)]
+        cleaned, removed = remove_repeated_page_furniture(blocks, strip_verification=True)
+        self.assertEqual(removed, 5)
+        self.assertEqual([b.text for b in cleaned], [blocks[0].text, blocks[-1].text])
+        incomplete, removed = remove_repeated_page_furniture(blocks[:-2] + blocks[-1:],
+                                                               strip_verification=True)
+        self.assertEqual(removed, 0)
+        self.assertEqual(len(incomplete), len(blocks) - 1)
+
+    def test_expanded_header_removal_preserves_legal_opening(self):
+        blocks = []
+        for page in range(1, 5):
+            blocks.extend(Block(text, page=page) for text in (
+                str(page), "CORTE SUPREMA", "DE JUSTICIA", "DE LA REPÚBLICA",
+                "SALA PENAL PERMANENTE", "CASACIÓN N.° 123-2025", "LIMA",
+                f"{page}. Razonamiento jurídico de la página {page}."))
+        cleaned, removed = remove_repeated_page_furniture(blocks, expanded_top=True)
+        self.assertGreater(removed, 0)
+        self.assertFalse(any(b.text == "CASACIÓN N.° 123-2025" for b in cleaned))
+        self.assertEqual(sum("Razonamiento jurídico" in b.text for b in cleaned), 4)
+
+    def test_tc_official_url_is_from_source_and_not_derived_from_arbitrary_domain(self):
+        base = [Block("AUTO DEL TRIBUNAL CONSTITUCIONAL", page=1),
+                Block("EXP. N.° 00001-2025-PA/TC", page=1),
+                Block("Lima, 9 de abril de 2026", page=1),
+                Block("RESUELVE", page=1), Block("Declarar improcedente.", page=1)]
+        source = ExtractedDocument("auto.pdf", "pdf", base + [
+            Block("URL: https://www.tc.gob.pe/jurisprudencia/2026/00001.pdf", page=1)], "a" * 64)
+        with patch("app.legal_ingestion.service.extract", return_value=source):
+            current = stage_file("auto.pdf")
+            legacy = stage_file("auto.pdf", parser_version="legal-v2.1.0")
+        self.assertEqual(current.metadata["official_url"],
+                         "https://www.tc.gob.pe/jurisprudencia/2026/00001.pdf")
+        self.assertNotIn("official_url", legacy.metadata)
+        source.blocks[-1].text = "URL: https://example.com/jurisprudencia/2026/00001.pdf"
+        with patch("app.legal_ingestion.service.extract", return_value=source):
+            self.assertNotIn("official_url", stage_file("auto.pdf").metadata)
+
     def test_document_hash_is_whole_normalized_document(self):
         a = [Block("Artículo 1.  Primera regla"), Block("Artículo 2. Segunda regla")]
         b = [Block("Artículo 1. Primera regla"), Block("Artículo 2. Segunda regla")]
