@@ -18,6 +18,10 @@ from .units import embedding_batches
 MANIFEST = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_001.json"
 MANIFEST_002 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_002.json"
 REVIEW_001 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_RECOVERY_REVIEW.json"
+PUBLISH_BASELINES = {
+    "001": (2, 15, 0, 2),
+    "002": (4, 38, 0, 4),
+}
 
 
 class BatchError(RuntimeError):
@@ -129,7 +133,10 @@ def _inspect(entries, *, adapter=None, batch_id="001"):
             raise BatchError("DOCUMENT_CONFLICT")
 
 
-def _publish(entries, adapter):
+def _publish(entries, adapter, *, batch_id="001"):
+    if batch_id not in PUBLISH_BASELINES:
+        raise BatchError("BATCH_NOT_ENABLED_FOR_PUBLICATION")
+    baseline = PUBLISH_BASELINES[batch_id]
     # Validate every manifest entry and source before paying for any embedding.
     documents = [_stage_entry(entry) for entry in entries]
     provider = None
@@ -138,13 +145,14 @@ def _publish(entries, adapter):
         state = _presence(adapter, document)
         if state not in {"NOT_PRESENT", "ALREADY_PRESENT_AND_IDENTICAL"}:
             raise BatchError("DOCUMENT_CONFLICT")
-        expected_before = (2 + index - 1, 15 + prior_units, 0, 2 + index - 1)
+        expected_before = (baseline[0] + index - 1, baseline[1] + prior_units,
+                           baseline[2], baseline[3] + index - 1)
         expected_after = (expected_before[0] + 1, expected_before[1] + len(document.units),
                           0, expected_before[3] + 1)
         if state == "ALREADY_PRESENT_AND_IDENTICAL":
             if _current_counts(adapter) != expected_after:
                 raise BatchError("DATABASE_COUNTS_UNEXPECTED")
-            print(f"BATCH=001 ITEM={index} STATUS=ALREADY_PRESENT_AND_IDENTICAL EMBEDDINGS=0")
+            print(f"BATCH={batch_id} ITEM={index} STATUS=ALREADY_PRESENT_AND_IDENTICAL EMBEDDINGS=0")
             prior_units += len(document.units)
             continue
         if _current_counts(adapter) != expected_before:
@@ -165,7 +173,7 @@ def _publish(entries, adapter):
         _verify_published(adapter, document, result)
         if _current_counts(adapter) != expected_after:
             raise BatchError("POSTPUBLICATION_COUNTS_FAILED")
-        print(f"BATCH=001 ITEM={index} STATUS=COMPLETED_AND_VERIFIED UNITS={result.units_created} "
+        print(f"BATCH={batch_id} ITEM={index} STATUS=COMPLETED_AND_VERIFIED UNITS={result.units_created} "
               f"RELATIONS={result.relations_created} DOCUMENT_ID={result.document_id} "
               f"RUN_ID={result.run_id} COUNTS={'/'.join(map(str, expected_after))}")
         prior_units += len(document.units)
@@ -173,7 +181,7 @@ def _publish(entries, adapter):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Approved Legal Knowledge V2 Batch 001")
+    parser = argparse.ArgumentParser(description="Approved Legal Knowledge V2 batches 001 and 002")
     commands = parser.add_subparsers(dest="command", required=True)
     for command in ("inspect-batch", "publish-batch"):
         commands.add_parser(command).add_argument("manifest")
@@ -185,10 +193,10 @@ def main(argv=None):
             adapter = _adapter() if os.environ.get("MYKE_LEGAL_DATABASE_URL") else None
             _inspect(entries, adapter=adapter, batch_id=batch_id)
         else:
-            if batch_id != "001":
+            if batch_id not in PUBLISH_BASELINES:
                 raise BatchError("BATCH_NOT_ENABLED_FOR_PUBLICATION")
             _embedding_configured()
-            _publish(entries, _adapter())
+            _publish(entries, _adapter(), batch_id=batch_id)
     except BatchError as exc:
         print(f"ERROR={exc}", file=sys.stderr)
         return 1

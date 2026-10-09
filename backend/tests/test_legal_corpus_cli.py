@@ -22,7 +22,7 @@ class CorpusCliTests(unittest.TestCase):
             self.assertEqual(document.document_id, entry["stable_identifier"])
             self.assertEqual(len(document.units), entry["expected_unit_count"])
 
-    def test_batch_002_manifest_uses_new_parser_and_cannot_publish_yet(self):
+    def test_batch_002_manifest_uses_new_parser_and_is_enabled(self):
         entries = corpus_cli._load_manifest(str(corpus_cli.MANIFEST_002))
         self.assertEqual(len(entries), 2)
         for entry in entries:
@@ -31,12 +31,74 @@ class CorpusCliTests(unittest.TestCase):
             self.assertEqual(document.document_hash, entry["document_hash"])
             self.assertEqual(len(document.units), entry["expected_unit_count"])
         with patch.object(corpus_cli, "_embedding_configured") as embedding, patch.object(
-                corpus_cli, "_adapter") as adapter, redirect_stderr(io.StringIO()) as output:
+                corpus_cli, "_adapter") as adapter, patch.object(
+                corpus_cli, "_publish") as publish:
             code = corpus_cli.main(["publish-batch", str(corpus_cli.MANIFEST_002)])
-        self.assertEqual(code, 1)
-        self.assertIn("BATCH_NOT_ENABLED_FOR_PUBLICATION", output.getvalue())
-        embedding.assert_not_called()
-        adapter.assert_not_called()
+        self.assertEqual(code, 0)
+        embedding.assert_called_once()
+        adapter.assert_called_once()
+        publish.assert_called_once_with(entries, adapter.return_value, batch_id="002")
+
+    def test_batch_001_is_still_enabled(self):
+        entries = corpus_cli._load_manifest(str(corpus_cli.MANIFEST))
+        with patch.object(corpus_cli, "_embedding_configured") as embedding, patch.object(
+                corpus_cli, "_adapter") as adapter, patch.object(
+                corpus_cli, "_publish") as publish:
+            code = corpus_cli.main(["publish-batch", str(corpus_cli.MANIFEST)])
+        self.assertEqual(code, 0)
+        embedding.assert_called_once()
+        publish.assert_called_once_with(entries, adapter.return_value, batch_id="001")
+
+    def test_unknown_batch_is_not_enabled(self):
+        with patch.object(corpus_cli, "_stage_entry") as stage:
+            with self.assertRaisesRegex(corpus_cli.BatchError, "BATCH_NOT_ENABLED_FOR_PUBLICATION"):
+                corpus_cli._publish([{}], object(), batch_id="003")
+        stage.assert_not_called()
+
+    def test_batch_002_changed_manifest_hash_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            changed_manifest = Path(folder) / "batch_002.json"
+            with patch.object(corpus_cli, "MANIFEST_002", changed_manifest):
+                for field in ("document_hash", "source_file_hash"):
+                    with self.subTest(field=field):
+                        manifest_data = json.loads((corpus_cli.ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_002.json")
+                                                   .read_text(encoding="utf-8"))
+                        manifest_data["documents"][0][field] = "0" * 64
+                        changed_manifest.write_text(json.dumps(manifest_data), encoding="utf-8")
+                        with self.assertRaisesRegex(corpus_cli.BatchError, "MANIFEST_QUALIFICATION_MISMATCH"):
+                            corpus_cli._load_manifest(str(changed_manifest))
+
+    def test_batch_002_new_document_starts_from_confirmed_counts(self):
+        document = SimpleNamespace(units=[SimpleNamespace(search_text="legal unit")] * 15,
+                                   document_hash="a" * 64)
+        adapter = Mock()
+        adapter.publish.return_value = SimpleNamespace(duplicates_skipped=0, documents_created=1,
+                                                       units_created=15, relations_created=0,
+                                                       document_id="doc", run_id="run")
+        provider = Mock()
+        provider.MODEL = corpus_cli.MODEL
+        with patch.object(corpus_cli, "_stage_entry", return_value=document), patch.object(
+                corpus_cli, "_presence", return_value="NOT_PRESENT"), patch.object(
+                corpus_cli, "_current_counts", side_effect=[(4, 38, 0, 4), (5, 53, 0, 5)]) as counts, patch.object(
+                corpus_cli, "embedding_batches", return_value=[[0.0] * 1536] * 15), patch.object(
+                corpus_cli, "_verify_published") as verify, patch(
+                "app.services.embedding_service.EmbeddingService", return_value=provider):
+            with redirect_stdout(io.StringIO()) as output:
+                corpus_cli._publish([{}], adapter, batch_id="002")
+        self.assertEqual(counts.call_count, 2)
+        verify.assert_called_once()
+        self.assertIn("COUNTS=5/53/0/5", output.getvalue())
+
+    def test_batch_002_resume_uses_its_own_count_baseline_without_embeddings(self):
+        documents = [SimpleNamespace(units=[None] * 15, document_hash="a" * 64),
+                     SimpleNamespace(units=[None] * 11, document_hash="b" * 64)]
+        with patch.object(corpus_cli, "_stage_entry", side_effect=documents), patch.object(
+                corpus_cli, "_presence", return_value="ALREADY_PRESENT_AND_IDENTICAL"), patch.object(
+                corpus_cli, "_current_counts", side_effect=[(5, 53, 0, 5), (6, 64, 0, 6)]):
+            with redirect_stdout(io.StringIO()) as output:
+                corpus_cli._publish([{}, {}], object(), batch_id="002")
+        self.assertIn("BATCH=002 ITEM=2 STATUS=ALREADY_PRESENT_AND_IDENTICAL EMBEDDINGS=0",
+                      output.getvalue())
 
     def test_manifest_must_match_approved_qualification(self):
         row = {"source_path": "backend/raw_docs/jurisprudencia/auto.pdf",
