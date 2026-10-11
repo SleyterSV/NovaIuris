@@ -55,6 +55,26 @@ class CorpusCliTests(unittest.TestCase):
                 corpus_cli._publish([{}], object(), batch_id="003")
         stage.assert_not_called()
 
+    def test_batch_003_is_inspectable_but_publication_remains_disabled(self):
+        entries = corpus_cli._load_manifest(str(corpus_cli.MANIFEST_003))
+        self.assertEqual(len(entries), 2)
+        self.assertEqual([entry["parser_version"] for entry in entries],
+                         ["legal-v2.1.2", "legal-v2.1.2"])
+        for entry in entries:
+            document = corpus_cli._stage_entry(entry)
+            self.assertEqual(document.document_id, entry["stable_identifier"])
+            self.assertEqual(len(document.units), entry["expected_unit_count"])
+        with patch.object(corpus_cli, "_embedding_configured") as embedding, patch.object(
+                corpus_cli, "_adapter") as adapter, patch.object(
+                corpus_cli, "_publish") as publish:
+            with redirect_stderr(io.StringIO()) as error:
+                code = corpus_cli.main(["publish-batch", str(corpus_cli.MANIFEST_003)])
+        self.assertEqual(code, 1)
+        self.assertIn("BATCH_NOT_ENABLED_FOR_PUBLICATION", error.getvalue())
+        embedding.assert_not_called()
+        adapter.assert_not_called()
+        publish.assert_not_called()
+
     def test_batch_002_changed_manifest_hash_is_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             changed_manifest = Path(folder) / "batch_002.json"

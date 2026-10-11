@@ -70,6 +70,72 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         self.assertFalse(any(b.text == "CASACIÓN N.° 123-2025" for b in cleaned))
         self.assertEqual(sum("Razonamiento jurídico" in b.text for b in cleaned), 4)
 
+    def test_running_page_number_removed_only_with_consistent_header_evidence(self):
+        blocks = []
+        for page in range(1, 5):
+            blocks.extend(Block(text, page=page) for text in (
+                str(page), "CORTE SUPREMA", "SALA PENAL PERMANENTE",
+                f"{page}. Fundamento jurídico conservado.", "Texto de la resolución."))
+        historical, _ = remove_repeated_page_furniture(blocks, expanded_top=True)
+        self.assertIn("2", [block.text for block in historical])
+        cleaned, removed = remove_repeated_page_furniture(
+            blocks, expanded_top=True, strip_running_numbers=True)
+        self.assertGreaterEqual(removed, 4)
+        self.assertFalse(any(block.text in {"1", "2", "3", "4"} for block in cleaned))
+        self.assertEqual(sum("Fundamento jurídico" in block.text for block in cleaned), 4)
+        self.assertEqual([block.page for block in cleaned if "Fundamento jurídico" in block.text],
+                         [1, 2, 3, 4])
+
+    def test_running_number_preserves_legal_numerals_without_repeated_header(self):
+        blocks = [Block(str(page), page=page) for page in range(1, 5)]
+        blocks += [Block(f"Contenido único de página {page}.", page=page)
+                   for page in range(1, 5)]
+        cleaned, removed = remove_repeated_page_furniture(
+            blocks, expanded_top=True, strip_running_numbers=True)
+        self.assertEqual(removed, 0)
+        self.assertEqual(cleaned, blocks)
+        scattered = [Block("Fundamento primero", page=1), Block("6", page=1),
+                     Block("CORTE SUPREMA", page=1), Block("Texto jurídico", page=1),
+                     Block("2", page=2), Block("Otro texto", page=2),
+                     Block("3", page=3), Block("Más contenido", page=3)]
+        cleaned, _ = remove_repeated_page_furniture(
+            scattered, expanded_top=True, strip_running_numbers=True)
+        self.assertIn(scattered[1], cleaned)
+
+    def test_two_page_header_needs_two_repeated_lines(self):
+        blocks = [Block("EXP. N.º 00102-2022-Q/TC", page=1), Block("LIMA", page=1),
+                  Block("VISTO", page=1), Block("Razón del pedido.", page=1),
+                  Block("EXP. N.º 00102-2022-Q/TC", page=2), Block("LIMA", page=2),
+                  Block("El fundamento continúa.", page=2)]
+        self.assertEqual(remove_repeated_page_furniture(blocks, expanded_top=True)[0], blocks)
+        cleaned, removed = remove_repeated_page_furniture(blocks, expanded_top=True,
+                                                          strip_two_page_headers=True)
+        self.assertEqual(removed, 4)
+        self.assertEqual([block.text for block in cleaned],
+                         ["VISTO", "Razón del pedido.", "El fundamento continúa."])
+        one_repeated = [Block("LIMA", page=1), Block("Razón primera.", page=1),
+                        Block("LIMA", page=2), Block("Razón segunda.", page=2)]
+        self.assertEqual(remove_repeated_page_furniture(
+            one_repeated, strip_two_page_headers=True)[0], one_repeated)
+
+    def test_parser_211_replay_remains_distinct_from_212_page_cleanup(self):
+        blocks = []
+        for page in range(1, 5):
+            blocks.extend(Block(text, page=page, index=len(blocks) + offset)
+                          for offset, text in enumerate((
+                              str(page), "CORTE SUPREMA", "SALA PENAL PERMANENTE",
+                              "CASACIÓN N.º 100-2025", "LIMA",
+                              f"{page}. Razonamiento jurídico de la página {page}.")))
+        source = ExtractedDocument("casacion.pdf", "pdf", blocks, "a" * 64)
+        with patch("app.legal_ingestion.service.extract", return_value=source):
+            historical = stage_file("casacion.pdf", parser_version="legal-v2.1.1")
+            current = stage_file("casacion.pdf", parser_version="legal-v2.1.2")
+        self.assertEqual(historical.parser_version, "legal-v2.1.1")
+        self.assertEqual(current.parser_version, "legal-v2.1.2")
+        self.assertNotEqual(historical.document_hash, current.document_hash)
+        self.assertGreater(current.metadata["removed_page_furniture"],
+                           historical.metadata["removed_page_furniture"])
+
     def test_tc_official_url_is_from_source_and_not_derived_from_arbitrary_domain(self):
         base = [Block("AUTO DEL TRIBUNAL CONSTITUCIONAL", page=1),
                 Block("EXP. N.° 00001-2025-PA/TC", page=1),

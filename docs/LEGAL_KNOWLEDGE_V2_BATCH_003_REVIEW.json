@@ -1,0 +1,34 @@
+{
+  "batch_id": "003",
+  "parser_version": "legal-v2.1.2",
+  "approved": [
+    {
+      "source_path": "backend/raw_docs/jurisprudencia/TC_llama_severamente_la_atención_a_abogado_por_presentar_escritos_inconducentes___.pdf",
+      "source_file_hash": "91c931fe8be33ebb66fe8bc9dfb7c12d88c9748bd601f278be254476103c72a2",
+      "document_hash": "1f3a1b247ddb5953da078ecefb61acb94c4451209c43fa36ef6a8c27f8dc272a",
+      "parser_version": "legal-v2.1.2",
+      "expected_unit_count": 6,
+      "document_type": "order",
+      "manual_review_status": "PASS",
+      "review_evidence": "2/2 original pages: TC Auto Exp. 00102-2022-Q/TC, 2026-04-09, four numbered grounds, operative IMPROCEDENTE and warning to counsel; first/middle/last units and pages 1-2 checked; repeated two-line case header removed from fourth ground; redactions retained as printed."
+    },
+    {
+      "source_path": "backend/raw_docs/jurisprudencia/TC__Errores_meramente_formales_de_la_defensa_técnica_en_el_escrito___.pdf",
+      "source_file_hash": "784ae112b947b9ccf96d754be8e985e20a404df95f16a59da2502d014feffd9c",
+      "document_hash": "5bc2ff20c6a471879cbbee452b0ab8d855be2c65e5b240cc0616bd51cddff63a",
+      "parser_version": "legal-v2.1.2",
+      "expected_unit_count": 22,
+      "document_type": "judgment",
+      "manual_review_status": "PASS",
+      "review_evidence": "9/9 original pages: TC Sala Primera Sentencia 1910/2025, Exp. 03902-2023-PHC/TC, 2025-12-01; first/middle/last units, grounds 1-19 and operative FUNDADA/NULA checked against original; pages 1-9, printed official URL and source redactions verified. Printed footnote markers and formal signatures remain, without repeated verification footer or case header inside units."
+    }
+  ],
+  "rejected": [
+    {"source": "Casación 1913-2023/VENTANILLA", "manual_review_status": "FAIL", "reason": "Split words and date incorporated into sumilla."},
+    {"source": "Casación 1027-2025/SAN", "manual_review_status": "FAIL", "reason": "First unit still begins at physical page 7 of 12; opening missing."},
+    {"source": "Queja 1944-2025", "manual_review_status": "FAIL", "reason": "Two judicial decisions from separate cases are mixed in one source."},
+    {"source": "Casación 13554-2025", "manual_review_status": "FAIL", "reason": "Decision boundaries and chamber metadata remain unreliable."},
+    {"source": "Casación 767-2025", "manual_review_status": "FAIL", "reason": "Foundation boundaries and PDF spacing remain unreliable."},
+    {"source": "Casación 496-2025/LA LIBERTAD", "manual_review_status": "FAIL", "reason": "Sumilla absorbs opening and foundations split incorrectly."}
+  ]
+}

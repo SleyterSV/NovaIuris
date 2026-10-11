@@ -81,7 +81,7 @@ def _promulgating_instrument(blocks):
 def stage_file(path, *, family="auto", max_unit_tokens=800, segment=None,
                parser_version=None) -> StagedDocument:
     version = parser_version or PARSER_VERSION
-    if version not in {"legal-v2.1.0", PARSER_VERSION}:
+    if version not in {"legal-v2.1.0", "legal-v2.1.1", PARSER_VERSION}:
         raise ValueError("Unsupported legal parser version")
     legacy = version == "legal-v2.1.0"
     extracted = extract(path)
@@ -93,7 +93,9 @@ def stage_file(path, *, family="auto", max_unit_tokens=800, segment=None,
         source_blocks, segment_metadata = _promulgating_instrument(extracted.blocks)
     blocks, removed = remove_repeated_page_furniture(source_blocks,
                                                       strip_verification=not legacy,
-                                                      expanded_top=not legacy)
+                                                      expanded_top=not legacy,
+                                                      strip_running_numbers=version == PARSER_VERSION,
+                                                      strip_two_page_headers=version == PARSER_VERSION)
     chosen = _family(extracted.filename, source_blocks if not legacy else blocks, family)
     parser = JurisprudenceParser(legacy=legacy) if chosen == "jurisprudence" else NormativeParser()
     parsed = parser.parse(blocks)

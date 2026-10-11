@@ -1,0 +1,25 @@
+{
+  "batch_id": "003",
+  "documents": [
+    {
+      "stable_identifier": "ce873ccd-0117-578b-8b23-8d29b5c45cfd",
+      "source_path": "backend/raw_docs/jurisprudencia/TC_llama_severamente_la_atención_a_abogado_por_presentar_escritos_inconducentes___.pdf",
+      "source_file_hash": "91c931fe8be33ebb66fe8bc9dfb7c12d88c9748bd601f278be254476103c72a2",
+      "document_hash": "1f3a1b247ddb5953da078ecefb61acb94c4451209c43fa36ef6a8c27f8dc272a",
+      "parser_version": "legal-v2.1.2",
+      "expected_unit_count": 6,
+      "document_type": "order",
+      "quality_status": "PUBLISHABLE"
+    },
+    {
+      "stable_identifier": "110aeca8-5837-526a-8e84-6b7579f0fdf2",
+      "source_path": "backend/raw_docs/jurisprudencia/TC__Errores_meramente_formales_de_la_defensa_técnica_en_el_escrito___.pdf",
+      "source_file_hash": "784ae112b947b9ccf96d754be8e985e20a404df95f16a59da2502d014feffd9c",
+      "document_hash": "5bc2ff20c6a471879cbbee452b0ab8d855be2c65e5b240cc0616bd51cddff63a",
+      "parser_version": "legal-v2.1.2",
+      "expected_unit_count": 22,
+      "document_type": "judgment",
+      "quality_status": "PUBLISHABLE"
+    }
+  ]
+}

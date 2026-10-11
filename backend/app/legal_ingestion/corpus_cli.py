@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import sys
 
-from .corpus_audit import ROOT, OUTPUT as QUALIFICATION
+from .corpus_audit import ROOT, OUTPUT as QUALIFICATION, OUTPUT_003 as QUALIFICATION_003
 from .publication import PublicationAdapter, postgres_connection_factory
 from .publication_entrypoint import (_counts, _database, _dsn, _embedding_configured,
                                      _identity, MODEL)
@@ -17,6 +17,7 @@ from .units import embedding_batches
 
 MANIFEST = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_001.json"
 MANIFEST_002 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_002.json"
+MANIFEST_003 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_003.json"
 REVIEW_001 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_RECOVERY_REVIEW.json"
 PUBLISH_BASELINES = {
     "001": (2, 15, 0, 2),
@@ -34,19 +35,22 @@ def _manifest_batch(path: str) -> str:
         return "001"
     if resolved == MANIFEST_002.resolve():
         return "002"
+    if resolved == MANIFEST_003.resolve():
+        return "003"
     raise BatchError("UNAPPROVED_MANIFEST_PATH")
 
 
 def _load_manifest(path: str) -> list[dict]:
     batch_id = _manifest_batch(path)
-    manifest_path = MANIFEST if batch_id == "001" else MANIFEST_002
+    manifest_path = {"001": MANIFEST, "002": MANIFEST_002, "003": MANIFEST_003}[batch_id]
     if not manifest_path.is_file():
         raise BatchError("UNAPPROVED_MANIFEST_PATH")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     entries = manifest.get("documents")
     if manifest.get("batch_id") != batch_id or not isinstance(entries, list) or not 1 <= len(entries) <= 30:
         raise BatchError("MANIFEST_INVALID")
-    qualification = json.loads(QUALIFICATION.read_text(encoding="utf-8"))
+    qualification_path = QUALIFICATION_003 if batch_id == "003" else QUALIFICATION
+    qualification = json.loads(qualification_path.read_text(encoding="utf-8"))
     approved = {row["source_path"]: row for row in qualification["records"]
                 if row["category"] == "PUBLISHABLE"}
     if batch_id == "001" and REVIEW_001.is_file():
@@ -181,7 +185,7 @@ def _publish(entries, adapter, *, batch_id="001"):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Approved Legal Knowledge V2 batches 001 and 002")
+    parser = argparse.ArgumentParser(description="Manifest-bound Legal Knowledge V2 batch inspection")
     commands = parser.add_subparsers(dest="command", required=True)
     for command in ("inspect-batch", "publish-batch"):
         commands.add_parser(command).add_argument("manifest")

@@ -16,8 +16,11 @@ ROOT = Path(__file__).resolve().parents[3]
 BASELINE = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_QUALIFICATION.json"
 REVIEWS = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_RECOVERY_REVIEW.json"
 REVIEWS_002 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_002_REVIEW.json"
+REVIEWS_003 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_003_REVIEW.json"
 BATCH_001 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_001.json"
+BATCH_002 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_002.json"
 OUTPUT = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_RECOVERY.json"
+OUTPUT_003 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_BATCH_003.json"
 
 
 def _offline(*args, **kwargs):
@@ -128,13 +131,14 @@ def audit(root: Path, baseline: dict, reviews: dict) -> dict:
 def main() -> None:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
     reviews = json.loads(REVIEWS.read_text(encoding="utf-8"))
-    reviews["published_source_hashes"] = [entry["source_file_hash"] for entry in
-                                           json.loads(BATCH_001.read_text(encoding="utf-8"))["documents"]]
-    if REVIEWS_002.is_file():
-        reviews["approved"].extend(json.loads(REVIEWS_002.read_text(encoding="utf-8"))["approved"])
+    reviews["published_source_hashes"] = [entry["source_file_hash"] for manifest in (BATCH_001, BATCH_002)
+                                           for entry in json.loads(manifest.read_text(encoding="utf-8"))["documents"]]
+    if REVIEWS_003.is_file():
+        reviews["approved"].extend(json.loads(REVIEWS_003.read_text(encoding="utf-8"))["approved"])
     with patch.object(socket.socket, "connect", _offline), patch.object(socket, "create_connection", _offline):
         report = audit(ROOT, baseline, reviews)
-    OUTPUT.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    report["scope"] = "Batch 003 offline corpus qualification after manual review"
+    OUTPUT_003.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report["summary"], ensure_ascii=False))
 
 
