@@ -82,8 +82,14 @@
                 <MarkdownRenderer :content="answer" :sources="verifiedSources" :citations="verifiedCitations"
                     @select-citation="openCitation" />
             </div>
-            <p v-if="!verifiedCitations.length" class="citation-warning">
+            <p v-if="!verifiedCitations.length && sourceWarnings.some(warning => warning.code === 'NO_VERIFIABLE_SOURCES')" class="citation-warning">
                 No se encontraron fuentes verificables para respaldar esta respuesta.
+            </p>
+            <p v-else-if="!verifiedCitations.length" class="citation-warning">
+                La respuesta no incluyó citas verificables.
+            </p>
+            <p v-for="warning in visibleWarnings" :key="warning.code" class="citation-warning">
+                {{ warning.message }}
             </p>
             <SourcesList :sources="verifiedSources" :citations="verifiedCitations" @select="selectedSource = $event" @select-citation="openCitation" />
 
@@ -133,7 +139,7 @@
                 <div>
 
                     <span class="nova-search-answer-metric-label">
-                        Tiempo de análisis
+                        Tiempo total de búsqueda
                     </span>
 
                     <strong>
@@ -142,6 +148,13 @@
 
                 </div>
 
+            </div>
+
+            <div v-if="hasTotalResults" class="nova-search-answer-metric">
+                <div>
+                    <span class="nova-search-answer-metric-label">Fuentes utilizadas</span>
+                    <strong>{{ verifiedSources.length }}</strong>
+                </div>
             </div>
 
 
@@ -360,6 +373,8 @@ const selectedSource = ref(null)
 const verified = computed(() => resolveCitations(props.citations, props.sources))
 const verifiedSources = computed(() => verified.value.sources)
 const verifiedCitations = computed(() => verified.value.citations)
+const visibleWarnings = computed(() => props.sourceWarnings.filter(warning =>
+    warning?.code === 'VIGENCIA_FILTER_UNAVAILABLE' && typeof warning.message === 'string'))
 const openCitation = citation => {
     selectedSource.value = verifiedSources.value.find(source => source.source_id === citation.source_id) || null
 }

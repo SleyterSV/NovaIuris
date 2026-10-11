@@ -132,10 +132,14 @@ function handleFiltersUpdate(newFilters) {
 
     }
 
+    if (newFilters?.vigencia_explicit !== undefined) {
+        updateFilter('vigencia_explicit', newFilters.vigencia_explicit)
+    }
+
 }
 
 function resetFilters() {
-    handleFiltersUpdate({ modulo: 'Todos', solo_vigentes: true })
+    handleFiltersUpdate({ modulo: 'Todos', solo_vigentes: true, vigencia_explicit: false })
 }
 
 function useSuggestion(value) {
@@ -275,14 +279,17 @@ function useSuggestion(value) {
 
                 <NovaSearchEmptyState
                     v-else
-                    :mode="resultStatus === 'no_results' ? 'no-results' : 'initial'"
+                    :mode="resultStatus === 'no_exact_case_found' ? 'no-exact-case' : resultStatus === 'no_exact_decision_found' ? 'no-exact-decision' : resultStatus === 'no_results' ? 'no-results' : 'initial'"
                     :query="searchQuery"
-                    :show-suggestions="resultStatus !== 'no_results'"
+                    :show-suggestions="!['no_results', 'no_exact_case_found', 'no_exact_decision_found'].includes(resultStatus)"
                     @suggestion="useSuggestion"
                 />
                 <button v-if="resultStatus === 'no_results'" class="reset-search-filters" type="button" @click="resetFilters">
                     Restablecer filtros
                 </button>
+                <p v-if="resultStatus === 'no_results' && sourceWarnings.some(warning => warning.code === 'VIGENCIA_FILTER_UNAVAILABLE')" class="search-filter-warning">
+                    El corpus V2 no clasifica vigencia normativa; este filtro no se aplicó.
+                </p>
 
             </section>
 
@@ -417,6 +424,15 @@ function useSuggestion(value) {
 .reset-search-filters:focus-visible {
     outline: 2px solid #315c97;
     outline-offset: 2px;
+}
+
+.search-filter-warning {
+    margin: 12px auto 0;
+    padding: 10px 13px;
+    max-width: 680px;
+    border-left: 3px solid #bd9854;
+    background: #fbf7ee;
+    color: #805d2a;
 }
 
 

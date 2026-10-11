@@ -21,6 +21,12 @@ class SourceContractTests(unittest.TestCase):
         self.assertEqual(first["official_url"], record["official_url"])
         self.assertEqual(first["metadata"]["vigencia"], "vigente")
 
+    def test_v1_source_id_mapping_is_unchanged_when_record_has_document_id(self):
+        source = normalize_public_source({"id": "v1-record", "document_id": "other-field",
+                                          "texto": "Fragmento V1"})
+        self.assertEqual(source["document_id"], "v1-record")
+        self.assertIsNone(source["chunk_id"])
+
     def test_jurisprudence_and_absent_url_are_not_inferred(self):
         source = normalize_public_source({"id": "J-9", "tipo_documento": "jurisprudence",
             "tribunal": "Corte Suprema", "expediente": "123-2020", "fundamento": "Fundamento 8",
@@ -71,6 +77,30 @@ class SourceContractTests(unittest.TestCase):
                                           "page_start": 12, "section": "Fundamentos"})
         citation = normalize_citation({"label": "[1]"}, source)
         self.assertEqual(citation["locator"], {"page": 12, "section": "Fundamentos", "article": "Art. 4"})
+
+    def test_v2_internal_provenance_is_verifiable_with_or_without_official_url(self):
+        for url in (None, "https://tc.gob.pe/expediente"):
+            with self.subTest(url=url):
+                record = {"id": "unit-v2", "unit_id": "unit-v2", "chunk_id": "unit-v2", "document_id": "doc-v2",
+                          "titulo": "STC Exp. 04826-2025-PHC/TC", "texto": "Parte resolutiva.",
+                          "page_start": 9, "official_url": url, "metadata": {"unit_type": "decision"}}
+                source = normalize_public_source(record)
+                result = resolve_citations(f"Decisión [{source['source_id']}].", [source])
+                self.assertEqual(len(result["citations"]), 1)
+                self.assertEqual(result["citations"][0]["locator"]["page"], 9)
+                self.assertEqual(result["sources_used"][0]["official_url"], url)
+                self.assertNotIn("NO_VERIFIABLE_SOURCES", [item["code"] for item in result["warnings"]])
+
+    def test_retrieved_sources_are_not_automatically_listed_as_cited(self):
+        first = normalize_public_source({"id": "u1", "unit_id": "u1", "chunk_id": "u1", "document_id": "d1",
+            "titulo": "Expediente", "texto": "Decisión", "metadata": {"unit_type": "decision"}})
+        second = normalize_public_source({"id": "u2", "unit_id": "u2", "chunk_id": "u2", "document_id": "d1",
+            "titulo": "Expediente", "texto": "Fundamento", "metadata": {"unit_type": "foundation"}})
+        resolved = resolve_citations(f"Resolvió [{first['source_id']}].", [first, second])
+        self.assertEqual([source["chunk_id"] for source in resolved["sources_used"]], ["u1"])
+        self.assertEqual([citation["label"] for citation in resolved["citations"]], ["[1]"])
+        uncited = resolve_citations("Respuesta sin marcador.", [first])
+        self.assertEqual(uncited["warnings"][0]["code"], "NO_CITED_SOURCES")
 
     def test_case_contract_preserves_public_and_private_sources_for_court(self):
         from app.utils.case_contract import normalize_case_result

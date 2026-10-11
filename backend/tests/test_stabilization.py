@@ -179,10 +179,11 @@ class AdapterTests(unittest.TestCase):
         builder.set_ontology.assert_not_called()
 
     def test_simulation_timeout_stops_later_calls(self):
-        next_operation, finished = Mock(), threading.Event()
+        next_operation, started, finished = Mock(), threading.Event(), threading.Event()
         class SlowSimulator:
             def simulate_case(self, context, cancellation_token=None):
                 try:
+                    started.set()
                     time.sleep(.04)  # Represents an already started remote call.
                     cancellation_token.check()
                     next_operation()
@@ -191,7 +192,10 @@ class AdapterTests(unittest.TestCase):
         adapter = NovaCourtSimulationOrchestrator(SlowSimulator, enabled=True, timeout=.005)
         result = adapter.simulate({'strategy':{'claim_strategy':'A'}}, 'CASE-A')
         self.assertEqual(result['status'], 'timeout')
-        self.assertTrue(finished.wait(1))
+        # A 5 ms deadline can cancel the queued future before it starts.
+        # If it started, the worker must still exit after observing cancellation.
+        if started.is_set():
+            self.assertTrue(finished.wait(1))
         next_operation.assert_not_called()
 
 

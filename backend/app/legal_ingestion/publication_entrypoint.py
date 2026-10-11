@@ -12,7 +12,7 @@ import sys
 from .service import stage_file
 from .units import embedding_batches
 
-from .publication import PublicationAdapter, _vector, postgres_connection_factory
+from .publication import PublicationAdapter, postgres_connection_factory
 
 PROJECT_REF = "emelxkoztshmzukydqzj"
 MODEL = "text-embedding-3-small"
@@ -164,28 +164,17 @@ def _search(args):
     provider = EmbeddingService()
     if provider.MODEL != MODEL:
         raise PilotError("EMBEDDING_MODEL_MISMATCH")
-    vector = _vector(provider.generate_embedding(query))
+    vector = provider.generate_embedding(query)
+    from app.services.legal_repository_v2 import search_cursor
     adapter = configured_publication_adapter()
     with _database(adapter, read_only=True) as (_, cursor):
-        cursor.execute("""select unit_id, document_id, document_title, document_type,
-                              unit_type, unit_number, heading, excerpt, page_start,
-                              page_end, similarity, lexical_score, official_url
-                       from public.match_legal_knowledge_v2(
-                           query_embedding => %s::extensions.vector(1536),
-                           query_text => %s, match_count => %s,
-                           filter_document_type => %s, filter_rama => %s,
-                           filter_expediente => %s)""",
-                       (vector, query, args.top_k, args.document_type,
-                        args.rama, args.expediente))
-        rows = cursor.fetchall()
+        rows = search_cursor(cursor, embedding=vector, query_text=query,
+                             match_count=args.top_k, filter_document_type=args.document_type,
+                             filter_rama=args.rama, filter_expediente=args.expediente)
     results = []
     for rank, row in enumerate(rows, 1):
-        if len(row) != len(SEARCH_COLUMNS):
-            raise PilotError("SEARCH_RESULT_SHAPE_INVALID")
-        result = dict(zip(SEARCH_COLUMNS, row))
+        result = dict(row)
         result["rank"] = rank
-        result["unit_id"] = str(result["unit_id"])
-        result["document_id"] = str(result["document_id"])
         result["excerpt"] = (result["excerpt"] or "")[:240]
         results.append(result)
     if args.json:

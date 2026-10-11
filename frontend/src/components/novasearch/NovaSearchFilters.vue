@@ -1,8 +1,9 @@
 <script setup>
 const props = defineProps({ filters: { type: Object, required: true }, modulos: { type: Array, default: () => ['Todos'] } })
 const emit = defineEmits(['update:filters'])
-function update(key, value) { emit('update:filters', { ...props.filters, [key]: value }) }
-function clear() { emit('update:filters', { modulo: 'Todos', solo_vigentes: true }) }
+function update(key, value) { emit('update:filters', { ...props.filters, [key]: value,
+  ...(key === 'solo_vigentes' ? { vigencia_explicit: true } : {}) }) }
+function clear() { emit('update:filters', { modulo: 'Todos', solo_vigentes: true, vigencia_explicit: false }) }
 </script>
 
 <template>

@@ -63,6 +63,7 @@ def normalize_public_source(record: dict, excerpt: str | None = None) -> dict:
     record = record if isinstance(record, dict) else {}
     metadata = deepcopy(record.get("metadata")) if isinstance(record.get("metadata"), dict) else {}
     identifier = _value(record, "id", "record_id", "document_id") or metadata.get("id")
+    document_id = (_value(record, "document_id") or identifier) if record.get("unit_id") else identifier
     locator = _value(record, "article", "articulo", "fundamento", "legal_basis")
     exact_excerpt = excerpt if excerpt is not None else str(_value(record, "texto", "text", "excerpt") or "")
     source_id = _stable_id("SRC", "public", identifier, locator,
@@ -79,12 +80,13 @@ def normalize_public_source(record: dict, excerpt: str | None = None) -> dict:
         "court": _value(record, "court", "tribunal", "instancia") or metadata.get("court"),
         "case_number": _value(record, "case_number", "expediente") or metadata.get("case_number"),
         "document_number": _value(record, "document_number", "numero") or metadata.get("document_number"),
-        "article": locator or metadata.get("article"),
+        "article": (_value(record, "article", "articulo") or metadata.get("article"))
+                   if record.get("unit_id") else (locator or metadata.get("article")),
         "legal_basis": _value(record, "legal_basis", "fundamento") or metadata.get("legal_basis"),
         "date": _value(record, "date", "fecha", "fecha_resolucion", "fecha_publicacion") or metadata.get("date"),
-        "document_id": str(identifier) if identifier is not None else None,
+        "document_id": str(document_id) if document_id is not None else None,
         "case_id": None,
-        "chunk_id": _value(record, "chunk_id") or metadata.get("chunk_id"),
+        "chunk_id": _value(record, "chunk_id", "unit_id") or metadata.get("chunk_id"),
         "page_start": _value(record, "page_start", "page"),
         "page_end": _value(record, "page_end"),
         "section": _value(record, "section", "seccion"),
@@ -152,6 +154,10 @@ def resolve_citations(answer: str, context_sources: list[dict], case_id: str | N
             continue
         if source.get("source_scope") == "case" and (not case_id or source.get("case_id") != case_id):
             continue
+        metadata = source.get("metadata") if isinstance(source.get("metadata"), dict) else {}
+        if metadata.get("unit_type") and not (
+                source.get("document_id") and source.get("chunk_id") and source.get("title")):
+            continue
         valid[source["source_id"]] = source
     used, citations, warnings = {}, [], []
 
@@ -171,6 +177,8 @@ def resolve_citations(answer: str, context_sources: list[dict], case_id: str | N
     resolved_answer = _MARKER.sub(replace, str(answer or ""))
     sources_used = [deepcopy(valid[source_id]) for source_id in used]
     if not sources_used and answer:
-        warnings.append({"code": "NO_VERIFIABLE_SOURCES", "message": "No se encontraron fuentes verificables para respaldar esta respuesta."})
+        warnings.append({"code": "NO_CITED_SOURCES" if valid else "NO_VERIFIABLE_SOURCES",
+                         "message": ("La respuesta no incluyó citas verificables." if valid else
+                                     "No se encontraron fuentes verificables para respaldar esta respuesta.")})
     return {"answer": resolved_answer, "citations": citations, "sources_used": sources_used,
             "warnings": warnings}

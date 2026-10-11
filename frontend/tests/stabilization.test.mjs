@@ -319,7 +319,7 @@ test('shared citation renderer makes only verified labels interactive and escape
     const context={}
     await renderToString(createSSRApp({render:()=>h(SourceModal,{source})}),context)
     const modalHtml=context.teleports?.body || ''
-    assert.ok(modalHtml.includes('Abrir fuente oficial'))
+    assert.ok(modalHtml.includes('ABRIR FUENTE OFICIAL'))
     assert.ok(modalHtml.includes('rel="noopener noreferrer"'))
     assert.ok(!modalHtml.includes('<dt>Tribunal</dt>'))
     const {default:SourcesList}=await server.ssrLoadModule('/src/components/common/SourcesList.vue')

@@ -26,6 +26,7 @@ class Config:
     SUPABASE_URL = os.environ.get('SUPABASE_URL')
     SUPABASE_PUBLISHABLE_KEY = os.environ.get('SUPABASE_PUBLISHABLE_KEY')
     SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+    LEGAL_KNOWLEDGE_VERSION = os.environ.get('LEGAL_KNOWLEDGE_VERSION', 'v1').lower()
     EMBEDDING_API_KEY = os.environ.get('OPENAI_API_KEY')
     AUTH_TIMEOUT_SECONDS = int(os.environ.get('AUTH_TIMEOUT_SECONDS', '5'))
     PROVIDER_MAX_RETRIES = int(os.environ.get('PROVIDER_MAX_RETRIES', '2'))

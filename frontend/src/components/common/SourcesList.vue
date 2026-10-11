@@ -16,6 +16,7 @@
 <script setup>
 import { computed } from 'vue'
 import { normalizeSources } from '@/utils/sourceContract.js'
+import { legalTypeLabel } from '@/utils/legalSearchPresentation.js'
 import CitationLink from '@/components/common/CitationLink.vue'
 const props = defineProps({ sources: { type: Array, default: () => [] }, citations: { type: Array, default: () => [] }, caseId: { type: String, default: null } })
 defineEmits(['select', 'select-citation'])
@@ -23,7 +24,8 @@ const items = computed(() => {
   const sources = normalizeSources(props.sources, props.caseId)
   return sources.map(source => ({ source, citations: props.citations.filter(c => c.source_id === source.source_id) }))
 })
-const location = source => [source.source_type, source.article, source.legal_basis, source.page_start ? `pág. ${source.page_start}` : null, source.section].filter(Boolean).join(' · ')
+const location = source => [legalTypeLabel(source.source_type), source.article, source.legal_basis,
+  source.page_start ? `pág. ${source.page_start}` : null, source.section].filter(Boolean).join(' · ')
 </script>
 
 <style scoped>

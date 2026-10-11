@@ -12,7 +12,7 @@
 
                 <span class="nova-search-result-type">
 
-                    {{ result.tipo_documento || 'Documento jurídico' }}
+                    {{ legalTypeLabel(result.tipo_documento, result.metadata) }}
 
                 </span>
 
@@ -83,7 +83,8 @@
             v-if="
                 result.expediente ||
                 result.numero ||
-                result.fecha_resolucion
+                result.fecha_resolucion ||
+                result.page_start != null
             "
             class="nova-search-document-data"
         >
@@ -133,6 +134,13 @@
                     {{ result.fecha_resolucion }}
                 </span>
 
+            </div>
+
+            <div v-if="result.page_start != null" class="nova-search-document-item">
+                <span class="nova-search-document-label">PÁGINA</span>
+                <span class="nova-search-document-value">
+                    {{ result.page_start }}<template v-if="result.page_end != null && result.page_end !== result.page_start">–{{ result.page_end }}</template>
+                </span>
             </div>
 
         </div>
@@ -186,7 +194,7 @@
         ==================================================== -->
 
         <div
-            v-if="result.resumen_ia"
+            v-if="cardExcerpt(result).primary"
             class="nova-search-summary"
         >
 
@@ -195,14 +203,14 @@
                 <span class="nova-search-summary-line"></span>
 
                 <span class="nova-search-section-label">
-                    SÍNTESIS JURÍDICA
+                    {{ result.unit_id ? 'EXTRACTO RELEVANTE' : 'SÍNTESIS JURÍDICA' }}
                 </span>
 
             </div>
 
 
             <p>
-                {{ result.resumen_ia }}
+                {{ cardExcerpt(result).primary }}
             </p>
 
         </div>
@@ -213,7 +221,7 @@
         ==================================================== -->
 
         <details
-            v-if="result.extracto_exacto"
+            v-if="cardExcerpt(result).secondary"
             class="nova-search-details"
         >
 
@@ -241,7 +249,7 @@
                 </span>
 
                 <div class="nova-search-extract-content">
-                    {{ result.extracto_exacto }}
+                    {{ cardExcerpt(result).secondary }}
                 </div>
 
             </div>
@@ -254,6 +262,8 @@
 
 
 <script setup>
+
+import { legalTypeLabel, cardExcerpt } from '@/utils/legalSearchPresentation.js'
 
 /* =========================================================
    PROPS

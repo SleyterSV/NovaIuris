@@ -22,7 +22,7 @@ export function useNovaSearch() {
   const searchProgress = ref(0)
   const progressStages = ref([])
   const searchCounts = ref({})
-  const filters = reactive({ modulo: 'Todos', solo_vigentes: true })
+  const filters = reactive({ modulo: 'Todos', solo_vigentes: true, vigencia_explicit: false })
   let controller = null
   let taskId = null
   let requestId = 0
@@ -89,7 +89,7 @@ export function useNovaSearch() {
         context.value = data.context || ''
         normalizedQuery.value = data.query_normalizada || query
         searchCounts.value = data.metadata?.counts || searchCounts.value
-        searchTime.value = Math.max(0, Math.round((performance.now() - startedAt) / 1000))
+        searchTime.value = Math.max(0, Math.round(performance.now() - startedAt))
         isFallbackResponse.value = !searchResults.value.length
         fallbackDisclaimer.value = ''
       }

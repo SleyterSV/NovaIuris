@@ -112,7 +112,7 @@
                                 v-if="result.tipo_documento"
                                 class="document-type"
                             >
-                                {{ result.tipo_documento }}
+                                {{ legalTypeLabel(result.tipo_documento, result.metadata) }}
                             </span>
 
 
@@ -175,7 +175,9 @@
                     v-if="
                         result.expediente ||
                         result.numero ||
-                        result.fecha_resolucion
+                        result.fecha_resolucion ||
+                        result.page_start != null ||
+                        result.unit_type
                     "
                     class="result-information"
                 >
@@ -225,6 +227,16 @@
                             {{ formatDate(result.fecha_resolucion) }}
                         </strong>
 
+                    </div>
+
+                    <div v-if="result.unit_type" class="result-info-item">
+                        <span class="info-label">Unidad</span>
+                        <strong>{{ legalUnitLabel(result.unit_type, result.unit_number) }}</strong>
+                    </div>
+
+                    <div v-if="result.page_start != null" class="result-info-item">
+                        <span class="info-label">Página</span>
+                        <strong>{{ result.page_start }}<template v-if="result.page_end != null && result.page_end !== result.page_start">–{{ result.page_end }}</template></strong>
                     </div>
 
                 </div>
@@ -289,7 +301,7 @@
                 ================================================== -->
 
                 <section
-                    v-if="result.resumen_ia"
+                    v-if="cardExcerpt(result).primary"
                     class="result-summary-section"
                 >
 
@@ -298,14 +310,14 @@
                         <span class="section-heading-mark"></span>
 
                         <span class="summary-label">
-                            SÍNTESIS JURÍDICA
+                            {{ result.unit_id ? 'EXTRACTO RELEVANTE' : 'SÍNTESIS JURÍDICA' }}
                         </span>
 
                     </div>
 
 
                     <p class="result-summary">
-                        {{ result.resumen_ia }}
+                        {{ cardExcerpt(result).primary }}
                     </p>
 
                 </section>
@@ -316,7 +328,7 @@
                 ================================================== -->
 
                 <details
-                    v-if="result.extracto_exacto"
+                    v-if="cardExcerpt(result).secondary"
                     class="result-details"
                 >
 
@@ -377,7 +389,7 @@
 
                         <div class="extract-content">
 
-                            {{ result.extracto_exacto }}
+                            {{ cardExcerpt(result).secondary }}
 
                         </div>
 
@@ -405,7 +417,7 @@
                         v-if="result.tipo_documento"
                         class="footer-document-type"
                     >
-                        {{ result.tipo_documento }}
+                        {{ legalTypeLabel(result.tipo_documento, result.metadata) }}
                     </span>
 
                 </footer>
@@ -420,6 +432,8 @@
 
 
 <script setup>
+
+import { legalTypeLabel, legalUnitLabel, cardExcerpt } from '@/utils/legalSearchPresentation.js'
 
 /* =========================================================
    PROPS

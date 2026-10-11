@@ -364,7 +364,11 @@ const props = defineProps({
 
                 "initial",
 
-                "no-results"
+                "no-results",
+
+                "no-exact-case",
+
+                "no-exact-decision"
 
             ].includes(value)
 
@@ -408,6 +412,9 @@ defineEmits([
 
 const eyebrowText = computed(() => {
 
+    if (props.mode === "no-exact-case") return "EXPEDIENTE EXACTO"
+    if (props.mode === "no-exact-decision") return "DECISIÓN NO VERIFICADA"
+
     return props.mode === "no-results"
 
         ? "RESULTADOS DE LA CONSULTA"
@@ -419,6 +426,9 @@ const eyebrowText = computed(() => {
 
 const titleText = computed(() => {
 
+    if (props.mode === "no-exact-case") return "Ese expediente no está en el corpus publicado"
+    if (props.mode === "no-exact-decision") return "No encontramos la decisión verificable"
+
     return props.mode === "no-results"
 
         ? "No encontramos coincidencias relevantes"
@@ -429,6 +439,9 @@ const titleText = computed(() => {
 
 
 const descriptionText = computed(() => {
+
+    if (props.mode === "no-exact-case") return `No se encontró el expediente indicado en "${props.query}". No se sustituyó por jurisprudencia de otro expediente.`
+    if (props.mode === "no-exact-decision") return "Se encontraron unidades del expediente, pero ninguna decisión verificable. No se infirió el fallo a partir de otros fundamentos."
 
     if (
 

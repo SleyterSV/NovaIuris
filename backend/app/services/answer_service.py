@@ -161,10 +161,48 @@ FORMATO DE RESPUESTA
     ###################### GENERAR RESPUESTA ############################
     ####################################################################
 
+    @staticmethod
+    def build_grounded_v2_prompt(query: str, context: str) -> str:
+        """V2 claims must be supported by the exact units supplied in context."""
+        return f"""Responde la consulta jurídica usando exclusivamente las unidades V2 siguientes.
+Cada afirmación jurídica sustantiva debe ir acompañada del marcador [SRC-...] de
+la unidad que la sostiene. No cites fuentes fuera de este contexto. No deduzcas
+una causa de la parte resolutiva: improcedencia, inadmisibilidad o rechazo no
+demuestran por sí solos el motivo. Explica motivos solo si un fundamento
+recuperado los afirma expresamente. Si falta soporte, indícalo sin especular.
+Para una pregunta sobre la decisión, usa primero la unidad de decisión.
+
+Consulta: {query}
+
+Unidades verificadas:
+{context}
+"""
+
+    @staticmethod
+    def exact_source_answer(source: dict) -> Dict:
+        excerpt = str(source.get("excerpt") or "").strip()
+        if not excerpt or not source.get("source_id"):
+            return {"success": False, "answer": ""}
+        title = source.get("title") or "la fuente recuperada"
+        return {"success": True,
+                "answer": f"Según {title}: «{excerpt}» [{source['source_id']}]."}
+
+    @staticmethod
+    def exact_decision_answer(source: dict) -> Dict:
+        excerpt = str(source.get("excerpt") or "").strip()
+        if not excerpt or not source.get("source_id") or \
+                (source.get("metadata") or {}).get("unit_type") != "decision":
+            return {"success": False, "answer": ""}
+        title = source.get("title") or "el documento recuperado"
+        return {"success": True,
+                "answer": f"La parte resolutiva de {title} establece: «{excerpt}» [{source['source_id']}]."}
+
     def generate_answer(
         self,
         query: str,
-        context: str
+        context: str,
+        *,
+        grounded_v2: bool = False,
     ) -> Dict:
 
         """
@@ -185,7 +223,8 @@ FORMATO DE RESPUESTA
 
             }
 
-        prompt = self.build_prompt(
+        prompt_builder = self.build_grounded_v2_prompt if grounded_v2 else self.build_prompt
+        prompt = prompt_builder(
 
             query=query,
 

@@ -1,11 +1,13 @@
 import logging
 import threading
+from uuid import UUID
 
 from flask import Blueprint, current_app, g
 from flask import jsonify
 from flask import request
 
 from app.services.search_service import SearchService, SearchPipelineError
+from app.services.legal_repository_v2 import LegalRepositoryV2
 from app.services.legal_repository import LegalSearchError
 from app.models.task import TaskManager, TaskStatus
 from app.utils.cancellation import OperationCancelled, check_cancelled
@@ -131,7 +133,7 @@ def start_search_task():
     filters = data.get("filtros", {})
     if not isinstance(filters, dict):
         return api_error("INVALID_FILTERS", "Los filtros deben ser un objeto.", g.request_id, 400)
-    allowed = {"modulo", "solo_vigentes"}
+    allowed = {"modulo", "solo_vigentes", "vigencia_explicit"}
     if set(filters) - allowed:
         return api_error("UNSUPPORTED_FILTER", "Uno o más filtros no están disponibles.", g.request_id, 400)
     modulo = filters.get("modulo", "Todos")
@@ -140,6 +142,9 @@ def start_search_task():
     solo_vigentes = filters.get("solo_vigentes", True)
     if not isinstance(solo_vigentes, bool):
         return api_error("INVALID_FILTERS", "El filtro de vigencia debe ser booleano.", g.request_id, 400)
+    vigencia_explicit = filters.get("vigencia_explicit", False)
+    if not isinstance(vigencia_explicit, bool):
+        return api_error("INVALID_FILTERS", "La selección de vigencia debe ser booleana.", g.request_id, 400)
     options = {name: data.get(name, True) for name in ("generate_answer", "build_context", "use_reranker")}
     if not all(isinstance(value, bool) for value in options.values()):
         return api_error("INVALID_SEARCH", "Las opciones de búsqueda deben ser booleanas.", g.request_id, 400)
@@ -151,7 +156,8 @@ def start_search_task():
                                              "owner_id": authenticated_user_id()})
     app = current_app._get_current_object()
     threading.Thread(target=run_search_task, args=(app, manager, task_id, query.strip(),
-        {"modulo": modulo, "solo_vigentes": solo_vigentes}, options), daemon=True).start()
+        {"modulo": modulo, "solo_vigentes": solo_vigentes,
+         "vigencia_explicit": vigencia_explicit}, options), daemon=True).start()
     return jsonify(success=True, task_id=task_id, tool="search", status="queued"), 202
 
 
@@ -179,8 +185,30 @@ def cancel_search_task(task_id):
 
 def get_search_service():
     from flask import current_app
-    factory = current_app.config.get("SEARCH_SERVICE_FACTORY", SearchService)
-    return factory()
+    factory = current_app.config.get("SEARCH_SERVICE_FACTORY")
+    if factory:
+        return factory()
+    return SearchService(knowledge_version=current_app.config.get("LEGAL_KNOWLEDGE_VERSION", "v1"))
+
+
+@search_bp.route("/sources/<uuid:unit_id>", methods=["GET"])
+def legal_unit_source_detail(unit_id):
+    """Return one V2 unit's canonical text only when its source detail is opened."""
+    if current_app.config.get("LEGAL_KNOWLEDGE_VERSION", "v1") != "v2":
+        return api_error("SOURCE_NOT_FOUND", "La unidad jurídica no está disponible.", g.request_id, 404)
+    expected_document = request.args.get("document_id")
+    if expected_document is not None:
+        try:
+            expected_document = str(UUID(expected_document))
+        except (ValueError, AttributeError):
+            return api_error("INVALID_DOCUMENT_ID", "El identificador de documento no es válido.", g.request_id, 400)
+    try:
+        unit = LegalRepositoryV2().get_unit(unit_id, document_id=expected_document)
+    except LegalSearchError:
+        return api_error("SOURCE_UNAVAILABLE", "No se pudo consultar la unidad jurídica.", g.request_id, 503)
+    if unit is None:
+        return api_error("SOURCE_NOT_FOUND", "La unidad jurídica no está disponible.", g.request_id, 404)
+    return jsonify(success=True, unit=unit)
 
 
 # ===============================================================
@@ -290,8 +318,11 @@ def semantic_search():
         if "solo_vigentes" in filtros and not isinstance(filtros["solo_vigentes"], bool):
             return jsonify({"success": False, "error": {"code": "INVALID_FILTERS",
                 "message": "El filtro de vigencia debe ser booleano."}}), 400
+        if "vigencia_explicit" in filtros and not isinstance(filtros["vigencia_explicit"], bool):
+            return jsonify({"success": False, "error": {"code": "INVALID_FILTERS",
+                "message": "La selección de vigencia debe ser booleana."}}), 400
 
-        allowed_filters = {"modulo", "solo_vigentes"}
+        allowed_filters = {"modulo", "solo_vigentes", "vigencia_explicit"}
         if set(filtros) - allowed_filters:
             return jsonify({"success": False, "error": {"code": "UNSUPPORTED_FILTER",
                 "message": "Uno o más filtros no están disponibles."}}), 400
