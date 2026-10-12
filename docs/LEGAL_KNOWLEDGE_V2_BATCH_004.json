@@ -1,0 +1,15 @@
+{
+  "batch_id": "004",
+  "documents": [
+    {
+      "stable_identifier": "cd87b86e-e91e-501b-8491-8b9a39079f9d",
+      "source_path": "backend/raw_docs/jurisprudencia/Seis_casos_donde_el_TC_advirtió_violación_al_principio_de_legalidad___.pdf",
+      "source_file_hash": "4099380c90221ac1870b8c0cca08e5bfa2559a5a2d2ee53c83ab82159cc45e4b",
+      "document_hash": "ea4bdd2026a7c5716b2e0de74452d808b6eed92babefb7d025026a584561637e",
+      "parser_version": "legal-v2.1.2",
+      "expected_unit_count": 13,
+      "document_type": "judgment",
+      "quality_status": "PUBLISHABLE"
+    }
+  ]
+}

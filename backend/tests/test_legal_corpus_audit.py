@@ -54,6 +54,22 @@ class CorpusAuditTests(unittest.TestCase):
             self.assertEqual(report["records"][0]["category"], "INVALID_SOURCE")
             self.assertEqual(report["records"][0]["source_format"], "html")
 
+    def test_published_source_takes_precedence_over_manual_approval(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "published.txt"
+            source.write_text("Published legal unit", encoding="utf-8")
+            digest = hashlib.sha256(source.read_bytes()).hexdigest()
+            baseline = {"physical_originals": 1, "records": [{
+                "source_path": "published.txt", "filename": "published.txt", "format": "txt",
+                "source_file_hash": digest, "probable_type": "jurisprudence",
+                "already_published": False, "category": "REVIEW_REQUIRED"}],
+                "duplicates": {"same_identity_different_source": []}}
+            reviews = {"approved": [{"source_file_hash": digest}],
+                       "published_source_hashes": [digest]}
+            report = audit(root, baseline, reviews)
+            self.assertEqual(report["records"][0]["category"], "ALREADY_PUBLISHED")
+
 
 if __name__ == "__main__":
     unittest.main()
