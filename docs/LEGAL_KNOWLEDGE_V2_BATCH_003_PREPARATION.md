@@ -43,10 +43,17 @@ Se priorizó jurisprudencia de Corte Suprema, pero ningún caso nuevo alcanzó c
 
 El [manifest Batch 003](LEGAL_KNOWLEDGE_V2_BATCH_003.json) contiene identificadores estables, rutas, SHA-256 físico y documental, parser, tipo, estado y cantidad esperada. Son **2 documentos / 28 unidades / 28 embeddings futuros**, si se autoriza una publicación posterior. No contiene texto jurídico, vectores ni secretos.
 
-`python -m app.legal_ingestion.corpus_cli inspect-batch ..\docs\LEGAL_KNOWLEDGE_V2_BATCH_003.json` devolvió `PUBLISHABLE`, parser `legal-v2.1.2`, hashes correctos y 6/22 unidades. La sesión de Codex no tiene `MYKE_LEGAL_DATABASE_URL`, por lo que reportó `PRESENCE=UNVERIFIED_OFFLINE` y no puede afirmar `NOT_PRESENT`. Falta el `inspect-batch` de solo lectura en la PowerShell privada del operador. **`publish-batch` para 003 está deshabilitado explícitamente** por la allowlist; no se generaron embeddings ni se insertaron documentos.
+`python -m app.legal_ingestion.corpus_cli inspect-batch ..\docs\LEGAL_KNOWLEDGE_V2_BATCH_003.json` devolvió `PUBLISHABLE`, parser `legal-v2.1.2`, hashes correctos y 6/22 unidades en la sesión offline de Codex. Después, el operador verificó en su PowerShell privada de MYKE Legal **6 documentos / 64 unidades / 0 relaciones / 6 runs** y confirmó para ambos candidatos `PUBLISHABLE`, `PRESENCE=NOT_PRESENT`, 6 y 22 unidades. La habilitación posterior añadió exclusivamente Batch 003 a la allowlist de `publish-batch`, con baseline `(6, 64, 0, 6)`; 001 y 002 permanecen habilitados y manifests ajenos o alterados siguen bloqueados. La habilitación de código no generó embeddings ni insertó documentos.
 
 ## Tests y siguiente gate
 
-`python -m compileall -q app tests` y suite backend completa **294/294 PASS**. El frontend no se modificó durante Batch 003, por lo que sus 37 tests y build del checkpoint 10.7 conservan su resultado. Se agregaron tests positivos y negativos para folio secuencial, cabeceras de dos páginas y reproducibilidad del parser 2.1.1; la CLI verifica que 003 es inspeccionable pero no publicable.
+`python -m compileall -q app tests` y suite backend completa **296/296 PASS**. El frontend no se modificó durante Batch 003, por lo que sus 37 tests y build del checkpoint 10.7 conservan su resultado. Se agregaron tests positivos y negativos para folio secuencial, cabeceras de dos páginas y reproducibilidad del parser 2.1.1; la CLI verifica que 003 está habilitado para publicar solo con manifest aprobado y baseline remoto exacto.
 
-**NO-GO para publicar Batch 003 ahora.** Antes de una autorización separada, ambos documentos deben mostrar `PRESENCE=NOT_PRESENT` en MYKE Legal, y un bloque posterior debe habilitar de forma explícita el manifest y los conteos de partida en la allowlist de publicación. Este bloque no ejecuta `publish-batch`, OpenAI, embeddings, inserts ni push.
+**GO para que el operador publique Batch 003 en un paso separado desde PowerShell**, sujeto a que el preflight de la CLI siga encontrando los conteos y la identidad esperados. Este bloque únicamente habilita el safety gate y ejecuta tests; no ejecuta `publish-batch`, OpenAI, embeddings, inserts ni push.
+
+Comando reservado al operador, desde una PowerShell con `MYKE_LEGAL_DATABASE_URL` de MYKE Legal y `OPENAI_API_KEY` configuradas:
+
+```powershell
+cd D:\NovaIuris\backend
+python -m app.legal_ingestion.corpus_cli publish-batch ..\docs\LEGAL_KNOWLEDGE_V2_BATCH_003.json
+```

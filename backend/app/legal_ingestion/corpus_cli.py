@@ -22,6 +22,7 @@ REVIEW_001 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_RECOVERY_REVIEW.json"
 PUBLISH_BASELINES = {
     "001": (2, 15, 0, 2),
     "002": (4, 38, 0, 4),
+    "003": (6, 64, 0, 6),
 }
 
 
