@@ -345,6 +345,19 @@ class SearchCommandTests(unittest.TestCase):
         self.assertNotIn("test-key", output.getvalue())
         self.assertNotIn(cursor.params[0], output.getvalue())
 
+    def test_search_document_type_accepts_schema_values_and_rejects_unknown(self):
+        for document_type in ("regulation", "order", "judgment", "cassation"):
+            with self.subTest(document_type=document_type), patch.object(
+                    publication_entrypoint, "_search") as search:
+                self.assertEqual(publication_entrypoint.main([
+                    "search", "consulta", "--document-type", document_type]), 0)
+                self.assertEqual(search.call_args.args[0].document_type, document_type)
+        with patch.object(publication_entrypoint, "_search") as search, redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as error:
+                publication_entrypoint.main(["search", "consulta", "--document-type", "unknown"])
+        self.assertEqual(error.exception.code, 2)
+        search.assert_not_called()
+
     def test_read_only_connection_is_requested_before_any_sql(self):
         class Connection:
             autocommit = False

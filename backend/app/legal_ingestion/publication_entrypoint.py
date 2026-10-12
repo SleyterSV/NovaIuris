@@ -248,7 +248,7 @@ def main(argv=None):
     search = commands.add_parser("search")
     search.add_argument("query")
     search.add_argument("--top-k", type=int, default=5)
-    search.add_argument("--document-type", choices=("regulation", "order"))
+    search.add_argument("--document-type", choices=("regulation", "order", "judgment", "cassation"))
     search.add_argument("--rama")
     search.add_argument("--expediente")
     search.add_argument("--json", action="store_true")

@@ -57,3 +57,9 @@ Comando reservado al operador, desde una PowerShell con `MYKE_LEGAL_DATABASE_URL
 cd D:\NovaIuris\backend
 python -m app.legal_ingestion.corpus_cli publish-batch ..\docs\LEGAL_KNOWLEDGE_V2_BATCH_003.json
 ```
+
+## Cierre de publicación — confirmación del operador
+
+El operador ejecutó la publicación en MYKE Legal y confirmó **PUBLICATION PASS**: `legal_documents=8`, `legal_units=92`, `legal_relations=0`, `legal_ingestion_runs=8`. Batch 003 agregó los dos documentos previstos, 28 unidades y 28 embeddings `text-embedding-3-small` de dimensión 1536. El Auto TC 00102-2022-Q/TC quedó asociado al run `81c99019-e647-4df5-aa58-7855ec2b2284`; la STC 03902-2023-PHC/TC, al run `ef56c95d-8d8d-4879-8239-afd6c3b3138f`.
+
+La comprobación posterior comunicada por el operador devolvió para ambos `PRESENCE=ALREADY_PRESENT_AND_IDENTICAL` y `EMBEDDINGS_REQUIRED=0`. Los smoke tests de retrieval del Auto y la STC pasaron; en consultas de decisión, `decision` quedó en rank 1. Esta es evidencia del operador, no una segunda ingesta ejecutada desde Codex. Los ocho documentos publicados quedan inmutables para la preparación de Batch 004.
