@@ -31,9 +31,9 @@ La [revisión](LEGAL_KNOWLEDGE_V2_BATCH_004_REVIEW.json) liga la aprobación a r
 
 ## Manifest, inspección y gate remoto
 
-El [manifest Batch 004](LEGAL_KNOWLEDGE_V2_BATCH_004.json) contiene **1 sentencia / 13 unidades / 13 embeddings futuros**. Incluye ID estable, ruta, hashes de fuente y documento, versión `legal-v2.1.2`, tipo `judgment`, unidades esperadas y `PUBLISHABLE`; no contiene texto jurídico completo, vectores ni secretos. La CLI admite esta ruta exclusivamente para `inspect-batch`; **Batch 004 no está habilitado para `publish-batch`**. Batches 001–003 conservan su allowlist histórica.
+El [manifest Batch 004](LEGAL_KNOWLEDGE_V2_BATCH_004.json) contiene **1 sentencia / 13 unidades / 13 embeddings futuros**. Incluye ID estable, ruta, hashes de fuente y documento, versión `legal-v2.1.2`, tipo `judgment`, unidades esperadas y `PUBLISHABLE`; no contiene texto jurídico completo, vectores ni secretos. La CLI reconoce únicamente el path aprobado del manifest y lo coteja con la calificación y el original. La habilitación posterior añadió **solo Batch 004** a `PUBLISH_BASELINES` con el estado previo confirmado `(8, 92, 0, 8)`; 001–003 permanecen habilitados y cualquier batch desconocido sigue bloqueado.
 
-La inspección offline devolvió `BATCH=004`, ID `cd87b86e-e91e-501b-8491-8b9a39079f9d`, `PUBLISHABLE`, `judgment`, 13 unidades, parser `legal-v2.1.2`, hash documental prefijo `ea4bdd2026a7` y `EMBEDDINGS_REQUIRED=13`. **PRESENCE=UNVERIFIED_OFFLINE**: esta sesión no comprobó MYKE Legal remotamente y no se debe presentar como `NOT_PRESENT`. El operador debe hacer `inspect-batch` remoto read-only antes de considerar una habilitación separada de publicación. Un `CONFLICT`, hash distinto o conteo inesperado implica NO-GO.
+La inspección offline devolvió `BATCH=004`, ID `cd87b86e-e91e-501b-8491-8b9a39079f9d`, `PUBLISHABLE`, `judgment`, 13 unidades, parser `legal-v2.1.2`, hash documental prefijo `ea4bdd2026a7` y `EMBEDDINGS_REQUIRED=13`. **PRESENCE=UNVERIFIED_OFFLINE** describe esa sesión offline. Después, el operador confirmó mediante inspección remota `PRESENCE=NOT_PRESENT` y el baseline de MYKE Legal **8 documentos / 92 unidades / 0 relaciones / 8 runs**. Un `CONFLICT`, hash distinto o conteo inesperado implica NO-GO; la CLI comprueba de nuevo los conteos antes de generar embeddings.
 
 Comando de inspección para el operador, con `MYKE_LEGAL_DATABASE_URL` de MYKE Legal ya cargada en su PowerShell:
 
@@ -42,4 +42,4 @@ cd D:\NovaIuris\backend
 python -m app.legal_ingestion.corpus_cli inspect-batch ..\docs\LEGAL_KNOWLEDGE_V2_BATCH_004.json
 ```
 
-No se ejecutó `publish-batch`, no se generaron embeddings y no hubo inserts/updates de Supabase en esta preparación. El gate de publicación permanece deshabilitado para 004.
+La habilitación local se verificó con tests del manifest, hashes, selector 001–004, rechazo de batch desconocido y conteos esperados. **No se ejecutó `publish-batch` contra MYKE Legal**, no se generaron embeddings reales y no hubo inserts/updates de Supabase en esta preparación. La publicación queda reservada al operador desde su PowerShell, en un paso separado.
