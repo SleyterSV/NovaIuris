@@ -43,3 +43,11 @@ python -m app.legal_ingestion.corpus_cli inspect-batch ..\docs\LEGAL_KNOWLEDGE_V
 ```
 
 La habilitación local se verificó con tests del manifest, hashes, selector 001–004, rechazo de batch desconocido y conteos esperados. **No se ejecutó `publish-batch` contra MYKE Legal**, no se generaron embeddings reales y no hubo inserts/updates de Supabase en esta preparación. La publicación queda reservada al operador desde su PowerShell, en un paso separado.
+
+## Cierre de publicación — confirmación del operador
+
+**BATCH 004 STATUS=PUBLICATION_PASS.** El operador publicó y verificó la STC Exp. 04677-2025-PHC/TC, documento `cd87b86e-e91e-501b-8491-8b9a39079f9d`, run `bb6677a6-97f1-4b30-babc-022a6e52cc5f`. Se añadieron 13 unidades y 13 embeddings; relaciones 0. El estado final comunicado de MYKE Legal es **9 documentos / 105 unidades / 0 relaciones / 9 runs**. La inspección posterior devolvió `PRESENCE=ALREADY_PRESENT_AND_IDENTICAL` y `EMBEDDINGS_REQUIRED=0`.
+
+En el smoke test real, la pregunta «¿Qué resolvió el Tribunal Constitucional en el expediente 04677-2025-PHC/TC?» devolvió el expediente exacto, `decision` en rank 1, `document_type=judgment`, página 4–4 y URL oficial real. Los cinco primeros resultados pertenecieron al mismo `document_id`. Esta es evidencia del operador; Codex no repitió la publicación ni modificó las nueve publicaciones.
+
+**Limitaciones conocidas, sin reingesta:** algunas unidades conservan notas y marcadores impresos, como «F. 47 del documento PDF»; los títulos editoriales de origen pueden diferir del título jurídico profesional construido por el runtime. No se cambiaron texto canónico ni embeddings existentes para resolver esas diferencias de presentación.
