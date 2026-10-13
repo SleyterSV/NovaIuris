@@ -1,4 +1,4 @@
-# Legal Knowledge V2 — Batch 005, preparación offline
+# Legal Knowledge V2 — Batch 005, preparación y cierre
 
 ## Estado confirmado y alcance
 
@@ -46,4 +46,12 @@ python -m app.legal_ingestion.corpus_cli inspect-batch ..\docs\LEGAL_KNOWLEDGE_V
 
 La habilitación local no ejecutó `publish-batch`, no generó embeddings ni escribió en Supabase. La publicación corresponde al operador desde PowerShell en un paso separado.
 
-**Limitaciones conocidas:** notas al pie impresas siguen dentro de algunas unidades; títulos editoriales de los PDFs no sustituyen la identidad jurídica estructurada; las casaciones con espacios rotos, folios o límites ambiguos permanecen pendientes. No se reingestó ningún documento, no se generaron embeddings ni se escribió en Supabase.
+**Limitaciones conocidas:** notas al pie impresas siguen dentro de algunas unidades; títulos editoriales de los PDFs no sustituyen la identidad jurídica estructurada; las casaciones con espacios rotos, folios o límites ambiguos permanecen pendientes. Durante la preparación y habilitación local no se reingestó ningún documento, no se generaron embeddings ni se escribió en Supabase.
+
+## Cierre de publicación — confirmación del operador
+
+**BATCH 005 STATUS=PUBLICATION_PASS.** El operador confirmó `STATUS=COMPLETED_AND_VERIFIED` para la STC Exp. **00697-2024-PA/TC**, parser `legal-v2.1.3`, documento `44dd7306-8ee4-5d7f-91dd-ce2683bc3b53` y run `51531fca-010c-48fa-bf30-41ca40acc175`. La publicación añadió **39 unidades y 39 embeddings**. El estado final comunicado de MYKE Legal es **10 documentos / 144 unidades / 0 relaciones / 10 runs**. **PUBLICATION=PASS.**
+
+La inspección posterior devolvió `PRESENCE=ALREADY_PRESENT_AND_IDENTICAL` y `EMBEDDINGS_REQUIRED=0`: **IDEMPOTENCY=PASS**. En el smoke test de la consulta «¿Qué resolvió el Tribunal Constitucional en el expediente 00697-2024-PA/TC?», pasaron el expediente exacto, `document_type=judgment`, la URL oficial y el mismo `document_id` en los primeros resultados. La unidad de decisión ocupó **rank 1**: **RETRIEVAL=PASS; DECISION INTENT=RANK 1 PASS**. Estos resultados son evidencia comunicada por el operador.
+
+Algunos títulos de origen siguen siendo editoriales y permanecen algunas notas o referencias impresas dentro del texto canónico. Estas limitaciones quedan registradas sin modificar documentos ya publicados. Este cierre documental no reingesta Batch 005 ni regenera embeddings. **BATCH 005 CLOSED; GO PARA BATCH 006** en una ejecución posterior.
