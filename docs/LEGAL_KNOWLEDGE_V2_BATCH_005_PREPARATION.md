@@ -35,13 +35,15 @@ La [revisión ligada a hashes](LEGAL_KNOWLEDGE_V2_BATCH_005_REVIEW.json) registr
 
 ## Manifest, inspección y siguientes gates
 
-El [manifest Batch 005](LEGAL_KNOWLEDGE_V2_BATCH_005.json) contiene **1 sentencia / 39 unidades / 39 embeddings futuros**, con ID estable, ruta, hashes, parser `legal-v2.1.3`, tipo y estado de calidad. No contiene texto jurídico completo, vectores ni secretos. La CLI lo admite para **`inspect-batch` únicamente**; **Batch 005 no pertenece a `PUBLISH_BASELINES`** y `publish-batch` sigue bloqueado.
+El [manifest Batch 005](LEGAL_KNOWLEDGE_V2_BATCH_005.json) contiene **1 sentencia / 39 unidades / 39 embeddings futuros**, con ID estable, ruta, hashes, parser `legal-v2.1.3`, tipo y estado de calidad. No contiene texto jurídico completo, vectores ni secretos. La CLI admite `inspect-batch` y, tras la confirmación remota del operador, Batch 005 quedó habilitado en `PUBLISH_BASELINES` con baseline `(9, 105, 0, 9)`. Batches 001–004 siguen habilitados y los desconocidos bloqueados.
 
-La inspección offline confirmó `PUBLISHABLE`, ID `44dd7306-8ee4-5d7f-91dd-ce2683bc3b53`, tipo `judgment`, 39 unidades, hash prefijo `6504c064ca37`, parser `legal-v2.1.3` y `EMBEDDINGS_REQUIRED=39`. **PRESENCE=UNVERIFIED_OFFLINE**. No se infiere `NOT_PRESENT` sin lectura remota. El operador debe ejecutar `inspect-batch` con MYKE Legal y comprobar presencia, identidad y conteos antes de solicitar una habilitación de publicación separada. Un `CONFLICT` o discrepancia implica NO-GO.
+La inspección offline confirmó `PUBLISHABLE`, ID `44dd7306-8ee4-5d7f-91dd-ce2683bc3b53`, tipo `judgment`, 39 unidades, hash prefijo `6504c064ca37`, parser `legal-v2.1.3` y `EMBEDDINGS_REQUIRED=39`. **PRESENCE=UNVERIFIED_OFFLINE** en esa sesión local. Después, el operador confirmó `PRESENCE=NOT_PRESENT` y **9 documentos / 105 unidades / 0 relaciones / 9 runs** en MYKE Legal. La CLI vuelve a comprobar el manifest, los hashes, el parser, la identidad y los conteos antes de generar embeddings. Un `CONFLICT` o discrepancia implica NO-GO.
 
 ```powershell
 cd D:\NovaIuris\backend
 python -m app.legal_ingestion.corpus_cli inspect-batch ..\docs\LEGAL_KNOWLEDGE_V2_BATCH_005.json
 ```
+
+La habilitación local no ejecutó `publish-batch`, no generó embeddings ni escribió en Supabase. La publicación corresponde al operador desde PowerShell en un paso separado.
 
 **Limitaciones conocidas:** notas al pie impresas siguen dentro de algunas unidades; títulos editoriales de los PDFs no sustituyen la identidad jurídica estructurada; las casaciones con espacios rotos, folios o límites ambiguos permanecen pendientes. No se reingestó ningún documento, no se generaron embeddings ni se escribió en Supabase.
