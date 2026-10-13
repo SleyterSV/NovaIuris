@@ -63,11 +63,13 @@ Los tres cubren todas sus páginas con unidades, no tienen hash de unidad duplic
 
 ## Manifest e inspección offline
 
-El [manifest Batch 006](LEGAL_KNOWLEDGE_V2_BATCH_006.json) fija ID estable, ruta, hash original, hash documental, parser `legal-v2.1.4`, tipo `judgment`, 130 unidades en total y calidad `PUBLISHABLE`. Se coteja con la calificación, los originales y el staging antes de inspeccionar. La CLI reconoce el path para `inspect-batch`, pero **Batch 006 no está en `PUBLISH_BASELINES`** y `publish-batch` queda bloqueado.
+El [manifest Batch 006](LEGAL_KNOWLEDGE_V2_BATCH_006.json) fija ID estable, ruta, hash original, hash documental, parser `legal-v2.1.4`, tipo `judgment`, 130 unidades en total y calidad `PUBLISHABLE`. Se coteja con la calificación, los originales y el staging antes de inspeccionar. Tras la confirmación remota del operador, Batch 006 quedó habilitado en `PUBLISH_BASELINES` con baseline **`(10, 144, 0, 10)`**. Batches 001–005 permanecen habilitados y los desconocidos bloqueados.
 
 ```powershell
 cd D:\NovaIuris\backend
 python -m app.legal_ingestion.corpus_cli inspect-batch ..\docs\LEGAL_KNOWLEDGE_V2_BATCH_006.json
 ```
 
-Sin DSN, `PRESENCE=UNVERIFIED_OFFLINE` es el resultado correcto. **GO solo para inspección remota de lectura del operador**, con baseline comunicado **10/144/0/10**. Si identidad, presencia o conteos difieren, el siguiente paso es NO-GO. Publicación, embeddings, reingesta y habilitación de la allowlist quedan fuera de esta preparación.
+Sin DSN, `PRESENCE=UNVERIFIED_OFFLINE` es el resultado correcto en una sesión offline. Después, el operador confirmó **10 documentos / 144 unidades / 0 relaciones / 10 runs** en MYKE Legal. Los tres ítems devolvieron `PUBLISHABLE`, tipo `judgment`, parser `legal-v2.1.4`, 18/20/92 unidades, hashes `ae9f33a522ba` / `4c00e176592d` / `13bc8abe6fa0` y `PRESENCE=NOT_PRESENT` para los IDs del manifest. La CLI vuelve a validar manifest, hashes, parser, identidad y conteos antes de cada embedding; una discrepancia implica NO-GO.
+
+Esta habilitación local no ejecutó `publish-batch`, no generó embeddings ni escribió en Supabase. **GO para que el operador publique Batch 006 desde PowerShell en un paso separado**, sujeto al preflight de la CLI. No se modificaron documentos ya publicados.

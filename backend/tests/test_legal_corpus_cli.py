@@ -52,7 +52,7 @@ class CorpusCliTests(unittest.TestCase):
     def test_unknown_batch_is_not_enabled(self):
         with patch.object(corpus_cli, "_stage_entry") as stage:
             with self.assertRaisesRegex(corpus_cli.BatchError, "BATCH_NOT_ENABLED_FOR_PUBLICATION"):
-                corpus_cli._publish([{}], object(), batch_id="006")
+                corpus_cli._publish([{}], object(), batch_id="007")
         stage.assert_not_called()
 
     def test_batch_003_manifest_is_reproducible_and_enabled(self):
@@ -174,7 +174,7 @@ class CorpusCliTests(unittest.TestCase):
                 corpus_cli._publish([{}], object(), batch_id="005")
         provider.assert_not_called()
 
-    def test_batch_006_is_inspectable_offline_but_not_enabled_for_publication(self):
+    def test_batch_006_is_inspectable_offline_and_explicitly_enabled(self):
         entries = corpus_cli._load_manifest(str(corpus_cli.MANIFEST_006))
         self.assertEqual(len(entries), 3)
         self.assertEqual(sum(entry["expected_unit_count"] for entry in entries), 130)
@@ -185,17 +185,31 @@ class CorpusCliTests(unittest.TestCase):
             self.assertEqual(len(document.units), entry["expected_unit_count"])
         with patch.dict("os.environ", {}, clear=True), patch.object(
                 corpus_cli, "_adapter") as adapter, patch.object(
-                corpus_cli, "_embedding_configured") as embedding:
+                corpus_cli, "_embedding_configured") as embedding, patch.object(
+                corpus_cli, "_publish") as publish:
             with redirect_stdout(io.StringIO()) as output:
                 inspect_code = corpus_cli.main(["inspect-batch", str(corpus_cli.MANIFEST_006)])
-            with redirect_stderr(io.StringIO()) as error:
-                publish_code = corpus_cli.main(["publish-batch", str(corpus_cli.MANIFEST_006)])
+            publish_code = corpus_cli.main(["publish-batch", str(corpus_cli.MANIFEST_006)])
         self.assertEqual(inspect_code, 0)
         self.assertEqual(output.getvalue().count("PRESENCE=UNVERIFIED_OFFLINE"), 3)
-        self.assertEqual(publish_code, 1)
-        self.assertIn("BATCH_NOT_ENABLED_FOR_PUBLICATION", error.getvalue())
-        adapter.assert_not_called()
-        embedding.assert_not_called()
+        self.assertEqual(publish_code, 0)
+        embedding.assert_called_once()
+        adapter.assert_called_once()
+        publish.assert_called_once_with(entries, adapter.return_value, batch_id="006")
+
+    def test_batch_006_requires_exact_remote_baseline_before_embeddings(self):
+        self.assertEqual(corpus_cli.PUBLISH_BASELINES,
+                         {"001": (2, 15, 0, 2), "002": (4, 38, 0, 4),
+                          "003": (6, 64, 0, 6), "004": (8, 92, 0, 8),
+                          "005": (9, 105, 0, 9), "006": (10, 144, 0, 10)})
+        document = SimpleNamespace(units=[None] * 18)
+        with patch.object(corpus_cli, "_stage_entry", return_value=document), patch.object(
+                corpus_cli, "_presence", return_value="NOT_PRESENT"), patch.object(
+                corpus_cli, "_current_counts", return_value=(10, 143, 0, 10)), patch(
+                "app.services.embedding_service.EmbeddingService") as provider:
+            with self.assertRaisesRegex(corpus_cli.BatchError, "DATABASE_COUNTS_UNEXPECTED"):
+                corpus_cli._publish([{}], object(), batch_id="006")
+        provider.assert_not_called()
 
     def test_batch_006_changed_manifest_hash_and_parser_are_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
