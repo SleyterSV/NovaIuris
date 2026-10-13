@@ -16,6 +16,7 @@ PROVISIONS = re.compile(r"^disposici[oó]n(?:es)?\s+(?:(?:complementarias?|final
 ORDINAL_PROVISION = re.compile(r"^([úu]nica|primera|segunda|tercera|cuarta|quinta|sexta|s[eé]tima|octava|novena|d[eé]cima(?:\s+primera)?|[a-z]+[ée]sima)\s*[.\-–]", re.I)
 SECTION = re.compile(r"^(sumilla|materia|antecedentes?|autos\s+y\s+vistos?|vistos?|fundamentos?(?:\s+de\s+derecho)?|considerandos?|atendiendo\s+a\s+que|an[áa]lisis(?:\s+de\s+la\s+controversia|\s+del\s+caso\s+concreto)?|decisi[oó]n|parte\s+resolutiva|resuelve|ha\s+resuelto|por\s+estos\s+fundamentos|fallo|(?:fundamento\s+de\s+)?voto\s+(?:singular|en\s+discordia|separado|concurrente)(?:\s+del?\s+magistrad[oa])?|fundamento\s+de\s+voto\s+del?\s+magistrad[oa])(?:\s*[:.]\s*(.*))?\s*$", re.I)
 VOTE_HEADING = re.compile(r"^(?:fundamento\s+de\s+voto|voto(?:\s+(?:singular|en\s+discordia|separado|concurrente))?)(?:\s+(?:del?|de\s+la)\s+(?:magistrad[oa]|juez)(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.]{2,80})?)?$", re.I)
+VOTE_HEADING_STRICT = re.compile(r"^(?:fundamento\s+de\s+voto|voto(?:\s+(?:singular|en\s+discordia|separado|concurrente))?)(?:\s+(?:del?|de\s+la)\s+(?:magistrad[oa]|juez)(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{2,80})?)?$", re.I)
 ROMAN_SECTION = re.compile(r"^[IVXLCDM]+[.)]\s*(.+?)\s*[:.]?\s*$", re.I)
 FOUNDATION_V2_1_0 = re.compile(r"^(?:fundamento\s+)?(\d{1,3}|(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno|d[ée]cimo(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno)?|und[ée]cimo|duod[ée]cimo|vig[ée]simo|trig[ée]simo)(?:\s+(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno))?)\s*[.°º)-]+-?\s+(.+)$", re.I)
 FOUNDATION = re.compile(FOUNDATION_V2_1_0.pattern.replace("s[ée]timo", "s[ée]ptimo"), re.I)
@@ -265,8 +266,9 @@ def case_law_metadata(blocks: list[Block], filename: str) -> dict:
 class JurisprudenceParser:
     name = "jurisprudence"
 
-    def __init__(self, *, legacy=False):
+    def __init__(self, *, legacy=False, strict_vote_headings=False):
         self.legacy = legacy
+        self.vote_heading = VOTE_HEADING_STRICT if strict_vote_headings else VOTE_HEADING
 
     def parse(self, blocks: list[Block]) -> list[LegalUnit]:
         units: list[LegalUnit] = []
@@ -287,7 +289,7 @@ class JurisprudenceParser:
             line = search_normalize(block.text)
             heading = SECTION.match(line)
             roman = ROMAN_SECTION.match(line)
-            if VOTE_HEADING.fullmatch(line):
+            if self.vote_heading.fullmatch(line):
                 flush()
                 kind, number, buffer = "separate_opinion", None, [block]
                 continue
@@ -311,7 +313,7 @@ class JurisprudenceParser:
             if heading:
                 flush()
                 label = heading.group(1).casefold()
-                kind = ("separate_opinion" if VOTE_HEADING.match(label) else
+                kind = ("separate_opinion" if self.vote_heading.fullmatch(label) else
                         "sumilla" if label == "sumilla" else "matter" if label == "materia" else
                         "antecedent" if label.startswith(("antecedente", "visto", "auto")) else
                         "foundation" if label.startswith(("fundamento", "considerando", "atendiendo", "análisis", "analisis")) else

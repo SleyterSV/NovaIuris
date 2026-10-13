@@ -1,0 +1,33 @@
+{
+  "batch_id": "005",
+  "parser_version": "legal-v2.1.3",
+  "approved": [
+    {
+      "source_path": "backend/raw_docs/jurisprudencia/TC__Las_entidades_no_pueden_restringir_la_presentación_de_documentos_digitales___.pdf",
+      "source_file_hash": "0be3a31dceac0d15eba96e2bf1b72394780241a6b8f994c3f506ea98769d3d66",
+      "document_hash": "6504c064ca37cb913c40e43d75083d232f46a7ea1feed139de8661dab13fa293",
+      "parser_version": "legal-v2.1.3",
+      "expected_unit_count": 39,
+      "document_type": "judgment",
+      "manual_review_status": "PASS",
+      "review_evidence": "17/17 páginas originales: Tribunal Constitucional, Sala Segunda, Sentencia 0831/2026, Exp. 00697-2024-PA/TC, 13-05-2026. Antecedente páginas 1-3, fundamentos 1-34 páginas 3-13, decisión FUNDADA/NULA/ORDENAR/DISPONER página 13 y fundamento de voto Domínguez Haro páginas 14-17. Primera, intermedias y últimas unidades, paginación, marcadores de nota, cabeceras, pie de verificación y warning page_furniture_removed:73 cotejados. Numeración 1-34 continua; dos partes del mismo voto por tamaño, no votos distintos. Sin folio aislado ni encabezado repetido en unidades. URL oficial impresa. La mención narrativa del voto en la apertura no crea una opinión separada."
+    }
+  ],
+  "rejected": [
+    {
+      "source": "Casación 1331-2022/LAMBAYEQUE",
+      "manual_review_status": "FAIL",
+      "reason": "El PDF de 8 páginas presenta extensas palabras partidas en el texto extraído, folio físico dentro de fundamento y fecha no reconocida; los límites jurídicos no bastan para publicarlo."
+    },
+    {
+      "source": "Sentencia de vista Exp. 02974-2023-0-1801-JR-FC-17",
+      "manual_review_status": "FAIL",
+      "reason": "El original de 7 páginas tiene fecha en dos líneas, pero el staging además trunca la identidad, conserva Página 7 de 7 dentro de fundamento y divide razonamiento en partes arbitrarias."
+    },
+    {
+      "source": "STC Exp. 01736-2025-PHC/TC y casaciones previamente rechazadas",
+      "manual_review_status": "FAIL",
+      "reason": "El fix de encabezado de voto no resuelve sus causas documentadas de numeración de citas, sumilla, apertura o palabras partidas; permanecen fuera del lote."
+    }
+  ]
+}

@@ -52,7 +52,7 @@ class CorpusCliTests(unittest.TestCase):
     def test_unknown_batch_is_not_enabled(self):
         with patch.object(corpus_cli, "_stage_entry") as stage:
             with self.assertRaisesRegex(corpus_cli.BatchError, "BATCH_NOT_ENABLED_FOR_PUBLICATION"):
-                corpus_cli._publish([{}], object(), batch_id="005")
+                corpus_cli._publish([{}], object(), batch_id="006")
         stage.assert_not_called()
 
     def test_batch_003_manifest_is_reproducible_and_enabled(self):
@@ -114,6 +114,49 @@ class CorpusCliTests(unittest.TestCase):
                 for field in ("document_hash", "source_file_hash"):
                     with self.subTest(field=field):
                         manifest_data = json.loads((corpus_cli.ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_004.json")
+                                                   .read_text(encoding="utf-8"))
+                        manifest_data["documents"][0][field] = "0" * 64
+                        changed_manifest.write_text(json.dumps(manifest_data), encoding="utf-8")
+                        with self.assertRaisesRegex(corpus_cli.BatchError, "MANIFEST_QUALIFICATION_MISMATCH"):
+                            corpus_cli._load_manifest(str(changed_manifest))
+
+    def test_batch_005_is_inspectable_offline_but_not_enabled_for_publication(self):
+        entries = corpus_cli._load_manifest(str(corpus_cli.MANIFEST_005))
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["parser_version"], "legal-v2.1.3")
+        document = corpus_cli._stage_entry(entries[0])
+        self.assertEqual(document.document_id, entries[0]["stable_identifier"])
+        self.assertEqual(len(document.units), 39)
+        self.assertEqual(document.metadata["expediente"], "00697-2024-PA/TC")
+        self.assertEqual([unit.unit_number for unit in document.units if unit.unit_type == "foundation"][1:],
+                         [str(number) for number in range(1, 35)])
+        decisions = [unit for unit in document.units if unit.unit_type == "decision"]
+        self.assertEqual(len(decisions), 1)
+        self.assertEqual((decisions[0].page_start, decisions[0].page_end), (13, 13))
+        self.assertIn("Declarar FUNDADA", decisions[0].text)
+        self.assertEqual([unit.page_start for unit in document.units if unit.unit_type == "separate_opinion"],
+                         [14, 16])
+        with patch.dict("os.environ", {}, clear=True), patch.object(
+                corpus_cli, "_adapter") as adapter, patch.object(
+                corpus_cli, "_embedding_configured") as embedding:
+            with redirect_stdout(io.StringIO()) as output:
+                code = corpus_cli.main(["inspect-batch", str(corpus_cli.MANIFEST_005)])
+            with redirect_stderr(io.StringIO()) as error:
+                publish_code = corpus_cli.main(["publish-batch", str(corpus_cli.MANIFEST_005)])
+        self.assertEqual(code, 0)
+        self.assertIn("PRESENCE=UNVERIFIED_OFFLINE", output.getvalue())
+        self.assertEqual(publish_code, 1)
+        self.assertIn("BATCH_NOT_ENABLED_FOR_PUBLICATION", error.getvalue())
+        adapter.assert_not_called()
+        embedding.assert_not_called()
+
+    def test_batch_005_changed_manifest_hash_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            changed_manifest = Path(folder) / "batch_005.json"
+            with patch.object(corpus_cli, "MANIFEST_005", changed_manifest):
+                for field in ("document_hash", "source_file_hash"):
+                    with self.subTest(field=field):
+                        manifest_data = json.loads((corpus_cli.ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_005.json")
                                                    .read_text(encoding="utf-8"))
                         manifest_data["documents"][0][field] = "0" * 64
                         changed_manifest.write_text(json.dumps(manifest_data), encoding="utf-8")

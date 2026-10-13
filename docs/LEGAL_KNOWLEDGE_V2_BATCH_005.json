@@ -1,0 +1,15 @@
+{
+  "batch_id": "005",
+  "documents": [
+    {
+      "stable_identifier": "44dd7306-8ee4-5d7f-91dd-ce2683bc3b53",
+      "source_path": "backend/raw_docs/jurisprudencia/TC__Las_entidades_no_pueden_restringir_la_presentación_de_documentos_digitales___.pdf",
+      "source_file_hash": "0be3a31dceac0d15eba96e2bf1b72394780241a6b8f994c3f506ea98769d3d66",
+      "document_hash": "6504c064ca37cb913c40e43d75083d232f46a7ea1feed139de8661dab13fa293",
+      "parser_version": "legal-v2.1.3",
+      "expected_unit_count": 39,
+      "document_type": "judgment",
+      "quality_status": "PUBLISHABLE"
+    }
+  ]
+}

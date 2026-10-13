@@ -556,6 +556,32 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
             Block("RESUELVE"), Block("Declarar improcedente la petición.")])
         self.assertEqual([u.unit_type for u in units], ["foundation", "decision"])
 
+    def test_vote_reference_in_opening_does_not_consume_majority_in_new_parser(self):
+        blocks = [Block("SENTENCIA DEL TRIBUNAL CONSTITUCIONAL", page=1),
+                  Block("En Lima se emitió la presente sentencia con el", page=1),
+                  Block("fundamento de voto del magistrado Domínguez Haro. Los magistrados", page=1),
+                  Block("intervinientes firman digitalmente.", page=1),
+                  Block("ANTECEDENTES", page=1), Block("Se interpuso demanda.", page=1),
+                  Block("FUNDAMENTOS", page=2), Block("1. Fundamento de mayoría.", page=2),
+                  Block("HA RESUELTO", page=3), Block("Declarar fundada la demanda.", page=3),
+                  Block("FUNDAMENTO DE VOTO DEL MAGISTRADO", page=4),
+                  Block("DOMÍNGUEZ HARO", page=4), Block("Concuerdo con el fallo.", page=4)]
+        current = JurisprudenceParser(strict_vote_headings=True).parse(blocks)
+        self.assertEqual([unit.unit_type for unit in current],
+                         ["antecedent", "foundation", "decision", "separate_opinion"])
+        self.assertEqual((current[2].page_start, current[2].page_end), (3, 3))
+        self.assertNotIn("Concuerdo", current[2].text)
+        historical = JurisprudenceParser(strict_vote_headings=False).parse(blocks)
+        self.assertFalse(any(unit.unit_type == "decision" for unit in historical))
+
+    def test_vote_heading_with_sentence_continuation_is_not_a_heading(self):
+        blocks = [Block("FUNDAMENTOS"),
+                  Block("VOTO DEL MAGISTRADO GARCÍA. La cita continúa en el fundamento."),
+                  Block("1. Razón jurídica.")]
+        units = JurisprudenceParser(strict_vote_headings=True).parse(blocks)
+        self.assertTrue(all(unit.unit_type == "foundation" for unit in units))
+        self.assertIn("La cita continúa", units[0].text)
+
     def test_named_separate_votes_remain_outside_majority_decision(self):
         units = JurisprudenceParser().parse([
             Block("RESUELVE"), Block("Declarar fundada la demanda."),
