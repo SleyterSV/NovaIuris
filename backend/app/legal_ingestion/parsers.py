@@ -185,7 +185,7 @@ class NormativeParser:
         return units
 
 
-def case_law_metadata(blocks: list[Block], filename: str) -> dict:
+def case_law_metadata(blocks: list[Block], filename: str, *, extended_tc_dates=False) -> dict:
     header = "\n".join(block.text for block in blocks[:60])
     context = f"{filename}\n{header}"
     expediente = EXPEDIENTE.search(context)
@@ -243,6 +243,29 @@ def case_law_metadata(blocks: list[Block], filename: str) -> dict:
             resolution_date = date(int(date_match.group(3)), months[date_match.group(2).lower()], int(date_match.group(1))).isoformat()
         except ValueError:
             pass
+    if resolution_date is None and extended_tc_dates and court == "Tribunal Constitucional":
+        month_names = r"enero|febrero|marzo|abril|mayo|junio|julio|agosto|setiembre|septiembre|octubre|noviembre|diciembre"
+        tc_heading = " ".join(block.text for block in blocks[:12]).casefold()
+        if "sentencia del tribunal constitucional" in tc_heading:
+            for block in blocks[:16]:
+                line = search_normalize(block.text)
+                # A TC opening sentence or an isolated date under the Pleno heading
+                # identifies the resolution; dates mentioned in the merits do not.
+                opening_date = re.match(
+                    rf"^En\s+Lima,\s+al\s+(?:d[ií]a\s+)?(\d{{1,2}})\s+de\s+({month_names})\s+de\s+(\d{{3}}\s?\d)\b",
+                    line, re.I)
+                standalone = (re.fullmatch(
+                    rf"(\d{{1,2}})\s+de\s+({month_names})\s+de\s+(\d{{4}})", line, re.I)
+                    if "pleno jurisdiccional" in tc_heading else None)
+                candidate = opening_date or standalone
+                if candidate:
+                    try:
+                        resolution_date = date(int(candidate.group(3).replace(" ", "")),
+                                               months[candidate.group(2).lower()],
+                                               int(candidate.group(1))).isoformat()
+                        break
+                    except ValueError:
+                        pass
     resolution_date_text = None
     if resolution_date is None:
         written = WORD_DATE.search(compact_original)
@@ -266,9 +289,11 @@ def case_law_metadata(blocks: list[Block], filename: str) -> dict:
 class JurisprudenceParser:
     name = "jurisprudence"
 
-    def __init__(self, *, legacy=False, strict_vote_headings=False):
+    def __init__(self, *, legacy=False, strict_vote_headings=False,
+                 quoted_numbered_lists=False):
         self.legacy = legacy
         self.vote_heading = VOTE_HEADING_STRICT if strict_vote_headings else VOTE_HEADING
+        self.quoted_numbered_lists = quoted_numbered_lists
 
     def parse(self, blocks: list[Block]) -> list[LegalUnit]:
         units: list[LegalUnit] = []
@@ -276,6 +301,7 @@ class JurisprudenceParser:
         buffer: list[Block] = []
         number = None
         unit_heading = None
+        in_quoted_numbered_list = False
 
         def flush():
             nonlocal buffer, unit_heading
@@ -292,6 +318,7 @@ class JurisprudenceParser:
             if self.vote_heading.fullmatch(line):
                 flush()
                 kind, number, buffer = "separate_opinion", None, [block]
+                in_quoted_numbered_list = False
                 continue
             if kind == "separate_opinion":
                 buffer.append(block)
@@ -301,17 +328,21 @@ class JurisprudenceParser:
                 if any(word in label for word in ("decisión", "fallo", "resuelve")):
                     flush()
                     kind, number, buffer = "decision", None, [block]
+                    in_quoted_numbered_list = False
                     continue
                 if any(word in label for word in ("considerando", "fundamento", "análisis")):
                     flush()
                     kind, number, buffer = "foundation", None, [block]
+                    in_quoted_numbered_list = False
                     continue
                 if any(word in label for word in ("materia", "causal", "antecedente")):
                     flush()
                     kind, number, buffer = "antecedent", None, [block]
+                    in_quoted_numbered_list = False
                     continue
             if heading:
                 flush()
+                in_quoted_numbered_list = False
                 label = heading.group(1).casefold()
                 kind = ("separate_opinion" if self.vote_heading.fullmatch(label) else
                         "sumilla" if label == "sumilla" else "matter" if label == "materia" else
@@ -329,6 +360,22 @@ class JurisprudenceParser:
                         re.match(r"\d{2,}-\d{4}(?:[-/][A-Za-z0-9]+)*", numbered.group(2))):
                     buffer.append(block)
                     continue
+                if (self.quoted_numbered_lists and kind == "foundation" and
+                        numbered.group(1).isdigit() and number and number.isdigit()):
+                    expected = int(number) + 1
+                    if int(numbered.group(1)) == expected:
+                        in_quoted_numbered_list = False
+                    else:
+                        introduction = " ".join(item.text for item in
+                                                blocks[max(0, block_index - 12):block_index])
+                        explicitly_quoted = re.search(
+                            r"(?:lo\s+siguiente|(?:son\s+)?l[ao]s\s+siguientes|"
+                            r"en\s+los\s+(?:siguientes\s+términos|términos\s+siguientes))\s*:",
+                            introduction, re.I)
+                        if in_quoted_numbered_list or explicitly_quoted:
+                            in_quoted_numbered_list = True
+                            buffer.append(block)
+                            continue
                 # A remote judgment's numbered paragraph quoted after an
                 # explicit citation remains inside the citing foundation.
                 cited_intro = " ".join(item.text for item in blocks[max(0, block_index - 12):block_index]).casefold()

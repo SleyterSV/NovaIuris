@@ -1,0 +1,35 @@
+{
+  "batch_id": "006",
+  "documents": [
+    {
+      "stable_identifier": "1609e3a4-4b97-50f4-8131-3069a4204d1e",
+      "source_path": "backend/raw_docs/jurisprudencia/TC__Fiscalía_no_tiene_facultades_coercitivas_para_restringir_o_limitar_la___.pdf",
+      "source_file_hash": "22511e25cf1078aef8caadc552ff253ad87eed03c257098a4793d190d02ed3d1",
+      "document_hash": "ae9f33a522bab06098e80c4c6c4532481d29e1c484d380d705973b175e7c5704",
+      "parser_version": "legal-v2.1.4",
+      "expected_unit_count": 18,
+      "document_type": "judgment",
+      "quality_status": "PUBLISHABLE"
+    },
+    {
+      "stable_identifier": "de87c4cb-2edc-51fe-b938-beab5ff14be2",
+      "source_path": "backend/raw_docs/jurisprudencia/El_TC_ordena_la_reposición_de_un_trabajador_CAS_que_realizaba___.pdf",
+      "source_file_hash": "7c5a485865a31695daf69cfe32d6881a9a9ef1b2c793cbe477a538c11d80c28d",
+      "document_hash": "4c00e176592d455228efec46154f0208bd313313240cdf2a8ef94688c7f2be75",
+      "parser_version": "legal-v2.1.4",
+      "expected_unit_count": 20,
+      "document_type": "judgment",
+      "quality_status": "PUBLISHABLE"
+    },
+    {
+      "stable_identifier": "b02631bc-03ee-59ac-b77c-9dde36cabe96",
+      "source_path": "backend/raw_docs/jurisprudencia/TC__Restricción_para_contratar_con_el_Estado_por_razón_de_parentesco___.pdf",
+      "source_file_hash": "043a40a1403f82527cbe3939a2b29fc6ccfff6f46c5adb2fc8351bcbc9635920",
+      "document_hash": "13bc8abe6fa09b588d00e5ad8b5e266ae3034018469ae80ab5efa3e67dbb0fc4",
+      "parser_version": "legal-v2.1.4",
+      "expected_unit_count": 92,
+      "document_type": "judgment",
+      "quality_status": "PUBLISHABLE"
+    }
+  ]
+}

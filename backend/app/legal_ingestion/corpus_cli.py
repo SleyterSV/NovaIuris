@@ -8,7 +8,8 @@ from pathlib import Path
 import sys
 
 from .corpus_audit import (ROOT, OUTPUT as QUALIFICATION, OUTPUT_003 as QUALIFICATION_003,
-                           OUTPUT_004 as QUALIFICATION_004, OUTPUT_005 as QUALIFICATION_005)
+                           OUTPUT_004 as QUALIFICATION_004, OUTPUT_005 as QUALIFICATION_005,
+                           OUTPUT_006 as QUALIFICATION_006)
 from .publication import PublicationAdapter, postgres_connection_factory
 from .publication_entrypoint import (_counts, _database, _dsn, _embedding_configured,
                                      _identity, MODEL)
@@ -21,6 +22,7 @@ MANIFEST_002 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_002.json"
 MANIFEST_003 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_003.json"
 MANIFEST_004 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_004.json"
 MANIFEST_005 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_005.json"
+MANIFEST_006 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_006.json"
 REVIEW_001 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_RECOVERY_REVIEW.json"
 PUBLISH_BASELINES = {
     "001": (2, 15, 0, 2),
@@ -47,13 +49,16 @@ def _manifest_batch(path: str) -> str:
         return "004"
     if resolved == MANIFEST_005.resolve():
         return "005"
+    if resolved == MANIFEST_006.resolve():
+        return "006"
     raise BatchError("UNAPPROVED_MANIFEST_PATH")
 
 
 def _load_manifest(path: str) -> list[dict]:
     batch_id = _manifest_batch(path)
     manifest_path = {"001": MANIFEST, "002": MANIFEST_002, "003": MANIFEST_003,
-                     "004": MANIFEST_004, "005": MANIFEST_005}[batch_id]
+                     "004": MANIFEST_004, "005": MANIFEST_005,
+                     "006": MANIFEST_006}[batch_id]
     if not manifest_path.is_file():
         raise BatchError("UNAPPROVED_MANIFEST_PATH")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -62,7 +67,7 @@ def _load_manifest(path: str) -> list[dict]:
         raise BatchError("MANIFEST_INVALID")
     qualification_path = {"001": QUALIFICATION, "002": QUALIFICATION,
                           "003": QUALIFICATION_003, "004": QUALIFICATION_004,
-                          "005": QUALIFICATION_005}[batch_id]
+                          "005": QUALIFICATION_005, "006": QUALIFICATION_006}[batch_id]
     qualification = json.loads(qualification_path.read_text(encoding="utf-8"))
     approved = {row["source_path"]: row for row in qualification["records"]
                 if row["category"] == "PUBLISHABLE"}

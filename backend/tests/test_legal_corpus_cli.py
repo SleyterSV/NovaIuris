@@ -174,6 +174,42 @@ class CorpusCliTests(unittest.TestCase):
                 corpus_cli._publish([{}], object(), batch_id="005")
         provider.assert_not_called()
 
+    def test_batch_006_is_inspectable_offline_but_not_enabled_for_publication(self):
+        entries = corpus_cli._load_manifest(str(corpus_cli.MANIFEST_006))
+        self.assertEqual(len(entries), 3)
+        self.assertEqual(sum(entry["expected_unit_count"] for entry in entries), 130)
+        self.assertEqual({entry["parser_version"] for entry in entries}, {"legal-v2.1.4"})
+        for entry in entries:
+            document = corpus_cli._stage_entry(entry)
+            self.assertEqual(document.document_id, entry["stable_identifier"])
+            self.assertEqual(len(document.units), entry["expected_unit_count"])
+        with patch.dict("os.environ", {}, clear=True), patch.object(
+                corpus_cli, "_adapter") as adapter, patch.object(
+                corpus_cli, "_embedding_configured") as embedding:
+            with redirect_stdout(io.StringIO()) as output:
+                inspect_code = corpus_cli.main(["inspect-batch", str(corpus_cli.MANIFEST_006)])
+            with redirect_stderr(io.StringIO()) as error:
+                publish_code = corpus_cli.main(["publish-batch", str(corpus_cli.MANIFEST_006)])
+        self.assertEqual(inspect_code, 0)
+        self.assertEqual(output.getvalue().count("PRESENCE=UNVERIFIED_OFFLINE"), 3)
+        self.assertEqual(publish_code, 1)
+        self.assertIn("BATCH_NOT_ENABLED_FOR_PUBLICATION", error.getvalue())
+        adapter.assert_not_called()
+        embedding.assert_not_called()
+
+    def test_batch_006_changed_manifest_hash_and_parser_are_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            changed_manifest = Path(folder) / "batch_006.json"
+            with patch.object(corpus_cli, "MANIFEST_006", changed_manifest):
+                for field in ("document_hash", "source_file_hash", "parser_version"):
+                    with self.subTest(field=field):
+                        manifest_data = json.loads((corpus_cli.ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_006.json")
+                                                   .read_text(encoding="utf-8"))
+                        manifest_data["documents"][0][field] = "0" * 64
+                        changed_manifest.write_text(json.dumps(manifest_data), encoding="utf-8")
+                        with self.assertRaisesRegex(corpus_cli.BatchError, "MANIFEST_QUALIFICATION_MISMATCH"):
+                            corpus_cli._load_manifest(str(changed_manifest))
+
     def test_batch_003_new_document_requires_confirmed_baseline(self):
         document = SimpleNamespace(units=[SimpleNamespace(search_text="legal unit")] * 6,
                                    document_hash="a" * 64)

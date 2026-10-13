@@ -310,6 +310,28 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         self.assertEqual(metadata["resolution_type"], "sentencia")
         self.assertEqual(JurisprudenceParser().parse(blocks)[-1].unit_type, "decision")
 
+    def test_v214_tc_opening_dates_are_bounded_and_legacy_is_unchanged(self):
+        opening = [Block("Pleno. Sentencia 239/2024"),
+                   Block("SENTENCIA DEL TRIBUNAL CONSTITUCIONAL"),
+                   Block("En Lima, al 1 de octubre de 202 4, en sesión de Pleno"),
+                   Block("ANTECEDENTES"), Block("Con fecha 3 de enero de 2023 se demandó.")]
+        self.assertIsNone(case_law_metadata(opening, "sentencia.pdf")["resolution_date"])
+        self.assertEqual(case_law_metadata(opening, "sentencia.pdf", extended_tc_dates=True)
+                         ["resolution_date"], "2024-10-01")
+        standalone = [Block("Pleno. Sentencia 84/2026"), Block("PLENO JURISDICCIONAL"),
+                      Block("SENTENCIA DEL TRIBUNAL CONSTITUCIONAL"),
+                      Block("6 de febrero de 2026")]
+        self.assertEqual(case_law_metadata(standalone, "sentencia.pdf", extended_tc_dates=True)
+                         ["resolution_date"], "2026-02-06")
+        quoted = [Block("SENTENCIA DEL TRIBUNAL CONSTITUCIONAL"),
+                  Block("ANTECEDENTES"), Block("La demanda cita 6 de febrero de 2026.")]
+        self.assertIsNone(case_law_metadata(quoted, "sentencia.pdf", extended_tc_dates=True)
+                          ["resolution_date"])
+        non_tc = [Block("CORTE SUPREMA"), Block("SENTENCIA DEL TRIBUNAL CONSTITUCIONAL"),
+                  Block("En Lima, al 1 de octubre de 202 4")]
+        self.assertIsNone(case_law_metadata(non_tc, "casación.pdf", extended_tc_dates=True)
+                          ["resolution_date"])
+
     def test_court_detected_with_pdf_spacing(self):
         metadata = case_law_metadata([Block("CORTE  SUPREMA  DE JUSTICIA DE LA REPÚBLICA"),
                                       Block("CASACIÓN N° 34397-2023")], "precedente.pdf")
@@ -332,6 +354,24 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
         units = JurisprudenceParser().parse(blocks)
         self.assertEqual([u.unit_number for u in units if u.unit_type == "foundation"], ["5", "6"])
         self.assertIn("211.", units[0].text)
+
+    def test_v214_quoted_numbered_lists_do_not_create_foundations(self):
+        blocks = [Block("FUNDAMENTOS"), Block("12. El manual enumera las funciones, que son las siguientes:"),
+                  Block("1. Recibir los expedientes."), Block("2. Entregar las copias."),
+                  Block("13. Corresponde resolver."), Block("HA RESUELTO"),
+                  Block("Declarar fundada la demanda.")]
+        current = JurisprudenceParser(quoted_numbered_lists=True).parse(blocks)
+        historical = JurisprudenceParser().parse(blocks)
+        self.assertEqual([u.unit_number for u in current if u.unit_type == "foundation"],
+                         ["12", "13"])
+        self.assertIn("2. Entregar las copias.", current[0].text)
+        self.assertEqual([u.unit_number for u in historical if u.unit_type == "foundation"],
+                         ["12", "1", "2", "13"])
+        no_intro = [Block("FUNDAMENTOS"), Block("12. Primer punto."),
+                    Block("1. Nuevo apartado."), Block("2. Segundo apartado.")]
+        self.assertEqual([u.unit_number for u in
+                          JurisprudenceParser(quoted_numbered_lists=True).parse(no_intro)
+                          if u.unit_type == "foundation"], ["12", "1", "2"])
 
     def test_pdf_sumilla_collects_wrapped_lines_on_same_page(self):
         blocks = [Block("SUMILLA :", page=1), Block("Será válido el contrato", page=1),

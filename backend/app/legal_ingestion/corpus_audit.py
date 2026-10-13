@@ -19,14 +19,17 @@ REVIEWS_002 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_002_REVIEW.json"
 REVIEWS_003 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_003_REVIEW.json"
 REVIEWS_004 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_004_REVIEW.json"
 REVIEWS_005 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_005_REVIEW.json"
+REVIEWS_006 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_006_REVIEW.json"
 BATCH_001 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_001.json"
 BATCH_002 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_002.json"
 BATCH_003 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_003.json"
 BATCH_004 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_004.json"
+BATCH_005 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_BATCH_005.json"
 OUTPUT = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_RECOVERY.json"
 OUTPUT_003 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_BATCH_003.json"
 OUTPUT_004 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_BATCH_004.json"
 OUTPUT_005 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_BATCH_005.json"
+OUTPUT_006 = ROOT / "docs/LEGAL_KNOWLEDGE_V2_CORPUS_BATCH_006.json"
 
 
 def _offline(*args, **kwargs):
@@ -137,7 +140,7 @@ def audit(root: Path, baseline: dict, reviews: dict) -> dict:
 def main() -> None:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
     reviews = json.loads(REVIEWS.read_text(encoding="utf-8"))
-    reviews["published_source_hashes"] = [entry["source_file_hash"] for manifest in (BATCH_001, BATCH_002, BATCH_003, BATCH_004)
+    reviews["published_source_hashes"] = [entry["source_file_hash"] for manifest in (BATCH_001, BATCH_002, BATCH_003, BATCH_004, BATCH_005)
                                            for entry in json.loads(manifest.read_text(encoding="utf-8"))["documents"]]
     if REVIEWS_003.is_file():
         reviews["approved"].extend(json.loads(REVIEWS_003.read_text(encoding="utf-8"))["approved"])
@@ -145,10 +148,12 @@ def main() -> None:
         reviews["approved"].extend(json.loads(REVIEWS_004.read_text(encoding="utf-8"))["approved"])
     if REVIEWS_005.is_file():
         reviews["approved"].extend(json.loads(REVIEWS_005.read_text(encoding="utf-8"))["approved"])
+    if REVIEWS_006.is_file():
+        reviews["approved"].extend(json.loads(REVIEWS_006.read_text(encoding="utf-8"))["approved"])
     with patch.object(socket.socket, "connect", _offline), patch.object(socket, "create_connection", _offline):
         report = audit(ROOT, baseline, reviews)
-    report["scope"] = "Batch 005 offline corpus qualification after manual review"
-    OUTPUT_005.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    report["scope"] = "Batch 006 offline corpus qualification after manual review"
+    OUTPUT_006.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report["summary"], ensure_ascii=False))
 
 
