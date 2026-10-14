@@ -1,0 +1,15 @@
+{
+  "batch_id": "007",
+  "documents": [
+    {
+      "stable_identifier": "0538ba67-bdad-5056-b647-6476657f58b1",
+      "source_path": "backend/raw_docs/jurisprudencia/TC_ordena_la_emisión_de_nuevos_pronunciamientos_debidamente_motivados_en_caso___.pdf",
+      "source_file_hash": "b10f850c4d0d45e4d8971575a12d5e7672f2b3c8084c50af14a503d4cb52267d",
+      "document_hash": "d51354c2a420272a32900b35cec387d52cfa54d67158a25373d1faaf498fecca",
+      "parser_version": "legal-v2.1.5",
+      "expected_unit_count": 12,
+      "document_type": "judgment",
+      "quality_status": "PUBLISHABLE"
+    }
+  ]
+}

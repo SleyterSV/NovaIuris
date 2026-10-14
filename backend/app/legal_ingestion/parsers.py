@@ -17,6 +17,9 @@ ORDINAL_PROVISION = re.compile(r"^([úu]nica|primera|segunda|tercera|cuarta|quin
 SECTION = re.compile(r"^(sumilla|materia|antecedentes?|autos\s+y\s+vistos?|vistos?|fundamentos?(?:\s+de\s+derecho)?|considerandos?|atendiendo\s+a\s+que|an[áa]lisis(?:\s+de\s+la\s+controversia|\s+del\s+caso\s+concreto)?|decisi[oó]n|parte\s+resolutiva|resuelve|ha\s+resuelto|por\s+estos\s+fundamentos|fallo|(?:fundamento\s+de\s+)?voto\s+(?:singular|en\s+discordia|separado|concurrente)(?:\s+del?\s+magistrad[oa])?|fundamento\s+de\s+voto\s+del?\s+magistrad[oa])(?:\s*[:.]\s*(.*))?\s*$", re.I)
 VOTE_HEADING = re.compile(r"^(?:fundamento\s+de\s+voto|voto(?:\s+(?:singular|en\s+discordia|separado|concurrente))?)(?:\s+(?:del?|de\s+la)\s+(?:magistrad[oa]|juez)(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.]{2,80})?)?$", re.I)
 VOTE_HEADING_STRICT = re.compile(r"^(?:fundamento\s+de\s+voto|voto(?:\s+(?:singular|en\s+discordia|separado|concurrente))?)(?:\s+(?:del?|de\s+la)\s+(?:magistrad[oa]|juez)(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{2,80})?)?$", re.I)
+STANDALONE_SUBHEADING = re.compile(
+    r"^(?:análisis del caso(?: en concreto)?|efectos de (?:la presente|esta) sentencia|"
+    r"delimitación (?:del petitorio|de la cuestión controvertida)|consideraciones previas)$", re.I)
 ROMAN_SECTION = re.compile(r"^[IVXLCDM]+[.)]\s*(.+?)\s*[:.]?\s*$", re.I)
 FOUNDATION_V2_1_0 = re.compile(r"^(?:fundamento\s+)?(\d{1,3}|(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno|d[ée]cimo(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno)?|und[ée]cimo|duod[ée]cimo|vig[ée]simo|trig[ée]simo)(?:\s+(?:primero|segundo|tercero|cuarto|quinto|sexto|s[ée]timo|octavo|noveno))?)\s*[.°º)-]+-?\s+(.+)$", re.I)
 FOUNDATION = re.compile(FOUNDATION_V2_1_0.pattern.replace("s[ée]timo", "s[ée]ptimo"), re.I)
@@ -290,10 +293,11 @@ class JurisprudenceParser:
     name = "jurisprudence"
 
     def __init__(self, *, legacy=False, strict_vote_headings=False,
-                 quoted_numbered_lists=False):
+                 quoted_numbered_lists=False, attach_standalone_subheadings=False):
         self.legacy = legacy
         self.vote_heading = VOTE_HEADING_STRICT if strict_vote_headings else VOTE_HEADING
         self.quoted_numbered_lists = quoted_numbered_lists
+        self.attach_standalone_subheadings = attach_standalone_subheadings
 
     def parse(self, blocks: list[Block]) -> list[LegalUnit]:
         units: list[LegalUnit] = []
@@ -393,20 +397,39 @@ class JurisprudenceParser:
                 if number == numbered.group(1) and buffer:
                     buffer.append(block)
                     continue
-                header_only = (not self.legacy and number is None and 1 <= len(buffer) <= 3
+                moved = []
+                if self.attach_standalone_subheadings and kind == "foundation" and buffer:
+                    if (number is None and SECTION.match(search_normalize(buffer[0].text)) and
+                            len(buffer) <= 4 and len(buffer) > 1 and
+                            search_normalize(buffer[0].text).casefold() == "fundamentos" and
+                            re.match(r"^(?:delimitación|análisis|consideraciones|efectos)\b",
+                                     search_normalize(buffer[1].text), re.I) and
+                            all(len(item.text) <= 110 and not re.search(r"[.!?;:]", item.text)
+                                for item in buffer[1:])):
+                        moved = buffer
+                        unit_heading = " ".join(item.text.strip() for item in buffer[1:])
+                        buffer = []
+                    elif (number is not None and number.isdigit() and
+                            numbered.group(1).isdigit() and
+                            int(numbered.group(1)) == int(number) + 1 and
+                            STANDALONE_SUBHEADING.fullmatch(search_normalize(buffer[-1].text))):
+                        moved = [buffer.pop()]
+                        flush()
+                        unit_heading = moved[0].text.strip()
+                header_only = (not moved and not self.legacy and number is None and 1 <= len(buffer) <= 3
                                and SECTION.match(search_normalize(buffer[0].text))
                                and all(len(item.text.split()) <= 5 and
                                        not re.search(r"[.!?;:]|\d", item.text)
                                        for item in buffer[1:]))
-                if header_only:
+                if not moved and header_only:
                     unit_heading = buffer[-1].text.strip() if len(buffer) > 1 else None
                     buffer = []
-                elif number is None and len(buffer) == 1 and (SECTION.match(search_normalize(buffer[0].text)) or ROMAN_SECTION.match(search_normalize(buffer[0].text))):
+                elif not moved and number is None and len(buffer) == 1 and (SECTION.match(search_normalize(buffer[0].text)) or ROMAN_SECTION.match(search_normalize(buffer[0].text))):
                     buffer = []
-                else:
+                elif not moved:
                     flush()
                 number = numbered.group(1)
-                buffer = [block]
+                buffer = moved + [block]
                 continue
             if kind:
                 buffer.append(block)

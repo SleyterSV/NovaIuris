@@ -373,6 +373,63 @@ class LegalKnowledgeV2Tests(unittest.TestCase):
                           JurisprudenceParser(quoted_numbered_lists=True).parse(no_intro)
                           if u.unit_type == "foundation"], ["12", "1", "2"])
 
+    def test_v215_standalone_subheadings_attach_forward_without_losing_text(self):
+        blocks = [Block("FUNDAMENTOS", page=1),
+                  Block("Delimitación de la cuestión controvertida en el recurso de agravio", page=1),
+                  Block("constitucional", page=1),
+                  Block("1. Primera razón jurídica.", page=1),
+                  Block("Análisis del caso en concreto", page=1),
+                  Block("2. Segunda razón jurídica.", page=2),
+                  Block("Efectos de la presente sentencia", page=2),
+                  Block("3. Tercera razón jurídica.", page=2),
+                  Block("HA RESUELTO", page=3), Block("Declarar fundada la demanda.", page=3)]
+        old = JurisprudenceParser(quoted_numbered_lists=True).parse(blocks)
+        new = JurisprudenceParser(quoted_numbered_lists=True,
+                                  attach_standalone_subheadings=True).parse(blocks)
+        foundations = [unit for unit in new if unit.unit_type == "foundation"]
+        self.assertEqual([unit.unit_number for unit in foundations], ["1", "2", "3"])
+        self.assertEqual(len([unit for unit in old if unit.unit_type == "foundation"]), 4)
+        self.assertEqual([unit.heading for unit in foundations],
+                         ["Delimitación de la cuestión controvertida en el recurso de agravio constitucional", "Análisis del caso en concreto",
+                          "Efectos de la presente sentencia"])
+        self.assertNotIn("Análisis del caso", foundations[0].text)
+        self.assertEqual((foundations[1].page_start, foundations[1].page_end), (1, 2))
+        self.assertEqual("\n".join(unit.text for unit in old), "\n".join(unit.text for unit in new))
+        self.assertEqual(new[-1].unit_type, "decision")
+
+    def test_v215_subheading_rule_does_not_move_prose_or_vote_text(self):
+        blocks = [Block("FUNDAMENTOS"), Block("1. Primera razón."),
+                  Block("Análisis del caso en concreto.", page=1),
+                  Block("2. Segunda razón.", page=2),
+                  Block("VOTO SINGULAR DEL MAGISTRADO OCHOA CARDICH", page=3),
+                  Block("Efectos de la presente sentencia", page=3),
+                  Block("1. Mi discrepancia.", page=3)]
+        units = JurisprudenceParser(attach_standalone_subheadings=True).parse(blocks)
+        self.assertIn("Análisis del caso en concreto.", units[0].text)
+        self.assertNotIn("Análisis del caso en concreto.", units[1].text)
+        self.assertEqual(units[-1].unit_type, "separate_opinion")
+        self.assertIn("Efectos de la presente sentencia", units[-1].text)
+
+    def test_v214_remains_selectable_and_reproducible_after_v215(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "sentencia.txt"
+            path.write_text("TRIBUNAL CONSTITUCIONAL\nEXP. N.º 00001-2025-PA/TC\n"
+                            "SENTENCIA DEL TRIBUNAL CONSTITUCIONAL\n"
+                            "En Lima, al 1 de octubre de 2025\n"
+                            "FUNDAMENTOS\nDelimitación de la cuestión controvertida en el caso\n"
+                            "1. La primera razón.\nAnálisis del caso en concreto\n"
+                            "2. La segunda razón.\nHA RESUELTO\nDeclarar fundada la demanda.\n",
+                            encoding="utf-8")
+            historical = stage_file(path, family="jurisprudence", parser_version="legal-v2.1.4")
+            historical_again = stage_file(path, family="jurisprudence", parser_version="legal-v2.1.4")
+            current = stage_file(path, family="jurisprudence", parser_version="legal-v2.1.5")
+        self.assertEqual(historical.document_hash, historical_again.document_hash)
+        self.assertEqual([unit.content_hash for unit in historical.units],
+                         [unit.content_hash for unit in historical_again.units])
+        self.assertNotEqual([unit.content_hash for unit in historical.units],
+                            [unit.content_hash for unit in current.units])
+        self.assertEqual(current.parser_version, "legal-v2.1.5")
+
     def test_pdf_sumilla_collects_wrapped_lines_on_same_page(self):
         blocks = [Block("SUMILLA :", page=1), Block("Será válido el contrato", page=1),
                   Block("que cumpla los requisitos.", page=1), Block("III. CONSIDERANDO:", page=2)]

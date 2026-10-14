@@ -1,0 +1,387 @@
+{
+  "batch_id": "007",
+  "parser_version": "legal-v2.1.5",
+  "approved": [
+    {
+      "source_path": "backend/raw_docs/jurisprudencia/TC_ordena_la_emisión_de_nuevos_pronunciamientos_debidamente_motivados_en_caso___.pdf",
+      "source_file_hash": "b10f850c4d0d45e4d8971575a12d5e7672f2b3c8084c50af14a503d4cb52267d",
+      "document_hash": "d51354c2a420272a32900b35cec387d52cfa54d67158a25373d1faaf498fecca",
+      "parser_version": "legal-v2.1.5",
+      "expected_unit_count": 12,
+      "document_type": "judgment",
+      "manual_review_status": "PASS",
+      "review_evidence": "PDF original cotejado visualmente en sus 9/9 páginas: Sala Segunda, Sentencia 420/2026, Exp. 04852-2023-PA/TC, fecha 06-03-2026 y URL oficial impresa. Antecedente págs. 1-3; fundamentos 1-7 págs. 3-5, con subtítulos Delimitación, Análisis y Efectos junto al fundamento siguiente; decisión FUNDADA, nulidad y nuevos pronunciamientos completa en pág. 5. Voto dirimente Hernández Chávez pág. 6 y voto singular Gutiérrez Ticse págs. 7-9, separados de la mayoría. Se revisaron primera unidad, fundamentos intermedios y última unidad, páginas cruzadas, headers, footer, notas de foja, listas, texto editorial, palabras partidas y warning page_furniture_removed:32. Las notas impresas permanecen en el texto original, sin supresión ni reconstrucción; no afectan la identidad ni el sentido de las unidades aceptadas. 12 unidades cubren páginas 1-9; no hay unidades vacías ni hashes duplicados.",
+      "expediente": "04852-2023-PA/TC",
+      "pages": [
+        1,
+        9
+      ],
+      "identity_review": "PASS: Sala Segunda, Sentencia 420/2026, fecha 06-03-2026 y URL oficial en PDF",
+      "foundations_review": "PASS: fundamentos 1-7 continuos, páginas 3-5; subtítulos unidos al siguiente fundamento",
+      "decision_review": "PASS: FUNDADA, nulidad y nuevos pronunciamientos, página 5",
+      "votes_review": "PASS: Hernández Chávez, página 6; singular Gutiérrez Ticse, páginas 7-9; separados",
+      "editorial_noise_review": "PASS: cabeceras y pies repetidos retirados; título de archivo editorial no define identidad",
+      "footnotes_folios_review": "PASS: notas impresas retenidas, sin eliminación ni reconstrucción",
+      "boundaries_review": "PASS: 12 unidades, primera/media/última y cruces de página cotejados contra 9/9 páginas"
+    }
+  ],
+  "rejected": [
+    {
+      "expediente": "1913-2023/VENTANILLA",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Extracción con palabras partidas dentro de la decisión y de fundamentos; no se reconstruye texto por intuición.",
+      "source_path": "backend/raw_docs/jurisprudencia/_Es_posible_anular_una_sentencia_por_falta_de_fundamentación_de_la___.pdf",
+      "source_file_hash": "e010e53ee6e7de7cf3f99941229d9f1ae5a5076cb380103ef6a806a5aa927592",
+      "document_type": "cassation",
+      "pages": [
+        1,
+        2
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Extracción con palabras partidas dentro de la decisión y de fundamentos; no se reconstruye texto por intuición.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "04235-2023-PHC/TC",
+      "manual_review_status": "EXCLUDED",
+      "reason": "La identidad extraída es 5547-2017-27-1601-JR-PE-06, una causa citada y no el expediente principal.",
+      "source_path": "backend/raw_docs/jurisprudencia/_Nuevo_criterio__TC__Ley_penitenciaria_aplicable_es_la_vigente_al_momento___.pdf",
+      "source_file_hash": "eb4faa1082fae6e34714ddb2a2dd5e0147e314d84411afe4b990e0e2fbd2e80f",
+      "document_type": "judgment",
+      "pages": [
+        1,
+        37
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "La identidad extraída es 5547-2017-27-1601-JR-PE-06, una causa citada y no el expediente principal.",
+      "identity_review": "EXCLUDED: identidad principal incorrecta",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "1944-2025",
+      "manual_review_status": "EXCLUDED",
+      "reason": "La primera unidad es una decisión y aparecen dos unidades de decisión; estructura mixta y límites inseguros.",
+      "source_path": "backend/raw_docs/jurisprudencia/Declaran_fundado_recurso_de_queja_por_denegatoria_de_casación_de_Melissa___.pdf",
+      "source_file_hash": "a34046a56bb2cb038f4fdb953aedc3487ca8acd2d42a183765e48bbecd2bdece",
+      "document_type": "cassation",
+      "pages": [
+        6,
+        16
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "La primera unidad es una decisión y aparecen dos unidades de decisión; estructura mixta y límites inseguros.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "1027-2025/SAN",
+      "manual_review_status": "EXCLUDED",
+      "reason": "La extracción comienza en Cuarto; faltan los fundamentos iniciales en el conjunto de unidades.",
+      "source_path": "backend/raw_docs/jurisprudencia/El_adelanto_de_fallo_no_constituye_una_sentencia_ni_produce_efectos___.pdf",
+      "source_file_hash": "f465ab0c6e8a3b992dbde068345421904202f729c5e88903d598a923c4b8a2ed",
+      "document_type": "cassation",
+      "pages": [
+        7,
+        12
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "La extracción comienza en Cuarto; faltan los fundamentos iniciales en el conjunto de unidades.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "13554-2025",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Siete unidades clasificadas como decisión; los límites de la parte resolutiva no son fiables.",
+      "source_path": "backend/raw_docs/jurisprudencia/El_principio_de_verdad_material_impone_al_Tribunal_Fiscal_el_deber___.pdf",
+      "source_file_hash": "d0031854e000da328ced75c44572a589417a2afe834495719129baa5de2a1678",
+      "document_type": "cassation",
+      "pages": [
+        1,
+        21
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Siete unidades clasificadas como decisión; los límites de la parte resolutiva no son fiables.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "767-2025",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Una cita numerada se clasifica como fundamento 110; numeración principal insegura.",
+      "source_path": "backend/raw_docs/jurisprudencia/El_tribunal_superior_debe_pronunciarse_sobre_la_reparación_civil__confirmando__modificando.pdf",
+      "source_file_hash": "571efe5fbedb98f4b2fb153901e19fdf99b048cffcb9768c6c2e769ed0cdafd3",
+      "document_type": "cassation",
+      "pages": [
+        1,
+        16
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Una cita numerada se clasifica como fundamento 110; numeración principal insegura.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "01649-2024-PHC/TC",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Fundamentos 7-9 duplicados y 33-37 de cita interna clasificados como principales; folios mezclados.",
+      "source_path": "backend/raw_docs/jurisprudencia/La_no_efectiva_y_válida_notificación_de_la_sentencia_condenatoria_al___.pdf",
+      "source_file_hash": "77681d0cb542d17a48d388ce4f2a27bd941c60ea80c6fda8d231da63ff68b825",
+      "document_type": "judgment",
+      "pages": [
+        1,
+        15
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Fundamentos 7-9 duplicados y 33-37 de cita interna clasificados como principales; folios mezclados.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "04068-2023-PA/TC",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Fundamentos 30, 32 y 33 de cita interna intercalados antes del fundamento principal 5; folios mixtos.",
+      "source_path": "backend/raw_docs/jurisprudencia/TC__No_se_suspende_el_cómputo_del_plazo_de_prescripción_por___.pdf",
+      "source_file_hash": "452b938f4eff5160d2aa0bd6e63ba2f6cc168235f43eeb843df4404bf095546e",
+      "document_type": "judgment",
+      "pages": [
+        1,
+        30
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Fundamentos 30, 32 y 33 de cita interna intercalados antes del fundamento principal 5; folios mixtos.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "02248-2020-PA/TC",
+      "manual_review_status": "EXCLUDED",
+      "reason": "El órgano se extrae como Corte Superior pese a ser sentencia TC; subtítulos numerados producen unidades falsas.",
+      "source_path": "backend/raw_docs/jurisprudencia/TC_anula_sentencia_de_alimentos_porque_juez_no_valoró_informe_del___.pdf",
+      "source_file_hash": "7a0b11fa57a332810aad1383d30acdfcbd8f4597ca288d63de5075fd4fd8fe57",
+      "document_type": "judgment",
+      "pages": [
+        2,
+        18
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "El órgano se extrae como Corte Superior pese a ser sentencia TC; subtítulos numerados producen unidades falsas.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "01191-2025-PHC/TC",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Estructura acumulada con expediente 01192-2025-PHC/TC, headers de ambos casos y folios dentro de las unidades.",
+      "source_path": "backend/raw_docs/jurisprudencia/TC_declara_fundada_demanda_de_Nicanor_Boluarte_y_ordena_al_PJ___.pdf",
+      "source_file_hash": "a9c838713ed5116f1cdfc76743b38eb9717ccdd09e28a3160f9654bc5b6fe5fe",
+      "document_type": "judgment",
+      "pages": [
+        1,
+        34
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Estructura acumulada con expediente 01192-2025-PHC/TC, headers de ambos casos y folios dentro de las unidades.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "00800-2024-PHC/TC",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Referencias de foja continúan mezcladas con el razonamiento canónico; rechazo conservador mantenido.",
+      "source_path": "backend/raw_docs/jurisprudencia/TC_declara_fundado_hábeas_corpus_por_falta_de_motivación_a_la___.pdf",
+      "source_file_hash": "054ed36a04b84cbccddaa14111883b105434d6c31c2f4a3a8b06c66b7c9d182a",
+      "document_type": "judgment",
+      "pages": [
+        1,
+        18
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Referencias de foja continúan mezcladas con el razonamiento canónico; rechazo conservador mantenido.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "00004-2024-PI/TC",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Índice inicial clasificado como unidades jurídicas antes del cuerpo real.",
+      "source_path": "backend/raw_docs/jurisprudencia/TC_declara_improcedente_hábeas_corpus_de_Pedro_Castillo_con_el_que_.pdf",
+      "source_file_hash": "746bfa0bb6794342ecd87e2e317a48de7627b8d1b38b28d3760a90651d469887",
+      "document_type": "judgment",
+      "pages": [
+        2,
+        29
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Índice inicial clasificado como unidades jurídicas antes del cuerpo real.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "0008-2025-PI/TC",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Índice inicial y estructura mixta crean unidades falsas; extensión impide revisión segura en este lote.",
+      "source_path": "backend/raw_docs/jurisprudencia/TC_declara_inconstitucional_ley_que_incorporó_a_adolescentes_de_16_y___.pdf",
+      "source_file_hash": "2fb869f28cec8014673de6ac4309b8c984126fec424aa485650c40d45e24e15d",
+      "document_type": "judgment",
+      "pages": [
+        2,
+        109
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Índice inicial y estructura mixta crean unidades falsas; extensión impide revisión segura en este lote.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "00005-2025-PI/TC",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Índice inicial clasificado como fundamentos y decisión antes del cuerpo real.",
+      "source_path": "backend/raw_docs/jurisprudencia/TC_desestima_demanda_de_inconstitucionalidad_de_la_Ley_32130_y_reitera___.pdf",
+      "source_file_hash": "6da31876025b8c68bb8caf6724d86f762dd89c01c35a9883e9e3b2b885953afc",
+      "document_type": "judgment",
+      "pages": [
+        2,
+        33
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Índice inicial clasificado como fundamentos y decisión antes del cuerpo real.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "01736-2025-PHC/TC",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Numeración citada 28-29 y lista interna 1 intercaladas entre fundamentos 20-23; folios mixtos.",
+      "source_path": "backend/raw_docs/jurisprudencia/TC_reafirma_que_la_desaparición_forzada_solo_puede_ser_entendida_como___.pdf",
+      "source_file_hash": "41642e2e6211dfbef89f7eddcec12080f9febd1a47111c1c15d1c09098c35ae0",
+      "document_type": "judgment",
+      "pages": [
+        1,
+        31
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Numeración citada 28-29 y lista interna 1 intercaladas entre fundamentos 20-23; folios mixtos.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "00215-2024-PHC/TC",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Un encabezado impreso como MAGITRADO no separa el voto singular; dos posiciones quedan en una unidad.",
+      "source_path": "backend/raw_docs/jurisprudencia/TC_se_vuelve_a_apartar_de_la_STC_Exp__00413_2021_PHC_TC__Si___.pdf",
+      "source_file_hash": "d11d9a8acc6a7444f2752c7398d644f080504cc02b10605d7e4650a20d787801",
+      "document_type": "judgment",
+      "pages": [
+        1,
+        11
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Un encabezado impreso como MAGITRADO no separa el voto singular; dos posiciones quedan en una unidad.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    },
+    {
+      "expediente": "496-2025/LA",
+      "manual_review_status": "EXCLUDED",
+      "reason": "Fundamentos ordinales duplicados y partidos entre páginas, además de palabras partidas en texto jurídico.",
+      "source_path": "backend/raw_docs/jurisprudencia/Tribunal_de_Apelación_no_puede_pronunciarse_sobre_el_objeto_penal_cuando___.pdf",
+      "source_file_hash": "d3164ea562492f4719f47dd85383f1ac2978b29ad2dd29bdb4b57255962162c7",
+      "document_type": "cassation",
+      "pages": [
+        1,
+        10
+      ],
+      "parser_version": "legal-v2.1.5",
+      "observed_problems": "Fundamentos ordinales duplicados y partidos entre páginas, además de palabras partidas en texto jurídico.",
+      "identity_review": "TRIAGED: identificación extraída; no aprobada globalmente",
+      "foundations_review": "EXCLUDED: ver problema observado; no se certificó secuencia y límites completos",
+      "decision_review": "EXCLUDED: no se certificó decisión completa tras el bloqueo observado",
+      "votes_review": "EXCLUDED: no se certificó separación de todos los votos tras el bloqueo observado",
+      "editorial_noise_review": "TRIAGED: no se certificó limpieza integral tras el bloqueo observado",
+      "footnotes_folios_review": "TRIAGED: ver problema observado; no se corrigieron ni suprimieron notas/folios",
+      "boundaries_review": "EXCLUDED: cotejo parcial suficiente para descartar; no equivale a PASS integral"
+    }
+  ]
+}

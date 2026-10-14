@@ -224,6 +224,46 @@ class CorpusCliTests(unittest.TestCase):
                         with self.assertRaisesRegex(corpus_cli.BatchError, "MANIFEST_QUALIFICATION_MISMATCH"):
                             corpus_cli._load_manifest(str(changed_manifest))
 
+    def test_batch_007_is_inspectable_offline_but_publication_stays_disabled(self):
+        entries = corpus_cli._load_manifest(str(corpus_cli.MANIFEST_007))
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["parser_version"], "legal-v2.1.5")
+        document = corpus_cli._stage_entry(entries[0])
+        self.assertEqual(document.metadata["expediente"], "04852-2023-PA/TC")
+        self.assertEqual(document.document_id, entries[0]["stable_identifier"])
+        self.assertEqual(len(document.units), 12)
+        with patch.dict("os.environ", {}, clear=True), patch.object(
+                corpus_cli, "_adapter") as adapter, patch.object(
+                corpus_cli, "_embedding_configured") as embedding:
+            with redirect_stdout(io.StringIO()) as output:
+                inspect_code = corpus_cli.main(["inspect-batch", str(corpus_cli.MANIFEST_007)])
+            with redirect_stderr(io.StringIO()) as errors:
+                publish_code = corpus_cli.main(["publish-batch", str(corpus_cli.MANIFEST_007)])
+        self.assertEqual(inspect_code, 0)
+        self.assertIn("PRESENCE=UNVERIFIED_OFFLINE", output.getvalue())
+        self.assertIn("EMBEDDINGS_REQUIRED=12", output.getvalue())
+        self.assertEqual(publish_code, 1)
+        self.assertIn("BATCH_NOT_ENABLED_FOR_PUBLICATION", errors.getvalue())
+        self.assertNotIn("007", corpus_cli.PUBLISH_BASELINES)
+        adapter.assert_not_called()
+        embedding.assert_not_called()
+
+    def test_batch_007_manifest_hash_parser_and_unit_count_are_bound_to_qualification(self):
+        with tempfile.TemporaryDirectory() as folder:
+            changed_manifest = Path(folder) / "batch_007.json"
+            original = json.loads(corpus_cli.MANIFEST_007.read_text(encoding="utf-8"))
+            with patch.object(corpus_cli, "MANIFEST_007", changed_manifest):
+                for field, value in (("document_hash", "0" * 64),
+                                     ("source_file_hash", "0" * 64),
+                                     ("parser_version", "legal-v2.1.4"),
+                                     ("expected_unit_count", 13)):
+                    with self.subTest(field=field):
+                        altered = json.loads(json.dumps(original))
+                        altered["documents"][0][field] = value
+                        changed_manifest.write_text(json.dumps(altered), encoding="utf-8")
+                        with self.assertRaises(corpus_cli.BatchError):
+                            corpus_cli._load_manifest(str(changed_manifest))
+
     def test_batch_003_new_document_requires_confirmed_baseline(self):
         document = SimpleNamespace(units=[SimpleNamespace(search_text="legal unit")] * 6,
                                    document_hash="a" * 64)
