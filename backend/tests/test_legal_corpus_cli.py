@@ -52,7 +52,7 @@ class CorpusCliTests(unittest.TestCase):
     def test_unknown_batch_is_not_enabled(self):
         with patch.object(corpus_cli, "_stage_entry") as stage:
             with self.assertRaisesRegex(corpus_cli.BatchError, "BATCH_NOT_ENABLED_FOR_PUBLICATION"):
-                corpus_cli._publish([{}], object(), batch_id="007")
+                corpus_cli._publish([{}], object(), batch_id="008")
         stage.assert_not_called()
 
     def test_batch_003_manifest_is_reproducible_and_enabled(self):
@@ -201,7 +201,8 @@ class CorpusCliTests(unittest.TestCase):
         self.assertEqual(corpus_cli.PUBLISH_BASELINES,
                          {"001": (2, 15, 0, 2), "002": (4, 38, 0, 4),
                           "003": (6, 64, 0, 6), "004": (8, 92, 0, 8),
-                          "005": (9, 105, 0, 9), "006": (10, 144, 0, 10)})
+                          "005": (9, 105, 0, 9), "006": (10, 144, 0, 10),
+                          "007": (13, 274, 0, 13)})
         document = SimpleNamespace(units=[None] * 18)
         with patch.object(corpus_cli, "_stage_entry", return_value=document), patch.object(
                 corpus_cli, "_presence", return_value="NOT_PRESENT"), patch.object(
@@ -224,7 +225,7 @@ class CorpusCliTests(unittest.TestCase):
                         with self.assertRaisesRegex(corpus_cli.BatchError, "MANIFEST_QUALIFICATION_MISMATCH"):
                             corpus_cli._load_manifest(str(changed_manifest))
 
-    def test_batch_007_is_inspectable_offline_but_publication_stays_disabled(self):
+    def test_batch_007_is_inspectable_offline_and_explicitly_enabled(self):
         entries = corpus_cli._load_manifest(str(corpus_cli.MANIFEST_007))
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0]["parser_version"], "legal-v2.1.5")
@@ -234,19 +235,44 @@ class CorpusCliTests(unittest.TestCase):
         self.assertEqual(len(document.units), 12)
         with patch.dict("os.environ", {}, clear=True), patch.object(
                 corpus_cli, "_adapter") as adapter, patch.object(
-                corpus_cli, "_embedding_configured") as embedding:
+                corpus_cli, "_embedding_configured") as embedding, patch.object(
+                corpus_cli, "_publish") as publish:
             with redirect_stdout(io.StringIO()) as output:
                 inspect_code = corpus_cli.main(["inspect-batch", str(corpus_cli.MANIFEST_007)])
-            with redirect_stderr(io.StringIO()) as errors:
-                publish_code = corpus_cli.main(["publish-batch", str(corpus_cli.MANIFEST_007)])
+            publish_code = corpus_cli.main(["publish-batch", str(corpus_cli.MANIFEST_007)])
         self.assertEqual(inspect_code, 0)
         self.assertIn("PRESENCE=UNVERIFIED_OFFLINE", output.getvalue())
         self.assertIn("EMBEDDINGS_REQUIRED=12", output.getvalue())
-        self.assertEqual(publish_code, 1)
-        self.assertIn("BATCH_NOT_ENABLED_FOR_PUBLICATION", errors.getvalue())
-        self.assertNotIn("007", corpus_cli.PUBLISH_BASELINES)
-        adapter.assert_not_called()
-        embedding.assert_not_called()
+        self.assertEqual(publish_code, 0)
+        self.assertEqual(corpus_cli.PUBLISH_BASELINES["007"], (13, 274, 0, 13))
+        adapter.assert_called_once()
+        embedding.assert_called_once()
+        publish.assert_called_once_with(entries, adapter.return_value, batch_id="007")
+
+    def test_batch_007_rejects_remote_count_mismatch_before_embeddings_or_writes(self):
+        entries = corpus_cli._load_manifest(str(corpus_cli.MANIFEST_007))
+        document = corpus_cli._stage_entry(entries[0])
+        adapter = Mock()
+        with patch.object(corpus_cli, "_stage_entry", return_value=document), patch.object(
+                corpus_cli, "_presence", return_value="NOT_PRESENT"), patch.object(
+                corpus_cli, "_current_counts", return_value=(13, 273, 0, 13)), patch(
+                "app.services.embedding_service.EmbeddingService") as provider:
+            with self.assertRaisesRegex(corpus_cli.BatchError, "DATABASE_COUNTS_UNEXPECTED"):
+                corpus_cli._publish(entries, adapter, batch_id="007")
+        provider.assert_not_called()
+        adapter.prepare.assert_not_called()
+        adapter.publish.assert_not_called()
+
+    def test_batch_007_changed_staged_document_hash_and_units_are_rejected(self):
+        entry = corpus_cli._load_manifest(str(corpus_cli.MANIFEST_007))[0]
+        actual = corpus_cli._stage_entry(entry)
+        for field, value in (("document_hash", "0" * 64), ("units", actual.units[:-1]),
+                             ("parser_version", "legal-v2.1.4")):
+            with self.subTest(field=field), patch.object(
+                    corpus_cli, "stage_file", return_value=SimpleNamespace(
+                        **{**vars(actual), field: value})):
+                with self.assertRaisesRegex(corpus_cli.BatchError, "SOURCE_OR_QUALITY_CHANGED"):
+                    corpus_cli._stage_entry(entry)
 
     def test_batch_007_manifest_hash_parser_and_unit_count_are_bound_to_qualification(self):
         with tempfile.TemporaryDirectory() as folder:

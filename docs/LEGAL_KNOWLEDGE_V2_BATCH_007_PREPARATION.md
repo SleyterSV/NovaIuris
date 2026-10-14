@@ -2,7 +2,7 @@
 
 ## Estado y alcance
 
-**READY para inspección remota de solo lectura; no habilitado para publicar.** MYKE Legal contiene, según el operador, 13 documentos, 274 unidades, 0 relaciones y 13 runs después de Batch 006. No se consultó ni escribió Supabase en esta preparación. Tampoco se publicaron documentos ni se generaron embeddings. El código mantiene las versiones históricas seleccionables: 001 `legal-v2.1.0`, 002 `legal-v2.1.1`, 003–004 `legal-v2.1.2`, 005 `legal-v2.1.3` y 006 `legal-v2.1.4`. Las fuentes publicadas se reconocen por hash antes de calificar; no se reingestaron ni modificaron.
+**La preparación offline quedó READY para inspección remota de solo lectura.** MYKE Legal contiene, según el operador, 13 documentos, 274 unidades, 0 relaciones y 13 runs después de Batch 006. No se consultó ni escribió Supabase en esta preparación. Tampoco se publicaron documentos ni se generaron embeddings. El código mantiene las versiones históricas seleccionables: 001 `legal-v2.1.0`, 002 `legal-v2.1.1`, 003–004 `legal-v2.1.2`, 005 `legal-v2.1.3` y 006 `legal-v2.1.4`. Las fuentes publicadas se reconocen por hash antes de calificar; no se reingestaron ni modificaron.
 
 ## Auditoría de 135 originales
 
@@ -64,11 +64,15 @@ En el PDF original constan Sala Segunda, Sentencia 420/2026, expediente, fecha 0
 
 ## Manifest e inspección
 
-El [manifest Batch 007](LEGAL_KNOWLEDGE_V2_BATCH_007.json) contiene exclusivamente la sentencia aprobada: ID estable `0538ba67-bdad-5056-b647-6476657f58b1`, hash documental `d51354c2a420272a32900b35cec387d52cfa54d67158a25373d1faaf498fecca`, parser `legal-v2.1.5`, tipo `judgment`, **12 unidades y 12 embeddings futuros**. La CLI comprueba manifest, calificación, SHA-256 de fuente, hash documental, versión, ID y unidades al volver a staging. `PUBLISH_BASELINES` sigue limitado a 001–006; `publish-batch` 007 se rechaza antes de crear proveedor de embeddings.
+El [manifest Batch 007](LEGAL_KNOWLEDGE_V2_BATCH_007.json) contiene exclusivamente la sentencia aprobada: ID estable `0538ba67-bdad-5056-b647-6476657f58b1`, hash documental `d51354c2a420272a32900b35cec387d52cfa54d67158a25373d1faaf498fecca`, parser `legal-v2.1.5`, tipo `judgment`, **12 unidades y 12 embeddings futuros**. La CLI comprueba manifest, calificación, SHA-256 de fuente, hash documental, versión, ID y unidades al volver a staging. Durante la preparación, `PUBLISH_BASELINES` estaba limitado a 001–006 y `publish-batch` 007 se rechazaba antes de crear proveedor de embeddings.
 
 ```powershell
 cd D:\NovaIuris\backend
 python -m app.legal_ingestion.corpus_cli inspect-batch ..\docs\LEGAL_KNOWLEDGE_V2_BATCH_007.json
 ```
 
-Inspección offline: `STATUS=PUBLISHABLE`, `PARSER=legal-v2.1.5`, `UNITS=12`, `HASH=d51354c2a420`, `EMBEDDINGS_REQUIRED=12`, `PRESENCE=UNVERIFIED_OFFLINE`. **GO únicamente para que el operador haga `inspect-batch` remoto de solo lectura.** La habilitación para publicar exige otra instrucción y preflight remoto posterior.
+Inspección offline: `STATUS=PUBLISHABLE`, `PARSER=legal-v2.1.5`, `UNITS=12`, `HASH=d51354c2a420`, `EMBEDDINGS_REQUIRED=12`, `PRESENCE=UNVERIFIED_OFFLINE`. En esa fase, el resultado fue **GO únicamente para `inspect-batch` remoto de solo lectura**.
+
+## Habilitación posterior a la inspección remota
+
+El operador confirmó por inspección remota de solo lectura el baseline **13 documentos / 274 unidades / 0 relaciones / 13 runs** y, para el único documento, `PUBLISHABLE`, `judgment`, 12 unidades, `legal-v2.1.5`, hash `d51354c2a420`, `PRESENCE=NOT_PRESENT`. Se habilitó exclusivamente Batch 007 en `PUBLISH_BASELINES` con `(13, 274, 0, 13)`, manteniendo 001–006. La CLI exige ese conteo exacto antes de crear el proveedor de embeddings o efectuar escrituras; un batch desconocido continúa bloqueado. Esta habilitación local no ejecutó publicación, no generó embeddings y no escribió en Supabase.
