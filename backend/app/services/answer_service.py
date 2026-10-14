@@ -171,6 +171,8 @@ una causa de la parte resolutiva: improcedencia, inadmisibilidad o rechazo no
 demuestran por sí solos el motivo. Explica motivos solo si un fundamento
 recuperado los afirma expresamente. Si falta soporte, indícalo sin especular.
 Para una pregunta sobre la decisión, usa primero la unidad de decisión.
+El texto canónico de cada unidad se proporciona completo en el contexto;
+no infieras que falta texto a partir de vistas previas de resultados.
 
 Consulta: {query}
 
@@ -179,8 +181,8 @@ Unidades verificadas:
 """
 
     @staticmethod
-    def exact_source_answer(source: dict) -> Dict:
-        excerpt = str(source.get("excerpt") or "").strip()
+    def exact_source_answer(source: dict, canonical_text: str | None = None) -> Dict:
+        excerpt = str(canonical_text if canonical_text is not None else source.get("excerpt") or "").strip()
         if not excerpt or not source.get("source_id"):
             return {"success": False, "answer": ""}
         title = source.get("title") or "la fuente recuperada"
@@ -188,8 +190,8 @@ Unidades verificadas:
                 "answer": f"Según {title}: «{excerpt}» [{source['source_id']}]."}
 
     @staticmethod
-    def exact_decision_answer(source: dict) -> Dict:
-        excerpt = str(source.get("excerpt") or "").strip()
+    def exact_decision_answer(source: dict, canonical_text: str | None = None) -> Dict:
+        excerpt = str(canonical_text if canonical_text is not None else source.get("excerpt") or "").strip()
         if not excerpt or not source.get("source_id") or \
                 (source.get("metadata") or {}).get("unit_type") != "decision":
             return {"success": False, "answer": ""}

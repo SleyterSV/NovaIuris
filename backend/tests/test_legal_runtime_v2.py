@@ -13,7 +13,7 @@ from app.services.context_builder import ContextBuilder
 from app.services.legal_repository import LegalSearchError
 from app.services.legal_repository_v2 import (LegalRepositoryV2, map_runtime_unit,
     search_cursor, UNIT_DETAIL_COLUMNS)
-from app.services.legal_query_identity import explicit_tc_expediente, asks_for_decision
+from app.services.legal_query_identity import explicit_tc_expediente, asks_for_decision, exact_unit_intent
 from app.services.search_service import SearchPipelineError, SearchService, word_safe_excerpt
 
 
@@ -41,6 +41,93 @@ class RuntimeV2Tests(unittest.TestCase):
         with self.assertRaises(ValueError):
             explicit_tc_expediente("04810-2024-PA/TC y 04826-2025-PHC/TC")
 
+    def test_exact_unit_intent_requires_one_explicit_number(self):
+        self.assertEqual(exact_unit_intent("Muéstrame el fundamento 14 del expediente"),
+                         ("foundation", "14"))
+        self.assertEqual(exact_unit_intent("Artículo N.º 03"), ("article", "3"))
+        self.assertEqual(exact_unit_intent("¿Cuál fue la decisión?"), ("decision", None))
+        self.assertEqual(exact_unit_intent("Muéstrame el voto"), ("separate_opinion", None))
+        with self.assertRaises(ValueError):
+            exact_unit_intent("fundamentos 7 y fundamento 14")
+
+    def test_exact_foundations_resolve_directly_with_full_canonical_context(self):
+        cases = (("00782-2023-PHC/TC", "7"), ("02047-2025-PA/TC", "14"),
+                 ("02545-2023-PA/TC", "35"))
+        for expediente, number in cases:
+            with self.subTest(expediente=expediente):
+                row = unit("foundation", document_type="judgment")
+                row.update(expediente=expediente, unit_number=number,
+                           excerpt="Se advierte que dicho req")
+                row["canonical_text"] = ("Se advierte que dicho requerimiento fue atendido. "
+                                         "El fundamento concluye con texto íntegro.")
+                service = self.make_service([row])
+                with patch("app.services.search_service.EmbeddingService") as embedding:
+                    result = service.search(f"Muéstrame el fundamento {number} del expediente {expediente}.")
+                self.assertEqual(result["documents"][0]["unit_type"], "foundation")
+                self.assertEqual(result["documents"][0]["unit_number"], number)
+                self.assertEqual(result["result_status"], "completed")
+                self.assertIn(row["canonical_text"], result["context"])
+                self.assertNotIn("dicho req\n", result["context"])
+                self.assertEqual(result["documents"][0]["resumen_ia"], row["canonical_text"])
+                self.assertEqual(result["sources"][0]["excerpt"], row["canonical_text"])
+                service.repository.find_exact_unit.assert_called_once_with(expediente, "foundation", number)
+                service.repository.search.assert_not_called()
+                embedding.assert_not_called()
+
+    def test_exact_unit_missing_or_foreign_case_fails_closed(self):
+        foreign = unit("foundation", document_type="judgment")
+        foreign["expediente"] = "02047-2025-PA/TC"
+        foreign["unit_number"] = "14"
+        service = self.make_service([foreign])
+        result = service.search("Muéstrame el fundamento 14 del expediente 99999-2025-PA/TC.")
+        self.assertEqual(result["result_status"], "no_exact_unit_found")
+        self.assertEqual(result["documents"], [])
+        self.assertEqual(result["sources"], [])
+        service.repository.search.assert_not_called()
+        service.answer_service.generate_answer.assert_not_called()
+
+    def test_v2_rpc_preview_never_replaces_canonical_text(self):
+        row = unit("foundation")
+        row["excerpt"] = "La petición fue pla"
+        row["canonical_text"] = "La petición fue planteada y finalmente resuelta. " * 12
+        service = self.make_service([row])
+        with patch("app.services.search_service.EmbeddingService") as embedding:
+            embedding.return_value.MODEL = "text-embedding-3-small"
+            embedding.return_value.generate_embedding.return_value = [0.1] * 1536
+            result = service.search("Explica la petición")
+        self.assertIn(row["canonical_text"], result["context"])
+        self.assertNotIn(row["canonical_text"], result["documents"][0]["resumen_ia"])
+        self.assertTrue(result["documents"][0]["resumen_ia"].endswith("…"))
+        self.assertFalse(result["documents"][0]["resumen_ia"].endswith("pla"))
+        self.assertEqual(result["sources"][0]["excerpt"], result["documents"][0]["resumen_ia"])
+        service.repository.get_unit.assert_called_once_with("unit-1", document_id="document-1")
+
+    def test_uncited_answer_fallback_quotes_canonical_unit(self):
+        row = unit("foundation")
+        row["excerpt"] = "Se advierte que dicho req"
+        row["canonical_text"] = "Se advierte que dicho requerimiento fue presentado y atendido."
+        service = self.make_service([row])
+        service.answer_service.generate_answer.return_value = {"answer": "Sin cita"}
+        service.answer_service.generate_answer.side_effect = None
+        with patch("app.services.search_service.EmbeddingService") as embedding:
+            embedding.return_value.MODEL = "text-embedding-3-small"
+            embedding.return_value.generate_embedding.return_value = [0.1] * 1536
+            result = service.search("Explica el requerimiento")
+        self.assertIn(row["canonical_text"], result["answer"])
+        self.assertNotIn("dicho req»", result["answer"])
+
+    def test_missing_or_mismatched_canonical_unit_blocks_answer(self):
+        service = self.make_service([unit()])
+        service.repository.get_unit.return_value = None
+        service.repository.get_unit.side_effect = None
+        with patch("app.services.search_service.EmbeddingService") as embedding:
+            embedding.return_value.MODEL = "text-embedding-3-small"
+            embedding.return_value.generate_embedding.return_value = [0.1] * 1536
+            with self.assertRaises(SearchPipelineError) as caught:
+                service.search("consulta")
+        self.assertEqual(caught.exception.code, "CANONICAL_UNIT_UNAVAILABLE")
+        service.answer_service.generate_answer.assert_not_called()
+
     def test_word_safe_preview_does_not_cut_words(self):
         preview = word_safe_excerpt("Primera oración completa. Segunda oración con más texto.", 38)
         self.assertEqual(preview, "Primera oración completa.…")
@@ -48,6 +135,7 @@ class RuntimeV2Tests(unittest.TestCase):
         self.assertEqual(preview, "La decisión judicial…")
         self.assertEqual(word_safe_excerpt("Orientación al Ciudadano ( sin texto posterior", 28),
                          "Orientación al Ciudadano…")
+        self.assertEqual(word_safe_excerpt("palabralargasinseparadores", 10), "…")
 
     def test_rpc_arguments_filters_and_read_only_connection(self):
         row = tuple(unit().values())
@@ -160,6 +248,32 @@ class RuntimeV2Tests(unittest.TestCase):
         with self.assertRaises(ValueError):
             repo.get_unit(unit_id, document_id="not-a-uuid")
 
+    def test_exact_unit_lookup_is_read_only_and_checks_identity(self):
+        row = {column: None for column in UNIT_DETAIL_COLUMNS}
+        row.update(unit_id="12345678-1234-1234-1234-123456789abc",
+                   document_id="87654321-4321-4321-4321-cba987654321",
+                   text="Fundamento 14 íntegro.", unit_type="foundation", unit_number="14",
+                   document_title="Sentencia", document_type="judgment",
+                   expediente="02047-2025-PA/TC", court="Tribunal Constitucional")
+        cursor = Mock()
+        cursor.fetchall.return_value = [tuple(row[column] for column in UNIT_DETAIL_COLUMNS)]
+        connection = Mock(autocommit=False)
+        connection.cursor.return_value = cursor
+        repo = LegalRepositoryV2(connection_factory=lambda: connection)
+        found = repo.find_exact_unit("02047-2025-PA/TC", "foundation", "14")
+        self.assertEqual(found["canonical_text"], row["text"])
+        self.assertEqual(found["unit_number"], "14")
+        self.assertEqual(cursor.execute.call_args.args[1], ("02047-2025-PA/TC", "foundation", "14"))
+        self.assertIn("d.expediente = %s", cursor.execute.call_args.args[0])
+        self.assertIn("u.is_current", cursor.execute.call_args.args[0])
+        connection.set_session.assert_called_once_with(readonly=True)
+        connection.rollback.assert_called_once()
+        connection.close.assert_called_once()
+        cursor.fetchall.return_value = [tuple({**row, "expediente": "99999-2025-PA/TC"}[column]
+                                          for column in UNIT_DETAIL_COLUMNS)]
+        with self.assertRaises(LegalSearchError):
+            repo.find_exact_unit("02047-2025-PA/TC", "foundation", "14")
+
     def test_invalid_vector_and_result_shape(self):
         cursor = Mock()
         with self.assertRaises(ValueError):
@@ -192,6 +306,21 @@ class RuntimeV2Tests(unittest.TestCase):
         service.query_analyzer.analyze.side_effect = lambda query: {"normalized_query": query}
         service.repository = Mock()
         service.repository.search.return_value = [map_runtime_unit(row) for row in rows]
+        def detail(unit_id, *, document_id=None):
+            row = next((row for row in rows if row["unit_id"] == unit_id and
+                        row["document_id"] == document_id), None)
+            return ({**row, "text": row.get("canonical_text", row["excerpt"])} if row else None)
+        service.repository.get_unit.side_effect = detail
+        def exact(expediente, unit_type, unit_number=None):
+            row = next((row for row in rows if row.get("expediente") == expediente and
+                        row["unit_type"] == unit_type and
+                        (unit_number is None or row["unit_number"] == unit_number)), None)
+            if row is None:
+                return None
+            mapped = map_runtime_unit(row)
+            mapped["canonical_text"] = row.get("canonical_text", row["excerpt"])
+            return mapped
+        service.repository.find_exact_unit.side_effect = exact
         service.fusion_service = Mock()
         service.reranker = Mock()
         service.citation_service = CitationService()
@@ -320,6 +449,25 @@ class RuntimeV2Tests(unittest.TestCase):
         self.assertNotIn(foundation["excerpt"], result["context"])
         service.answer_service.generate_answer.assert_not_called()
         self.assertFalse(any(warning["code"] == "NO_VERIFIABLE_SOURCES" for warning in result["warnings"]))
+
+    def test_decision_is_resolved_when_hybrid_top_twenty_misses_it(self):
+        expediente = "04810-2024-PA/TC"
+        foundation = unit("foundation", unit_id="foundation", document_id="wanted")
+        foundation["expediente"] = expediente
+        decision = unit("decision", unit_id="decision", document_id="wanted")
+        decision["expediente"] = expediente
+        decision["canonical_text"] = "HA RESUELTO declarar fundada la demanda en todos sus extremos."
+        service = self.make_service([foundation, decision])
+        service.repository.search.return_value = [map_runtime_unit(foundation)]
+        with patch("app.services.search_service.EmbeddingService") as embedding:
+            embedding.return_value.MODEL = "text-embedding-3-small"
+            embedding.return_value.generate_embedding.return_value = [0.1] * 1536
+            result = service.search(f"¿Qué resolvió el TC en el expediente {expediente}?")
+        self.assertEqual(result["documents"][0]["unit_type"], "decision")
+        self.assertIn(decision["canonical_text"], result["answer"])
+        self.assertIn(decision["canonical_text"], result["context"])
+        self.assertNotIn(foundation["excerpt"], result["context"])
+        service.repository.find_exact_unit.assert_called_once_with(expediente, "decision")
 
     def test_unknown_exact_case_never_semantically_substitutes(self):
         foreign = unit("decision", document_type="judgment")

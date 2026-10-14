@@ -9,7 +9,7 @@ from app.services.reranker_service import RerankerService
 from app.services.legal_repository import LegalRepository, LegalSearchError
 from app.services.legal_repository_v2 import LegalRepositoryV2
 from app.services.legal_query_identity import (asks_about_vigencia, asks_for_decision,
-                                                explicit_tc_expediente)
+                                                exact_unit_intent, explicit_tc_expediente)
 from app.services.source_contracts import normalize_public_source, resolve_citations
 from app.services.query_analyzer import QueryAnalyzer
 from app.services.fusion_service import FusionService
@@ -29,9 +29,9 @@ def word_safe_excerpt(value: str, limit: int = 250) -> str:
     if sentence >= limit // 2:
         return text[:sentence + 1].rstrip() + "…"
     boundary = text.rfind(" ", 0, limit + 1)
-    if boundary < limit // 2:
-        boundary = text.find(" ", limit)
-    return text[:boundary if boundary != -1 else len(text)].rstrip(" \t\n([{") + "…"
+    if boundary < 0:
+        return "…"
+    return text[:boundary].rstrip(" \t\n([{") + "…"
 
 
 class SearchService:
@@ -81,12 +81,15 @@ class SearchService:
         normalized_query = analysis.get("normalized_query") or query
         try:
             exact_expediente = explicit_tc_expediente(normalized_query) if version == "v2" else None
+            unit_intent = exact_unit_intent(normalized_query) if exact_expediente else None
         except ValueError as error:
-            raise SearchPipelineError("MULTIPLE_EXACT_CASES") from error
-        decision_intent = version == "v2" and asks_for_decision(normalized_query)
+            raise SearchPipelineError(str(error)) from error
+        decision_intent = (version == "v2" and asks_for_decision(normalized_query) and
+                           (unit_intent is None or unit_intent[0] == "decision"))
         if version == "v2":
             analysis["exact_expediente"] = exact_expediente
             analysis["decision_intent"] = decision_intent
+            analysis["exact_unit_intent"] = unit_intent
         modulo = filtros.get("modulo", "Todos") or "Todos"
         solo_vigentes = filtros.get("solo_vigentes", True)
         vigencia_explicit = filtros.get("vigencia_explicit", False)
@@ -97,23 +100,33 @@ class SearchService:
         if version == "v2":
             analysis["filters"]["vigencia_explicit"] = vigencia_explicit
 
-        check_cancelled(cancellation_token)
-        try:
-            def embed_query():
-                provider = EmbeddingService()
-                if version == "v2" and provider.MODEL != "text-embedding-3-small":
-                    raise ValueError("EMBEDDING_MODEL_MISMATCH")
-                return provider.generate_embedding(normalized_query, cancellation_token=cancellation_token)
-            embedding = timed("embedding", "embedding", embed_query)
-        except OperationCancelled:
-            raise
-        except Exception as error:
-            logger.warning("NovaSearch embedding failed (%s)", type(error).__name__)
-            raise SearchPipelineError("EMBEDDING_FAILED") from error
+        direct_unit = version == "v2" and exact_expediente and unit_intent and unit_intent[0] in {
+            "foundation", "article", "separate_opinion"}
+        embedding = None
+        if direct_unit:
+            self._stage(progress_callback, "embedding", "skipped")
+        else:
+            check_cancelled(cancellation_token)
+            try:
+                def embed_query():
+                    provider = EmbeddingService()
+                    if version == "v2" and provider.MODEL != "text-embedding-3-small":
+                        raise ValueError("EMBEDDING_MODEL_MISMATCH")
+                    return provider.generate_embedding(normalized_query, cancellation_token=cancellation_token)
+                embedding = timed("embedding", "embedding", embed_query)
+            except OperationCancelled:
+                raise
+            except Exception as error:
+                logger.warning("NovaSearch embedding failed (%s)", type(error).__name__)
+                raise SearchPipelineError("EMBEDDING_FAILED") from error
 
         check_cancelled(cancellation_token)
         try:
-            if version == "v2":
+            if direct_unit:
+                exact = timed("retrieval", "retrieval", lambda: self.repository.find_exact_unit(
+                    exact_expediente, *unit_intent))
+                results = [exact] if exact is not None else []
+            elif version == "v2":
                 results = timed("retrieval", "retrieval", lambda: self.repository.search(
                     embedding=embedding, query_text=normalized_query, match_count=20,
                     filter_rama=LegalRepository.normalize_rama(modulo),
@@ -130,6 +143,11 @@ class SearchService:
             raise LegalSearchError("Legal source search failed") from error
         if exact_expediente:
             results = [row for row in results if row.get("expediente") == exact_expediente]
+        if exact_expediente and decision_intent and not any(
+                row.get("unit_type") == "decision" for row in results):
+            decision = self.repository.find_exact_unit(exact_expediente, "decision")
+            if decision is not None:
+                results.insert(0, decision)
         retrieved_count = len(results)
         self._stage(progress_callback, "retrieval", "completed", retrieved_count=retrieved_count)
 
@@ -137,14 +155,17 @@ class SearchService:
             for stage in ("fusion", "reranking", "context", "answer", "citations"):
                 self._stage(progress_callback, stage, "skipped")
             timings["total"] = round((perf_counter() - total_started) * 1000, 2)
-            empty_status = "no_exact_case_found" if exact_expediente else "no_results"
+            empty_status = ("no_exact_unit_found" if direct_unit else
+                            "no_exact_case_found" if exact_expediente else "no_results")
             logger.info("NovaSearch completed knowledge_version=%s status=%s result_count=0 empty_result=true timings_ms=%s", version, empty_status, timings)
-            empty_warnings = ([{"code": "NO_EXACT_CASE_FOUND", "message": "No se encontró el expediente exacto en el corpus publicado."}]
+            empty_warnings = ([{"code": "NO_EXACT_UNIT_FOUND", "message": "No se encontró la unidad exacta en el expediente publicado."}]
+                              if direct_unit else [{"code": "NO_EXACT_CASE_FOUND", "message": "No se encontró el expediente exacto en el corpus publicado."}]
                               if exact_expediente else [{"code": "NO_RESULTS", "message": "No se encontraron fuentes verificables para respaldar esta respuesta."}])
             if version == "v2" and (asks_about_vigencia(normalized_query) or
                                     (solo_vigentes and vigencia_explicit)):
                 empty_warnings.append({"code": "VIGENCIA_FILTER_UNAVAILABLE", "message": "El corpus V2 no clasifica vigencia normativa; este filtro no se aplicó."})
             empty = self._result(query, normalized_query, analysis, empty_status,
+                                "No se encontró la unidad exacta en el expediente publicado." if direct_unit else
                                 "No se encontró el expediente exacto en el corpus publicado." if exact_expediente else
                                 "No se encontraron fuentes que coincidan con los criterios de búsqueda.",
                                 [], "", [], [], empty_warnings,
@@ -208,6 +229,19 @@ class SearchService:
                     timings, retrieved_count, reranked_count)
                 response["metadata"]["knowledge_version"] = version
                 return response
+        if version == "v2" and build_context:
+            for document in answer_documents:
+                if not document.get("canonical_text"):
+                    detail = self.repository.get_unit(document["unit_id"], document_id=document["document_id"])
+                    if (not detail or str(detail.get("unit_id")) != str(document["unit_id"]) or
+                            str(detail.get("document_id")) != str(document["document_id"]) or
+                            detail.get("unit_type") != document.get("unit_type") or
+                            detail.get("unit_number") != document.get("unit_number") or
+                            (exact_expediente and detail.get("expediente") != exact_expediente) or
+                            not detail.get("text")):
+                        raise SearchPipelineError("CANONICAL_UNIT_UNAVAILABLE")
+                    document["canonical_text"] = detail["text"]
+                document["preview_text"] = word_safe_excerpt(document["canonical_text"], 220)
         context = {"text": "", "sources": []}
         if build_context:
             context = timed("context", "context", lambda: self.context_builder.build(
@@ -221,7 +255,8 @@ class SearchService:
             check_cancelled(cancellation_token)
             if version == "v2" and exact_expediente and decision_intent and \
                     answer_documents[0].get("unit_type") == "decision" and context["sources"]:
-                generated = timed("answer", "answer", lambda: AnswerService.exact_decision_answer(context["sources"][0]))
+                generated = timed("answer", "answer", lambda: AnswerService.exact_decision_answer(
+                    context["sources"][0], answer_documents[0].get("canonical_text")))
             else:
                 generated = timed("answer", "answer", lambda: self.answer_service.generate_answer(
                     query=normalized_query, context=context["text"], grounded_v2=(version == "v2"))
@@ -232,7 +267,8 @@ class SearchService:
             answer = self.answer_service.clean_answer(generated.get("answer", ""))
             resolved = timed("citation_validation", "citations", lambda: resolve_citations(answer, context["sources"]))
             if version == "v2" and not resolved["sources_used"] and context["sources"]:
-                grounded = AnswerService.exact_source_answer(context["sources"][0])
+                grounded = AnswerService.exact_source_answer(
+                    context["sources"][0], answer_documents[0].get("canonical_text"))
                 answer = grounded["answer"]
                 resolved = resolve_citations(answer, context["sources"])
             answer = resolved["answer"]
@@ -285,11 +321,13 @@ class SearchService:
                              for source in (context_sources or [])}
         for index, item in enumerate(resultados):
             texto = item.get("texto", "")
-            resumen = (word_safe_excerpt(texto, limit=220) if item.get("unit_id") else
+            preview = item.get("preview_text") or word_safe_excerpt(texto, limit=220)
+            resumen = (preview if item.get("unit_id") else
                        item.get("resumen") or (texto[:250] + "..." if len(texto) > 250 else texto))
             source = sources_by_record.get(str(item.get("id"))) or (
                 context_sources[index] if not item.get("unit_id") and context_sources and index < len(context_sources) else None
-            ) or normalize_public_source(item, excerpt=str(texto or "")[:ContextBuilder.MAX_CHARS_PER_DOCUMENT])
+            ) or normalize_public_source(item, excerpt=preview if item.get("unit_id") else
+                                         str(texto or "")[:ContextBuilder.MAX_CHARS_PER_DOCUMENT])
             formatted.append({"id": item.get("id"), "source_id": source["source_id"], "source": source,
                 "detected_legal_mentions": item.get("detected_legal_mentions", []),
                 "article": source.get("article"), "official_url": source.get("official_url"),
@@ -309,7 +347,7 @@ class SearchService:
                 "fecha_resolucion": item.get("fecha_resolucion"), "sumilla": item.get("sumilla"),
                 "precedente_vinculante": item.get("precedente_vinculante", False),
                 "keywords": item.get("keywords", []), "resumen_ia": resumen,
-                "extracto_exacto": texto,
+                "extracto_exacto": preview if item.get("unit_id") else texto,
                 "vector_similarity": item.get("similarity"),
                 "reranker_score": item.get("rerank_score")})
         return formatted

@@ -45,6 +45,16 @@ UNIT_DETAIL_SQL = """select u.id, d.id, u.text, u.unit_type, u.unit_number, u.he
                      where u.id = %s::uuid and u.is_current
                        and d.ingestion_status in ('ready', 'ready_with_warnings')"""
 
+EXACT_UNIT_SQL = """select u.id, d.id, u.text, u.unit_type, u.unit_number, u.heading,
+                           u.page_start, u.page_end, d.title, d.document_type,
+                           d.short_title, d.number, d.expediente, d.court, d.chamber,
+                           d.issuer, d.official_url, d.resolution_type, d.materia, d.sumilla
+                    from public.legal_units u
+                    join public.legal_documents d on d.id = u.document_id
+                    where d.expediente = %s and u.unit_type = %s
+                      and u.is_current
+                      and d.ingestion_status in ('ready', 'ready_with_warnings')"""
+
 
 def search_cursor(cursor, *, embedding, query_text, match_count=20,
                   filter_document_type=None, filter_rama=None, filter_expediente=None):
@@ -186,6 +196,51 @@ class LegalRepositoryV2:
             return detail
         except Exception as error:
             raise LegalSearchError("MYKE Legal V2 unit detail failed") from error
+        finally:
+            if connection is not None:
+                connection.rollback()
+                connection.close()
+
+    def find_exact_unit(self, expediente, unit_type, unit_number=None):
+        """Resolve a published unit by verified case identity, independent of vector rank."""
+        if not isinstance(expediente, str) or not expediente.strip() or unit_type not in {
+                "foundation", "article", "decision", "separate_opinion"}:
+            raise ValueError("EXACT_UNIT_FILTER_INVALID")
+        if unit_type in {"foundation", "article"} and not (str(unit_number or "").isdigit()):
+            raise ValueError("EXACT_UNIT_NUMBER_INVALID")
+        connection = None
+        try:
+            connection = self.connection_factory()
+            if connection.autocommit:
+                raise ValueError("DATABASE_AUTOCOMMIT_FORBIDDEN")
+            connection.set_session(readonly=True)
+            cursor = connection.cursor()
+            sql = EXACT_UNIT_SQL
+            params = [expediente, unit_type]
+            if unit_number is not None:
+                sql += " and u.unit_number = %s"
+                params.append(str(unit_number))
+            sql += " order by u.sequence, u.id limit 2"
+            cursor.execute(sql, tuple(params))
+            rows = cursor.fetchall()
+            if not rows:
+                return None
+            if unit_number is not None and len(rows) != 1:
+                raise ValueError("AMBIGUOUS_EXACT_UNIT")
+            if any(len(row) != len(UNIT_DETAIL_COLUMNS) for row in rows):
+                raise ValueError("UNIT_DETAIL_SHAPE_INVALID")
+            detail = dict(zip(UNIT_DETAIL_COLUMNS, rows[0]))
+            if detail["expediente"] != expediente or detail["unit_type"] != unit_type or (
+                    unit_number is not None and detail["unit_number"] != str(unit_number)):
+                raise ValueError("EXACT_UNIT_IDENTITY_MISMATCH")
+            detail["unit_id"] = str(detail["unit_id"])
+            detail["document_id"] = str(detail["document_id"])
+            mapped = map_runtime_unit({**detail, "excerpt": detail["text"][:240],
+                                       "similarity": None, "lexical_score": None})
+            mapped["canonical_text"] = detail["text"]
+            return mapped
+        except Exception as error:
+            raise LegalSearchError("MYKE Legal V2 exact unit failed") from error
         finally:
             if connection is not None:
                 connection.rollback()

@@ -12,6 +12,8 @@ _TC_CASE = re.compile(
 )
 _DECISION = re.compile(r"\b(?:resolvio|resuelve|resuelto|decision|decidio|fallo|parte resolutiva)\b")
 _VIGENCIA = re.compile(r"\b(?:vigente|vigencia|derogada?|derogacion|validez|valido|actualmente en vigor)\b")
+_NUMBERED_UNIT = re.compile(r"\b(fundamento|fundamentos|articulo|articulos)\s+(?:n\s*\.?\s*[°ºo]?\s*)?(\d{1,4})\b")
+_VOTE = re.compile(r"\b(?:voto|votos|opinion separada)\b")
 
 
 def _plain(text):
@@ -32,6 +34,22 @@ def explicit_tc_expediente(query):
 
 def asks_for_decision(query):
     return bool(_DECISION.search(_plain(query)))
+
+
+def exact_unit_intent(query):
+    """Identify one explicit unit request; ambiguous numbered requests fail closed."""
+    plain = _plain(query)
+    numbered = {(('foundation' if kind.startswith('fundamento') else 'article'), str(int(number)))
+                for kind, number in _NUMBERED_UNIT.findall(plain)}
+    if len(numbered) > 1:
+        raise ValueError("MULTIPLE_EXACT_UNITS")
+    if numbered:
+        return next(iter(numbered))
+    if _VOTE.search(plain):
+        return ("separate_opinion", None)
+    if asks_for_decision(query):
+        return ("decision", None)
+    return None
 
 
 def asks_about_vigencia(query):

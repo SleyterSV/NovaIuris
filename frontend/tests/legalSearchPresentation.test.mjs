@@ -60,3 +60,12 @@ test('source detail shows loading, full canonical text and explicit fallback', (
   assert.deepEqual(sourceDetailPresentation(source, null, 'error'),
     { loading: false, text: source.excerpt, heading: 'Fragmento utilizado', warning: true })
 })
+
+test('a short unit card and source modal retain separate preview and canonical text', () => {
+  const preview = 'Se advierte que dicho requerimiento fue atendido…'
+  const canonical = 'Se advierte que dicho requerimiento fue atendido. '.repeat(12)
+  const result = { unit_id: 'unit-7', resumen_ia: preview, extracto_exacto: preview }
+  assert.deepEqual(cardExcerpt(result), { primary: preview, secondary: '' })
+  assert.deepEqual(sourceDetailPresentation({ excerpt: preview }, { text: canonical }, 'ready'),
+    { loading: false, text: canonical, heading: 'Unidad jurídica completa', warning: false })
+})

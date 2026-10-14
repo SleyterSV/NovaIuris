@@ -12,7 +12,8 @@ class ContextBuilder:
             return {"text": "", "sources": []}
         blocks, sources = [], []
         for document in documents[:self.MAX_DOCUMENTS]:
-            excerpt = str(document.get("texto") or "")[:self.MAX_CHARS_PER_DOCUMENT]
+            excerpt = str(document.get("preview_text") or document.get("texto") or "")[:self.MAX_CHARS_PER_DOCUMENT]
+            canonical = document.get("canonical_text")
             source = normalize_public_source(document, excerpt=excerpt)
             sources.append(source)
             metadata = source.get("metadata") or {}
@@ -34,7 +35,7 @@ class ContextBuilder:
                 f"Precedente vinculante: {document.get('precedente_vinculante') or ''}",
                 f"Sumilla: {document.get('sumilla') or metadata.get('sumilla') or ''}",
                 f"Resumen: {document.get('resumen') or 'No disponible.'}",
-                f"Fragmento exacto: {excerpt}",
+                f"Texto canónico: {canonical}" if canonical is not None else f"Fragmento exacto: {excerpt}",
             ]
             blocks.append(f"[{source['source_id']}]\n" + "\n".join(details))
         context = (
