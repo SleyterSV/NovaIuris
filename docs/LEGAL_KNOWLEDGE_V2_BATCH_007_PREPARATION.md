@@ -1,4 +1,4 @@
-# Legal Knowledge V2 — Batch 007, preparación offline
+# Legal Knowledge V2 — Batch 007, preparación y cierre
 
 ## Estado y alcance
 
@@ -76,3 +76,11 @@ Inspección offline: `STATUS=PUBLISHABLE`, `PARSER=legal-v2.1.5`, `UNITS=12`, `H
 ## Habilitación posterior a la inspección remota
 
 El operador confirmó por inspección remota de solo lectura el baseline **13 documentos / 274 unidades / 0 relaciones / 13 runs** y, para el único documento, `PUBLISHABLE`, `judgment`, 12 unidades, `legal-v2.1.5`, hash `d51354c2a420`, `PRESENCE=NOT_PRESENT`. Se habilitó exclusivamente Batch 007 en `PUBLISH_BASELINES` con `(13, 274, 0, 13)`, manteniendo 001–006. La CLI exige ese conteo exacto antes de crear el proveedor de embeddings o efectuar escrituras; un batch desconocido continúa bloqueado. Esta habilitación local no ejecutó publicación, no generó embeddings y no escribió en Supabase.
+
+## Cierre de publicación — confirmación del operador
+
+**BATCH 007 STATUS=PUBLICATION_PASS.** El operador confirmó `STATUS=COMPLETED_AND_VERIFIED` para la **STC 04852-2023-PA/TC**, documento `0538ba67-bdad-5056-b647-6476657f58b1`, run `5a5d9aa1-220d-4742-9e6e-287bdd5dbbad`, parser `legal-v2.1.5` y hash prefijo `d51354c2a420`. La preparación offline, la revisión manual de 9/9 páginas y la inspección remota previa fueron **PASS**. La publicación ejecutada por el operador añadió **12 unidades y 12 embeddings**. Los conteos finales comunicados de MYKE Legal son **14 documentos / 286 unidades / 0 relaciones / 14 ingestion runs**. **PUBLICATION=PASS.**
+
+La inspección posterior devolvió `STATUS=PUBLISHABLE`, `UNITS=12`, `PARSER=legal-v2.1.5`, `HASH=d51354c2a420`, `PRESENCE=ALREADY_PRESENT_AND_IDENTICAL` y `EMBEDDINGS_REQUIRED=0`: **POST-INSPECT=PASS; IDEMPOTENCY=PASS**. En el smoke test real de «¿Qué resolvió el Tribunal Constitucional en el expediente 04852-2023-PA/TC?», coincidieron expediente, documento y URL oficial. La unidad `decision` de la página 5 ocupó **rank 1**; fundamentos y votos permanecieron diferenciados: **DECISION SMOKE=PASS**. Todos estos resultados remotos fueron comunicados por el operador; este cierre no volvió a consultar la base.
+
+Como limitación no bloqueante, un voto separado puede conservar ruido menor de extracción del PDF, incluidas palabras partidas. También puede persistir ruido editorial o de folios en algunos documentos. Estas observaciones no alteran `PUBLICATION_PASS`. Cualquier mejora futura deberá ser generalizable y versionada; este cierre no modifica texto canónico, metadatos, parser, ranking ni embeddings publicados. **BATCH 007 CLOSED.** La integración de NovaCase queda para una tarea posterior.
