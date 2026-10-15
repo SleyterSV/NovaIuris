@@ -28,3 +28,14 @@ export function caseReuseContext(result, taskId, caseText = '') {
     reuseTaskId: taskId
   }
 }
+
+export function applySearchCaseHandoff(workspace, started) {
+  if (!workspace || !started?.case_id || !started?.task_id || !started?.caseText || started.tool !== 'case') return null
+  workspace.caseId = started.case_id
+  workspace.activeTool = 'case'
+  workspace.documentIds = []
+  workspace.caseReuse = null
+  workspace.caseTaskId = null
+  workspace.courtTaskId = null
+  return { caseId:started.case_id, documentIds:[], existingTaskId:started.task_id }
+}

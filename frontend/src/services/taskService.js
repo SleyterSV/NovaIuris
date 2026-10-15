@@ -23,11 +23,13 @@ export async function runAnalysisTask(tool, text, options = {}) {
   const caseId = options.caseId || crypto.randomUUID()
   let taskId
   try {
-    const started = await requestJson(tool === 'court' ? '/novacourt/analyze' : '/case/tasks', {
-      method:'POST', signal:options.signal,
-      body:JSON.stringify({ case_text:text, case_id:caseId, document_ids:options.documentIds || [],
-        ...(tool === 'court' && options.reuseTaskId ? {reuse_task_id:options.reuseTaskId} : {}) })
-    })
+    const started = options.existingTaskId ?
+      { task_id:options.existingTaskId, case_id:caseId, tool } :
+      await requestJson(tool === 'court' ? '/novacourt/analyze' : '/case/tasks', {
+        method:'POST', signal:options.signal,
+        body:JSON.stringify({ case_text:text, case_id:caseId, document_ids:options.documentIds || [],
+          ...(tool === 'court' && options.reuseTaskId ? {reuse_task_id:options.reuseTaskId} : {}) })
+      })
     taskId = started.task_id
     if (started.case_id !== caseId) throw new Error('La tarea no corresponde al caso enviado.')
     options.onTask?.(started)

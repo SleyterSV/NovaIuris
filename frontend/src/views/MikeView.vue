@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 
 import { useRoute, useRouter } from 'vue-router'
 import CaseDocumentUpload from '@/components/common/CaseDocumentUpload.vue'
 import ToolDetailModal from '@/components/common/ToolDetailModal.vue'
-import { createWorkspace, createTurn, normalizeTool, caseReuseContext } from '@/utils/mikeWorkspace.js'
+import { createWorkspace, createTurn, normalizeTool, caseReuseContext, applySearchCaseHandoff } from '@/utils/mikeWorkspace.js'
 import { authRequired, authState, signIn, signOut, startAuth } from '@/config/supabaseSession.js'
 
 const panels = {
@@ -80,7 +80,9 @@ function newConversation() {
 }
 function addOperation(kind, text, context = {}) {
   const request = { id:crypto.randomUUID(), text, caseId:context.caseId || workspace.value.caseId,
-    documentIds:[...(context.documentIds || selectedDocuments.value)], ...(context.reuse ? { reuse:context.reuse } : {}) }
+    documentIds:[...(context.documentIds || selectedDocuments.value)],
+    ...(context.existingTaskId ? { existingTaskId:context.existingTaskId } : {}),
+    ...(context.reuse ? { reuse:context.reuse } : {}) }
   workspace.value.turns.push(createTurn('user',kind,text,{ caseId:request.caseId, documentIds:request.documentIds }))
   const assistant = createTurn('assistant',kind,'',{ caseId:request.caseId, documentIds:request.documentIds,
     resultRef:request.id, status:'running' })
@@ -107,6 +109,7 @@ function onComposerKeydown(event) {
 function onTaskState(turn, state) {
   if (!workspace.value.turns.includes(turn)) return
   turn.status = state.running ? 'running' : 'completed'
+  if ((state.tool === 'case' || state.tool === 'court') && turn.case_id !== workspace.value.caseId) return
   if (state.taskId) {
     turn.task_id = state.taskId
     workspace.value[`${state.tool}TaskId`] = state.taskId
@@ -118,6 +121,13 @@ function onCaseCompleted(turn, { result, taskId, caseText }) {
   turn.task_id = taskId
   workspace.value.caseTaskId = taskId
   workspace.value.caseReuse = caseReuseContext(result,taskId,caseText)
+}
+function onSearchHandoff(started) {
+  const context = applySearchCaseHandoff(workspace.value, started)
+  if (!context) return
+  selectedDocuments.value = []
+  selectTool('case', false)
+  addOperation('case', started.caseText, context)
 }
 function reuseCase(context) {
   if (!context || context.caseId !== workspace.value.caseId || running.value.court) return
@@ -172,7 +182,7 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
         <section v-else class="thread" aria-label="Conversación">
           <article v-for="turn in workspace.turns" :key="turn.id" class="turn" :class="turn.role">
             <div v-if="turn.role === 'user'" class="user-bubble"><p>{{ turn.text }}</p><small>{{ tools[turn.tool].label }}</small></div>
-            <div v-else class="assistant-turn"><p class="turn-label">MYKE · {{ tools[turn.tool].label }}</p><component :is="panels[turn.tool]" embedded :request="turn.request" @task-state="onTaskState(turn,$event)" @case-completed="onCaseCompleted(turn,$event)" @reuse-case="reuseCase" /></div>
+            <div v-else class="assistant-turn"><p class="turn-label">MYKE · {{ tools[turn.tool].label }}</p><component :is="panels[turn.tool]" embedded :request="turn.request" @task-state="onTaskState(turn,$event)" @case-completed="onCaseCompleted(turn,$event)" @handoff-started="onSearchHandoff" @reuse-case="reuseCase" /></div>
           </article>
         </section>
         <div class="composer-region">

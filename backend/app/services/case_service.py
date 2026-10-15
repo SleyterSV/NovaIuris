@@ -24,6 +24,7 @@ from app.services.case_professional import (
 )
 from app.services.case_execution import (CaseExecutionContext, CaseExecutionMetrics,
     prompt_documents, research_queries, resolve_public_v2_hits)
+from app.services.case_public_handoff import normalize_handoff_references
 from app.services.source_contracts import normalize_case_source, resolve_citations
 from app.config import Config
 from flask import current_app, has_app_context
@@ -146,7 +147,8 @@ class CaseService:
         self,
         case_text: str,
         filtros: Dict[str, Any] | None = None,
-        progress_callback=None, cancellation_token=None, case_id=None, document_ids=None
+        progress_callback=None, cancellation_token=None, case_id=None, document_ids=None,
+        public_source_references=None
     ) -> Dict:
 
         """
@@ -168,6 +170,8 @@ class CaseService:
         """
 
         case_id = case_id or str(uuid4())
+        handoff_references = (normalize_handoff_references(public_source_references)
+                              if public_source_references is not None else [])
         metrics = CaseExecutionMetrics()
         execution = CaseExecutionContext(case_id)
         def stage(name, status):
@@ -417,11 +421,19 @@ class CaseService:
                 documentos.extend(hits)
             documentos.sort(key=lambda item: float(item.get("score") or item.get("similarity") or 0)
                             if isinstance(item, dict) else 0, reverse=True)
+            documentos = handoff_references + documentos
             documentos, public_sources, context_warnings = resolve_public_v2_hits(
                 self.search_service.repository, documentos, cancellation_token=cancellation_token)
+            if handoff_references and not all(any(
+                    source["document_id"] == reference["document_id"] and
+                    source["unit_id"] == reference["unit_id"] for source in public_sources)
+                    for reference in handoff_references):
+                raise ValueError("PUBLIC_SOURCE_HANDOFF_UNAVAILABLE")
         except OperationCancelled:
             raise
         except Exception as error:
+            if handoff_references:
+                raise ValueError("PUBLIC_SOURCE_HANDOFF_UNAVAILABLE") from error
             logger.warning("NovaCase V2 source resolution failed error_type=%s", type(error).__name__)
             documentos, public_sources = [], []
             context_warnings = [{"code": "PUBLIC_LEGAL_SOURCE_UNAVAILABLE"}]

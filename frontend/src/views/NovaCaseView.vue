@@ -646,6 +646,7 @@ async function handleAnalyze(payload) {
         ================================================== */
 
         const response = normalizeCaseResult(await analyzeCase(caseText, { caseId, documentIds,
+            existingTaskId:payload.existingTaskId,
             onTask: task => { completedTaskId.value = task.task_id },
             onProgress: updateTask, signal: controller.signal }))
         canonicalResult.value = response
@@ -883,7 +884,8 @@ const keywordCount = computed(() => {
 })
 
 watch(() => props.request, request => {
-    if (request) handleAnalyze({ caseText:request.text, caseId:request.caseId, documentIds:request.documentIds })
+    if (request) handleAnalyze({ caseText:request.text, caseId:request.caseId,
+        documentIds:request.documentIds, existingTaskId:request.existingTaskId })
 }, { immediate:true })
 </script>
 

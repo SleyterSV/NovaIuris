@@ -1,5 +1,5 @@
 <script setup>
-import { watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useNovaSearch } from '@/composables/useNovaSearch'
 
@@ -10,6 +10,7 @@ import NovaSearchProgress from '@/components/novasearch/NovaSearchProgress.vue'
 import NovaSearchAnswer from '@/components/novasearch/NovaSearchAnswer.vue'
 import NovaSearchAnalysis from '@/components/novasearch/NovaSearchAnalysis.vue'
 import NovaSearchResults from '@/components/novasearch/NovaSearchResults.vue'
+import SearchCaseDialog from '@/components/novasearch/SearchCaseDialog.vue'
 import NovaSearchFallback from '@/components/novasearch/NovaSearchFallback.vue'
 import NovaSearchEmptyState from '@/components/novasearch/NovaSearchEmptyState.vue'
 import NovaSearchError from '@/components/novasearch/NovaSearchError.vue'
@@ -53,7 +54,12 @@ const {
 
 const route = useRoute()
 const props = defineProps({ embedded: Boolean, request: { type: Object, default: null } })
-const emit = defineEmits(['task-state'])
+const emit = defineEmits(['task-state', 'handoff-started'])
+const selectedHandoffSource = ref(null)
+function handoffStarted(value) {
+    selectedHandoffSource.value = null
+    emit('handoff-started', value)
+}
 watch(() => props.request, request => {
     if (!request) return
     searchQuery.value = String(request.text || '').slice(0, 10000)
@@ -270,6 +276,7 @@ function useSuggestion(value) {
                     <NovaSearchResults
                         :results="searchResults"
                         :total-results="totalResults"
+                        @analyze-case="selectedHandoffSource = $event"
                     />
 
                 </template>
@@ -295,6 +302,8 @@ function useSuggestion(value) {
 
         </section>
 
+        <SearchCaseDialog v-if="selectedHandoffSource" :result="selectedHandoffSource"
+            @close="selectedHandoffSource = null" @started="handoffStarted" />
     </main>
 
 </template>

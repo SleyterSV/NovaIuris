@@ -116,6 +116,36 @@ class TaskManager:
                 self.repository.save(task)
         
         return task_id
+
+    def find_handoff(self, owner_id, request_id):
+        with self._task_lock:
+            for task in self._tasks.values():
+                if (task.task_type == 'legal_analysis' and task.metadata.get('owner_id') == owner_id
+                        and task.metadata.get('handoff_request_id') == request_id):
+                    return deepcopy(task)
+        return None
+
+    def create_handoff_task(self, metadata):
+        """Atomically reuse only an identical explicit request from the same owner."""
+        owner_id, request_id = metadata['owner_id'], metadata['handoff_request_id']
+        if not owner_id or not request_id:
+            raise ValueError('PUBLIC_HANDOFF_IDENTITY_INVALID')
+        with self._task_lock:
+            for task in self._tasks.values():
+                if (task.task_type == 'legal_analysis' and task.metadata.get('owner_id') == owner_id
+                        and task.metadata.get('handoff_request_id') == request_id):
+                    if task.metadata != metadata:
+                        raise ValueError('PUBLIC_HANDOFF_REQUEST_MISMATCH')
+                    return task.task_id, False
+            task_id = str(uuid.uuid4())
+            now = datetime.now()
+            task = Task(task_id=task_id, task_type='legal_analysis', status=TaskStatus.PENDING,
+                        created_at=now, updated_at=now, metadata=deepcopy(metadata))
+            self._tasks[task_id] = task
+            self._cancellations[task_id] = CancellationToken()
+            if self.repository:
+                self.repository.save(task)
+            return task_id, True
     
     def get_task(self, task_id: str) -> Optional[Task]:
         """获取任务"""

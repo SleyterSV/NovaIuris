@@ -1,6 +1,8 @@
 """Process-local jobs; every new task has an explicit, isolated case identity."""
 import threading
 import re
+import hashlib
+import json
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 from time import perf_counter
 from uuid import uuid4
@@ -30,8 +32,13 @@ class NovaCourtPipelineService:
         self.simulation_service = simulation_service
         self.tasks = task_manager or TaskManager()
 
-    def start(self, case_text, case_id=None, tool="court", document_ids=None, reuse_task_id=None, owner_id=None):
+    def start(self, case_text, case_id=None, tool="court", document_ids=None, reuse_task_id=None, owner_id=None,
+              public_source_references=None, handoff_request_id=None):
         case_id = case_id or str(uuid4())
+        if public_source_references and tool != "case":
+            raise ValueError("PUBLIC_SOURCE_HANDOFF_CASE_ONLY")
+        if handoff_request_id and (tool != "case" or not public_source_references):
+            raise ValueError("PUBLIC_HANDOFF_IDENTITY_INVALID")
         self.tasks.cleanup_old_tasks()
         previous = None
         if reuse_task_id:
@@ -44,8 +51,21 @@ class NovaCourtPipelineService:
                     or previous.result.get("case") != case_text
                     or set(previous.result.get("document_ids") or []) != set(document_ids or [])):
                 raise ValueError("El análisis previo no corresponde al caso y documentos solicitados.")
-        task_id = self.tasks.create_task("legal_analysis", {"case_id": case_id, "tool": tool,
-            "document_ids": list(document_ids or []), "reuse_task_id": reuse_task_id, "owner_id": owner_id})
+        metadata = {"case_id": case_id, "tool": tool, "document_ids": list(document_ids or []),
+                    "reuse_task_id": reuse_task_id, "owner_id": owner_id}
+        if public_source_references:
+            metadata["public_source_references"] = [dict(item) for item in public_source_references]
+        if handoff_request_id:
+            metadata["handoff_request_id"] = handoff_request_id
+            metadata["handoff_digest"] = hashlib.sha256(json.dumps({
+                "case_text": case_text, "case_id": case_id, "document_ids": metadata["document_ids"],
+                "public_source_references": metadata["public_source_references"]},
+                sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+            task_id, created = self.tasks.create_handoff_task(metadata)
+            if not created:
+                return task_id
+        else:
+            task_id = self.tasks.create_task("legal_analysis", metadata)
         reused_result = deepcopy(previous.result) if previous else None
         threading.Thread(target=self._run, args=(task_id, case_text, reused_result), daemon=True).start()
         return task_id
@@ -91,9 +111,11 @@ class NovaCourtPipelineService:
                 for stage, _ in CASE_STAGES:
                     update(stage, "skipped")
             else:
-                result = self.case_service.analyze_case(case_text, progress_callback=update,
-                    cancellation_token=token, case_id=case_id,
-                    document_ids=task.metadata.get("document_ids", []))
+                case_kwargs = {"progress_callback": update, "cancellation_token": token,
+                               "case_id": case_id, "document_ids": task.metadata.get("document_ids", [])}
+                if tool == "case" and task.metadata.get("public_source_references"):
+                    case_kwargs["public_source_references"] = task.metadata["public_source_references"]
+                result = self.case_service.analyze_case(case_text, **case_kwargs)
             check_cancelled(token)
             if not result.get("success"):
                 raise RuntimeError("Case analysis failed")

@@ -420,6 +420,9 @@
                         {{ legalTypeLabel(result.tipo_documento, result.metadata) }}
                     </span>
 
+                    <button v-if="publicUnitReference(result)" class="analyze-case-action" type="button"
+                        @click="emit('analyze-case', result)">Analizar en NovaCase</button>
+
                 </footer>
 
             </article>
@@ -434,6 +437,8 @@
 <script setup>
 
 import { legalTypeLabel, legalUnitLabel, cardExcerpt } from '@/utils/legalSearchPresentation.js'
+import { publicUnitReference } from '@/services/searchCaseHandoff.js'
+const emit = defineEmits(['analyze-case'])
 
 /* =========================================================
    PROPS
@@ -1725,6 +1730,9 @@ function formatDate(dateValue){
     white-space:nowrap;
 
 }
+
+.analyze-case-action{margin-left:auto;border:1px solid #b6c5d4;border-radius:7px;background:#fff;color:#17375e;padding:7px 10px;font-size:.72rem;font-weight:600;cursor:pointer}
+.analyze-case-action:hover,.analyze-case-action:focus-visible{background:#eaf1f8}
 
 
 /* =========================================================

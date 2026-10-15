@@ -55,6 +55,14 @@ class CaseOwnershipRepository:
             db.execute('INSERT INTO case_owners(case_id,owner_id) VALUES(?,?)', (case_id, owner_id))
             return True
 
+    def list_owned(self, owner_id):
+        if not owner_id:
+            return []
+        with closing(sqlite3.connect(self.path, timeout=30)) as db:
+            return [{'case_id': row[0], 'created_at': row[1]} for row in db.execute(
+                'SELECT case_id, created_at FROM case_owners WHERE owner_id=? ORDER BY created_at DESC, case_id DESC',
+                (owner_id,)).fetchall()]
+
 
 def case_ownership():
     repo = current_app.extensions.get('case_ownership')
