@@ -2,7 +2,7 @@
   <Teleport to="body">
     <div v-if="safeSource" class="source-backdrop" role="presentation" @click.self="emit('close')">
       <section class="source-modal" role="dialog" aria-modal="true" aria-labelledby="source-title">
-        <header><div><span class="eyebrow">FUENTE {{ safeSource.source_scope === 'case' ? 'DEL EXPEDIENTE' : 'JURÍDICA' }}</span><h2 id="source-title">{{ unitDetail?.display_title || safeSource.title }}</h2></div>
+        <header><div><span class="eyebrow">FUENTE {{ ['case', 'private_case'].includes(safeSource.source_scope) ? 'DEL EXPEDIENTE' : 'JURÍDICA' }}</span><h2 id="source-title">{{ unitDetail?.display_title || safeSource.title }}</h2></div>
           <button class="close" type="button" aria-label="Cerrar ficha de fuente" @click="emit('close')">×</button></header>
         <dl>
           <div v-for="field in fields" :key="field.label"><dt>{{ field.label }}</dt><dd>{{ field.value }}</dd></div>
@@ -14,7 +14,7 @@
           <div v-for="[key, value] in metadataEntries" :key="key"><dt>{{ humanize(key) }}</dt><dd>{{ stringify(value) }}</dd></div>
         </dl></details>
         <footer>
-          <span v-if="safeSource.source_scope === 'case'">{{ safeSource.document_id }}<template v-if="safeSource.page_start"> · pág. {{ safeSource.page_start }}</template></span>
+          <span v-if="['case', 'private_case'].includes(safeSource.source_scope)">{{ safeSource.document_id }}<template v-if="safeSource.page_start"> · pág. {{ safeSource.page_start }}</template></span>
           <a v-if="safeSource.official_url" :href="safeSource.official_url" target="_blank" rel="noopener noreferrer">ABRIR FUENTE OFICIAL <span aria-hidden="true">↗</span></a>
         </footer>
       </section>
@@ -33,7 +33,7 @@ const safeSource = computed(() => normalizeSource(props.source, props.caseId))
 const unitDetail = ref(null)
 const detailStatus = ref('idle')
 let activeController = null
-const isV2Unit = source => source?.source_scope === 'public' && Boolean(source?.metadata?.unit_type && source?.chunk_id)
+const isV2Unit = source => ['public', 'public_legal'].includes(source?.source_scope) && Boolean(source?.metadata?.unit_type && source?.chunk_id)
 watch(() => props.source, async value => {
   activeController?.abort()
   activeController = null

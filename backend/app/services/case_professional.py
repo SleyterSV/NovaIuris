@@ -50,7 +50,7 @@ def explicit_date(value):
 
 def case_facts(analysis, sources, case_id):
     private_ids = {source["source_id"] for source in sources
-                   if source.get("source_scope") == "case" and source.get("case_id") == case_id}
+                   if source.get("source_scope") in {"case", "private_case"} and source.get("case_id") == case_id}
     raw = analysis.get("hechos_estructurados") or analysis.get("hechos") or []
     records = []
     occurrences = {}
@@ -98,8 +98,8 @@ def ground_links(items, issues, facts, sources, case_id):
     issue_ids = {item["issue_id"] for item in issues}
     fact_ids = {item["fact_id"] for item in facts}
     source_ids = {item["source_id"] for item in sources
-                  if item.get("source_scope") == "public"
-                  or (item.get("source_scope") == "case" and item.get("case_id") == case_id)}
+                  if item.get("source_scope") in {"public", "public_legal"}
+                  or (item.get("source_scope") in {"case", "private_case"} and item.get("case_id") == case_id)}
     grounded = []
     for value in items if isinstance(items, list) else []:
         if not isinstance(value, dict):
@@ -131,21 +131,32 @@ def final_strategy(analysis, initial, arguments, evidence, risks, counterargumen
     return {key: value for key, value in fields.items() if value not in (None, "", [])}
 
 
-def select_report_sources(public_sources, private_sources, case_id, limit=16, excerpt_chars=1800):
+def select_report_sources(public_sources, private_sources, case_id, limit=16, excerpt_chars=1800,
+                          context_char_budget=60000):
     """Reserve room for case documents and preserve the exact prompt excerpt."""
     limit = max(1, int(limit))
     private = [source for source in private_sources if source.get("case_id") == case_id]
-    public = [source for source in public_sources if source.get("source_scope") == "public"]
+    public = [source for source in public_sources if source.get("source_scope") in {"public", "public_legal"}]
     reserved = min(len(private), max(1, limit // 3))
     ordered = public[:limit - reserved] + private[:reserved]
     ordered += (public[limit - reserved:] + private[reserved:])[:max(0, limit - len(ordered))]
     selected, seen = [], set()
+    remaining = context_char_budget
     for source in ordered:
         source_id = source.get("source_id")
         if not source_id or source_id in seen:
             continue
         seen.add(source_id)
-        selected.append({**source, "excerpt": str(source.get("excerpt") or "")[:excerpt_chars]})
+        excerpt = str(source.get("excerpt") or "")
+        if source.get("source_scope") == "public_legal":
+            if len(excerpt) > remaining:
+                continue
+        else:
+            excerpt = excerpt[:min(excerpt_chars, remaining)]
+        if not excerpt:
+            continue
+        remaining -= len(excerpt)
+        selected.append({**source, "excerpt": excerpt})
     return selected
 
 

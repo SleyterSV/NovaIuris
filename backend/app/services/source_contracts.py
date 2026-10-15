@@ -7,6 +7,7 @@ import json
 import re
 from copy import deepcopy
 from urllib.parse import urlparse
+from uuid import UUID
 
 
 SOURCE_TYPES = {
@@ -98,6 +99,58 @@ def normalize_public_source(record: dict, excerpt: str | None = None) -> dict:
     }
 
 
+def normalize_public_legal_v2_source(hit: dict, detail: dict) -> dict:
+    """Bind a retrieved V2 unit to its verified, complete canonical record."""
+    try:
+        document_id = str(UUID(str(hit["document_id"])))
+        unit_id = str(UUID(str(hit["unit_id"])))
+        if str(UUID(str(detail["document_id"]))) != document_id or str(UUID(str(detail["unit_id"]))) != unit_id:
+            raise ValueError("V2_SOURCE_IDENTITY_MISMATCH")
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("V2_SOURCE_IDENTITY_MISMATCH") from error
+    canonical = detail.get("text")
+    if not isinstance(canonical, str) or not canonical.strip():
+        raise ValueError("V2_CANONICAL_TEXT_MISSING")
+    for hit_key, detail_key in (("tipo_documento", "document_type"),
+                                ("unit_type", "unit_type"), ("unit_number", "unit_number"),
+                                ("expediente", "expediente"), ("numero", "number"),
+                                ("official_url", "official_url"),
+                                ("page_start", "page_start"), ("page_end", "page_end")):
+        observed = hit.get(hit_key)
+        actual = detail.get(detail_key)
+        if observed is not None and str(observed) != str(actual):
+            raise ValueError("V2_SOURCE_METADATA_MISMATCH")
+    preview_source = hit.get("source") if isinstance(hit.get("source"), dict) else {}
+    for key, expected in (("document_id", document_id), ("chunk_id", unit_id)):
+        if preview_source.get(key) is not None and str(preview_source[key]) != expected:
+            raise ValueError("V2_SOURCE_METADATA_MISMATCH")
+    if preview_source.get("court") and preview_source["court"] != detail.get("court"):
+        raise ValueError("V2_SOURCE_METADATA_MISMATCH")
+    title = detail.get("display_title") or detail.get("document_title")
+    if not title or not detail.get("document_type") or not detail.get("unit_type"):
+        raise ValueError("V2_SOURCE_METADATA_MISSING")
+    metadata = {"knowledge_version": "v2", "unit_type": detail["unit_type"],
+                "unit_number": detail.get("unit_number"),
+                "document_type": detail["document_type"]}
+    return {
+        "source_id": _stable_id("SRC", "public_legal_v2", document_id, unit_id),
+        "source_scope": "public_legal", "provenance_version": "v2",
+        "source_type": "legislation" if detail["document_type"] in {"regulation", "statute", "law"} else "jurisprudence",
+        "title": title, "display_title": title, "document_title": detail.get("document_title"),
+        "document_id": document_id, "unit_id": unit_id, "chunk_id": unit_id,
+        "document_type": detail["document_type"], "unit_type": detail["unit_type"],
+        "unit_number": detail.get("unit_number"),
+        "case_number": detail.get("expediente"), "expediente": detail.get("expediente"),
+        "document_number": detail.get("number"), "number": detail.get("number"),
+        "court": detail.get("court"), "issuer": detail.get("issuer"),
+        "entity": detail.get("issuer"),
+        "page_start": detail.get("page_start"), "page_end": detail.get("page_end"),
+        "official_url": _official_url(detail), "section": detail.get("heading"),
+        "excerpt": canonical, "preview": hit.get("extracto_exacto") or hit.get("texto") or "",
+        "case_id": None, "metadata": metadata,
+    }
+
+
 def normalize_case_source(item: dict) -> dict:
     """Normalize one private corpus chunk; identity always includes its case."""
     item = item if isinstance(item, dict) else {}
@@ -116,7 +169,7 @@ def normalize_case_source(item: dict) -> dict:
     source_id = _stable_id("SRC", "case", case_id, document_id, chunk_id)
     filename = ref.get("filename") or item.get("filename") or "Documento del expediente"
     return {
-        "source_id": source_id, "source_scope": "case", "source_type": "case_document",
+        "source_id": source_id, "source_scope": "private_case", "source_type": "case_document",
         "title": filename, "display_title": filename, "entity": None, "court": None,
         "case_number": None, "document_number": None, "article": ref.get("article"),
         "legal_basis": ref.get("legal_basis"), "date": ref.get("date"),
@@ -143,7 +196,9 @@ def normalize_citation(citation: dict, source: dict) -> dict:
         "paragraph": locator.get("paragraph", source.get("paragraph")),
     }.items() if value not in (None, "")}
     return {"citation_id": citation_id, "label": label, "source_id": source_id,
-            "claim_id": citation.get("claim_id"), "excerpt": excerpt, "locator": locator}
+            "source_scope": source.get("source_scope"), "document_id": source.get("document_id"),
+            "unit_id": source.get("unit_id"), "claim_id": citation.get("claim_id"),
+            "excerpt": excerpt, "locator": locator}
 
 
 def resolve_citations(answer: str, context_sources: list[dict], case_id: str | None = None) -> dict:
@@ -152,8 +207,18 @@ def resolve_citations(answer: str, context_sources: list[dict], case_id: str | N
     for source in context_sources or []:
         if not isinstance(source, dict) or not source.get("source_id"):
             continue
-        if source.get("source_scope") == "case" and (not case_id or source.get("case_id") != case_id):
+        if source.get("source_scope") in {"case", "private_case"} and (not case_id or source.get("case_id") != case_id):
             continue
+        if source.get("source_scope") == "public_legal":
+            try:
+                expected = _stable_id("SRC", "public_legal_v2",
+                                      str(UUID(str(source["document_id"]))),
+                                      str(UUID(str(source["unit_id"]))))
+            except (KeyError, TypeError, ValueError):
+                continue
+            if (source["source_id"] != expected or source.get("chunk_id") != source["unit_id"]
+                    or source.get("provenance_version") != "v2" or not source.get("excerpt")):
+                continue
         metadata = source.get("metadata") if isinstance(source.get("metadata"), dict) else {}
         if metadata.get("unit_type") and not (
                 source.get("document_id") and source.get("chunk_id") and source.get("title")):

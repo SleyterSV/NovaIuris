@@ -520,7 +520,7 @@ class RuntimeV2Tests(unittest.TestCase):
             self.assertIs(SearchService(knowledge_version="v2").repository, v2.return_value)
             self.assertEqual(v1.call_count, 1)
 
-    def test_endpoint_selector_does_not_change_case_search(self):
+    def test_endpoint_and_case_select_v2_explicitly_while_v1_remains_available(self):
         from app import create_app
         from app.api.search import get_search_service
         class TestConfig(Config):
@@ -535,9 +535,13 @@ class RuntimeV2Tests(unittest.TestCase):
              patch("app.services.search_service.LegalRepositoryV2") as v2, \
              patch("app.services.search_service.RerankerService"), \
              patch("app.services.search_service.AnswerService"):
-            SearchService()  # The constructor used by NovaCase remains V1.
+            SearchService()  # Legacy callers may still select V1.
             v1.assert_called_once()
             v2.assert_not_called()
+        from app.services.case_service import CaseService
+        with patch("app.services.case_service.SearchService") as case_search:
+            CaseService()
+        case_search.assert_called_once_with(knowledge_version="v2")
 
     def test_v2_target_rejects_other_project_before_connection(self):
         with patch.dict("os.environ", {"MYKE_LEGAL_DATABASE_URL":

@@ -41,7 +41,7 @@ class SourceContractTests(unittest.TestCase):
         item = {"case_id": "CASE-A", "document_id": "DOC-A", "chunk_id": "CHUNK-A",
                 "text": "Exact private passage", "source_reference": {"page_start": 7, "section": "Prueba"}}
         source = normalize_case_source(item)
-        self.assertEqual(source["source_scope"], "case")
+        self.assertEqual(source["source_scope"], "private_case")
         self.assertEqual((source["case_id"], source["document_id"], source["chunk_id"]),
                          ("CASE-A", "DOC-A", "CHUNK-A"))
         self.assertEqual(source["page_start"], 7)

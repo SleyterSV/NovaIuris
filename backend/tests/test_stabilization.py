@@ -32,7 +32,19 @@ def case_service():
     service.strategy_builder.build_strategy.return_value = {'search_queries': ['consulta'], 'claim_strategy': 'ESTRATEGIA-A'}
     service.strategy_builder.summary.return_value = {}
     service.strategy_builder.statistics.return_value = {}
-    service.search_service.search.return_value = {'documents': [{'id':'doc-A', 'tipo_documento':'Jurisprudencia', 'extracto_exacto':'FUENTE-A'}]}
+    unit_id = '11111111-1111-4111-8111-111111111111'
+    document_id = '22222222-2222-4222-8222-222222222222'
+    service.search_service.knowledge_version = 'v2'
+    service.search_service.search.return_value = {'documents': [{
+        'id': unit_id, 'unit_id': unit_id, 'document_id': document_id,
+        'tipo_documento': 'judgment', 'unit_type': 'foundation', 'unit_number': '1',
+        'extracto_exacto': 'FUENTE-A…'}]}
+    service.search_service.repository.get_unit.return_value = {
+        'unit_id': unit_id, 'document_id': document_id, 'text': 'FUENTE-A CANÓNICA COMPLETA.',
+        'document_type': 'judgment', 'unit_type': 'foundation', 'unit_number': '1',
+        'display_title': 'STC Exp. 00001-2024-PA/TC', 'document_title': 'Sentencia',
+        'expediente': '00001-2024-PA/TC', 'court': 'Tribunal Constitucional',
+        'page_start': 1, 'page_end': 1}
     service.argument_service.generate_arguments.return_value = {'main_arguments': ['ARGUMENTO-A']}
     service.evidence_analyzer.analyze.return_value = {'documentary_evidence':['PRUEBA-A']}
     service.risk_analyzer.analyze.return_value = {'procedural_risks':['RIESGO-A'], 'risk_level':'Medio'}

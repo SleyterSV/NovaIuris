@@ -22,8 +22,9 @@ from app.services.case_professional import (
     build_report_document, case_facts, case_issues,
     case_timeline, final_strategy, ground_links, select_report_sources,
 )
-from app.services.case_execution import CaseExecutionContext, CaseExecutionMetrics, prompt_documents, research_queries
-from app.services.source_contracts import normalize_case_source, normalize_public_source, resolve_citations
+from app.services.case_execution import (CaseExecutionContext, CaseExecutionMetrics,
+    prompt_documents, research_queries, resolve_public_v2_hits)
+from app.services.source_contracts import normalize_case_source, resolve_citations
 from app.config import Config
 from flask import current_app, has_app_context
 
@@ -102,7 +103,7 @@ class CaseService:
         ################ NOVASEARCH ############################
         ########################################################
 
-        self.search_service = SearchService()
+        self.search_service = SearchService(knowledge_version="v2")
 
         ########################################################
         ################ ARGUMENTOS JURÍDICOS ##################
@@ -405,74 +406,32 @@ class CaseService:
         query_order = {query: index for index, query in enumerate(search_queries)}
         search_results.sort(key=lambda item: query_order.get(item["query"], len(query_order)))
 
-        ############################################################
-        ################ ELIMINAR DUPLICADOS ########################
-        ############################################################
-
-        documentos = []
-
-        ids = set()
-
-        for resultado in search_results:
-
-            for documento in resultado.get(
-                "documents",
-                []
-            ):
-
-                document_id = documento.get(
-                    "id"
-                )
-
-                # Si no tiene ID, no descartamos el documento.
-                # Esto evita perder resultados válidos.
-
-                if document_id is not None:
-
-                    if document_id in ids:
-
-                        continue
-
-                    ids.add(
-                        document_id
-                    )
-
-                documentos.append(
-                    documento
-                )
-
-
-        ############################################################
-        ################ DOCUMENTOS ORDENADOS #######################
-        ############################################################
-
-        documentos.sort(
-
-            key=lambda x:
-            x.get(
-                "score",
-                x.get(
-                    "similarity",
-                    0
-                )
-            ),
-
-            reverse=True
-
-        )
-        public_sources = []
-        seen_public = set()
-        for document in documentos:
-            if not isinstance(document, dict):
-                continue
-            source = document.get("source")
-            if not isinstance(source, dict) or source.get("source_scope") != "public":
-                source = normalize_public_source(
-                    document, excerpt=document.get("extracto_exacto") or document.get("texto") or "")
-                document["source"] = source
-            if source["source_id"] not in seen_public:
-                public_sources.append(source)
-                seen_public.add(source["source_id"])
+        if self.search_service.knowledge_version != "v2":
+            raise ValueError("NOVACASE_REQUIRES_LEGAL_KNOWLEDGE_V2")
+        try:
+            documentos = []
+            for resultado in search_results:
+                hits = resultado.get("documents") or []
+                if not isinstance(hits, list):
+                    raise ValueError("V2_SEARCH_RESULT_INVALID")
+                documentos.extend(hits)
+            documentos.sort(key=lambda item: float(item.get("score") or item.get("similarity") or 0)
+                            if isinstance(item, dict) else 0, reverse=True)
+            documentos, public_sources, context_warnings = resolve_public_v2_hits(
+                self.search_service.repository, documentos, cancellation_token=cancellation_token)
+        except OperationCancelled:
+            raise
+        except Exception as error:
+            logger.warning("NovaCase V2 source resolution failed error_type=%s", type(error).__name__)
+            documentos, public_sources = [], []
+            context_warnings = [{"code": "PUBLIC_LEGAL_SOURCE_UNAVAILABLE"}]
+            for result in search_results:
+                result["documents"] = []
+                result["sources"] = []
+                result["result_status"] = "search_failed"
+        if context_warnings:
+            for result in search_results:
+                result.setdefault("warnings", []).extend(context_warnings)
         for source in case_source_contracts:
             documentos.append({"id": source["chunk_id"], "source_id": source["source_id"],
                                "tipo_documento": "case_document", "title": source["title"],
@@ -872,7 +831,14 @@ class CaseService:
 
         }
 
-        result["sources"] = report_sources
+        # Keep the existing outward scope for NovaCourt's unchanged graph adapter.
+        # The NovaCase prompt/research contracts retain their explicit V2 scope.
+        result["sources"] = [({**source, "source_scope": "public",
+                              "legal_source_scope": "public_legal"}
+                             if source.get("source_scope") == "public_legal" else
+                             {**source, "source_scope": "case", "private_source_scope": "private_case"}
+                             if source.get("source_scope") == "private_case" else source)
+                             for source in report_sources]
         result["citations"] = citations
         result["sources_used"] = cited_sources
         result["warnings"] = result["research"]["warnings"] + report_warnings + ([report_error] if report_error else [])

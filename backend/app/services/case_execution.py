@@ -5,6 +5,44 @@ from copy import deepcopy
 from threading import Lock
 from time import perf_counter
 
+from app.services.source_contracts import normalize_public_legal_v2_source
+from app.utils.cancellation import check_cancelled
+
+
+PUBLIC_CONTEXT_CHAR_BUDGET = 48000
+PUBLIC_UNIT_CHAR_LIMIT = 24000
+
+
+def resolve_public_v2_hits(repository, hits, *, max_chars=PUBLIC_CONTEXT_CHAR_BUDGET,
+                           max_unit_chars=PUBLIC_UNIT_CHAR_LIMIT, cancellation_token=None):
+    """Resolve whole V2 units once, rejecting invalid identity and omitting oversized units."""
+    selected, sources, warnings = [], [], []
+    seen = set()
+    remaining = max_chars
+    for hit in hits:
+        check_cancelled(cancellation_token)
+        if not isinstance(hit, dict):
+            raise ValueError("V2_SEARCH_RESULT_INVALID")
+        key = (hit.get("document_id"), hit.get("unit_id"))
+        if not all(key):
+            raise ValueError("V2_SEARCH_IDENTITY_MISSING")
+        if key in seen:
+            continue
+        seen.add(key)
+        detail = repository.get_unit(key[1], document_id=key[0])
+        if detail is None:
+            raise ValueError("V2_CANONICAL_UNIT_NOT_FOUND")
+        source = normalize_public_legal_v2_source(hit, detail)
+        length = len(source["excerpt"])
+        if length > max_unit_chars or length > remaining:
+            warnings.append({"code": "PUBLIC_UNIT_CONTEXT_BUDGET_EXCEEDED",
+                             "document_id": key[0], "unit_id": key[1]})
+            continue
+        remaining -= length
+        selected.append({**hit, "source_id": source["source_id"], "source": source})
+        sources.append(source)
+    return selected, sources, warnings
+
 
 def research_queries(values, limit):
     """Deduplicate whitespace/case variants without rewriting the first query."""
@@ -27,8 +65,10 @@ def research_queries(values, limit):
 def prompt_documents(documents):
     """Project retrieved hits once, retaining the exact excerpt and locator."""
     fields = ("id", "source_id", "source_scope", "source_type", "tipo_documento",
-              "title", "article", "legal_basis", "court", "entity", "case_number",
-              "document_number", "date", "document_id", "case_id", "chunk_id",
+              "title", "display_title", "document_title", "article", "legal_basis",
+              "court", "issuer", "entity", "case_number", "expediente", "number",
+              "document_number", "date", "document_id", "unit_id", "unit_type",
+              "unit_number", "provenance_version", "case_id", "chunk_id",
               "page_start", "page_end", "section", "paragraph", "official_url",
               "score", "similarity", "vector_similarity", "reranker_score",
               "sumilla", "sala", "norma", "numero_expediente", "fundamento")

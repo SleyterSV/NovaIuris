@@ -800,7 +800,7 @@ function sourceMap() {
 function factSources(fact) {
     const sources = sourceMap()
     return (fact.source_ids || []).map(id => sources.get(id)).filter(source =>
-        source && (source.source_scope !== "case" || source.case_id === canonicalResult.value?.case_id))
+        source && (!["case", "private_case"].includes(source.source_scope) || source.case_id === canonicalResult.value?.case_id))
 }
 
 function factsForLink(link) {
@@ -816,7 +816,7 @@ function issuesForLink(link) {
 function sourcesForLink(link) {
     const sources = sourceMap()
     return (link.source_ids || []).map(id => sources.get(id)).filter(source =>
-        source && (source.source_scope !== "case" || source.case_id === canonicalResult.value?.case_id))
+        source && (!["case", "private_case"].includes(source.source_scope) || source.case_id === canonicalResult.value?.case_id))
 }
 
 function continueInNovaCourt() {

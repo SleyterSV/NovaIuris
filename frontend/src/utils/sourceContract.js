@@ -3,8 +3,8 @@ const list = value => Array.isArray(value) ? value : []
 
 export function normalizeSource(value, expectedCaseId = null) {
   const source = record(value)
-  if (!source.source_id || !['public', 'case'].includes(source.source_scope)) return null
-  if (source.source_scope === 'case' && (!source.case_id || !expectedCaseId || source.case_id !== expectedCaseId)) return null
+  if (!source.source_id || !['public', 'public_legal', 'case', 'private_case'].includes(source.source_scope)) return null
+  if (['case', 'private_case'].includes(source.source_scope) && (!source.case_id || !expectedCaseId || source.case_id !== expectedCaseId)) return null
   let officialUrl = null
   try {
     const parsed = new URL(source.official_url)
@@ -14,7 +14,7 @@ export function normalizeSource(value, expectedCaseId = null) {
     ...source,
     title: source.title || source.display_title || 'Fuente jurídica',
     display_title: source.display_title || source.title || 'Fuente jurídica',
-    official_url: source.source_scope === 'case' ? null : officialUrl,
+    official_url: ['case', 'private_case'].includes(source.source_scope) ? null : officialUrl,
     metadata: record(source.metadata),
     excerpt: typeof source.excerpt === 'string' ? source.excerpt : ''
   }
@@ -33,7 +33,7 @@ export function normalizeCitation(value, sourceById, expectedCaseId = null) {
   const citation = record(value)
   const source = sourceById?.get(citation.source_id)
   if (!source || !citation.citation_id) return null
-  if (source.source_scope === 'case' && source.case_id !== expectedCaseId) return null
+  if (['case', 'private_case'].includes(source.source_scope) && source.case_id !== expectedCaseId) return null
   return { ...citation, label: citation.label || '', excerpt: citation.excerpt || source.excerpt || '', locator: record(citation.locator) }
 }
 

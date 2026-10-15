@@ -252,7 +252,8 @@ class CaseReportService:
                                            "problemas_juridicos", "issue_records", "normas_probables"}}
         source_context = [{key: source.get(key) for key in
                            ("source_id", "source_scope", "source_type", "title", "article",
-                            "legal_basis", "court", "case_number", "document_id", "chunk_id",
+                            "legal_basis", "court", "issuer", "case_number", "document_id", "unit_id",
+                            "unit_type", "unit_number", "provenance_version", "chunk_id",
                             "page_start", "page_end", "section", "excerpt")}
                           for source in (sources or [])]
         context = {
