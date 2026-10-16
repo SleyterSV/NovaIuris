@@ -111,14 +111,14 @@ class SearchSourceTests(unittest.TestCase):
         case = case_service()
         case.search_service.search.side_effect = LegalSearchError("provider detail")
         failed = case.analyze_case("case text", case_id="CASE-A")
-        self.assertEqual(failed["research"]["status"], "search_failed")
+        self.assertEqual(failed["research"]["status"], "UNAVAILABLE")
         self.assertEqual(failed["research"]["warnings"][0]["code"], "SEARCH_FAILED")
-        self.assertEqual(failed["research"]["search_results"][0]["result_status"], "search_failed")
+        self.assertEqual(failed["research"]["search_results"][0]["result_status"], "search_unavailable")
 
         case = case_service()
         case.search_service.search.return_value = {"result_status": "no_results", "documents": []}
         empty = case.analyze_case("case text", case_id="CASE-B")
-        self.assertEqual(empty["research"]["status"], "completed")
+        self.assertEqual(empty["research"]["status"], "NO_RESULTS")
         self.assertEqual(empty["research"]["search_results"][0]["result_status"], "no_results")
 
     def test_query_analyzer_preserves_query_and_only_emits_present_keywords(self):

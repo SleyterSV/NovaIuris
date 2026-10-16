@@ -71,7 +71,7 @@ class NovaCaseV2Tests(unittest.TestCase):
                 service.search_service.search.return_value = {"documents": [hit()]}
                 service.search_service.repository.get_unit.return_value = resolved
                 result = service.analyze_case("Relato", case_id="CASE-A")
-                self.assertEqual(result["research"]["status"], "search_failed")
+                self.assertEqual(result["research"]["status"], "ERROR")
                 self.assertFalse([s for s in result["research"]["sources"] if s["source_scope"] == "public_legal"])
                 self.assertEqual(service.argument_service.generate_arguments.call_args.kwargs["documents"], [])
                 self.assertEqual(service.search_service.search.call_count, 1)
@@ -86,7 +86,7 @@ class NovaCaseV2Tests(unittest.TestCase):
                 service = case_service()
                 service.search_service.search.return_value = {"documents": documents}
                 result = service.analyze_case("Relato", case_id="CASE-A")
-                self.assertEqual(result["research"]["status"], "search_failed")
+                self.assertEqual(result["research"]["status"], "ERROR")
                 self.assertEqual(service.argument_service.generate_arguments.call_args.kwargs["documents"], [])
         token = CancellationToken()
         token.cancel()

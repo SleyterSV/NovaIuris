@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import CaseDocumentUpload from '@/components/common/CaseDocumentUpload.vue'
 import ToolDetailModal from '@/components/common/ToolDetailModal.vue'
 import { createWorkspace, createTurn, normalizeTool, caseReuseContext, applySearchCaseHandoff } from '@/utils/mikeWorkspace.js'
+import { canAttachDocumentsToCase } from '@/utils/novacasePresentation.js'
 import { authRequired, authState, signIn, signOut, startAuth } from '@/config/supabaseSession.js'
 
 const panels = {
@@ -138,6 +139,14 @@ function reuseCase(context) {
   addOperation('court',context.caseText,{ caseId:context.caseId, documentIds:context.documentIds, reuse:context })
 }
 function chooseFiles() { uploader.value?.$el?.querySelector('input[type="file"]')?.click() }
+async function addCaseDocuments(turn, payload) {
+  if (!canAttachDocumentsToCase(payload?.caseId, workspace.value.caseId,
+    workspace.value.turns.includes(turn))) return
+  selectTool('case', false)
+  await nextTick()
+  uploader.value?.$el?.scrollIntoView({ behavior:'smooth', block:'center' })
+  chooseFiles()
+}
 async function login() {
   if (loginBusy.value) return
   loginBusy.value = true
@@ -182,7 +191,7 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
         <section v-else class="thread" aria-label="Conversación">
           <article v-for="turn in workspace.turns" :key="turn.id" class="turn" :class="turn.role">
             <div v-if="turn.role === 'user'" class="user-bubble"><p>{{ turn.text }}</p><small>{{ tools[turn.tool].label }}</small></div>
-            <div v-else class="assistant-turn"><p class="turn-label">MYKE · {{ tools[turn.tool].label }}</p><component :is="panels[turn.tool]" embedded :request="turn.request" @task-state="onTaskState(turn,$event)" @case-completed="onCaseCompleted(turn,$event)" @handoff-started="onSearchHandoff" @reuse-case="reuseCase" /></div>
+            <div v-else class="assistant-turn"><p class="turn-label">MYKE · {{ tools[turn.tool].label }}</p><component :is="panels[turn.tool]" embedded :request="turn.request" @task-state="onTaskState(turn,$event)" @case-completed="onCaseCompleted(turn,$event)" @handoff-started="onSearchHandoff" @reuse-case="reuseCase" @add-documents="addCaseDocuments(turn,$event)" /></div>
           </article>
         </section>
         <div class="composer-region">

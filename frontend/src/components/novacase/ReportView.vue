@@ -19,6 +19,15 @@
     <p v-if="reportStatus === 'failed'" class="partial-message" role="status">
       {{ reportError?.message || 'No se pudo preparar el informe final. El análisis estructurado permanece disponible.' }}
     </p>
+    <div v-if="report" class="verification-scope" role="note">
+      <p><strong>Hechos alegados:</strong> el relato del caso requiere contraste con documentación.</p>
+      <p v-if="documentCount === 0"><strong>Hechos acreditados y fuentes privadas:</strong> no se aportaron documentos al caso.</p>
+      <p v-else><strong>Fuentes privadas:</strong> {{ documentCount }} documento{{ documentCount === 1 ? '' : 's' }} aportado{{ documentCount === 1 ? '' : 's' }}; su contenido requiere evaluación profesional.</p>
+      <p v-if="publicSourceCount === 0"><strong>Marco jurídico preliminar — pendiente de verificación:</strong> no se recuperaron fuentes jurídicas V2. Las referencias normativas del borrador no son citas verificadas.</p>
+      <p v-else-if="!citations.length"><strong>Fuentes jurídicas verificadas:</strong> se recuperaron {{ publicSourceCount }}, pero el informe no contiene citas validadas a ellas.</p>
+      <p v-else><strong>Fuentes jurídicas verificadas:</strong> {{ citations.length }} cita{{ citations.length === 1 ? '' : 's' }} enlazada{{ citations.length === 1 ? '' : 's' }} a fuentes entregadas al informe.</p>
+      <p><strong>Puntos pendientes:</strong> verificar las alegaciones, documentos y autoridades antes de usar este borrador como conclusión jurídica.</p>
+    </div>
 
     <div v-if="report" class="report-meta">
       <span v-if="reportDocument.case_id">Caso {{ reportDocument.case_id }}</span>
@@ -28,7 +37,7 @@
 
     <article v-if="report" class="report-paper">
       <MarkdownRenderer
-        :content="report"
+        :content="displayReport"
         :citations="citations"
         :sources="sources"
         :case-id="caseId"
@@ -57,6 +66,7 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 import SourcesList from '@/components/common/SourcesList.vue'
 import SourceModal from '@/components/common/SourceModal.vue'
+import { presentableText } from '@/utils/novacasePresentation.js'
 
 const props = defineProps({
   report: { type: String, default: '' },
@@ -65,7 +75,9 @@ const props = defineProps({
   sources: { type: Array, default: () => [] },
   caseId: { type: String, default: null },
   reportStatus: { type: String, default: 'not_requested' },
-  reportError: { type: Object, default: null }
+  reportError: { type: Object, default: null },
+  documentCount: { type: Number, default: 0 },
+  publicSourceCount: { type: Number, default: 0 }
 })
 
 const selectedSource = ref(null)
@@ -84,7 +96,8 @@ const generatedDate = computed(() => {
   const date = new Date(value)
   return Number.isNaN(date.valueOf()) ? '' : new Intl.DateTimeFormat('es-PE', { dateStyle: 'long' }).format(date)
 })
-const wordCount = computed(() => props.report.trim() ? props.report.trim().split(/\s+/).length : 0)
+const displayReport = computed(() => presentableText(props.report || ''))
+const wordCount = computed(() => displayReport.value ? displayReport.value.split(/\s+/).length : 0)
 
 function openCitation(citation) {
   selectedSource.value = sources.value.find(source => source.source_id === citation.source_id) || null
@@ -96,7 +109,7 @@ async function copyReport() {
     return
   }
   try {
-    await navigator.clipboard.writeText(props.report.trim())
+    await navigator.clipboard.writeText(displayReport.value)
     copied.value = true
     copyMessage.value = 'Informe copiado.'
     clearTimeout(copyReset)
@@ -112,5 +125,5 @@ function printReport() {
 </script>
 
 <style scoped>
-.report-view{display:grid;gap:20px;width:100%;min-width:0;padding:clamp(18px,3vw,30px);border:1px solid #dce5ee;border-radius:14px;background:#fff;color:#26384b}.report-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.eyebrow{margin:0 0 7px;color:#92713c;font-size:.68rem;font-weight:750;letter-spacing:.1em}.report-header h2{margin:0;color:#17324f;font:600 clamp(1.35rem,3vw,1.8rem)/1.3 Georgia,serif}.intro{margin:8px 0 0;color:#65758a;font-size:.88rem}.toolbar{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px}.toolbar button{border:1px solid #d6dee7;border-radius:6px;background:#fff;padding:9px 12px;color:#38516c;font:600 .75rem/1.2 system-ui,sans-serif;cursor:pointer}.toolbar button.primary{border-color:#17375e;background:#17375e;color:#fff}.toolbar button:disabled{cursor:not-allowed;opacity:.48}.partial-message{margin:0;border-left:3px solid #b68a3a;background:#fbf8f0;padding:11px 14px;color:#634f2b;font-size:.85rem}.report-meta{display:flex;flex-wrap:wrap;gap:8px 18px;border-block:1px solid #e7ebef;padding:11px 0;color:#6b7888;font-size:.76rem}.report-paper{max-width:900px;width:100%;margin-inline:auto}.empty-report{min-height:220px;display:grid;align-content:center;justify-items:center;text-align:center;color:#64748b}.empty-report h3{margin:0;color:#193653;font:600 1.2rem Georgia,serif}.empty-report p{max-width:540px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:700px){.report-header{flex-direction:column}.toolbar{justify-content:flex-start}.report-view{padding:17px}}@media print{.toolbar,.partial-message{display:none!important}.report-view{border:0;padding:0}.report-paper{max-width:none}}
+.report-view{display:grid;gap:20px;width:100%;min-width:0;padding:clamp(18px,3vw,30px);border:1px solid #dce5ee;border-radius:14px;background:#fff;color:#26384b}.report-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.eyebrow{margin:0 0 7px;color:#92713c;font-size:.68rem;font-weight:750;letter-spacing:.1em}.report-header h2{margin:0;color:#17324f;font:600 clamp(1.35rem,3vw,1.8rem)/1.3 Georgia,serif}.intro{margin:8px 0 0;color:#65758a;font-size:.88rem}.toolbar{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px}.toolbar button{border:1px solid #d6dee7;border-radius:6px;background:#fff;padding:9px 12px;color:#38516c;font:600 .75rem/1.2 system-ui,sans-serif;cursor:pointer}.toolbar button.primary{border-color:#17375e;background:#17375e;color:#fff}.toolbar button:disabled{cursor:not-allowed;opacity:.48}.partial-message{margin:0;border-left:3px solid #b68a3a;background:#fbf8f0;padding:11px 14px;color:#634f2b;font-size:.85rem}.verification-scope{border:1px solid #e1d4b5;border-left:3px solid #b68a3a;border-radius:7px;background:#fcfaf5;padding:12px 16px;color:#584d3b;font-size:.82rem;line-height:1.5}.verification-scope p{margin:5px 0}.verification-scope strong{color:#263c55}.report-meta{display:flex;flex-wrap:wrap;gap:8px 18px;border-block:1px solid #e7ebef;padding:11px 0;color:#6b7888;font-size:.76rem}.report-paper{max-width:900px;width:100%;margin-inline:auto}.empty-report{min-height:220px;display:grid;align-content:center;justify-items:center;text-align:center;color:#64748b}.empty-report h3{margin:0;color:#193653;font:600 1.2rem Georgia,serif}.empty-report p{max-width:540px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:700px){.report-header{flex-direction:column}.toolbar{justify-content:flex-start}.report-view{padding:17px}}@media print{.toolbar,.partial-message{display:none!important}.report-view{border:0;padding:0}.report-paper{max-width:none}}
 </style>

@@ -58,6 +58,12 @@
 
         </div>
 
+        <div v-if="documentCount === 0" class="documents-empty" role="status">
+            <div><strong>Sin documentos aportados al caso</strong>
+                <p>Los hechos permanecen como alegaciones. Puede agregar contratos, resoluciones, memorandos o escritos para evaluar su respaldo documental.</p></div>
+            <button type="button" @click="$emit('add-documents')">Agregar documentos al caso</button>
+        </div>
+
 
         <!-- =====================================================
              ESTADÍSTICAS
@@ -94,7 +100,7 @@
 
                     <span class="summary-dot"></span>
 
-                    Análisis completado
+                    Evaluación realizada
 
                 </div>
 
@@ -125,6 +131,7 @@ import AnalysisSection
 
 import MarkdownRenderer
     from "@/components/common/MarkdownRenderer.vue"
+import { evidenceAvailability } from '@/utils/novacasePresentation.js'
 
 
 /* =========================================================
@@ -139,9 +146,11 @@ const props = defineProps({
 
         default: () => ({})
 
-    }
+    },
+    documentCount: { type: Number, default: 0 }
 
 })
+defineEmits(['add-documents'])
 
 
 /* =========================================================
@@ -165,7 +174,7 @@ const evidences = computed(() => [
 
             "No identificado con la información disponible.",
 
-        status: "completed"
+        status: evidenceAvailability(props.evidence.documents, { documentCount: props.documentCount, documentary: true })
 
     },
 
@@ -185,7 +194,7 @@ const evidences = computed(() => [
 
             "No identificado con la información disponible.",
 
-        status: "completed"
+        status: evidenceAvailability(props.evidence.testimonies)
 
     },
 
@@ -205,7 +214,7 @@ const evidences = computed(() => [
 
             "No identificado con la información disponible.",
 
-        status: "completed"
+        status: evidenceAvailability(props.evidence.expertReports)
 
     },
 
@@ -225,7 +234,7 @@ const evidences = computed(() => [
 
             "No identificado con la información disponible.",
 
-        status: "completed"
+        status: evidenceAvailability(props.evidence.digitalEvidence)
 
     }
 
@@ -1078,4 +1087,5 @@ NovaCase no encontró una conclusión probatoria disponible.`
 
 }
 
+.documents-empty{display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid #decda9;border-radius:10px;background:#fcf9f2;padding:18px 20px;color:#483d2b}.documents-empty p{margin:5px 0 0;max-width:650px;font-size:.86rem;line-height:1.5}.documents-empty button{flex:none;border:1px solid #173a5f;border-radius:7px;background:#173a5f;color:#fff;padding:10px 14px;font-weight:650;cursor:pointer}@media(max-width:700px){.documents-empty{align-items:stretch;flex-direction:column}.documents-empty button{width:100%}}
 </style>

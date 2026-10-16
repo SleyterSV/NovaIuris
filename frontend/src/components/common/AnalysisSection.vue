@@ -166,12 +166,12 @@ const props = defineProps({
 
     subtitle: {
         type: String,
-        default: "Análisis generado por Nova Iuris"
+        default: "Análisis de NovaCase"
     },
 
     engineName: {
         type: String,
-        default: "Nova Iuris AI"
+        default: "MYKE / NovaCase"
     },
 
     icon: {
@@ -213,6 +213,18 @@ const statusLabel = computed(() => {
 
         case "error":
             return "Error"
+
+        case "no_documents":
+            return "No aportada"
+
+        case "not_identified":
+            return "No identificada"
+
+        case "requires_verification":
+            return "Requiere verificación"
+
+        case "available":
+            return "Disponible"
 
         default:
             return "Completado"

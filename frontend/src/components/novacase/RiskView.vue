@@ -1,21 +1,41 @@
 <template>
 <section class="risk-view">
-  <h2>Evaluación de riesgos</h2>
-  <AnalysisSection v-for="(content, key) in sections" :key="key" :title="key" :content="content" />
+  <header class="risk-heading"><p>MYKE · NOVACASE</p><h2>Evaluación de riesgos</h2>
+    <span v-if="risk.risk_level">Nivel general: {{ risk.risk_level }}</span></header>
+  <div class="risk-grid">
+    <article v-for="section in sections" :key="section.key" class="risk-card">
+      <h3>{{ section.title }}</h3>
+      <ul v-if="section.items.length">
+        <li v-for="(item,index) in section.items" :key="index">
+          <strong v-if="item.title">{{ item.title }}</strong>
+          <p>{{ item.text }}</p>
+          <p v-if="item.impact" class="risk-detail"><strong>Impacto</strong> {{ item.impact }}</p>
+          <p v-if="item.mitigation" class="risk-mitigation"><strong>Mitigación</strong> {{ item.mitigation }}</p>
+        </li>
+      </ul>
+      <p v-else class="risk-empty">No identificado con la información disponible.</p>
+    </article>
+  </div>
+  <div v-if="recommendations.length" class="risk-recommendations">
+    <h3>Medidas recomendadas</h3><MarkdownRenderer :content="recommendations" />
+  </div>
 </section>
 </template>
 <script setup>
 import { computed } from 'vue'
-import AnalysisSection from '@/components/common/AnalysisSection.vue'
+import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 const props = defineProps({ risk: { type: Object, default: () => ({}) } })
-const sections = computed(() => ({
-  'Riesgos procesales': props.risk.procedural,
-  'Riesgos probatorios': props.risk.evidentiary,
-  'Riesgos jurídicos': props.risk.legal,
-  'Riesgos críticos': props.risk.strategic,
-  'Valoración cualitativa': props.risk.risk_level,
-  'Recomendaciones': props.risk.recommendations
-}))
+const riskItem = value => typeof value === 'string' ? { text:value } : {
+  title:value?.title || value?.name || '',
+  text:value?.risk || value?.description || value?.text || '',
+  impact:value?.impact || '', mitigation:value?.mitigation || value?.recommendation || ''
+}
+const sections = computed(() => [
+  ['procedural','Riesgos procesales'], ['evidentiary','Riesgos probatorios'],
+  ['legal','Riesgos jurídicos'], ['strategic','Riesgos críticos']
+].map(([key,title]) => ({ key,title,items:(Array.isArray(props.risk[key]) ? props.risk[key] :
+  props.risk[key] ? [props.risk[key]] : []).map(riskItem).filter(item => item.text || item.title) })))
+const recommendations = computed(() => props.risk.recommendations || [])
 </script>
 <style scoped>
 
@@ -1196,4 +1216,5 @@ const sections = computed(() => ({
 
 }
 
+.risk-view{padding:clamp(18px,3vw,30px);gap:22px}.risk-heading p{font-size:.72rem;font-weight:750;letter-spacing:.08em;color:#967445;margin:0}.risk-heading h2{font:600 clamp(1.35rem,2.5vw,1.9rem)/1.3 Georgia,serif;color:#173654;margin:5px 0 9px}.risk-heading span{color:#60758a;font-size:.85rem}.risk-grid{align-items:start}.risk-card{min-width:0;border:1px solid #dce5ed;border-radius:10px;padding:18px;background:#fff;overflow-wrap:anywhere}.risk-card h3,.risk-recommendations h3{font:600 1.1rem/1.35 Georgia,serif;color:#193a5b;margin:0 0 12px}.risk-card ul{list-style:none;padding:0;margin:0;display:grid;gap:12px}.risk-card li{border-top:1px solid #edf0f3;padding-top:11px;line-height:1.5}.risk-card li:first-child{border-top:0;padding-top:0}.risk-card li>strong{color:#203d59}.risk-card li p{margin:5px 0;color:#3f546b}.risk-detail strong,.risk-mitigation strong{display:inline-block;min-width:76px;color:#23435f}.risk-card li p.risk-mitigation{border-left:3px solid #b9945e;background:#fcf9f2;padding:8px 11px;margin-top:10px}.risk-empty{font-size:.85rem;color:#697a8a}.risk-recommendations{border-top:1px solid #e2e9ef;padding-top:16px}@media(max-width:720px){.risk-grid{grid-template-columns:1fr}.risk-view{padding:18px}}
 </style>

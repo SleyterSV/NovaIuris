@@ -289,6 +289,8 @@ class CaseReportService:
             "Separa ambos planos. No inventes hechos, pruebas, fechas, normas, jurisprudencia, "
             "tribunales, artículos, fundamentos, URLs ni probabilidades. "
             "Las normas preliminares del análisis no son autoridades verificadas.\n\n"
+            "Los identificadores internos FACT- e ISSUE- sirven solo para trazabilidad: "
+            "nunca los muestres en la prosa del informe.\n\n"
             "Para toda afirmación jurídica externa o hecho documental relevante respaldado, "
             "cita únicamente los identificadores exactos mostrados en verified_sources, "
             "por ejemplo [SRC-ABC123]. No dupliques el prefijo ni alteres el identificador. "

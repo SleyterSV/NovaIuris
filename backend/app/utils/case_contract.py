@@ -81,5 +81,8 @@ def normalize_case_result(result: Dict[str, Any]) -> Dict[str, Any]:
     normalized['summary'].setdefault('proceso', analysis.get('tipo_proceso', ''))
     normalized['summary'].setdefault('riesgo', risks.get('risk_level', ''))
     normalized['summary'].setdefault('evidencia', evidence.get('evidence_strength', ''))
-    normalized['summary'].setdefault('documentos', len(documents))
+    # Private case files and public legal units are distinct quantities.
+    normalized['summary']['documentos'] = len(normalized['document_ids'])
+    normalized['summary']['fuentes_juridicas'] = int(
+        normalized['research'].get('public_source_count') or 0)
     return normalized

@@ -14,7 +14,7 @@
 
                     <span class="eyebrow-line"></span>
 
-                    NOVA IURIS · NOVACASE
+                    MYKE · NOVACASE
 
                 </div>
 
@@ -105,7 +105,7 @@
                  ENTRADA DEL CASO
             ================================================== -->
 
-            <section v-if="!embedded" class="workspace-section">
+            <section v-if="!embedded" ref="caseInputSection" class="workspace-section">
 
                 <CaseInput
                     :case-id="inputCaseId" :loading="loading"
@@ -180,11 +180,19 @@
 
                         <span class="status-dot"></span>
 
-                        <span>{{ canonicalResult?.status === "partial" ? "Analisis disponible parcialmente" : "Analisis completado" }}</span>
+                        <span>{{ canonicalResult?.status === "partial" ? "Análisis disponible parcialmente" : "Análisis completado" }}</span>
 
                     </div>
 
                 </header>
+                <div class="research-notice" :class="researchMessage.tone" role="status">
+                    <strong>Investigación jurídica</strong>
+                    <span>{{ researchMessage.text }}</span>
+                </div>
+                <div v-if="privateDocumentCount === 0" class="case-documents-notice">
+                    <span>Sin documentos aportados: los hechos del relato permanecen como alegaciones.</span>
+                    <button type="button" @click="addDocuments">Agregar documentos al caso</button>
+                </div>
 
 
                 <!-- =============================================
@@ -218,6 +226,8 @@
                             :case-id="canonicalResult?.case_id"
                             :report-status="canonicalResult?.report_status || 'not_requested'"
                             :report-error="canonicalResult?.report_error"
+                            :document-count="privateDocumentCount"
+                            :public-source-count="publicSourceCount"
                         />
 
                     </template>
@@ -257,7 +267,9 @@
                     </template>
 
                     <template #arguments>
-                        <MarkdownRenderer :content="canonicalResult?.arguments" />
+                        <ArgumentsView :arguments="canonicalResult?.arguments || {}"
+                            :facts="canonicalResult?.facts || []" :sources="canonicalResult?.research?.sources || []"
+                            :case-id="canonicalResult?.case_id" @select-source="selectedSource = $event" />
                     </template>
 
 
@@ -269,6 +281,8 @@
 
                         <EvidenceView
                             :evidence="evidence"
+                            :document-count="privateDocumentCount"
+                            @add-documents="addDocuments"
                         />
                         <section v-if="canonicalResult?.evidence?.evidence_links?.length" class="evidence-links">
                             <h3>Relación entre evidencia y hechos</h3>
@@ -424,7 +438,7 @@
             <div class="footer-inner">
 
                 <span>
-                    NOVA IURIS
+                    MYKE
                 </span>
 
                 <span class="footer-separator">
@@ -455,6 +469,7 @@
 <script setup>
 import { useRouter } from "vue-router"
 import { normalizeCaseResult } from "@/utils/caseContract.js"
+import { researchNotice } from "@/utils/novacasePresentation.js"
 import { caseReuseContext } from "@/utils/mikeWorkspace.js"
 import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue"
 import { normalizeRenderableContent } from "@/utils/content.js"
@@ -463,6 +478,7 @@ import {
     ref,
     computed,
     watch,
+    nextTick,
     onBeforeUnmount
 } from "vue"
 
@@ -498,6 +514,7 @@ import AnalysisView
 
 import EvidenceView
     from "@/components/novacase/EvidenceView.vue"
+import ArgumentsView from "@/components/novacase/ArgumentsView.vue"
 
 import RiskView
     from "@/components/novacase/RiskView.vue"
@@ -516,12 +533,13 @@ import StrategyView
 const canonicalResult = ref(null)
 const lastCaseText = ref('')
 const props = defineProps({ embedded: Boolean, request: { type:Object, default:null } })
-const emit = defineEmits(['case-completed', 'reuse-case', 'task-state'])
+const emit = defineEmits(['case-completed', 'reuse-case', 'task-state', 'add-documents'])
 const completedTaskId = ref(null)
 const caseTaskCompleted = ref(false)
 const inputCaseId = ref(crypto.randomUUID())
 const router = useRouter()
 const selectedSource = ref(null)
+const caseInputSection = ref(null)
 const loading = ref(false)
 
 const error = ref(null)
@@ -764,6 +782,24 @@ const analysisStatistics = computed(() => {
 
 
 const analysisSummary = computed(() => summary.value)
+const privateDocumentCount = computed(() => canonicalResult.value?.document_ids?.length || 0)
+const publicSourceCount = computed(() => canonicalResult.value?.research?.public_source_count ??
+    (canonicalResult.value?.research?.sources || []).filter(source => source.source_scope === 'public_legal').length)
+const researchMessage = computed(() => researchNotice(canonicalResult.value?.research?.status, publicSourceCount.value))
+
+async function addDocuments() {
+    const caseId = canonicalResult.value?.case_id
+    if (!caseId) return
+    if (props.embedded) {
+        emit('add-documents', { caseId })
+        return
+    }
+    inputCaseId.value = caseId
+    await nextTick()
+    const uploader = caseInputSection.value?.querySelector('.document-upload')
+    uploader?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    uploader?.querySelector('input[type="file"]')?.click()
+}
 
 const availableTabs = computed(() => {
     const result = canonicalResult.value
@@ -891,6 +927,7 @@ watch(() => props.request, request => {
 
 
 <style scoped>
+.research-notice,.case-documents-notice{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;border-radius:9px;padding:13px 16px;margin:14px 0;color:#27415d;font-size:.86rem;line-height:1.45}.research-notice{border:1px solid #cddce9;background:#f4f8fc}.research-notice.verified{border-color:#b6d9c9;background:#f1f9f5}.research-notice.error{border-color:#e4bdb9;background:#fff5f3}.research-notice.unavailable{border-color:#e1d4b5;background:#fcfaf3}.case-documents-notice{justify-content:space-between;border:1px solid #e1d4b5;background:#fcfaf3}.case-documents-notice button{border:1px solid #173a5f;border-radius:6px;padding:9px 13px;background:#173a5f;color:#fff;font-weight:650;cursor:pointer}@media(max-width:640px){.case-documents-notice button{width:100%}}
 
 .case-facts, .evidence-links { margin: 18px 0; padding: 18px; background: #fff; border: 1px solid #dce5ee; border-radius: 10px; }
 .case-facts h3, .evidence-links h3 { margin: 0 0 12px; color: #17375e; font: 600 1rem Georgia, serif; }

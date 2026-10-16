@@ -1,9 +1,15 @@
 const record = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
 const list = value => Array.isArray(value) ? value : []
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const v2SourceId = /^SRC-[0-9a-f]{24}$/
 
 export function normalizeSource(value, expectedCaseId = null) {
   const source = record(value)
   if (!source.source_id || !['public', 'public_legal', 'case', 'private_case'].includes(source.source_scope)) return null
+  if (source.source_scope === 'public_legal' &&
+      (source.provenance_version !== 'v2' || !v2SourceId.test(source.source_id) ||
+       !uuid.test(source.document_id || '') || !uuid.test(source.unit_id || '') ||
+       source.chunk_id !== source.unit_id)) return null
   if (['case', 'private_case'].includes(source.source_scope) && (!source.case_id || !expectedCaseId || source.case_id !== expectedCaseId)) return null
   let officialUrl = null
   try {

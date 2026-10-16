@@ -6,7 +6,7 @@
         <span class="source-citations"><CitationLink v-for="citation in item.citations" :key="citation.citation_id"
           :citation="citation" :label="citation.label" @select="$emit('select-citation', $event)" /></span>
         <button type="button" class="source-copy" @click="$emit('select', item.source)">
-          <strong>{{ item.source.title }}</strong><small>{{ location(item.source) }}</small>
+          <strong>{{ item.source.display_title || item.source.title }}</strong><small>{{ location(item.source) }}</small>
         </button>
       </div>
     </li></ul>
@@ -24,8 +24,14 @@ const items = computed(() => {
   const sources = normalizeSources(props.sources, props.caseId)
   return sources.map(source => ({ source, citations: props.citations.filter(c => c.source_id === source.source_id) }))
 })
-const location = source => [legalTypeLabel(source.source_type), source.article, source.legal_basis,
-  source.page_start ? `pág. ${source.page_start}` : null, source.section].filter(Boolean).join(' · ')
+const unitLabel = source => source.unit_type === 'foundation' ? `Fundamento ${source.unit_number || ''}`.trim()
+  : source.unit_type === 'decision' ? 'Decisión'
+  : source.unit_type === 'article' ? `Artículo ${source.unit_number || ''}`.trim()
+  : source.unit_type === 'separate_opinion' ? 'Voto separado' : null
+const location = source => [source.court || source.issuer || legalTypeLabel(source.source_type),
+  unitLabel(source) || source.article || source.legal_basis,
+  source.page_start ? `pág. ${source.page_start}${source.page_end && source.page_end !== source.page_start ? `–${source.page_end}` : ''}` : null,
+  source.section].filter(Boolean).join(' · ')
 </script>
 
 <style scoped>

@@ -641,6 +641,7 @@ function formatNumber(value) {
 .analysis-grid {
 
     display: grid;
+    align-items: start;
 
     grid-template-columns:
         repeat(
@@ -854,7 +855,7 @@ function formatNumber(value) {
 
 .card-title-group h3 {
 
-    overflow: hidden;
+    overflow-wrap: anywhere;
 
     margin: 0;
 
@@ -871,7 +872,7 @@ function formatNumber(value) {
 
     line-height: 1.4;
 
-    text-overflow: ellipsis;
+    white-space: normal;
 
 }
 

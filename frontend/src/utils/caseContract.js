@@ -56,6 +56,8 @@ export function normalizeCaseResult(result) {
   normalized.summary.proceso ??= normalized.analysis.tipo_proceso || ''
   normalized.summary.riesgo ??= normalized.risks.risk_level || ''
   normalized.summary.evidencia ??= normalized.evidence.evidence_strength || ''
-  normalized.summary.documentos ??= asList(normalized.research.documents).length
+  normalized.summary.documentos = asList(source.document_ids).length
+  normalized.summary.fuentes_juridicas = Number.isInteger(normalized.research.public_source_count)
+    ? normalized.research.public_source_count : 0
   return normalized
 }

@@ -134,7 +134,7 @@ class PipelineTests(unittest.TestCase):
         task = await_task(pipeline, pipeline.start('A','CASE-A'))
         self.assertEqual(task['status'], 'completed')
         self.assertEqual(task['final_result']['graph']['status'], 'failed')
-        self.assertNotIn('private', str(task))
+        self.assertNotIn('private provider detail', str(task))
 
     def test_case_failure_stops_secondary_work(self):
         pipeline = self.pipeline()

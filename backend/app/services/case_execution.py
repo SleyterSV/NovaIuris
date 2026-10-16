@@ -44,8 +44,8 @@ def resolve_public_v2_hits(repository, hits, *, max_chars=PUBLIC_CONTEXT_CHAR_BU
     return selected, sources, warnings
 
 
-def research_queries(values, limit):
-    """Deduplicate whitespace/case variants without rewriting the first query."""
+def research_queries(values, limit, *, fallback=None):
+    """Deduplicate model queries; use case analysis only when it supplied none."""
     seen, queries = set(), []
     safe_limit = max(1, min(int(limit), 12))
     for value in values if isinstance(values, list) else []:
@@ -59,7 +59,30 @@ def research_queries(values, limit):
         queries.append(query)
         if len(queries) >= safe_limit:
             break
+    if not queries and isinstance(fallback, dict):
+        parts = [fallback.get("pretension_principal")]
+        issues = fallback.get("problemas_juridicos")
+        if isinstance(issues, list):
+            parts.extend(item.get("text") or item.get("issue") if isinstance(item, dict)
+                         else item for item in issues[:2])
+        grounded = " ".join(str(part).strip() for part in parts if isinstance(part, str) and part.strip())
+        if grounded:
+            queries.append(" ".join(grounded.split())[:500].rstrip())
     return queries
+
+
+def research_status(queries, results, public_sources, warnings):
+    """Describe source availability separately from pipeline completion."""
+    if public_sources:
+        return "VERIFIED_SOURCES"
+    if any(item.get("result_status") == "search_unavailable" for item in results):
+        return "UNAVAILABLE"
+    if any(item.get("result_status") == "search_failed" for item in results):
+        return "ERROR"
+    if any(item.get("code") in {"PUBLIC_LEGAL_SOURCE_UNAVAILABLE",
+                                  "PUBLIC_UNIT_CONTEXT_BUDGET_EXCEEDED"} for item in warnings):
+        return "UNAVAILABLE"
+    return "NO_RESULTS" if queries else "UNAVAILABLE"
 
 
 def prompt_documents(documents):

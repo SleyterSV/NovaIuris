@@ -244,7 +244,7 @@ test('NovaCase report renders verified citations, source details and partial fai
     assert.ok(!html.includes('[object Object]'))
     assert.ok(!/\b(?:undefined|null)\b/.test(html))
     const reportSource=await readFile(new URL('../src/components/novacase/ReportView.vue',import.meta.url),'utf8')
-    assert.ok(reportSource.includes('navigator.clipboard.writeText(props.report.trim())'))
+    assert.ok(reportSource.includes('navigator.clipboard.writeText(displayReport.value)'))
     assert.ok(!reportSource.includes('function exportPdf'))
     const {default:modal}=await server.ssrLoadModule('/src/components/common/SourceModal.vue')
     const context={teleports:{}}
@@ -269,7 +269,7 @@ test('NovaCase workspace exposes sections only when corresponding result data ex
   assert.ok(source.includes('canonicalResult?.evidence?.evidence_links?.length'))
   assert.ok(source.includes('issuesForLink(link)'))
   assert.ok(source.includes('source.case_id === canonicalResult.value?.case_id'))
-  assert.ok(source.includes(':content="canonicalResult?.arguments"'))
+  assert.ok(source.includes('<ArgumentsView :arguments="canonicalResult?.arguments || {}"'))
   assert.ok(source.includes('result.sources_used?.length'))
   assert.ok(source.includes("result.report_status === \"failed\""))
   assert.ok(tabs.includes('{ id: "summary", label: "Resumen" }'))

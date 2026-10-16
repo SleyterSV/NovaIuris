@@ -2,6 +2,7 @@ from app.utils.cancellation import check_cancelled, OperationCancelled
 from app.utils.case_contract import normalize_case_result
 from uuid import uuid4
 import logging
+import hashlib
 
 from typing import Dict
 from typing import Any
@@ -23,7 +24,7 @@ from app.services.case_professional import (
     case_timeline, final_strategy, ground_links, select_report_sources,
 )
 from app.services.case_execution import (CaseExecutionContext, CaseExecutionMetrics,
-    prompt_documents, research_queries, resolve_public_v2_hits)
+    prompt_documents, research_queries, research_status, resolve_public_v2_hits)
 from app.services.case_public_handoff import normalize_handoff_references
 from app.services.source_contracts import normalize_case_source, resolve_citations
 from app.config import Config
@@ -300,7 +301,12 @@ class CaseService:
 
         stage('strategy', 'completed')
         stage('research', 'running')
-        search_queries = research_queries(strategy.get("search_queries", []), Config.CASE_RESEARCH_MAX_QUERIES)
+        search_queries = research_queries(strategy.get("search_queries", []),
+                                          Config.CASE_RESEARCH_MAX_QUERIES, fallback=analysis)
+        logger.info("RESEARCH_QUERY_GENERATED case_id=%s query_count=%s origin=%s",
+                    case_id, len(search_queries),
+                    "strategy" if research_queries(strategy.get("search_queries", []),
+                                                   Config.CASE_RESEARCH_MAX_QUERIES) else "case_analysis")
 
         search_results = []
 
@@ -310,10 +316,9 @@ class CaseService:
 
             try:
 
-                logger.info(
-                    "NovaSearch ejecutando consulta: %s",
-                    "[redacted]"
-                )
+                query_key = hashlib.sha256(query.encode("utf-8")).hexdigest()[:12]
+                logger.info("RESEARCH_QUERY_GENERATED case_id=%s query_hash=%s query_chars=%s",
+                            case_id, query_key, len(query))
 
                 def search_progress(name, status, details=None):
                     if status == "running" and name in {"embedding", "retrieval"}:
@@ -330,7 +335,15 @@ class CaseService:
                 result = execution.research(query, filtros, retrieve)
 
                 if not result:
-                    return None
+                    logger.warning("RESEARCH_V2_ERROR case_id=%s query_hash=%s reason=EMPTY_RESPONSE",
+                                   case_id, query_key)
+                    return {"query": query, "result_status": "search_failed", "documents": [],
+                            "answer": "", "analysis": {}, "sources": [], "warnings": []}
+
+                count = len(result.get("documents") or [])
+                logger.info("%s case_id=%s query_hash=%s result_status=%s result_count=%s",
+                            "RESEARCH_V2_RESULTS" if count else "RESEARCH_V2_ZERO_RESULTS",
+                            case_id, query_key, result.get("result_status"), count)
 
                 return {
                     "query": query,
@@ -353,12 +366,15 @@ class CaseService:
 
             except OperationCancelled:
                 raise
-            except LegalSearchError:
-                return {"query": query, "result_status": "search_failed", "documents": [],
+            except LegalSearchError as error:
+                logger.warning("RESEARCH_V2_ERROR case_id=%s error_type=%s",
+                               case_id, type(error).__name__)
+                return {"query": query, "result_status": "search_unavailable", "documents": [],
                         "answer": "", "analysis": {}}
             except Exception as error:
 
-                logger.error("Search stage failed error_type=%s", type(error).__name__)
+                logger.error("RESEARCH_V2_ERROR case_id=%s error_type=%s", case_id,
+                             type(error).__name__)
 
                 return {"query": query, "result_status": "search_failed", "documents": [],
                         "answer": "", "analysis": {}, "sources": [], "warnings": []}
@@ -434,7 +450,9 @@ class CaseService:
         except Exception as error:
             if handoff_references:
                 raise ValueError("PUBLIC_SOURCE_HANDOFF_UNAVAILABLE") from error
-            logger.warning("NovaCase V2 source resolution failed error_type=%s", type(error).__name__)
+            event = "SOURCE_IDENTITY_REJECTED" if isinstance(error, ValueError) else "RESEARCH_V2_ERROR"
+            logger.warning("%s case_id=%s error_type=%s", event, case_id,
+                           type(error).__name__)
             documentos, public_sources = [], []
             context_warnings = [{"code": "PUBLIC_LEGAL_SOURCE_UNAVAILABLE"}]
             for result in search_results:
@@ -449,6 +467,8 @@ class CaseService:
                                "tipo_documento": "case_document", "title": source["title"],
                                "texto": source["excerpt"], "source": source})
         verified_sources = public_sources + case_source_contracts
+        logger.info("SOURCE_CONTEXT_ACCEPTED case_id=%s public_count=%s private_count=%s",
+                    case_id, len(public_sources), len(case_source_contracts))
         downstream_documents = prompt_documents(documentos)
         
         ############################################################
@@ -641,14 +661,10 @@ class CaseService:
             risk_analysis, counter_arguments)
         stage('final_strategy', 'completed')
 
-        research_failed = any(item.get("result_status") == "search_failed"
+        research_failed = any(item.get("result_status") in {"search_failed", "search_unavailable"}
                               for item in search_results)
-        research_status = (
-            "partial" if research_failed and public_sources else
-            "search_failed" if research_failed else
-            "not_requested" if not search_queries else
-            "completed"
-        )
+        research_state = research_status(search_queries, search_results, public_sources,
+                                         context_warnings)
         report_sources = select_report_sources(
             public_sources, case_source_contracts, case_id,
             limit=Config.CASE_REPORT_MAX_SOURCES)
@@ -667,7 +683,7 @@ class CaseService:
                 evidence_analysis=evidence_analysis,
                 risk_analysis=risk_analysis,
                 counter_arguments=counter_arguments,
-                research={"status": research_status},
+                research={"status": research_state},
                 sources=report_sources,
                 facts=fact_records,
                 issues=issue_records,
@@ -799,7 +815,9 @@ class CaseService:
 
                     ),
 
-                "status": research_status,
+                "status": research_state,
+                "public_source_count": len(public_sources),
+                "private_source_count": len(case_source_contracts),
 
                 "warnings": ([{"code": "SEARCH_FAILED",
                     "message": "Una o más consultas de investigación no pudieron verificarse en el repositorio jurídico."}]
@@ -840,6 +858,9 @@ class CaseService:
             "facts": fact_records,
             "issues": issue_records,
             "status": "partial" if report_status == "failed" else "completed",
+            "evidence_availability": "NO_DOCUMENTS" if not document_ids else
+                                     "DOCUMENTS_PROVIDED",
+            "legal_authority_status": "VERIFIED" if public_sources else "PRELIMINARY",
 
         }
 

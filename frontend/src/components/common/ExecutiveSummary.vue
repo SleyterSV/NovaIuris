@@ -164,13 +164,23 @@ const cards = computed(() => [
 
     {
 
-        title: "Fuentes recuperadas",
+        title: "Documentos del caso",
 
         value:
             props.summary.documentos
             || 0,
 
         icon: "📚"
+
+    },
+
+    {
+
+        title: "Fuentes jurídicas recuperadas",
+
+        value: props.summary.fuentes_juridicas ?? 0,
+
+        icon: "§"
 
     }
 
@@ -607,7 +617,7 @@ const cards = computed(() => [
 
 .card-title {
 
-    overflow: hidden;
+    overflow-wrap: anywhere;
 
     color: var(--nova-muted);
 
@@ -619,18 +629,16 @@ const cards = computed(() => [
 
     letter-spacing: .075em;
 
-    text-overflow: ellipsis;
-
     text-transform: uppercase;
 
-    white-space: nowrap;
+    white-space: normal;
 
 }
 
 
 .card-value {
 
-    overflow: hidden;
+    overflow-wrap: anywhere;
 
     color: var(--nova-navy);
 
@@ -640,9 +648,7 @@ const cards = computed(() => [
 
     line-height: 1.4;
 
-    text-overflow: ellipsis;
-
-    white-space: nowrap;
+    white-space: normal;
 
 }
 
