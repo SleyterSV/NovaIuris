@@ -10,6 +10,7 @@ from ..services.novacourt_pipeline_service import NovaCourtPipelineService
 from ..services.runtime_security import owns_case, authenticated_user_id, case_ownership
 from ..services.case_public_handoff import normalize_handoff_references, resolve_handoff_references
 from ..services.legal_repository_v2 import LegalRepositoryV2
+from ..services.case_service import CaseService
 
 case_bp = Blueprint('case', __name__)
 
@@ -60,7 +61,9 @@ def start_public_source_handoff():
     return jsonify(success=True, task_id=task_id, case_id=case_id, tool='case'), 202
 
 def services():
-    from ..services.case_service import CaseService
+    # Load the NovaCase import graph with the app, before serving any request.
+    # A long-lived worker must never lazily mix old in-memory source contracts
+    # with a newer CaseService read from disk on its first /case/tasks call.
     from ..services.novacourt_graph_service import NovaCourtGraphService
     from ..services.novacourt_simulation_service import NovaCourtSimulationService
     return (current_app.config.get('CASE_SERVICE_FACTORY', CaseService)(),
