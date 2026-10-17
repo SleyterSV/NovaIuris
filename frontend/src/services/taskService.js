@@ -17,6 +17,9 @@ function pause(signal, milliseconds) {
     if (signal?.aborted) abort()
   })
 }
+function taskStateError(code, message) {
+  return Object.assign(new Error(message), { code })
+}
 // One sequential polling loop per task. Reuse always requires an explicit identity.
 export async function runAnalysisTask(tool, text, options = {}) {
   if (options.signal?.aborted) throw new DOMException('Cancelado', 'AbortError')
@@ -31,14 +34,16 @@ export async function runAnalysisTask(tool, text, options = {}) {
           ...(tool === 'court' && options.reuseTaskId ? {reuse_task_id:options.reuseTaskId} : {}) })
       })
     taskId = started.task_id
-    if (started.case_id !== caseId) throw new Error('La tarea no corresponde al caso enviado.')
+    if (!taskId || started.case_id !== caseId || (started.tool && started.tool !== tool))
+      throw taskStateError('TASK_IDENTITY_MISMATCH', 'No fue posible registrar la tarea solicitada.')
     options.onTask?.(started)
     let statusFailures = 0
     for (;;) {
       if (options.signal?.aborted) throw new DOMException('Cancelado', 'AbortError')
       let task
       try {
-        task = await requestJson(`/tasks/${encodeURIComponent(taskId)}?case_id=${encodeURIComponent(caseId)}`, { signal:options.signal })
+        const path = tool === 'court' ? '/novacourt/results' : '/tasks'
+        task = await requestJson(`${path}/${encodeURIComponent(taskId)}?case_id=${encodeURIComponent(caseId)}`, { signal:options.signal })
         statusFailures = 0
       } catch (error) {
         if (tool !== 'court' || options.signal?.aborted || error?.status && error.status < 500 && error.status !== 429) throw error
@@ -47,20 +52,28 @@ export async function runAnalysisTask(tool, text, options = {}) {
         await pause(options.signal, Math.min(10000, 1000 * 2 ** statusFailures))
         continue
       }
-      if (task.case_id !== caseId || task.task_id !== taskId || task.tool !== tool) throw new Error('La respuesta no corresponde al caso enviado.')
+      if (task.case_id !== caseId || task.task_id !== taskId || task.tool !== tool)
+        throw tool === 'court'
+          ? taskStateError('TASK_IDENTITY_MISMATCH', 'No fue posible recuperar esta tarea.')
+          : new Error('La respuesta no corresponde al caso enviado.')
       options.onProgress?.(task)
       if (task.status === 'completed') {
         if (task.final_result?.case_id !== caseId) throw new Error('El resultado no corresponde al caso enviado.')
         return normalizeCaseResult(task.final_result)
       }
-      if (task.status === 'interrupted') throw new Error('La tarea fue interrumpida y debe ejecutarse nuevamente.')
-      if (task.status === 'cancelled') throw new DOMException('Cancelado', 'AbortError')
-      if (task.status === 'failed') throw new Error('No fue posible completar el análisis. Inténtalo nuevamente.')
+      if (task.status === 'interrupted') throw tool === 'court'
+        ? taskStateError('COURT_TASK_INTERRUPTED', 'La tarea se interrumpió al reiniciar el servidor. Puedes iniciar una nueva ejecución.')
+        : new Error('La tarea fue interrumpida y debe ejecutarse nuevamente.')
+      if (task.status === 'cancelled') throw tool === 'court'
+        ? taskStateError('COURT_TASK_CANCELLED', 'La tarea fue cancelada.')
+        : new DOMException('Cancelado', 'AbortError')
+      if (task.status === 'failed') throw tool === 'court'
+        ? taskStateError('COURT_TASK_FAILED', 'No fue posible completar la tarea. Puedes intentarlo nuevamente.')
+        : new Error('No fue posible completar el análisis. Inténtalo nuevamente.')
       await pause(options.signal, options.pollInterval ?? 1500)
     }
   } catch (error) {
-    const userCancelled = error?.name === 'AbortError' && options.signal?.aborted &&
-      (tool === 'case' ? options.signal.reason === 'user' : options.signal.reason !== 'detach')
+    const userCancelled = error?.name === 'AbortError' && options.signal?.aborted && options.signal.reason === 'user'
     if (taskId && userCancelled) {
       try { await requestJson(`/tasks/${encodeURIComponent(taskId)}/cancel`, {
         method:'POST', body:JSON.stringify({case_id:caseId}) }) } catch { /* Server unreachable. */ }

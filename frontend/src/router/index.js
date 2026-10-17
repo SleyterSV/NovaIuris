@@ -81,7 +81,9 @@ const routes = [
   {
     path: "/novacourt",
     name: "NovaCourt",
-    redirect: to => ({ path:'/', query:{ tool:'court', ...(typeof to.query.case_id === 'string' ? { case_id:to.query.case_id } : {}) } }),
+    redirect: to => ({ path:'/', query:{ tool:'court',
+      ...(typeof to.query.case_id === 'string' ? { case_id:to.query.case_id } : {}),
+      ...(typeof to.query.task_id === 'string' ? { task_id:to.query.task_id } : {}) } }),
 
     meta: {
       title: "MYKE | Simular"

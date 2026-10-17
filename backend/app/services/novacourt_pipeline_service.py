@@ -94,6 +94,19 @@ class NovaCourtPipelineService:
                     warnings=detail.get("warnings", []))
         return data
 
+    def scoped_status(self, owner_id, case_id, task_id, *, tool=None):
+        """Authorize identity against the journal before exposing a persisted task."""
+        repository = getattr(self.tasks, "repository", None)
+        if repository:
+            stored = repository.load_scoped(owner_id, case_id, task_id)
+            if not stored or (tool and stored.get("metadata", {}).get("tool") != tool):
+                return None
+        data = self.status(task_id)
+        if (not data or data.get("owner_id") != owner_id or data.get("case_id") != case_id
+                or data.get("task_id") != task_id or (tool and data.get("tool") != tool)):
+            return None
+        return data
+
     def _run(self, task_id, case_text, reused_result=None):
         task = self.tasks.get_task(task_id)
         task_token = self.tasks.cancellation_token(task_id)

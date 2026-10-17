@@ -4,6 +4,18 @@ export function normalizeTool(value) {
   return TOOLS.includes(value) ? value : null
 }
 
+export function courtTaskIdentity(query) {
+  const caseId = query?.case_id, taskId = query?.task_id
+  if (query?.tool !== 'court' || typeof caseId !== 'string' || typeof taskId !== 'string' ||
+      !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(caseId) || caseId.includes('..') ||
+      !/^[A-Za-z0-9-]{1,128}$/.test(taskId)) return null
+  return { caseId, taskId }
+}
+
+export function taskIdentityQuery(tool, caseId, taskId) {
+  return { tool, case_id:caseId, task_id:taskId }
+}
+
 export function createWorkspace(id = crypto.randomUUID()) {
   return {
     id, title: 'Nueva conversación', activeTool: null, caseId: crypto.randomUUID(),

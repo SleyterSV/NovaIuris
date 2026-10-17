@@ -6,9 +6,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from app.models.task import TaskManager
+from app.models.task import TaskManager, TaskStatus
 from app import create_app
-from app.api.case import start_analysis
+from app.api.case import start_analysis, task_status
 from flask import g
 from app.services.case_corpus import CaseCorpusRepository
 from app.services.legal_repository_v2 import LegalRepositoryV2, UNIT_DETAIL_COLUMNS
@@ -25,7 +25,7 @@ UNIT = "22222222-2222-4222-8222-222222222222"
 OTHER = "33333333-3333-4333-8333-333333333333"
 CASE = "case-a"
 OWNER = "owner-a"
-CASE_TEXT = "Relato jurídico autorizado del expediente A"
+CASE_TEXT = "Relato jurídico autorizado del expediente A con hechos y pretensiones concretas."
 DETAIL = {"unit_id": UNIT, "document_id": DOCUMENT, "text": "Texto íntegro de legal_units.text",
           "unit_type": "article", "unit_number": "7", "heading": "Derecho aplicable",
           "document_title": "Ley de prueba", "document_type": "law", "short_title": "Ley de prueba"}
@@ -124,7 +124,8 @@ class NovaCourtV2ContextTests(unittest.TestCase):
         self.private = normalize_case_source(self.corpus.get_chunk(CASE, "private-doc", "chunk-a"))
         self.case_service = CaseService(self.corpus, self.public, self.private)
         self.graph, self.simulation = Graph(), Simulation(self.public, self.private)
-        tasks = TaskManager(TaskRepository(str(Path(self.directory.name) / "tasks.sqlite")))
+        self.task_path = str(Path(self.directory.name) / "tasks.sqlite")
+        tasks = TaskManager(TaskRepository(self.task_path))
         self.pipeline = NovaCourtPipelineService(self.case_service, self.graph, self.simulation,
                                                  task_manager=tasks, legal_repository=self.legal)
 
@@ -202,6 +203,73 @@ class NovaCourtV2ContextTests(unittest.TestCase):
         self.assertEqual(status, 202)
         self.assertEqual(response.json["task_id"], "court-task")
         self.assertNotIn("final_result", manager.start.call_args.kwargs)
+
+    def test_completed_court_http_reopen_survives_manager_recreation_without_rerun(self):
+        case_task = self.pipeline.start(CASE_TEXT, CASE, tool="case", document_ids=["private-doc"], owner_id=OWNER)
+        self.assertEqual(self.await_task(case_task)["status"], "completed")
+        app = create_app()
+        with app.test_request_context("/api/novacourt/analyze", method="POST", json={
+                "case_text": CASE_TEXT, "case_id": CASE, "document_ids": ["private-doc"],
+                "reuse_task_id": case_task}), \
+                patch("app.api.case.owns_case", return_value=True), \
+                patch("app.api.case.authenticated_user_id", return_value=OWNER), \
+                patch("app.api.case.pipeline", return_value=self.pipeline):
+            g.request_id = "request"
+            response, status = start_analysis()
+        self.assertEqual(status, 202)
+        court_task = response.json["task_id"]
+        completed = self.await_task(court_task)
+        self.assertEqual(completed["status"], "completed")
+        expected = completed["final_result"]
+        calls = self.case_service.calls
+        restored = NovaCourtPipelineService(Mock(), Mock(), Mock(),
+            task_manager=TaskManager(TaskRepository(self.task_path)), legal_repository=self.legal)
+        with app.test_request_context(f"/api/novacourt/results/{court_task}?case_id={CASE}"), \
+                patch("app.api.case.owns_case", return_value=True), \
+                patch("app.api.case.authenticated_user_id", return_value=OWNER), \
+                patch("app.api.case.pipeline", return_value=restored):
+            g.request_id = "request"
+            reopened = task_status(court_task)
+        self.assertEqual(reopened.json["status"], "completed")
+        self.assertEqual(reopened.json["final_result"], expected)
+        self.assertEqual(self.case_service.calls, calls)
+        restored.case_service.analyze_case.assert_not_called()
+        restored.graph_service.build_for_case.assert_not_called()
+        restored.simulation_service.simulate_for_case.assert_not_called()
+        self.assertIsNone(restored.scoped_status("owner-b", CASE, court_task, tool="court"))
+        self.assertIsNone(restored.scoped_status(OWNER, "case-b", court_task, tool="court"))
+        self.assertIsNone(restored.scoped_status(OWNER, CASE, case_task, tool="court"))
+        self.assertIsNone(restored.scoped_status(OWNER, CASE, "unknown", tool="court"))
+        for owner, case_id, task_id in (("owner-b", CASE, court_task), (OWNER, "case-b", court_task),
+                                        (OWNER, CASE, case_task), (OWNER, CASE, "unknown")):
+            with app.test_request_context(f"/api/novacourt/results/{task_id}?case_id={case_id}"), \
+                    patch("app.api.case.owns_case", return_value=True), \
+                    patch("app.api.case.authenticated_user_id", return_value=owner), \
+                    patch("app.api.case.pipeline", return_value=restored):
+                g.request_id = "request"
+                denied, code = task_status(task_id)
+            self.assertEqual(code, 404)
+            self.assertNotIn(DOCUMENT, str(denied.json))
+
+    def test_terminal_states_and_active_restart_are_scoped(self):
+        manager = self.pipeline.tasks
+        metadata = {"owner_id": OWNER, "case_id": CASE, "tool": "court"}
+        failed = manager.create_task("legal_analysis", metadata)
+        manager.update_task(failed, status=TaskStatus.PROCESSING)
+        manager.fail_task(failed, {"code": "ANALYSIS_FAILED", "message": "No fue posible completar la tarea."})
+        cancelled = manager.create_task("legal_analysis", metadata)
+        self.assertTrue(manager.cancel_task(cancelled))
+        active = manager.create_task("legal_analysis", metadata)
+        manager.update_task(active, status=TaskStatus.PROCESSING)
+        pending = manager.create_task("legal_analysis", metadata)
+        restored = NovaCourtPipelineService(Mock(), Mock(), Mock(),
+            task_manager=TaskManager(TaskRepository(self.task_path)))
+        for task_id, expected in ((failed, "failed"), (cancelled, "cancelled"),
+                                  (active, "interrupted"), (pending, "interrupted")):
+            task = restored.scoped_status(OWNER, CASE, task_id, tool="court")
+            self.assertEqual(task["status"], expected)
+            self.assertIsNone(task["final_result"])
+            self.assertIsNone(restored.scoped_status("owner-b", CASE, task_id, tool="court"))
 
 
 if __name__ == "__main__":

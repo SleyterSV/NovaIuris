@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 
 import { useRoute, useRouter } from 'vue-router'
 import CaseDocumentUpload from '@/components/common/CaseDocumentUpload.vue'
 import ToolDetailModal from '@/components/common/ToolDetailModal.vue'
-import { createWorkspace, createTurn, normalizeTool, caseReuseContext, applySearchCaseHandoff } from '@/utils/mikeWorkspace.js'
+import { createWorkspace, createTurn, normalizeTool, caseReuseContext, applySearchCaseHandoff, courtTaskIdentity, taskIdentityQuery } from '@/utils/mikeWorkspace.js'
 import { canAttachDocumentsToCase } from '@/utils/novacasePresentation.js'
 import { authRequired, authState, signIn, signOut, startAuth } from '@/config/supabaseSession.js'
 import { requestJson } from '@/services/taskService.js'
@@ -61,17 +61,29 @@ watch(() => authState.user, (user, previous) => { if (previous && !user) newConv
 onMounted(async () => {
   await startAuth()
   const caseId = route.query.case_id, taskId = route.query.task_id
-  if (route.query.tool !== 'case' || typeof caseId !== 'string' || typeof taskId !== 'string') return
+  if (!['case', 'court'].includes(route.query.tool) || typeof caseId !== 'string' || typeof taskId !== 'string') return
+  if (route.query.tool === 'court' && !courtTaskIdentity(route.query)) {
+    error.value = 'No fue posible recuperar la tarea solicitada.'
+    return
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(caseId) || caseId.includes('..') ||
+      !/^[A-Za-z0-9-]{1,128}$/.test(taskId)) { error.value = 'No fue posible recuperar la tarea solicitada.'; return }
+  const tool = route.query.tool
   try {
-    const task = await requestJson(`/tasks/${encodeURIComponent(taskId)}?case_id=${encodeURIComponent(caseId)}`)
-    if (task.case_id !== caseId || task.task_id !== taskId || task.tool !== 'case') return
+    const path = tool === 'court' ? '/novacourt/results' : '/tasks'
+    const task = await requestJson(`${path}/${encodeURIComponent(taskId)}?case_id=${encodeURIComponent(caseId)}`)
+    if (task.case_id !== caseId || task.task_id !== taskId || task.tool !== tool) {
+      error.value = 'No fue posible recuperar la tarea solicitada.'
+      return
+    }
     workspace.value.caseId = caseId
-    workspace.value.activeTool = 'case'
+    workspace.value.activeTool = tool
     workspace.value.documentIds = [...(task.metadata?.document_ids || [])]
-    addOperation('case', task.final_result?.case || 'Análisis del caso en curso.',
+    addOperation(tool, task.final_result?.case || task.partial_result?.case ||
+      (tool === 'court' ? 'Simulación judicial existente.' : 'Análisis del caso en curso.'),
       { caseId, documentIds:workspace.value.documentIds, existingTaskId:taskId })
   } catch {
-    error.value = 'No fue posible recuperar la tarea de este caso.'
+    error.value = 'No fue posible recuperar la tarea solicitada.'
   }
 })
 
@@ -125,13 +137,14 @@ function onComposerKeydown(event) {
 }
 function onTaskState(turn, state) {
   if (!workspace.value.turns.includes(turn)) return
-  turn.status = state.running ? 'running' : 'completed'
+  turn.status = state.status || (state.running ? 'running' : 'completed')
   if ((state.tool === 'case' || state.tool === 'court') && turn.case_id !== workspace.value.caseId) return
   if (state.taskId) {
     turn.task_id = state.taskId
     workspace.value[`${state.tool}TaskId`] = state.taskId
-    if (state.tool === 'case' && turn.case_id) router.replace({ path:route.path, query:{
-      tool:'case', case_id:turn.case_id, task_id:state.taskId } })
+    if ((state.tool === 'case' || state.tool === 'court') && turn.case_id &&
+        (route.query.tool !== state.tool || route.query.case_id !== turn.case_id || route.query.task_id !== state.taskId))
+      router.replace({ path:route.path, query:taskIdentityQuery(state.tool, turn.case_id, state.taskId) })
   }
   running.value = { ...running.value, [state.tool]:state.running }
 }

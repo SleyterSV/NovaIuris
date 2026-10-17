@@ -151,19 +151,23 @@ def start_analysis():
 @case_bp.route('/tasks/<task_id>', methods=['GET'])
 @case_bp.route('/novacourt/results/<task_id>', methods=['GET'])
 def task_status(task_id):
-    data = pipeline().status(task_id)
     case_id = request.args.get('case_id')
-    if not data or not case_id or data['case_id'] != case_id or not owns_case(case_id) or data.get('owner_id') != authenticated_user_id():
+    court_only = request.path.startswith('/api/novacourt/results/')
+    data = (pipeline().scoped_status(authenticated_user_id(), case_id, task_id,
+                                    tool='court' if court_only else None)
+            if case_id and owns_case(case_id) else None)
+    if not data:
         return api_error('TASK_NOT_FOUND', 'No se encontró la tarea.', g.request_id, 404)
     return jsonify(success=True, **public_task(data))
 
 @case_bp.route('/tasks/<task_id>/cancel', methods=['POST'])
 def cancel_task(task_id):
     manager = pipeline()
-    data = manager.status(task_id)
     payload = request.get_json(silent=True)
     case_id = payload.get('case_id') if isinstance(payload, dict) else None
-    if not data or not case_id or data['case_id'] != case_id or not owns_case(case_id) or data.get('owner_id') != authenticated_user_id():
+    data = (manager.scoped_status(authenticated_user_id(), case_id, task_id)
+            if case_id and owns_case(case_id) else None)
+    if not data:
         return api_error('TASK_NOT_FOUND', 'No se encontró la tarea.', g.request_id, 404)
     manager.tasks.cancel_task(task_id)
     return jsonify(success=True, **public_task(manager.status(task_id)))

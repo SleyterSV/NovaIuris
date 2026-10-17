@@ -60,11 +60,11 @@
                 <div class="feedback-content">
 
                     <span class="feedback-label">
-                        PROCESAMIENTO JUDICIAL
+                        {{ taskStatus === 'restoring' ? 'RECUPERANDO TAREA' : 'PROCESAMIENTO JUDICIAL' }}
                     </span>
 
                     <strong>
-                        NovaCourt está analizando el caso
+                        {{ taskStatus === 'restoring' ? 'Recuperando la simulación existente' : 'NovaCourt está analizando el caso' }}
                     </strong>
 
                     <p>
@@ -93,16 +93,18 @@
                 <div class="feedback-content">
 
                     <span class="feedback-label">
-                        ERROR DE PROCESAMIENTO
+                        {{ taskStatus === 'interrupted' ? 'TAREA INTERRUMPIDA' : taskStatus === 'cancelled' ? 'TAREA CANCELADA' : taskStatus === 'not_found' ? 'TAREA NO DISPONIBLE' : 'ERROR DE PROCESAMIENTO' }}
                     </span>
 
                     <strong>
-                        No fue posible completar el análisis
+                        {{ taskStatus === 'interrupted' ? 'La tarea se interrumpió' : taskStatus === 'cancelled' ? 'La tarea fue cancelada' : taskStatus === 'not_found' ? 'No se encontró la tarea' : 'No fue posible completar el análisis' }}
                     </strong>
 
                     <p>
                         {{ errorMessage }}
                     </p>
+                    <button v-if="taskStatus === 'interrupted' || taskStatus === 'failed' || taskStatus === 'cancelled'"
+                        type="button" @click="startIndependentCase">Iniciar nueva ejecución</button>
 
                 </div>
 
@@ -397,6 +399,8 @@ const error =
 const result =
     novaCourt.result
 
+const taskStatus = novaCourt.taskStatus
+
 const analyzeCase =
     novaCourt.analyzeCase
 
@@ -527,12 +531,34 @@ async function handleSimulation(text) {
         }
 
     }
-    finally { emit('task-state', { tool:'court', running:false }) }
+    finally { emit('task-state', { tool:'court', running:false, status:taskStatus.value }) }
 
+}
+
+let restoredIdentity = null
+async function restoreExistingTask(request) {
+    const identity = `${request.caseId}:${request.existingTaskId}`
+    if (restoredIdentity === identity) return
+    restoredIdentity = identity
+    activeCaseId.value = request.caseId
+    continuingCase.value = true
+    selectedDocumentIds.value = [...(request.documentIds || [])]
+    emit('task-state', { tool:'court', running:true, taskId:request.existingTaskId })
+    try {
+        await analyzeCase(request.text || '', { caseId:request.caseId,
+            existingTaskId:request.existingTaskId, onTask:taskId =>
+                emit('task-state', { tool:'court', running:true, taskId }) })
+    } finally {
+        emit('task-state', { tool:'court', running:false, status:taskStatus.value })
+    }
 }
 
 watch(() => props.request, request => {
     if (!request) return
+    if (request.existingTaskId) {
+        restoreExistingTask(request)
+        return
+    }
     const reuse = request.reuse
     if (reuse) {
         continuingCase.value = true
