@@ -16,6 +16,7 @@
       </div>
     </header>
 
+    <p v-if="printError" class="partial-message" role="alert">{{ printError }}</p>
     <p v-if="reportStatus === 'failed'" class="partial-message" role="status">
       {{ reportError?.message || 'No se pudo preparar el informe final. El análisis estructurado permanece disponible.' }}
     </p>
@@ -67,6 +68,7 @@ import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 import SourcesList from '@/components/common/SourcesList.vue'
 import SourceModal from '@/components/common/SourceModal.vue'
 import { presentableText } from '@/utils/novacasePresentation.js'
+import { prepareCaseExport } from '@/services/caseExport.js'
 
 const props = defineProps({
   report: { type: String, default: '' },
@@ -74,6 +76,7 @@ const props = defineProps({
   citations: { type: Array, default: () => [] },
   sources: { type: Array, default: () => [] },
   caseId: { type: String, default: null },
+  taskId: { type: String, default: null },
   reportStatus: { type: String, default: 'not_requested' },
   reportError: { type: Object, default: null },
   documentCount: { type: Number, default: 0 },
@@ -83,6 +86,7 @@ const props = defineProps({
 const selectedSource = ref(null)
 const copied = ref(false)
 const copyMessage = ref('')
+const printError = ref('')
 let copyReset
 onBeforeUnmount(() => clearTimeout(copyReset))
 const reportDocument = computed(() => props.reportDocument || {})
@@ -119,8 +123,22 @@ async function copyReport() {
   }
 }
 
-function printReport() {
-  if (props.report) window.print()
+async function printReport() {
+  if (!props.report) return
+  printError.value = ''
+  if (props.taskId && props.caseId) {
+    try {
+      await prepareCaseExport(props.caseId, props.taskId)
+    } catch (error) {
+      printError.value = error?.code === 'TASK_NOT_READY'
+        ? 'La tarea aún no está lista para imprimir.'
+        : error?.code === 'EXPORT_NOT_AVAILABLE' || error?.code === 'SERVICE_UNAVAILABLE'
+          ? 'La preparación del informe no está disponible.'
+          : 'No fue posible verificar el informe para imprimir.'
+      return
+    }
+  }
+  window.print()
 }
 </script>
 

@@ -7,6 +7,8 @@ from unittest.mock import Mock
 
 from app import create_app
 from app.config import Config
+from app.models.task import TaskStatus
+from app.services.runtime_security import case_ownership
 
 
 class FakeEmbeddings:
@@ -23,6 +25,9 @@ class ProductionSecurityTests(unittest.TestCase):
         root = Path(self.temp.name)
         class TestConfig(Config):
             APP_ENV = 'production'
+            LEGAL_KNOWLEDGE_VERSION = 'v2'
+            MYKE_LEGAL_DATABASE_URL = 'configured-for-test-without-connection'
+            OPENAI_EMBEDDING_MODEL = 'text-embedding-3-small'
             TESTING = True
             SECRET_KEY = 's' * 48
             DEBUG = False
@@ -79,9 +84,11 @@ class ProductionSecurityTests(unittest.TestCase):
 
     def test_legacy_cors_and_headers(self):
         for path in ('/api/simulation/court/simulate', '/api/graph/data/old',
-                     '/api/report/generate', '/api/export/pdf', '/api/search'):
+                     '/api/report/generate', '/api/search'):
             response = self.client.post(path, json={'caso': 'x'})
             self.assertEqual(response.status_code, 410)
+        self.assertEqual(self.client.post('/api/export/pdf', headers=self.headers('a-token'),
+            json={}).json['error']['code'], 'EXPORT_NOT_AVAILABLE')
         self.assertEqual(response.headers['X-Content-Type-Options'], 'nosniff')
         allowed = self.client.options('/api/case', headers={'Origin': 'https://beta.example.test',
                                                             'Access-Control-Request-Method': 'POST'})
@@ -103,6 +110,18 @@ class ProductionSecurityTests(unittest.TestCase):
             TASK_DB_PATH = str(Path(__file__).resolve().parents[1] / 'uploads' / 'test-tasks.sqlite3')
         with self.assertRaises(RuntimeError):
             create_app(InternalVolume)
+        class LegacyKnowledge(self.config):
+            LEGAL_KNOWLEDGE_VERSION = 'v1'
+        with self.assertRaises(RuntimeError):
+            create_app(LegacyKnowledge)
+        class NoLegalDatabase(self.config):
+            MYKE_LEGAL_DATABASE_URL = None
+        with self.assertRaises(RuntimeError):
+            create_app(NoLegalDatabase)
+        class NoTaskPersistence(self.config):
+            TASK_PERSISTENCE_ENABLED = False
+        with self.assertRaises(RuntimeError):
+            create_app(NoTaskPersistence)
 
     def test_active_task_limit(self):
         manager = self.app.extensions['task_manager']
@@ -120,6 +139,30 @@ class ProductionSecurityTests(unittest.TestCase):
         response = client.post('/api/cases/CASE-A/documents', headers=self.headers('a-token'),
                                data={'file': (io.BytesIO(b'x' * 100), 'synthetic.txt')})
         self.assertEqual(response.status_code, 413)
+
+    def test_production_export_requires_owner_case_task_and_persisted_result(self):
+        self.assertEqual(self.client.post('/api/case', headers=self.headers('a-token'),
+            json={'case_text': 'x' * 60, 'case_id': 'CASE-A'}).status_code, 410)
+        self.assertEqual(self.client.post('/api/export/prepare',
+            json={'case_id': 'CASE-A', 'task_id': '00000000-0000-4000-8000-000000000000',
+                  'tool': 'case'}).status_code, 401)
+        with self.app.app_context():
+            self.assertTrue(case_ownership().owned('CASE-A', 'user-a', create=True))
+        manager = self.app.extensions['task_manager']
+        task_id = manager.create_task('legal_analysis', {'owner_id': 'user-a',
+            'case_id': 'CASE-A', 'tool': 'case', 'knowledge_version': 'v2'})
+        manager.update_task(task_id, status=TaskStatus.PROCESSING)
+        manager.complete_task(task_id, {'success': True, 'case_id': 'CASE-A',
+                                        'report': 'Informe persistido'})
+        payload = {'case_id': 'CASE-A', 'task_id': task_id, 'tool': 'case'}
+        authorized = self.client.post('/api/export/prepare', headers=self.headers('a-token'),
+                                      json=payload)
+        self.assertEqual(authorized.status_code, 200)
+        self.assertIn('Informe persistido', str(authorized.json['document']))
+        self.assertEqual(self.client.post('/api/export/prepare', headers=self.headers('b-token'),
+            json=payload).status_code, 404)
+        self.assertEqual(self.client.post('/api/export/prepare', headers=self.headers('a-token'),
+            json={**payload, 'result': {'success': True}}).status_code, 400)
 
     def test_real_document_task_and_chunk_are_owner_scoped(self):
         path = '/api/cases/CASE-A/documents'

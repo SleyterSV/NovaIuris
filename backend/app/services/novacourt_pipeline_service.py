@@ -52,7 +52,8 @@ class NovaCourtPipelineService:
                     or set(previous.result.get("document_ids") or []) != set(document_ids or [])):
                 raise ValueError("El análisis previo no corresponde al caso y documentos solicitados.")
         metadata = {"case_id": case_id, "tool": tool, "document_ids": list(document_ids or []),
-                    "reuse_task_id": reuse_task_id, "owner_id": owner_id}
+                    "reuse_task_id": reuse_task_id, "owner_id": owner_id,
+                    "knowledge_version": "v2"}
         if public_source_references:
             metadata["public_source_references"] = [dict(item) for item in public_source_references]
         if handoff_request_id:

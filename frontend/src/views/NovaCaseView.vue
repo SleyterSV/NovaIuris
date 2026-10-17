@@ -224,6 +224,7 @@
                             :citations="canonicalResult?.citations || []"
                             :sources="canonicalResult?.sources || []"
                             :case-id="canonicalResult?.case_id"
+                            :task-id="completedTaskId"
                             :report-status="canonicalResult?.report_status || 'not_requested'"
                             :report-error="canonicalResult?.report_error"
                             :document-count="privateDocumentCount"
@@ -669,7 +670,10 @@ async function handleAnalyze(payload) {
 
         const response = normalizeCaseResult(await analyzeCase(caseText, { caseId, documentIds,
             existingTaskId:payload.existingTaskId,
-            onTask: task => { completedTaskId.value = task.task_id },
+            onTask: task => {
+                completedTaskId.value = task.task_id
+                emit('task-state', { tool:'case', running:true, taskId:task.task_id })
+            },
             onProgress: updateTask, signal: controller.signal }))
         canonicalResult.value = response
 

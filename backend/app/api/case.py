@@ -107,6 +107,8 @@ def input_case():
 
 @case_bp.route('/case', methods=['POST'])
 def analyze_case():
+    if current_app.config.get('APP_ENV') == 'production':
+        return api_error('LEGACY_DISABLED', 'Use tareas persistentes para analizar casos.', g.request_id, 410)
     try:
         text, case_id, _ = input_case()
     except ValueError as error:

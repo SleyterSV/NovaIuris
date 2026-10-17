@@ -49,6 +49,14 @@ class TaskRepository:
             rows = db.execute('SELECT payload_json FROM runtime_tasks').fetchall()
         return [json.loads(row[0]) for row in rows]
 
+    def load_scoped(self, owner_id, case_id, task_id, task_type='legal_analysis'):
+        """Read the canonical journal entry without trusting a process-local cache."""
+        with closing(sqlite3.connect(self.path)) as db:
+            row = db.execute('''SELECT payload_json FROM runtime_tasks
+                WHERE owner_id=? AND case_id=? AND task_id=? AND task_type=?''',
+                (owner_id, case_id, task_id, task_type)).fetchone()
+        return json.loads(row[0]) if row else None
+
     def interrupt_active(self):
         """Only call when starting the sole beta worker, before accepting requests."""
         with closing(sqlite3.connect(self.path, timeout=30)) as db, db:

@@ -6,6 +6,7 @@ import ToolDetailModal from '@/components/common/ToolDetailModal.vue'
 import { createWorkspace, createTurn, normalizeTool, caseReuseContext, applySearchCaseHandoff } from '@/utils/mikeWorkspace.js'
 import { canAttachDocumentsToCase } from '@/utils/novacasePresentation.js'
 import { authRequired, authState, signIn, signOut, startAuth } from '@/config/supabaseSession.js'
+import { requestJson } from '@/services/taskService.js'
 
 const panels = {
   search:defineAsyncComponent(() => import('./NovaSearchView.vue')),
@@ -57,7 +58,22 @@ const initials = computed(() => userName.value.split(/[\s@]+/).filter(Boolean).s
 
 watch(() => route.query.tool, value => { workspace.value.activeTool = normalizeTool(value) })
 watch(() => authState.user, (user, previous) => { if (previous && !user) newConversation() })
-onMounted(startAuth)
+onMounted(async () => {
+  await startAuth()
+  const caseId = route.query.case_id, taskId = route.query.task_id
+  if (route.query.tool !== 'case' || typeof caseId !== 'string' || typeof taskId !== 'string') return
+  try {
+    const task = await requestJson(`/tasks/${encodeURIComponent(taskId)}?case_id=${encodeURIComponent(caseId)}`)
+    if (task.case_id !== caseId || task.task_id !== taskId || task.tool !== 'case') return
+    workspace.value.caseId = caseId
+    workspace.value.activeTool = 'case'
+    workspace.value.documentIds = [...(task.metadata?.document_ids || [])]
+    addOperation('case', task.final_result?.case || 'Análisis del caso en curso.',
+      { caseId, documentIds:workspace.value.documentIds, existingTaskId:taskId })
+  } catch {
+    error.value = 'No fue posible recuperar la tarea de este caso.'
+  }
+})
 
 function selectTool(value, reveal = true) {
   const tool = normalizeTool(value)
@@ -114,6 +130,8 @@ function onTaskState(turn, state) {
   if (state.taskId) {
     turn.task_id = state.taskId
     workspace.value[`${state.tool}TaskId`] = state.taskId
+    if (state.tool === 'case' && turn.case_id) router.replace({ path:route.path, query:{
+      tool:'case', case_id:turn.case_id, task_id:state.taskId } })
   }
   running.value = { ...running.value, [state.tool]:state.running }
 }

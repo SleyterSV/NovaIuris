@@ -33,6 +33,14 @@ def create_app(config_class=Config):
     if environment not in {'development', 'test', 'production'}:
         raise RuntimeError('APP_ENV must be development, test or production')
     if environment == 'production':
+        if app.config.get('LEGAL_KNOWLEDGE_VERSION') != 'v2':
+            raise RuntimeError('Production NovaCase requires Legal Knowledge V2')
+        if not app.config.get('MYKE_LEGAL_DATABASE_URL'):
+            raise RuntimeError('Production Legal Knowledge V2 database is not configured')
+        if app.config.get('OPENAI_EMBEDDING_MODEL') != 'text-embedding-3-small':
+            raise RuntimeError('Production Legal Knowledge V2 embedding model mismatch')
+        if app.config.get('TASK_PERSISTENCE_ENABLED') is False:
+            raise RuntimeError('Production task persistence is required')
         required = ('SECRET_KEY', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY',
                     'SUPABASE_KEY', 'EMBEDDING_API_KEY', 'LLM_API_KEY', 'ZEP_API_KEY',
                     'CASE_CORPUS_DB_PATH', 'TASK_DB_PATH')
@@ -73,11 +81,15 @@ def create_app(config_class=Config):
                 raise RuntimeError('Production runtime database must use an external persistent volume')
     limiter = CostEndpointRateLimiter(config_class)
     app.extensions['cost_limiter'] = limiter
-    if environment == 'production':
+    persistent_tasks = app.config.get('TASK_PERSISTENCE_ENABLED')
+    if persistent_tasks is None:
+        persistent_tasks = environment == 'production' or not app.config.get('TESTING', False)
+    if persistent_tasks:
         from .models.task import TaskManager
         from .services.task_repository import TaskRepository, DocumentTaskRepository
         from .services.document_tasks import DocumentTaskManager
-        app.extensions['task_manager'] = TaskManager(TaskRepository(app.config['TASK_DB_PATH']))
+        app.extensions['task_repository'] = TaskRepository(app.config['TASK_DB_PATH'])
+        app.extensions['task_manager'] = TaskManager(app.extensions['task_repository'])
         app.extensions['document_task_repository'] = DocumentTaskRepository(app.config['TASK_DB_PATH'])
         app.extensions['document_task_manager'] = DocumentTaskManager(
             app.config['DOCUMENT_STAGING_MAX_AGE_SECONDS'],
@@ -115,7 +127,7 @@ def create_app(config_class=Config):
     def identify_request():
         g.request_id = str(uuid4())
         g.request_started = perf_counter()
-        if environment == 'production' and (request.path.startswith(('/api/graph/', '/api/simulation/', '/api/report/', '/api/export/')) or request.path == '/api/search'):
+        if environment == 'production' and (request.path.startswith(('/api/graph/', '/api/simulation/', '/api/report/')) or request.path == '/api/search'):
             return api_error('LEGACY_DISABLED', 'Esta ruta ya no está disponible.', g.request_id, 410)
         if environment == 'production' and request.method == 'OPTIONS':
             g.authenticated_user_id = None

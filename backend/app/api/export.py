@@ -1,115 +1,53 @@
-import os
-import subprocess
-import tempfile
-import shutil
-import io
-from flask import Blueprint, request, send_file, jsonify
+"""Case-scoped preparation of a persisted legal result for browser printing."""
+import re
 
-# ==========================================
-# 1. DEFINICIÓN DEL BLUEPRINT (RUTAS)
-# ==========================================
-export_bp = Blueprint('export', __name__)
+from flask import Blueprint, current_app, g, jsonify, request
 
-# ==========================================
-# 2. LÓGICA DE GENERACIÓN LATEX
-# ==========================================
-def armar_latex(tipo: str, datos: dict) -> str:
-    contenido_dinamico = ""
-    
-    if tipo == 'NovaCase':
-        resumen = datos.get("resumenHechos", "Sin hechos registrados.")
-        estrategia = datos.get("estrategiaSugerida", "Sin estrategia sugerida.")
-        
-        fundamentos_lista = datos.get("fundamentacionLegal", [])
-        fundamentos = "\n".join([f"\\item {ley}" for ley in fundamentos_lista]) if fundamentos_lista else "\\item Sin fundamentos legales."
-            
-        jurisprudencia_lista = datos.get("jurisprudenciaClave", [])
-        jurisprudencia = "\n".join([f"\\textbf{{{jur['titulo']}}} \\\\ {jur['extracto']} \\vspace{{0.5cm}}" for jur in jurisprudencia_lista]) if jurisprudencia_lista else "Sin jurisprudencia aplicable."
-        
-        contenido_dinamico = f"""
-\\section{{Introducción y Hechos del Caso}}
-{resumen}
-
-\\section{{Fundamentación Legal}}
-\\begin{{itemize}}
-{fundamentos}
-\\end{{itemize}}
-
-\\section{{Jurisprudencia Clave}}
-{jurisprudencia}
-
-\\section{{Estrategia Sugerida}}
-{estrategia}
-"""
-    elif tipo == 'NovaCourt':
-        acciones = datos.get("allActions", [])
-        transcripcion = "\n".join([f"\\textbf{{{linea.get('agent_name', 'Agente')}}}: \\\\ {linea.get('action_args', {}).get('content', '')} \\vspace{{0.3cm}}" for linea in acciones])
-        contenido_dinamico = f"\\section{{Transcripción Oficial de la Audiencia}}\n{transcripcion}"
-
-    return f"""\\documentclass[12pt, a4paper]{{article}}
-\\usepackage[utf8]{{inputenc}}
-\\usepackage{{graphicx}}
-\\usepackage{{fancyhdr}}
-\\usepackage[top=3cm, bottom=3cm, left=2.5cm, right=2.5cm, headheight=1.5cm]{{geometry}}
-\\usepackage{{mathptmx}}
-\\usepackage{{setspace}}
-\\usepackage{{microtype}}
-\\onehalfspacing
-
-\\pagestyle{{fancy}}
-\\fancyhf{{}}
-\\fancyhead[L]{{\\large\\textbf{{Nova Iuris}}}}
-\\fancyhead[R]{{\\includegraphics[height=1.2cm]{{NovaIuris.png}}}} 
-\\fancyfoot[C]{{- \\thepage\\ -}}
-\\renewcommand{{\\headrulewidth}}{{0.8pt}} 
-
-\\begin{{document}}
-\\begin{{titlepage}}
-    \\centering
-    \\vspace*{{1cm}} 
-    \\includegraphics[width=8cm]{{NovaIuris.png}}\\par
-    \\vspace{{1.5cm}}
-    \\rule{{0.8\\textwidth}}{{0.5pt}}\\par
-    \\vspace{{0.8cm}}
-    {{\\large \\textsc{{Documento Generado por {tipo}}}}}\\par
-    \\vspace{{0.8cm}}
-    \\rule{{0.8\\textwidth}}{{0.5pt}}\\par
-    \\vspace{{2.5cm}}
-    {{\\Huge \\textbf{{NOVA IURIS}}}}\\par
-    \\vspace{{0.5cm}}
-    {{\\Large \\textit{{Reporte de Análisis Legal Oficial}}}}\\par
-    \\vfill
-    \\begin{{flushright}}
-        \\rule{{5cm}}{{0.5pt}}\\\\
-        \\vspace{{0.2cm}}
-        {{\\large \\textbf{{Fecha de emisión:}}}}\\\\
-        {{\\large \\today\\par}}
-    \\end{{flushright}}
-    \\vspace{{1cm}}
-\\end{{titlepage}}
-\\newpage
-{contenido_dinamico}
-\\end{{document}}"""
-
-# ==========================================
-# 3. ENDPOINT DE COMPILACIÓN
-# ==========================================
-# Legacy LaTeX formatter above is retained, but external compilation is disabled.
-from flask import g
-from ..utils.api_response import api_error
 from ..services.document_output import prepare_document
+from ..services.runtime_security import authenticated_user_id, case_ownership
+from ..utils.api_response import api_error
+
+
+export_bp = Blueprint('export', __name__)
+TASK_ID = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+
 
 @export_bp.route('/prepare', methods=['POST'])
 def prepare_export():
     data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        return api_error('INVALID_EXPORT', 'Debe enviar un objeto JSON válido.', g.request_id, 400)
+    if (not isinstance(data, dict) or set(data) != {'case_id', 'task_id', 'tool'}
+            or data.get('tool') != 'case' or not isinstance(data.get('case_id'), str)
+            or not isinstance(data.get('task_id'), str)
+            or not TASK_ID.fullmatch(data['task_id'])):
+        return api_error('INVALID_REQUEST', 'Solicite un caso y una tarea válidos.', g.request_id, 400)
+
+    case_id, task_id = data['case_id'], data['task_id']
+    owner_id = authenticated_user_id()
+    if not case_ownership().owned(case_id, owner_id, create=False):
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
+
+    repository = current_app.extensions.get('task_repository')
+    if repository is None:
+        return api_error('SERVICE_UNAVAILABLE', 'La exportación no está disponible.', g.request_id, 503)
+    task = repository.load_scoped(owner_id, case_id, task_id)
+    metadata = (task.get('metadata') or {}) if task else {}
+    if (not task or metadata.get('tool') != 'case'
+            or metadata.get('owner_id') != owner_id or metadata.get('case_id') != case_id):
+        return api_error('TASK_NOT_FOUND', 'No se encontró la tarea.', g.request_id, 404)
+    if task.get('status') != 'completed':
+        return api_error('TASK_NOT_READY', 'La tarea aún no está completada.', g.request_id, 409)
+    result = task.get('result')
+    if (not isinstance(result, dict) or result.get('success') is not True
+            or result.get('case_id') != case_id):
+        return api_error('TASK_NOT_READY', 'El resultado canónico no está disponible.', g.request_id, 409)
     try:
-        document = prepare_document(data.get('case_id'), data.get('result'), data.get('tool'))
-    except (ValueError, TypeError):
-        return api_error('INVALID_EXPORT', 'El resultado debe corresponder al case_id indicado.', g.request_id, 400)
+        document = prepare_document(case_id, result, 'case')
+    except (ValueError, TypeError, KeyError):
+        current_app.logger.warning('export_canonical_result_invalid request_id=%s', g.request_id)
+        return api_error('TASK_NOT_READY', 'El resultado canónico no está disponible.', g.request_id, 409)
     return jsonify(success=True, document=document)
+
 
 @export_bp.route('/pdf', methods=['POST'])
 def generar_pdf():
-    return api_error('DOCUMENT_OUTPUT_PENDING', 'La exportación PDF está pendiente del bloque Document Output.', g.request_id, 501)
+    return api_error('EXPORT_NOT_AVAILABLE', 'La exportación PDF no está disponible.', g.request_id, 501)

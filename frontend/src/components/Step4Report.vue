@@ -130,14 +130,13 @@
           <!-- Action Buttons - Se muestran al completar el reporte -->
           <div v-if="isComplete" class="action-buttons-container">
             <!-- Botón de Descarga PDF -->
-            <button class="export-pdf-btn" @click="exportarDictamen" :disabled="isDownloading">
-              <span v-if="isDownloading" class="pdf-spinner"></span>
-              <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <button class="export-pdf-btn" type="button" disabled title="Disponible en una fase posterior">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              <span>{{ isDownloading ? 'Compilando Documento...' : 'Descargar Reporte Oficial (PDF)' }}</span>
+              <span>PDF · próximamente</span>
             </button>
 
             <!-- Botón de Siguiente Paso original -->
@@ -404,7 +403,6 @@
 </template>
 
 <script setup>
-import { API_BASE_URL } from "@/config/api.js"
 
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, h, reactive } from 'vue'
 import { useRouter } from 'vue-router'
@@ -446,59 +444,6 @@ const leftPanel = ref(null)
 const rightPanel = ref(null)
 const logContent = ref(null)
 const showRawResult = reactive({})
-
-// --- NUEVO ESTADO PARA EL PDF ---
-const isDownloading = ref(false)
-
-// --- FUNCIÓN DE EXPORTACIÓN CON FETCH NATIVO ---
-const exportarDictamen = async () => {
-  isDownloading.value = true
-  try {
-    // 1. Recopilamos todo el texto de las secciones generadas
-    // Usamos Object.values para extraer el contenido markdown generado por el LLM
-    const seccionesGeneradas = Object.values(generatedSections.value).join('\n\n')
-
-    // 2. Preparamos el payload exacto que Flask y LaTeX esperan
-    const payload = {
-      tipo: 'NovaCase',
-      datos: {
-        resumenHechos: reportOutline.value?.summary || "Reporte generado por Nova Iuris.",
-        estrategiaSugerida: seccionesGeneradas || "Sin contenido generado.",
-        fundamentacionLegal: [], // Se envía vacío por ahora, se puede popular dinámicamente luego
-        jurisprudenciaClave: []
-      }
-    }
-
-    // 3. Llamada directa a tu nuevo endpoint de Flask
-    const response = await fetch(`${API_BASE_URL}/api/export/pdf`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-
-    if (!response.ok) throw new Error('Error en el servidor al generar el PDF')
-
-    // 4. Manejo profesional de Blobs para forzar la descarga
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `NovaIuris_Reporte_${props.reportId || 'Oficial'}.pdf`)
-    
-    document.body.appendChild(link)
-    link.click()
-    
-    // 5. Limpieza de memoria (Garbage Collection)
-    link.parentNode.removeChild(link)
-    window.URL.revokeObjectURL(url)
-
-  } catch (error) {
-    console.error("Hubo un problema descargando el PDF:", error)
-    // Opcional: Aquí podrías disparar un toast/alerta de error de tu UI
-  } finally {
-    isDownloading.value = false
-  }
-}
 
 // Toggle functions
 const toggleRawResult = (timestamp, event) => {

@@ -204,12 +204,16 @@ class TaskManager:
     
     def complete_task(self, task_id: str, result: Dict):
         """标记任务完成"""
+        current = self.get_task(task_id)
+        detail = dict(current.progress_detail) if current else {}
+        detail.pop('partial_result', None)
         self.update_task(
             task_id,
             status=TaskStatus.COMPLETED,
             progress=100,
             message=t('progress.taskComplete'),
-            result=result
+            result=result,
+            progress_detail=detail
         )
     
     def fail_task(self, task_id: str, error: str):

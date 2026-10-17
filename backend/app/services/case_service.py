@@ -136,9 +136,13 @@ class CaseService:
         ########################################################
 
         self.report_service = CaseReportService()
-        self.case_corpus_repository = (
-            current_app.extensions.get("case_corpus_repository") if has_app_context() else None
-        )
+        self.case_corpus_repository = None
+        if has_app_context():
+            from app.services.case_corpus import CaseCorpusRepository
+            self.case_corpus_repository = current_app.extensions.get("case_corpus_repository")
+            if self.case_corpus_repository is None:
+                self.case_corpus_repository = CaseCorpusRepository(current_app.config["CASE_CORPUS_DB_PATH"])
+                current_app.extensions["case_corpus_repository"] = self.case_corpus_repository
 
     ####################################################################
     ######################## ANALISIS DEL CASO ##########################

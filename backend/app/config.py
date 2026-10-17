@@ -27,6 +27,8 @@ class Config:
     SUPABASE_PUBLISHABLE_KEY = os.environ.get('SUPABASE_PUBLISHABLE_KEY')
     SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
     LEGAL_KNOWLEDGE_VERSION = os.environ.get('LEGAL_KNOWLEDGE_VERSION', 'v1').lower()
+    MYKE_LEGAL_DATABASE_URL = os.environ.get('MYKE_LEGAL_DATABASE_URL')
+    OPENAI_EMBEDDING_MODEL = os.environ.get('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small')
     EMBEDDING_API_KEY = os.environ.get('OPENAI_API_KEY')
     AUTH_TIMEOUT_SECONDS = int(os.environ.get('AUTH_TIMEOUT_SECONDS', '5'))
     PROVIDER_MAX_RETRIES = int(os.environ.get('PROVIDER_MAX_RETRIES', '2'))
@@ -93,6 +95,7 @@ class Config:
     CASE_CORPUS_RETENTION_DAYS = int(os.getenv('CASE_CORPUS_RETENTION_DAYS', '30'))
     CASE_CORPUS_DB_PATH = os.getenv('CASE_CORPUS_DB_PATH', os.path.join(os.path.dirname(__file__), '../uploads/case_corpus.sqlite3'))
     TASK_DB_PATH = os.getenv('TASK_DB_PATH', os.path.join(os.path.dirname(__file__), '../uploads/runtime_tasks.sqlite3'))
+    TASK_PERSISTENCE_ENABLED = None  # Persistent outside tests; production always requires it.
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '../uploads')
     ALLOWED_EXTENSIONS = {'pdf', 'md', 'txt', 'markdown'}
     
