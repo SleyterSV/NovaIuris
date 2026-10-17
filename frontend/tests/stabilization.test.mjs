@@ -62,7 +62,7 @@ test('one task polling loop validates identity and returns canonical result', as
   } finally { globalThis.fetch=original }
 })
 
-test('mismatched cases are rejected; abort cancels the backend task', async () => {
+test('mismatched cases and detached polling never cancel a persistent Case task', async () => {
   const original=globalThis.fetch, calls=[]
   const controller=new AbortController()
   globalThis.fetch=async url => {
@@ -73,13 +73,54 @@ test('mismatched cases are rejected; abort cancels the backend task', async () =
   }
   try {
     await assert.rejects(runAnalysisTask('case','A',{caseId:'CASE-A'}),/no corresponde/)
-    assert.ok(calls.some(url=>url.endsWith('/cancel')))
+    assert.equal(calls.some(url=>url.endsWith('/cancel')), false)
     calls.length=0
-    await assert.rejects(runAnalysisTask('case','A',{caseId:'CASE-A',signal:controller.signal,onTask:()=>controller.abort()}),{name:'AbortError'})
-    assert.ok(calls.some(url=>url.endsWith('/cancel')))
+    await assert.rejects(runAnalysisTask('case','A',{caseId:'CASE-A',signal:controller.signal,onTask:()=>controller.abort('detach')}),{name:'AbortError'})
+    assert.equal(calls.some(url=>url.endsWith('/cancel')), false)
     calls.length=0
     await assert.rejects(runAnalysisTask('case','A',{caseId:'CASE-A',signal:controller.signal}),{name:'AbortError'})
     assert.equal(calls.length,0)
+  } finally { globalThis.fetch=original }
+})
+
+test('Case task survives workspace route update and keeps polling without cancellation', async () => {
+  const original = globalThis.fetch, calls=[]
+  let route = { case_id:'CASE-A' }, polls=0
+  globalThis.fetch = async (url, options) => {
+    calls.push({url, options})
+    if (url.endsWith('/case/tasks')) return Response.json({success:true, task_id:'TASK-A',case_id:'CASE-A'})
+    if (url.includes('/tasks/TASK-A?')) {
+      polls++
+      return Response.json({success:true,task_id:'TASK-A',case_id:'CASE-A',tool:'case',
+        status:polls === 1 ? 'processing' : 'completed',final_result:raw})
+    }
+    throw new Error(`Unexpected request: ${url}`)
+  }
+  try {
+    const result = await runAnalysisTask('case','Expediente',{caseId:'CASE-A',documentIds:['DOC-A','DOC-B'],
+      pollInterval:0,onTask:task => { route = {...route,task_id:task.task_id} }})
+    assert.equal(route.task_id,'TASK-A')
+    assert.equal(result.case_id,'CASE-A')
+    assert.equal(polls,2)
+    assert.equal(calls.some(call=>call.url.endsWith('/cancel')),false)
+  } finally { globalThis.fetch=original }
+})
+
+test('explicit Case cancellation calls the server cancel endpoint', async () => {
+  const original = globalThis.fetch, calls=[]
+  const controller = new AbortController()
+  globalThis.fetch = async (url, options) => {
+    calls.push({url, options})
+    if (url.endsWith('/case/tasks')) return Response.json({success:true,task_id:'TASK-A',case_id:'CASE-A'})
+    if (url.endsWith('/cancel')) return Response.json({success:true})
+    return Response.json({success:true,task_id:'TASK-A',case_id:'CASE-A',tool:'case',status:'processing'})
+  }
+  try {
+    await assert.rejects(runAnalysisTask('case','Expediente',{caseId:'CASE-A',signal:controller.signal,
+      onProgress:()=>controller.abort('user')}),{name:'AbortError'})
+    const cancel = calls.filter(call=>call.url.endsWith('/tasks/TASK-A/cancel'))
+    assert.equal(cancel.length,1)
+    assert.deepEqual(JSON.parse(cancel[0].options.body),{case_id:'CASE-A'})
   } finally { globalThis.fetch=original }
 })
 

@@ -59,7 +59,9 @@ export async function runAnalysisTask(tool, text, options = {}) {
       await pause(options.signal, options.pollInterval ?? 1500)
     }
   } catch (error) {
-    if (taskId && (tool !== 'court' || error?.name === 'AbortError' && options.signal?.reason !== 'detach')) {
+    const userCancelled = error?.name === 'AbortError' && options.signal?.aborted &&
+      (tool === 'case' ? options.signal.reason === 'user' : options.signal.reason !== 'detach')
+    if (taskId && userCancelled) {
       try { await requestJson(`/tasks/${encodeURIComponent(taskId)}/cancel`, {
         method:'POST', body:JSON.stringify({case_id:caseId}) }) } catch { /* Server unreachable. */ }
     }

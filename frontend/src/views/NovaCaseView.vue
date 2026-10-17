@@ -97,7 +97,7 @@
              CONTENIDO PRINCIPAL
         ====================================================== -->
 
-        <button v-if="loading" type="button" @click="controller?.abort()">Cancelar tarea</button>
+        <button v-if="loading" type="button" @click="controller?.abort('user')">Cancelar tarea</button>
         <main class="case-container">
 
 
@@ -552,7 +552,7 @@ const error = ref(null)
 const currentStep = ref(0)
 
 let controller = null
-onBeforeUnmount(() => controller?.abort())
+onBeforeUnmount(() => controller?.abort('detach'))
 
 
 /* =========================================================

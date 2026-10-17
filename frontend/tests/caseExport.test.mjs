@@ -30,3 +30,9 @@ test('Case refresh recovers an explicit scoped task and report print verifies it
   const legacy = await readFile(new URL('../components/Step4Report.vue', root), 'utf8')
   assert.match(legacy, /class="export-pdf-btn" type="button" disabled/)
 })
+
+test('Case UI distinguishes explicit cancellation from component cleanup', async () => {
+  const caseView = await readFile(new URL('../src/views/NovaCaseView.vue', import.meta.url), 'utf8')
+  assert.match(caseView, /@click="controller\?\.abort\('user'\)"/)
+  assert.match(caseView, /onBeforeUnmount\(\(\) => controller\?\.abort\('detach'\)\)/)
+})
