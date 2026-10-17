@@ -19,7 +19,7 @@ class ReadySimulator:
     def __init__(self):
         self.context = ""
 
-    def simulate_case(self, context, cancellation_token=None):
+    def simulate_prepared_case(self, context, roles=None, cancellation_token=None):
         self.context = context
         return {
             "session_id": "audiencia-1",
@@ -96,7 +96,7 @@ class NovaCourtSimulationTests(unittest.TestCase):
     def test_timeout_is_controlled(self):
         class SlowSimulator:
             @staticmethod
-            def simulate_case(context, cancellation_token=None):
+            def simulate_prepared_case(context, roles=None, cancellation_token=None):
                 time.sleep(0.05)
                 return {}
 

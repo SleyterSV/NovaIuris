@@ -43,7 +43,7 @@ def normalize_entity_type(value):
     return value if value in ENTITY_TYPES else LEGACY_TYPES.get(value)
 
 
-SOURCE_FIELDS = ("document_id", "chunk_id", "page_start", "page_end", "section",
+SOURCE_FIELDS = ("source_scope", "provenance_version", "source_id", "document_id", "unit_id", "chunk_id", "page_start", "page_end", "section",
                  "court", "case_number", "date", "article", "legal_basis", "official_url",
                  "excerpt", "paragraph")
 
@@ -87,9 +87,9 @@ def build_graph_input(case_result):
     for source in candidates:
         if not isinstance(source, dict) or not source.get("source_id"):
             continue
-        if source.get("source_scope") == "case" and source.get("case_id") != case_id:
+        if source.get("source_scope") in {"case", "private_case"} and source.get("case_id") != case_id:
             continue
-        if source.get("source_scope") in {"case", "public"}:
+        if source.get("source_scope") in {"case", "public", "private_case", "public_legal"}:
             sources[source["source_id"]] = source
     nodes, edges, keys = {}, {}, {}
 
@@ -167,8 +167,8 @@ def build_graph_input(case_result):
     for source in sources.values():
         kind = ("LAW" if source.get("source_type") in {"legislation", "article"} else
                 "JURISPRUDENCE" if source.get("source_type") in {"jurisprudence", "precedent"} else
-                "DOCUMENT" if source.get("source_scope") == "case" else None)
-        if kind and (kind == "DOCUMENT" or source.get("source_scope") == "public"):
+                "DOCUMENT" if source.get("source_scope") in {"case", "private_case"} else None)
+        if kind and (kind == "DOCUMENT" or source.get("source_scope") in {"public", "public_legal"}):
             node(kind, source.get("title") or "Fuente", identity=source["source_id"],
                  source_ids=[source["source_id"]],
                  data={key: source.get(key) for key in SOURCE_FIELDS})
@@ -178,6 +178,9 @@ def build_graph_input(case_result):
         if not isinstance(item, dict):
             continue
         source_ids = sids(item)
+        if not source_ids:
+            continue
+        source_ids = [sid for sid in source_ids if sources[sid].get("source_scope") in {"case", "private_case"}]
         if not source_ids:
             continue
         source = sources[source_ids[0]]

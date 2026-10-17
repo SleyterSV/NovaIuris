@@ -57,6 +57,12 @@ class RateError(Exception):
 
 
 class RuntimeFailureTests(unittest.TestCase):
+    def setUp(self):
+        context = patch("app.services.novacourt_pipeline_service.prepare_court_context",
+                        side_effect=lambda result, **kwargs: result)
+        context.start()
+        self.addCleanup(context.stop)
+
     def test_deadline_before_citations_keeps_case_and_graph_without_unverified_decision(self):
         expired = {"value": False}
         class DeadlineToken(CancellationToken):

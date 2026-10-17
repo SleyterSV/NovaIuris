@@ -307,7 +307,12 @@ class UploadApiTests(unittest.TestCase):
         source = normalize_case_source({"case_id":"CASE-A", "document_id":"DOC-A", "chunk_id":"CHUNK-A",
                                        "text":"Same-case evidence"})
         class FakeCaseService:
-            def __init__(self): self.received = None
+            def __init__(self):
+                self.received = None
+                self.case_corpus_repository = Mock()
+                self.case_corpus_repository.get_chunk.return_value = {
+                    "case_id": "CASE-A", "document_id": "DOC-A", "chunk_id": "CHUNK-A",
+                    "text": "Same-case evidence"}
             def analyze_case(self, text, **kwargs):
                 self.received = (kwargs["case_id"], list(kwargs["document_ids"]))
                 kwargs["progress_callback"]("intake", "completed")
@@ -322,7 +327,8 @@ class UploadApiTests(unittest.TestCase):
         simulation.simulate_for_case.return_value = {"status":"ready", "prosecutor":{"content":"Posición A"},
             "defense":{"content":"Posición B"}, "judge":{"content":"Decisión simulada"}}
         pipeline = NovaCourtPipelineService(case, graph, simulation)
-        task_id = pipeline.start("Continue this case", case_id="CASE-A", tool="court", document_ids=["DOC-A"])
+        task_id = pipeline.start("Continue this case", case_id="CASE-A", tool="court",
+                                 document_ids=["DOC-A"], owner_id="owner-a")
         deadline = time.monotonic() + 3
         while time.monotonic() < deadline:
             status = pipeline.status(task_id)

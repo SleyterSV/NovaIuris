@@ -15,6 +15,7 @@ from ..config import Config
 from ..utils.novacourt_graph import graph_result
 from ..utils.novacourt_simulation import simulation_result
 from ..services.source_contracts import resolve_citations
+from ..services.novacourt_context import prepare_court_context
 
 CASE_STAGES = (("intake", "Recepción"), ("documents", "Corpus documental del caso"), ("facts", "Hechos"),
     ("strategy", "Estrategia inicial"), ("research", "Investigación"),
@@ -26,11 +27,12 @@ COURT_STAGES = (("graph_build", "Grafo jurídico"), ("simulation", "Simulación 
                 ("court_citations", "Verificación de citas"))
 
 class NovaCourtPipelineService:
-    def __init__(self, case_service, graph_service, simulation_service, task_manager=None):
+    def __init__(self, case_service, graph_service, simulation_service, task_manager=None, legal_repository=None):
         self.case_service = case_service
         self.graph_service = graph_service
         self.simulation_service = simulation_service
         self.tasks = task_manager or TaskManager()
+        self.legal_repository = legal_repository
 
     def start(self, case_text, case_id=None, tool="court", document_ids=None, reuse_task_id=None, owner_id=None,
               public_source_references=None, handoff_request_id=None):
@@ -42,14 +44,22 @@ class NovaCourtPipelineService:
         self.tasks.cleanup_old_tasks()
         previous = None
         if reuse_task_id:
-            previous = self.tasks.get_task(reuse_task_id)
-            if (tool != "court" or previous is None or previous.task_type != "legal_analysis"
-                    or previous.status != TaskStatus.COMPLETED or previous.metadata.get("tool") != "case"
-                    or previous.metadata.get("owner_id") != owner_id
-                    or previous.metadata.get("case_id") != case_id or not isinstance(previous.result, dict)
-                    or not previous.result.get("success") or previous.result.get("case_id") != case_id
-                    or previous.result.get("case") != case_text
-                    or set(previous.result.get("document_ids") or []) != set(document_ids or [])):
+            repository = getattr(self.tasks, "repository", None)
+            if repository:
+                previous = repository.load_scoped(owner_id, case_id, reuse_task_id)
+            else:
+                cached = self.tasks.get_task(reuse_task_id)
+                previous = cached.to_dict() if cached else None
+            prior_result = previous.get("result") if isinstance(previous, dict) else None
+            prior_meta = previous.get("metadata", {}) if isinstance(previous, dict) else {}
+            if (tool != "court" or previous is None or previous.get("task_id") != reuse_task_id
+                    or previous.get("task_type") != "legal_analysis"
+                    or previous.get("status") != TaskStatus.COMPLETED.value or prior_meta.get("tool") != "case"
+                    or prior_meta.get("owner_id") != owner_id
+                    or prior_meta.get("case_id") != case_id or not isinstance(prior_result, dict)
+                    or not prior_result.get("success") or prior_result.get("case_id") != case_id
+                    or prior_result.get("case") != case_text
+                    or set(prior_result.get("document_ids") or []) != set(document_ids or [])):
                 raise ValueError("El análisis previo no corresponde al caso y documentos solicitados.")
         metadata = {"case_id": case_id, "tool": tool, "document_ids": list(document_ids or []),
                     "reuse_task_id": reuse_task_id, "owner_id": owner_id,
@@ -67,7 +77,7 @@ class NovaCourtPipelineService:
                 return task_id
         else:
             task_id = self.tasks.create_task("legal_analysis", metadata)
-        reused_result = deepcopy(previous.result) if previous else None
+        reused_result = deepcopy(previous["result"]) if previous else None
         threading.Thread(target=self._run, args=(task_id, case_text, reused_result), daemon=True).start()
         return task_id
 
@@ -131,6 +141,12 @@ class NovaCourtPipelineService:
             warnings.extend(result.get("warnings", []))
             partial.update(deepcopy(result))
             if tool == "court":
+                result = prepare_court_context(
+                    result, owner_id=task.metadata.get("owner_id"), case_id=case_id,
+                    source_case_task_id=task.metadata.get("reuse_task_id"),
+                    legal_repository=self.legal_repository,
+                    case_corpus_repository=getattr(self.case_service, "case_corpus_repository", None))
+                partial.update(deepcopy(result))
                 timings = {"case": round((perf_counter() - case_started) * 1000)}
                 snapshot_version = -1
                 def graph_snapshot(snapshot):
@@ -213,7 +229,7 @@ class NovaCourtPipelineService:
                     simulation["case_id"] = case_id
                     result["simulation"] = simulation
                 if simulation["status"] == "ready":
-                    available = result.get("sources", []) + result.get("sources_used", [])
+                    available = result.get("sources", [])
                     separator = f"\n\nCOURT_SECTION_BOUNDARY_{uuid4().hex}\n\n"
                     sections = ("prosecutor", "defense", "judge")
                     if any(not isinstance(simulation.get(section), dict) or
@@ -282,8 +298,7 @@ class NovaCourtPipelineService:
                     "graph_snapshot_count": result["graph"].get("metadata", {}).get("snapshot_count"),
                     "simulation_context_characters": simulation.get("metadata", {}).get("context_characters"),
                     "graph_input_characters": result["graph"].get("metadata", {}).get("input_characters"),
-                    "case_source_count": sum(1 for source in result.get("sources", [])
-                                             if isinstance(source, dict) and source.get("source_scope") == "case"),
+                    "case_source_count": len(result.get("private_sources", [])),
                     "court_total_duration_ms": round((perf_counter() - started) * 1000)})
                 result["warnings"] = list(warnings)
                 partial.update(deepcopy(result))

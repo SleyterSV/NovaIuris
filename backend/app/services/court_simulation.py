@@ -13,7 +13,6 @@ from supabase import create_client, Client
 
 # --- ENRUTAMIENTO ABSOLUTO ---
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from app.services.legal_repository import LegalRepository
 from app.utils.cancellation import check_cancelled, OperationCancelled
 from app.utils.legal_roles import LegalPersonas
 
@@ -156,6 +155,7 @@ class LegalDebateSimulator:
             
             # 2. Llamar a la función RPC de Supabase para la tabla legal_knowledge
             check_cancelled(cancellation_token)
+            from app.services.legal_repository import LegalRepository
             rows = LegalRepository().semantic_search(query_vector, limit=limit, threshold=0.4)
             if not rows:
                 return "No se encontraron artículos legales específicos en la base de datos."

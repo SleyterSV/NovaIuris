@@ -11,6 +11,7 @@ from app.services.court_simulation import LegalDebateSimulator
 from app.utils.court_roles import resolve_court_roles
 from app.utils.novacourt_simulation import NovaCourtSimulationOrchestrator
 from tests.test_stabilization import await_task
+from app.services.source_contracts import normalize_public_legal_v2_source, normalize_case_source
 
 
 PUBLIC = {"source_id": "SRC-PUBLIC01", "source_scope": "public", "source_type": "legislation",
@@ -20,9 +21,34 @@ PRIVATE = {"source_id": "SRC-PRIVATE01", "source_scope": "case", "source_type": 
            "document_id": "DOC-A", "chunk_id": "CHUNK-A", "page_start": 2}
 
 
+DOC = "11111111-1111-4111-8111-111111111111"
+UNIT = "22222222-2222-4222-8222-222222222222"
+DETAIL = {"document_id": DOC, "unit_id": UNIT, "text": "Texto recuperado",
+          "document_title": "Norma recuperada", "display_title": "Norma recuperada",
+          "document_type": "law", "unit_type": "article"}
+PUBLIC = normalize_public_legal_v2_source({"document_id": DOC, "unit_id": UNIT}, DETAIL)
+PRIVATE_CHUNK = {"case_id": "CASE-A", "document_id": "DOC-A", "chunk_id": "CHUNK-A",
+                 "text": "Clausula concreta", "source_reference": {"filename": "Contrato"}}
+PRIVATE = normalize_case_source(PRIVATE_CHUNK)
+
+
+class FakeLegalRepository:
+    def get_unit(self, unit_id, *, document_id=None):
+        return deepcopy(DETAIL) if unit_id == UNIT and document_id == DOC else None
+
+
+class FakeCorpus:
+    def validate_documents(self, case_id, document_ids):
+        if case_id != "CASE-A" or document_ids != ["DOC-A"]:
+            raise ValueError("invalid document")
+    def get_chunk(self, case_id, document_id, chunk_id):
+        return deepcopy(PRIVATE_CHUNK) if (case_id, document_id, chunk_id) == ("CASE-A", "DOC-A", "CHUNK-A") else None
+
+
 class FakeCase:
     def __init__(self):
         self.calls = 0
+        self.case_corpus_repository = FakeCorpus()
 
     def analyze_case(self, text, *, progress_callback, cancellation_token, case_id, document_ids):
         self.calls += 1
@@ -31,7 +57,7 @@ class FakeCase:
                 "analysis": {"tipo_proceso": "civil"},
                 "facts": [{"fact_id": "FACT-1", "text": "Alegación", "status": "alleged"}],
                 "issues": [{"issue_id": "ISSUE-1", "text": "Problema"}],
-                "sources": [deepcopy(PUBLIC), deepcopy(PRIVATE)] if case_id == "CASE-A" else [deepcopy(PUBLIC)],
+                "sources": [deepcopy(PUBLIC)] + ([deepcopy(PRIVATE)] if case_id == "CASE-A" and document_ids else []),
                 "report": "Informe del caso", "strategy": {"claim_strategy": "No es simulación"}}
 
 
@@ -49,15 +75,19 @@ class FakeSimulation:
 
     def simulate_for_case(self, case_result, case_text, cancellation_token=None):
         return {"status": self.status, "case_id": case_result["case_id"],
-                "prosecutor": {"content": "Tesis [SRC-PUBLIC01] y contrato [SRC-PRIVATE01]."},
+                "prosecutor": {"content": f"Tesis [{PUBLIC['source_id']}] y contrato [{PRIVATE['source_id']}]."},
                 "defense": {"content": "Objeción [SRC-FAKE001]."},
-                "judge": {"content": "Decisión simulada [SRC-PUBLIC01]."}}
+                "judge": {"content": f"Decisión simulada [{PUBLIC['source_id']}]."}}
 
 
 class CourtProfessionalTests(unittest.TestCase):
     def pipeline(self, graph="ready", simulation="ready"):
         case = FakeCase()
-        return NovaCourtPipelineService(case, FakeGraph(graph), FakeSimulation(simulation)), case
+        pipeline = NovaCourtPipelineService(case, FakeGraph(graph), FakeSimulation(simulation),
+                                            legal_repository=FakeLegalRepository())
+        start = pipeline.start
+        pipeline.start = lambda *args, **kwargs: start(*args, **{"owner_id": "owner-a", **kwargs})
+        return pipeline, case
 
     def test_explicit_reuse_and_mismatch_rejection(self):
         pipeline, case = self.pipeline()
@@ -91,7 +121,7 @@ class CourtProfessionalTests(unittest.TestCase):
         result = await_task(pipeline, pipeline.start("Relato A", "CASE-A", document_ids=["DOC-A"]))["final_result"]
         simulation = result["simulation"]
         self.assertEqual([source["source_id"] for source in simulation["sources"]],
-                         ["SRC-PUBLIC01", "SRC-PRIVATE01"])
+                         [PUBLIC["source_id"], PRIVATE["source_id"]])
         self.assertNotIn("SRC-FAKE001", str(simulation))
         self.assertEqual(result["court_report_document"]["sources"], simulation["sources"])
         self.assertEqual(simulation["projection"], {})
@@ -161,7 +191,7 @@ class CourtProfessionalTests(unittest.TestCase):
         self.assertEqual(result["simulation"]["status"], "failed")
         self.assertEqual(result["court_report_document"]["sections"], [])
         self.assertEqual(result["facts"][0]["status"], "alleged")
-        self.assertNotIn("private", str(result))
+        self.assertNotIn("private", str(result["simulation"]))
 
     def test_incomplete_position_is_not_published_as_ready_simulation(self):
         pipeline, _ = self.pipeline()

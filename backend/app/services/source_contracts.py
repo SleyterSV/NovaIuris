@@ -151,6 +151,26 @@ def normalize_public_legal_v2_source(hit: dict, detail: dict) -> dict:
     }
 
 
+def reopen_public_legal_v2_source(source: dict, repository) -> dict:
+    """Reopen a persisted V2 reference; never promote its preview to authority."""
+    if not isinstance(source, dict) or source.get("provenance_version") != "v2" or source.get("source_scope") not in {"public_legal", "public"}:
+        raise ValueError("V2_SOURCE_UNVERIFIED")
+    try:
+        document_id = str(UUID(str(source["document_id"])))
+        unit_id = str(UUID(str(source["unit_id"])))
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("V2_SOURCE_IDENTITY_MISMATCH") from error
+    detail = repository.get_unit(unit_id, document_id=document_id)
+    if detail is None:
+        raise ValueError("V2_SOURCE_UNAVAILABLE")
+    canonical = normalize_public_legal_v2_source(
+        {"document_id": document_id, "unit_id": unit_id}, detail)
+    if source.get("source_id") != canonical["source_id"]:
+        raise ValueError("V2_SOURCE_IDENTITY_MISMATCH")
+    canonical["canonical_text"] = detail["text"]
+    return canonical
+
+
 def normalize_case_source(item: dict) -> dict:
     """Normalize one private corpus chunk; identity always includes its case."""
     item = item if isinstance(item, dict) else {}
@@ -197,7 +217,8 @@ def normalize_citation(citation: dict, source: dict) -> dict:
     }.items() if value not in (None, "")}
     return {"citation_id": citation_id, "label": label, "source_id": source_id,
             "source_scope": source.get("source_scope"), "document_id": source.get("document_id"),
-            "unit_id": source.get("unit_id"), "claim_id": citation.get("claim_id"),
+            "unit_id": source.get("unit_id"), "provenance_version": source.get("provenance_version"),
+            "claim_id": citation.get("claim_id"),
             "excerpt": excerpt, "locator": locator}
 
 

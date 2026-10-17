@@ -106,6 +106,12 @@ class CaseTests(unittest.TestCase):
 
 
 class PipelineTests(unittest.TestCase):
+    def setUp(self):
+        context = patch('app.services.novacourt_pipeline_service.prepare_court_context',
+                        side_effect=lambda result, **kwargs: result)
+        context.start()
+        self.addCleanup(context.stop)
+
     def pipeline(self, graph_status='ready', simulation_status='ready'):
         graph = Mock(spec=NovaCourtGraphService)
         graph.build_for_case.return_value = {'status':graph_status, 'nodes':[], 'edges':[]}
@@ -193,7 +199,7 @@ class AdapterTests(unittest.TestCase):
     def test_simulation_timeout_stops_later_calls(self):
         next_operation, started, finished = Mock(), threading.Event(), threading.Event()
         class SlowSimulator:
-            def simulate_case(self, context, cancellation_token=None):
+            def simulate_prepared_case(self, context, roles=None, cancellation_token=None):
                 try:
                     started.set()
                     time.sleep(.04)  # Represents an already started remote call.

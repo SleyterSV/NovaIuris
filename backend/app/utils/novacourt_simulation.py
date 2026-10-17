@@ -44,11 +44,14 @@ def build_simulation_context(
             f"{label}:\n{json.dumps(value, ensure_ascii=False, default=str, separators=(',', ':'))}"
         )
 
-    sources = [item for item in source.get("sources", []) + source.get("sources_used", [])
+    sources = [item for item in source.get("sources", [])
                if isinstance(item, dict) and item.get("source_id") and
-               (item.get("source_scope") != "case" or item.get("case_id") == source.get("case_id"))]
+               item.get("source_scope") in {"private_case", "public_legal"} and
+               (item.get("source_scope") != "private_case" or item.get("case_id") == source.get("case_id"))]
     for item in {entry["source_id"]: entry for entry in sources}.values():
-        sections.append(f"[{item['source_id']}] {item.get('title') or ''}\n{item.get('excerpt') or ''}")
+        source_text = (item.get("canonical_text") if item["source_scope"] == "public_legal"
+                       else item.get("excerpt"))
+        sections.append(f"[{item['source_id']}] {item.get('title') or ''}\n{source_text or ''}")
 
     return "\n\n".join(sections).strip()
 
@@ -177,6 +180,7 @@ class NovaCourtSimulationOrchestrator:
         token.check()
         simulator = self.simulator_factory()
         token.check()
-        if hasattr(simulator, "simulate_prepared_case"):
-            return simulator.simulate_prepared_case(context, roles=roles, cancellation_token=token)
-        return simulator.simulate_case(context, cancellation_token=token)
+        method = getattr(simulator, "simulate_prepared_case", None)
+        if not callable(method):
+            raise ValueError("MODERN_SIMULATOR_UNAVAILABLE")
+        return method(context, roles=roles, cancellation_token=token)
