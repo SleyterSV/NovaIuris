@@ -24,8 +24,8 @@
                 :has-documents="selectedDocumentIds.length > 0"
                 @simulate="handleSimulation"
             />
-            <p v-if="continuingCase && (reuseTaskId || result?.metadata?.case_reused)" role="status">Continuando el análisis existente del caso {{ activeCaseId }}.</p>
-            <p v-else-if="continuingCase" role="status">Caso {{ activeCaseId }} seleccionado. El análisis se actualizará con el texto y documentos elegidos.</p>
+            <p v-if="continuingCase && (reuseTaskId || result?.metadata?.case_reused)" role="status">Continuando el análisis existente del caso seleccionado.</p>
+            <p v-else-if="continuingCase" role="status">Caso seleccionado. El análisis se actualizará con el texto y documentos elegidos.</p>
             <p v-else role="status">Caso independiente nuevo. No se reutilizan documentos de otras sesiones.</p>
             <CaseDocumentUpload :key="activeCaseId" :case-id="activeCaseId" :initial-document-ids="requestedDocumentIds" :load-existing="continuingCase" :disabled="isLoading" @update:document-ids="selectedDocumentIds = $event" />
             <button v-if="continuingCase || result" type="button" @click="startIndependentCase">Nueva simulación independiente</button>

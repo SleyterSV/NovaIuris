@@ -5,6 +5,7 @@ import { graphKind, graphLabel, graphColor, graphRelation, graphSearchText,
   authorizedGraphSources, graphLocator } from '../src/utils/courtGraphPresentation.js'
 
 const panel = readFileSync(new URL('../src/components/novacourt/GraphPanel.vue', import.meta.url), 'utf8')
+const courtView = readFileSync(new URL('../src/views/NovaCourtView.vue', import.meta.url), 'utf8')
 
 test('facts, parties and simulated judgment have human, non-color-only labels', () => {
   assert.equal(graphLabel({ entity_type: 'FACT', status: 'supported' }), 'Hecho acreditado')
@@ -50,4 +51,5 @@ test('semantic relations and local search do not expose technical IDs', () => {
   assert.match(panel, /<details v-if="hasGraphData" class="graph-legend">/)
   assert.match(panel, /No hay nodos para los filtros actuales/)
   assert.match(panel, /Grafo parcial/)
+  assert.doesNotMatch(courtView, /\{\{\s*activeCaseId\s*\}\}/)
 })
