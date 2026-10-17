@@ -8,8 +8,9 @@ import { normalizeCaseResult } from '../src/utils/caseContract.js'
 import { normalizeSource } from '../src/utils/sourceContract.js'
 import {
   ARGUMENT_SECTION_LABELS, canAttachDocumentsToCase, evidenceAvailability,
-  presentableText, researchNotice, relatedFactTexts, verifiedArgumentSources,
-  groupedJurisprudence, jurisprudenceMarkdown, argumentNeedsVerification
+  factAllegationOrigin, presentableText, researchNotice, relatedFactTexts, verifiedArgumentSources,
+  groupedJurisprudence, jurisprudenceMarkdown, argumentNeedsVerification,
+  sourceHumanLabel, sourceUnitLabel
 } from '../src/utils/novacasePresentation.js'
 
 const factId = 'FACT-aaaaaaaaaaaaaaaaaaaaaaaa'
@@ -140,4 +141,55 @@ test('public units group by document and argument references resolve without exp
   assert.equal(argumentNeedsVerification({argument:'Criterio [1]',source_ids:[]},[source],null,
     [{label:'[1]',source_id:source.source_id}]),false)
   assert.equal(argumentNeedsVerification({source_ids:[]},[source,second]),true)
+})
+
+test('case text remains an allegation and never adds a private document', async () => {
+  const result = normalizeCaseResult({success:true,case:'Relato ingresado por el usuario',
+    document_ids:[],research:{public_source_count:1},summary:{documentos:3}})
+  assert.equal(result.summary.documentos,0)
+  assert.equal(factAllegationOrigin({status:'alleged',source_ids:[]},[]),'Relato proporcionado')
+  assert.equal(factAllegationOrigin({status:'alleged',source_ids:['SRC-private']},[{source_id:'SRC-private'}]),'')
+  const view = await readFile(new URL('../src/views/NovaCaseView.vue',import.meta.url),'utf8')
+  assert.match(view,/factAllegationOrigin\(fact, factSources\(fact\)\)/)
+  assert.match(view,/\["case", "private_case"\]\.includes\(source\.source_scope\)/)
+  assert.match(view,/:sources="\[\.\.\.\(canonicalResult\?\.research\?\.sources \|\| \[\]\)/)
+})
+
+test('canonical unit number and heading make missing-number references readable', () => {
+  assert.equal(sourceUnitLabel({...source,unit_number:null,metadata:{unit_number:'5'}}),'Fundamento 5')
+  const withoutNumber={...source,unit_number:null,metadata:{unit_number:null},section:'Antecedentes'}
+  assert.equal(sourceUnitLabel(withoutNumber),'Fundamento: Antecedentes')
+  assert.match(sourceHumanLabel(withoutNumber),/Fundamento: Antecedentes/)
+  assert.ok(!sourceHumanLabel(withoutNumber).includes(source.unit_id))
+})
+
+test('Case sources tab renders private files and groups public units without empty bullets or IDs', async () => {
+  const server=await createServer({server:{middlewareMode:true,hmr:false,port:0},appType:'custom',logLevel:'error',optimizeDeps:{noDiscovery:true,include:[]}})
+  try {
+    const component=(await server.ssrLoadModule('/src/components/novacase/CaseSourcesView.vue')).default
+    const privateOne={source_id:'SRC-private-one',source_scope:'private_case',case_id:'CASE-A',
+      document_id:'private-document-one',title:'01_Contrato_CAS_Mariana_Torres.pdf'}
+    const privateTwo={source_id:'SRC-private-two',source_scope:'private_case',case_id:'CASE-A',
+      document_id:'private-document-two',title:'02_Memorando_No_Renovacion_Mariana_Torres.pdf'}
+    const second={...source,source_id:'SRC-bbbbbbbbbbbbbbbbbbbbbbbb',
+      unit_id:'33333333-3333-4333-8333-333333333333',chunk_id:'33333333-3333-4333-8333-333333333333',
+      unit_number:null,metadata:{unit_type:'foundation',unit_number:null},section:'Antecedentes',page_start:3}
+    const third={...source,source_id:'SRC-cccccccccccccccccccccccc',
+      document_id:'44444444-4444-4444-8444-444444444444',
+      unit_id:'55555555-5555-4555-8555-555555555555',chunk_id:'55555555-5555-4555-8555-555555555555',
+      title:'STC Exp. 04852-2023-PA/TC',display_title:'STC Exp. 04852-2023-PA/TC',unit_number:'4'}
+    const html=await renderToString(createSSRApp({render:()=>h(component,{
+      sources:[privateOne,privateTwo,source,second,third,source],caseId:'CASE-A'})}))
+    assert.match(html,/Fuentes del caso/)
+    assert.match(html,/01_Contrato_CAS_Mariana_Torres\.pdf/)
+    assert.match(html,/02_Memorando_No_Renovacion_Mariana_Torres\.pdf/)
+    assert.match(html,/Fuentes jurídicas verificadas/)
+    assert.equal((html.match(/STC Exp\. 00001-2024-PA\/TC/g)||[]).length,1)
+    assert.match(html,/STC Exp\. 04852-2023-PA\/TC/)
+    assert.match(html,/Fundamento 7/)
+    assert.match(html,/Fundamento: Antecedentes/)
+    assert.match(html,/Ver fuente/)
+    assert.doesNotMatch(html,/<li[^>]*>\s*<\/li>/)
+    assert.ok(!html.includes(source.unit_id) && !html.includes(second.unit_id) && !html.includes(privateOne.source_id))
+  } finally { await server.close() }
 })

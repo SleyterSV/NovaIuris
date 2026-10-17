@@ -46,13 +46,23 @@ export function sourceUnitLabel(source) {
   const number = source.unit_number || source.metadata?.unit_number
   const label = ({ foundation: 'Fundamento', article: 'Artículo', decision: 'Decisión',
     separate_opinion: 'Voto separado' })[type]
-  return label ? label + (number && ['foundation', 'article'].includes(type) ? ` ${number}` : '') : ''
+  if (!label) return ''
+  if (number && ['foundation', 'article'].includes(type)) return `${label} ${number}`
+  const heading = typeof source.section === 'string' ? source.section.trim() : ''
+  if (!number && heading && heading.toLowerCase() !== label.toLowerCase()) {
+    return heading.toLowerCase().startsWith(label.toLowerCase()) ? heading : `${label}: ${heading}`
+  }
+  return label
 }
 
 export function sourceHumanLabel(source) {
   return [source.display_title || source.title, sourceUnitLabel(source),
     source.court || source.issuer || source.entity,
     source.page_start ? `pág. ${source.page_start}` : null].filter(Boolean).join(' · ')
+}
+
+export function factAllegationOrigin(fact, privateSources = []) {
+  return fact?.status === 'alleged' && privateSources.length === 0 ? 'Relato proporcionado' : ''
 }
 
 export function groupedJurisprudence(sources) {

@@ -251,6 +251,7 @@
                                 <li v-for="fact in canonicalResult.facts" :key="fact.fact_id">
                                     <MarkdownRenderer :content="fact.text" />
                                     <span class="fact-status">{{ factStatusLabel(fact.status) }}</span>
+                                    <span v-if="factAllegationOrigin(fact, factSources(fact))" class="fact-source">{{ factAllegationOrigin(fact, factSources(fact)) }}</span>
                                     <button v-for="source in factSources(fact)" :key="source.source_id"
                                         type="button" class="fact-source" @click="selectedSource = source">
                                         Ver documento fuente<span v-if="source.page_start">, pág. {{ source.page_start }}</span>
@@ -355,16 +356,11 @@
                     </template>
 
                     <template #sources>
-                        <SourcesList
-                            :sources="canonicalResult?.sources_used || []"
-                            :citations="canonicalResult?.citations || []"
+                        <CaseSourcesView
+                            :sources="[...(canonicalResult?.research?.sources || []), ...(canonicalResult?.sources_used || [])]"
                             :case-id="canonicalResult?.case_id"
-                            @select="selectedSource = $event"
-                            @select-citation="selectCitation"
+                            @select-source="selectedSource = $event"
                         />
-                        <p v-if="!canonicalResult?.sources_used?.length" class="empty-sources">
-                            No se identificaron fuentes verificadas utilizadas en el informe.
-                        </p>
                     </template>
 
                 </CaseTabs>
@@ -474,7 +470,7 @@
 <script setup>
 import { useRouter } from "vue-router"
 import { normalizeCaseResult } from "@/utils/caseContract.js"
-import { researchNotice } from "@/utils/novacasePresentation.js"
+import { factAllegationOrigin, researchNotice } from "@/utils/novacasePresentation.js"
 import { caseReuseContext } from "@/utils/mikeWorkspace.js"
 import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue"
 import { normalizeRenderableContent } from "@/utils/content.js"
@@ -504,7 +500,7 @@ import AnalysisProgress
 
 import ExecutiveSummary
     from "@/components/common/ExecutiveSummary.vue"
-import SourcesList from "@/components/common/SourcesList.vue"
+import CaseSourcesView from "@/components/novacase/CaseSourcesView.vue"
 import TraceabilityChain from "@/components/common/TraceabilityChain.vue"
 import SourceModal from "@/components/common/SourceModal.vue"
 
@@ -820,18 +816,12 @@ const availableTabs = computed(() => {
     if (normalizeRenderableContent(result.risks)) tabs.push("risk")
     if (normalizeRenderableContent(result.counter_arguments)) tabs.push("counter")
     if (normalizeRenderableContent(result.final_strategy || result.strategy)) tabs.push("strategy")
-    if (result.sources_used?.length || result.citations?.length) tabs.push("sources")
+    if (result.research?.sources?.length || result.sources_used?.length || result.citations?.length) tabs.push("sources")
     if (result.report || result.report_status === "failed") tabs.push("report")
     return tabs
 })
 
 /* Keep provenance controls compact so they remain usable with long case files. */
-
-function selectCitation(citation) {
-    selectedSource.value = canonicalResult.value?.sources_used?.find(
-        source => source.source_id === citation.source_id
-    ) || null
-}
 
 function factStatusLabel(status) {
     return ({ alleged: "Alegación", supported: "Con respaldo documental identificado", disputed: "Controvertido", unclear: "No determinado" })[status] || "No determinado"
@@ -839,13 +829,14 @@ function factStatusLabel(status) {
 
 function sourceMap() {
     const result = canonicalResult.value || {}
-    return new Map([...(result.sources || []), ...(result.sources_used || [])].map(source => [source.source_id, source]))
+    return new Map([...(result.research?.sources || []), ...(result.sources || []),
+        ...(result.sources_used || [])].map(source => [source.source_id, source]))
 }
 
 function factSources(fact) {
     const sources = sourceMap()
     return (fact.source_ids || []).map(id => sources.get(id)).filter(source =>
-        source && (!["case", "private_case"].includes(source.source_scope) || source.case_id === canonicalResult.value?.case_id))
+        source && ["case", "private_case"].includes(source.source_scope) && source.case_id === canonicalResult.value?.case_id)
 }
 
 function factsForLink(link) {
