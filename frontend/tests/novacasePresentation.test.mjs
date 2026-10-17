@@ -8,7 +8,8 @@ import { normalizeCaseResult } from '../src/utils/caseContract.js'
 import { normalizeSource } from '../src/utils/sourceContract.js'
 import {
   ARGUMENT_SECTION_LABELS, canAttachDocumentsToCase, evidenceAvailability,
-  presentableText, researchNotice, relatedFactTexts, verifiedArgumentSources
+  presentableText, researchNotice, relatedFactTexts, verifiedArgumentSources,
+  groupedJurisprudence, jurisprudenceMarkdown, argumentNeedsVerification
 } from '../src/utils/novacasePresentation.js'
 
 const factId = 'FACT-aaaaaaaaaaaaaaaaaaaaaaaa'
@@ -64,7 +65,7 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
       facts:[{fact_id:factId,text:'Cese comunicado al trabajador'}],sources:[],caseId:'CASE-A'
     })
     assert.match(argumentsHtml,/Argumentos principales/)
-    assert.match(argumentsHtml,/Fundamento jurídico preliminar/)
+    assert.match(argumentsHtml,/Fundamento pendiente de verificación/)
     assert.match(argumentsHtml,/Cese comunicado al trabajador/)
     assert.ok(!argumentsHtml.includes(factId) && !argumentsHtml.includes(issueId))
     assert.ok(!argumentsHtml.includes('Supporting fact ids'))
@@ -73,6 +74,30 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.match(evidenceHtml,/Sin documentos aportados al caso/)
     assert.match(evidenceHtml,/Agregar documentos al caso/)
     assert.match(evidenceHtml,/No aportada/)
+    assert.ok(!evidenceHtml.includes('Contrato alegado'))
+
+    const verifiedHtml=await render('novacase/ArgumentsView',{
+      arguments:{main_arguments:[{argument:'Tutela',legal_basis:['Hipótesis'],source_ids:[source.unit_id]}],
+        jurisprudence_used:[source.unit_id]},sources:[source],caseId:'CASE-A'
+    })
+    assert.match(verifiedHtml,/STC Exp. 00001-2024-PA\/TC/)
+    assert.match(verifiedHtml,/Fundamento 7/)
+    assert.match(verifiedHtml,/Tribunal Constitucional/)
+    assert.ok(!verifiedHtml.includes(source.unit_id))
+    assert.ok(!verifiedHtml.includes('pendiente de verificación'))
+
+    const legalEvidence=await render('novacase/EvidenceView',{
+      evidence:{documents:'STC Exp. 00001-2024-PA/TC'},documentCount:0,sources:[source]
+    })
+    assert.match(legalEvidence,/Fuentes jurídicas de apoyo/)
+    assert.match(legalEvidence,/No aportada/)
+    assert.equal((legalEvidence.match(/STC Exp. 00001-2024-PA\/TC/g) || []).length,1)
+
+    const analysisHtml=await render('novacase/AnalysisView',{
+      analysis:{jurisprudence:'No identificado con la información disponible.'},sources:[source]
+    })
+    assert.match(analysisHtml,/STC Exp. 00001-2024-PA\/TC/)
+    assert.match(analysisHtml,/Fundamento 7/)
 
     const riskHtml=await render('novacase/RiskView',{risk:{procedural:[{risk:'Plazo por comprobar',impact:'Alto',mitigation:'Verificar notificación'}]}})
     assert.match(riskHtml,/Riesgos procesales/)
@@ -103,4 +128,16 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.match(mikeView,/canAttachDocumentsToCase\(payload\?\.caseId, workspace\.value\.caseId/)
     assert.match(summaryCss,/\.card-title\s*\{[^}]*white-space: normal/s)
   } finally { await server.close() }
+})
+
+test('public units group by document and argument references resolve without exposing IDs', () => {
+  const second={...source,source_id:'SRC-bbbbbbbbbbbbbbbbbbbbbbbb',
+    unit_id:'33333333-3333-4333-8333-333333333333',chunk_id:'33333333-3333-4333-8333-333333333333',
+    unit_number:'14',page_start:7}
+  assert.equal(groupedJurisprudence([source,second]).length,1)
+  assert.match(jurisprudenceMarkdown([source,second]),/Fundamento 7, Fundamento 14/)
+  assert.equal(argumentNeedsVerification({source_ids:[second.unit_id]},[source,second]),false)
+  assert.equal(argumentNeedsVerification({argument:'Criterio [1]',source_ids:[]},[source],null,
+    [{label:'[1]',source_id:source.source_id}]),false)
+  assert.equal(argumentNeedsVerification({source_ids:[]},[source,second]),true)
 })

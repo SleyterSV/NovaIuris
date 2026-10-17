@@ -198,7 +198,7 @@ md.renderer.rules.text = (tokens, idx) => {
 const renderedMarkdown = computed(() => {
 
     return md.render(
-        normalizeRenderableContent(props.content) || EMPTY_CONTENT
+        md.utils.unescapeAll(normalizeRenderableContent(props.content) || EMPTY_CONTENT)
     )
 
 })

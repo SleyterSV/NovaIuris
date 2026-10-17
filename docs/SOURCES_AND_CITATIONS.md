@@ -47,7 +47,7 @@ NovaCase carries corpus passages into canonical `sources`; the existing Case con
 
 ## Frontend
 
-`MarkdownRenderer` turns only labels backed by normalized citations into keyboard-operable buttons. Markdown HTML remains disabled and rendered text is escaped. `SourcesList` deduplicates by `source_id`; `SourceModal` hides missing fields and shows the exact excerpt. External links are shown only for normalized HTTP(S) `official_url` values with `noopener noreferrer`. Private entries show document ID and page/section when known. There is no authenticated document viewer in this block, so the modal does not link to local paths or fetch private content by an unscoped identifier.
+`MarkdownRenderer` turns only labels backed by normalized citations into keyboard-operable buttons. Markdown HTML remains disabled and rendered text is escaped. `SourcesList` deduplicates by `source_id`; `SourceModal` hides missing fields and shows the exact excerpt. External links are shown only for normalized HTTP(S) `official_url` values with `noopener noreferrer`. Private entries show page/section when known; technical IDs remain internal. There is no authenticated document viewer in this block, so the modal does not link to local paths or fetch private content by an unscoped identifier.
 
 ## Limitations
 
@@ -55,3 +55,7 @@ NovaCase carries corpus passages into canonical `sources`; the existing Case con
 - Existing citations in older Case/Court sections are preserved as-is; they are not retroactively verified.
 - `official_url` quality depends on repository metadata being correct; this layer validates presence and scheme, not domain authority.
 - A private document viewer and claim-level enrichment across every Case/Court section are future work.
+
+## Pendiente: LEGAL_SOURCE_ARCHIVE_REQUIRED
+
+La lectura primaria de una fuente jurídica V2 usa `document_id` y `unit_id` para obtener el texto canónico de `legal_units`. La URL oficial se conserva como referencia externa secundaria y puede fallar o redirigir. Un bloque posterior deberá definir un archivo propio de documentos oficiales, su procedencia y su política de conservación. Esta tarea no incluye almacenamiento de PDFs ni migración de storage.

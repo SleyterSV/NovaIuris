@@ -242,6 +242,7 @@
                         <AnalysisView
                             :analysis="analysis"
                             :stages="steps"
+                            :sources="canonicalResult?.research?.sources || []"
                         />
                         <section v-if="canonicalResult?.facts?.length" class="case-facts">
                             <h3>Hechos identificados</h3>
@@ -269,6 +270,7 @@
                     <template #arguments>
                         <ArgumentsView :arguments="canonicalResult?.arguments || {}"
                             :facts="canonicalResult?.facts || []" :sources="canonicalResult?.research?.sources || []"
+                            :citations="canonicalResult?.citations || []"
                             :case-id="canonicalResult?.case_id" @select-source="selectedSource = $event" />
                     </template>
 
@@ -282,6 +284,8 @@
                         <EvidenceView
                             :evidence="evidence"
                             :document-count="privateDocumentCount"
+                            :sources="canonicalResult?.research?.sources || []"
+                            @select-source="selectedSource = $event"
                             @add-documents="addDocuments"
                         />
                         <section v-if="canonicalResult?.evidence?.evidence_links?.length" class="evidence-links">

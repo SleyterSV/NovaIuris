@@ -10,12 +10,9 @@
         <section v-if="presentation.loading" class="excerpt" role="status">Cargando unidad jurídica completa…</section>
         <section v-else-if="presentation.text" class="excerpt"><h3>{{ presentation.heading }}</h3><blockquote>{{ presentation.text }}</blockquote></section>
         <p v-if="presentation.warning" class="detail-error" role="alert">No se pudo cargar la unidad completa. Se muestra únicamente el fragmento citado.</p>
-        <details v-if="metadataEntries.length" class="metadata"><summary>Metadata disponible</summary><dl>
-          <div v-for="[key, value] in metadataEntries" :key="key"><dt>{{ humanize(key) }}</dt><dd>{{ stringify(value) }}</dd></div>
-        </dl></details>
         <footer>
-          <span v-if="['case', 'private_case'].includes(safeSource.source_scope)">{{ safeSource.document_id }}<template v-if="safeSource.page_start"> · pág. {{ safeSource.page_start }}</template></span>
-          <a v-if="safeSource.official_url" :href="safeSource.official_url" target="_blank" rel="noopener noreferrer">ABRIR FUENTE OFICIAL <span aria-hidden="true">↗</span></a>
+          <span v-if="['case', 'private_case'].includes(safeSource.source_scope) && safeSource.page_start">pág. {{ safeSource.page_start }}</span>
+          <a v-if="safeSource.official_url" :href="safeSource.official_url" target="_blank" rel="noopener noreferrer">Ver documento oficial <span aria-hidden="true">↗</span></a>
         </footer>
       </section>
     </div>
@@ -33,7 +30,7 @@ const safeSource = computed(() => normalizeSource(props.source, props.caseId))
 const unitDetail = ref(null)
 const detailStatus = ref('idle')
 let activeController = null
-const isV2Unit = source => ['public', 'public_legal'].includes(source?.source_scope) && Boolean(source?.metadata?.unit_type && source?.chunk_id)
+const isV2Unit = source => source?.source_scope === 'public_legal' && Boolean(source?.document_id && source?.unit_id && source?.chunk_id)
 watch(() => props.source, async value => {
   activeController?.abort()
   activeController = null
@@ -83,9 +80,7 @@ const fields = computed(() => {
   ].filter(([, value]) => value !== null && value !== undefined && value !== '')
     .map(([label, value]) => ({ label, value: stringify(value) }))
 })
-const metadataEntries = computed(() => Object.entries(safeSource.value?.metadata || {}).filter(([, value]) => value !== null && value !== undefined && value !== ''))
 const stringify = value => typeof value === 'object' ? JSON.stringify(value) : String(value)
-const humanize = value => String(value).replaceAll('_', ' ')
 const escape = event => { if (event.key === 'Escape' && safeSource.value) emit('close') }
 onMounted(() => window.addEventListener('keydown', escape))
 onUnmounted(() => { activeController?.abort(); window.removeEventListener('keydown', escape) })

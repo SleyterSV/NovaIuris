@@ -1,4 +1,4 @@
-import { normalizeSource } from './sourceContract.js'
+import { normalizeSource, normalizeSources } from './sourceContract.js'
 
 export const ARGUMENT_SECTION_LABELS = Object.freeze({
   main_arguments: 'Argumentos principales',
@@ -32,7 +32,55 @@ export function evidenceAvailability(content, { documentCount = 0, documentary =
 
 export function presentableText(value) {
   if (Array.isArray(value)) return value.map(presentableText)
-  return typeof value === 'string' ? value.replace(/\b(?:FACT|ISSUE)-[a-f0-9]{24}\b/gi, '').replace(/ {2,}/g, ' ').trim() : value
+  return typeof value === 'string' ? value
+    .replace(/\b(?:FACT|ISSUE|SRC)-[a-f0-9]{24}\b/gi, '')
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '')
+    .replace(/ {2,}/g, ' ').trim() : value
+}
+
+export const publicLegalSources = sources => normalizeSources(sources)
+  .filter(source => source.source_scope === 'public_legal')
+
+export function sourceUnitLabel(source) {
+  const type = source.unit_type || source.metadata?.unit_type
+  const number = source.unit_number || source.metadata?.unit_number
+  const label = ({ foundation: 'Fundamento', article: 'Artículo', decision: 'Decisión',
+    separate_opinion: 'Voto separado' })[type]
+  return label ? label + (number && ['foundation', 'article'].includes(type) ? ` ${number}` : '') : ''
+}
+
+export function sourceHumanLabel(source) {
+  return [source.display_title || source.title, sourceUnitLabel(source),
+    source.court || source.issuer || source.entity,
+    source.page_start ? `pág. ${source.page_start}` : null].filter(Boolean).join(' · ')
+}
+
+export function groupedJurisprudence(sources) {
+  const groups = new Map()
+  for (const source of publicLegalSources(sources).filter(source =>
+    ['judgment', 'jurisprudence', 'cassation'].includes(source.source_type) ||
+    /^(STC|Casaci[oó]n|Sentencia)/i.test(source.display_title || source.title))) {
+    const key = source.document_id || source.display_title || source.title
+    if (!groups.has(key)) groups.set(key, { title: source.display_title || source.title,
+      court: source.court || source.issuer || source.entity, units: [], pages: new Set() })
+    const group = groups.get(key)
+    const unit = sourceUnitLabel(source)
+    if (unit && !group.units.includes(unit)) group.units.push(unit)
+    if (source.page_start) group.pages.add(source.page_start)
+    if (source.page_end) group.pages.add(source.page_end)
+  }
+  return [...groups.values()].map(group => ({ ...group, pages: [...group.pages].sort((a,b) => a-b) }))
+}
+
+export function jurisprudenceMarkdown(sources) {
+  return groupedJurisprudence(sources).map(group =>
+    `**${group.title}**\n${[group.court, group.units.join(', '),
+      group.pages.length ? `pág. ${group.pages.join(', ')}` : null].filter(Boolean).join(' · ')}`)
+    .join('\n\n')
+}
+
+export function argumentNeedsVerification(argument, sources, caseId = null, citations = []) {
+  return verifiedArgumentSources(argument, sources, caseId, citations).length === 0
 }
 
 export function relatedFactTexts(argument, facts = []) {
@@ -40,9 +88,17 @@ export function relatedFactTexts(argument, facts = []) {
   return facts.filter(fact => ids.has(fact.fact_id)).map(fact => fact.text).filter(Boolean)
 }
 
-export function verifiedArgumentSources(argument, sources = [], caseId = null) {
-  const ids = new Set(Array.isArray(argument?.source_ids) ? argument.source_ids : [])
-  return sources.filter(source => ids.has(source.source_id))
+export function verifiedArgumentSources(argument, sources = [], caseId = null, citations = []) {
+  const ids = new Set([...(Array.isArray(argument?.source_ids) ? argument.source_ids : []),
+    ...(Array.isArray(argument?.jurisprudence) ? argument.jurisprudence : []),
+    argument?.source_id, argument?.unit_id].filter(Boolean))
+  const text = [argument?.argument, argument?.text, argument?.legal_basis]
+    .flat().filter(value => typeof value === 'string').join(' ')
+  for (const citation of citations) {
+    if (citation?.label && text.includes(citation.label)) ids.add(citation.source_id)
+  }
+  return sources.filter(source => ids.has(source.source_id) || ids.has(source.unit_id) ||
+    ids.has(source.chunk_id) || ids.has(source.document_id))
     .map(source => normalizeSource(source, caseId))
     .filter(source => source && ['public_legal', 'private_case'].includes(source.source_scope))
 }

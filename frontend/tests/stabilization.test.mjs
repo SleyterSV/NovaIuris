@@ -167,7 +167,7 @@ test('actual Vue panels render canonical data and professional empty states', as
     const result=normalizeCaseResult(raw)
     for(const [name,props,expected] of [
       ['novacase/AnalysisView',{analysis:result.analysis},'HECHO-A'],
-      ['novacase/EvidenceView',{evidence:result.evidence},'PRUEBA-A'],
+      ['novacase/EvidenceView',{evidence:result.evidence,documentCount:1},'PRUEBA-A'],
       ['novacase/RiskView',{risk:result.risks},'RIESGO-A'],
       ['novacase/CounterArgumentsView',{counterArguments:result.counter_arguments},'EXCEPCIÓN-A'],
       ['novacase/StrategyView',{strategy:result.strategy},'ESTRATEGIA-A'],
@@ -310,8 +310,16 @@ test('shared citation renderer makes only verified labels interactive and escape
     assert.match(html,/data-citation-id="CIT-000000000000000000000000"/)
     assert.match(html,/\[2\]/)
     assert.ok(!html.includes('<img'))
+    const entitiesHtml=await renderToString(createSSRApp({render:()=>h(MarkdownRenderer,{
+      content:'Problema jurídic&#x6F;: &amp; y &quot;texto&quot;'
+    })}))
+    assert.match(entitiesHtml,/Problema jurídico: &amp; y [“"]texto[”"]/)
+    assert.ok(!entitiesHtml.includes('&#x6F;'))
     const sourceModal=await readFile(new URL('../src/components/common/SourceModal.vue',import.meta.url),'utf8')
     assert.ok(sourceModal.includes('v-if="safeSource.official_url"'))
+    assert.ok(sourceModal.includes('loadLegalUnitSource(source.chunk_id, source.document_id'))
+    assert.ok(!sourceModal.includes('Metadata disponible'))
+    assert.ok(!sourceModal.includes('{{ safeSource.document_id }}'))
     assert.ok(sourceModal.includes('target="_blank" rel="noopener noreferrer"'))
     const sourceList=await readFile(new URL('../src/components/common/SourcesList.vue',import.meta.url),'utf8')
     assert.ok(sourceList.includes('normalizeSources(props.sources, props.caseId)'))
@@ -319,7 +327,12 @@ test('shared citation renderer makes only verified labels interactive and escape
     const context={}
     await renderToString(createSSRApp({render:()=>h(SourceModal,{source})}),context)
     const modalHtml=context.teleports?.body || ''
-    assert.ok(modalHtml.includes('ABRIR FUENTE OFICIAL'))
+    assert.ok(modalHtml.includes('Ver documento oficial'))
+    const withoutOfficial={...source,official_url:null}
+    const noUrlContext={}
+    await renderToString(createSSRApp({render:()=>h(SourceModal,{source:withoutOfficial})}),noUrlContext)
+    assert.ok((noUrlContext.teleports?.body || '').includes('exact'))
+    assert.ok(!(noUrlContext.teleports?.body || '').includes('Ver documento oficial'))
     assert.ok(modalHtml.includes('rel="noopener noreferrer"'))
     assert.ok(!modalHtml.includes('<dt>Tribunal</dt>'))
     const {default:SourcesList}=await server.ssrLoadModule('/src/components/common/SourcesList.vue')

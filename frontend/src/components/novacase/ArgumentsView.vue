@@ -16,7 +16,8 @@
             <span class="field-label">Argumento</span>
             <MarkdownRenderer :content="presentableText(entry.argument || entry.text)" />
           </div>
-          <div v-if="entry.legal_basis?.length" class="argument-body">
+          <div v-if="entry.legal_basis?.length && (!verifiedArgumentSources(entry, sources, caseId, citations).length ||
+            !/pendiente|preliminar|por verificar/i.test(String(entry.legal_basis)))" class="argument-body">
             <span class="field-label">Fundamento jurídico</span>
             <MarkdownRenderer :content="presentableText(entry.legal_basis)" />
           </div>
@@ -26,17 +27,17 @@
             <span class="field-label">Hechos de respaldo</span>
             <ul><li v-for="(fact, factIndex) in relatedFactTexts(entry, facts)" :key="factIndex">{{ presentableText(fact) }}</li></ul>
           </div>
-          <div v-if="verifiedArgumentSources(entry, sources, caseId).length" class="argument-sources">
+          <div v-if="verifiedArgumentSources(entry, sources, caseId, citations).length" class="argument-sources">
             <span class="field-label">Fuentes vinculadas</span>
-            <button v-for="source in verifiedArgumentSources(entry, sources, caseId)" :key="source.source_id"
+            <button v-for="source in verifiedArgumentSources(entry, sources, caseId, citations)" :key="source.source_id"
               type="button" @click="$emit('select-source', source)">
-              {{ source.display_title || source.title }}<span v-if="unitLabel(source)"> · {{ unitLabel(source) }}</span><span v-if="source.page_start"> · pág. {{ source.page_start }}</span> · Ver fuente
+              {{ sourceHumanLabel(source) }} · Ver fuente
             </button>
           </div>
-          <p v-if="(entry.legal_basis?.length || entry.jurisprudence?.length ||
-            ['jurisprudence_used','normative_arguments','constitutional_arguments'].includes(section.key)) &&
-            !verifiedPublicArgumentSources(entry, sources).length" class="unverified">
-            Fundamento jurídico preliminar — pendiente de verificación con una fuente recuperada.
+          <p v-if="argumentNeedsVerification(entry, sources, caseId, citations) &&
+            (entry.legal_basis?.length || entry.jurisprudence?.length ||
+            ['jurisprudence_used','normative_arguments','constitutional_arguments'].includes(section.key))" class="unverified">
+            Fundamento pendiente de verificación.
           </p>
         </article>
       </div>
@@ -48,25 +49,22 @@
 <script setup>
 import { computed } from 'vue'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
-import { ARGUMENT_SECTION_LABELS, presentableText, relatedFactTexts, verifiedArgumentSources, verifiedPublicArgumentSources } from '@/utils/novacasePresentation.js'
+import { ARGUMENT_SECTION_LABELS, presentableText, relatedFactTexts, verifiedArgumentSources, argumentNeedsVerification, sourceHumanLabel } from '@/utils/novacasePresentation.js'
 
 const props = defineProps({
   arguments: { type: Object, default: () => ({}) },
   facts: { type: Array, default: () => [] },
   sources: { type: Array, default: () => [] },
+  citations: { type: Array, default: () => [] },
   caseId: { type: String, default: null }
 })
 defineEmits(['select-source'])
 
-const unitLabel = source => source.unit_type === 'foundation' ? `Fundamento ${source.unit_number || ''}`.trim()
-  : source.unit_type === 'article' ? `Artículo ${source.unit_number || ''}`.trim()
-  : source.unit_type === 'decision' ? 'Decisión'
-  : source.unit_type === 'separate_opinion' ? 'Voto separado' : ''
-
 const sections = computed(() => Object.entries(ARGUMENT_SECTION_LABELS).flatMap(([key, label]) => {
   const raw = props.arguments[key]
   const items = (Array.isArray(raw) ? raw : raw ? [raw] : []).filter(Boolean).map(item =>
-    typeof item === 'string' ? { text: item } : item && typeof item === 'object' ? item : { text: String(item) })
+    typeof item === 'string' ? { text: /^[0-9a-f-]{36}$/i.test(item) || /^SRC-[0-9a-f]{24}$/i.test(item) ? '' : item,
+      source_ids: [item] } : item && typeof item === 'object' ? item : { text: String(item) })
   return items.length ? [{ key, label, items }] : []
 }))
 </script>

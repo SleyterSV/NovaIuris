@@ -58,6 +58,14 @@
 
         </div>
 
+        <section v-if="legalSources.length" class="legal-support" aria-label="Fuentes jurídicas de apoyo">
+            <h3>Fuentes jurídicas de apoyo</h3>
+            <p>{{ legalSources.length }} fuentes jurídicas verificadas. No constituyen prueba de los hechos del caso.</p>
+            <ul><li v-for="source in legalSources" :key="source.source_id">
+                <button type="button" @click="$emit('select-source', source)">{{ sourceHumanLabel(source) }} · Ver fuente</button>
+            </li></ul>
+        </section>
+
         <div v-if="documentCount === 0" class="documents-empty" role="status">
             <div><strong>Sin documentos aportados al caso</strong>
                 <p>Los hechos permanecen como alegaciones. Puede agregar contratos, resoluciones, memorandos o escritos para evaluar su respaldo documental.</p></div>
@@ -131,7 +139,7 @@ import AnalysisSection
 
 import MarkdownRenderer
     from "@/components/common/MarkdownRenderer.vue"
-import { evidenceAvailability } from '@/utils/novacasePresentation.js'
+import { evidenceAvailability, publicLegalSources, sourceHumanLabel } from '@/utils/novacasePresentation.js'
 
 
 /* =========================================================
@@ -147,10 +155,12 @@ const props = defineProps({
         default: () => ({})
 
     },
-    documentCount: { type: Number, default: 0 }
+    documentCount: { type: Number, default: 0 },
+    sources: { type: Array, default: () => [] }
 
 })
-defineEmits(['add-documents'])
+defineEmits(['add-documents', 'select-source'])
+const legalSources = computed(() => publicLegalSources(props.sources))
 
 
 /* =========================================================
@@ -170,7 +180,7 @@ const evidences = computed(() => [
         icon: "📄",
 
         content:
-            props.evidence.documents ||
+            (props.documentCount === 0 ? 'No aportada.' : props.evidence.documents) ||
 
             "No identificado con la información disponible.",
 
@@ -1088,4 +1098,5 @@ NovaCase no encontró una conclusión probatoria disponible.`
 }
 
 .documents-empty{display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid #decda9;border-radius:10px;background:#fcf9f2;padding:18px 20px;color:#483d2b}.documents-empty p{margin:5px 0 0;max-width:650px;font-size:.86rem;line-height:1.5}.documents-empty button{flex:none;border:1px solid #173a5f;border-radius:7px;background:#173a5f;color:#fff;padding:10px 14px;font-weight:650;cursor:pointer}@media(max-width:700px){.documents-empty{align-items:stretch;flex-direction:column}.documents-empty button{width:100%}}
+.legal-support{border:1px solid #d9e2ec;border-radius:11px;padding:20px;background:#f8fafc}.legal-support h3{margin:0 0 5px;color:#17375e;font:600 1rem Georgia,serif}.legal-support p{margin:0 0 12px;color:#526477;font-size:.82rem}.legal-support ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}.legal-support button{border:0;background:transparent;color:#17446d;text-align:left;cursor:pointer;padding:5px 0;font:inherit}.legal-support button:hover{text-decoration:underline}
 </style>

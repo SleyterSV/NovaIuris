@@ -273,6 +273,7 @@ import { computed } from "vue"
 
 import MarkdownRenderer
     from "@/components/common/MarkdownRenderer.vue"
+import { jurisprudenceMarkdown } from '@/utils/novacasePresentation.js'
 
 
 /* =========================================================
@@ -288,7 +289,8 @@ const props = defineProps({
     stages: {
         type: Array,
         default: () => []
-    }
+    },
+    sources: { type: Array, default: () => [] }
 
 })
 
@@ -364,7 +366,7 @@ const sections = computed(() => [
         title: "Jurisprudencia",
 
         content:
-            props.analysis.jurisprudence ||
+            jurisprudenceMarkdown(props.sources) ||
             "No identificado con la información disponible."
 
     },
