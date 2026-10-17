@@ -12,7 +12,7 @@ from ..utils.case_contract import normalize_case_result
 from ..utils.cancellation import OperationCancelled, check_cancelled
 from ..utils.cancellation import CancellationToken
 from ..config import Config
-from ..utils.novacourt_graph import graph_result
+from ..utils.novacourt_graph import graph_result, add_judicial_projection
 from ..utils.novacourt_simulation import simulation_result
 from ..services.source_contracts import resolve_citations
 from ..services.novacourt_context import prepare_court_context
@@ -281,6 +281,8 @@ class NovaCourtPipelineService:
                     simulation["position_b"] = dict(simulation.get("defense", {}))
                     simulation["roles"] = {"position_a": simulation["position_a"].get("role_label", "Parte promotora"),
                                            "position_b": simulation["position_b"].get("role_label", "Parte contraria")}
+                    if result.get("graph", {}).get("status") == "ready" and result["graph"].get("nodes"):
+                        result["graph"] = add_judicial_projection(result["graph"], simulation)
                 result["court_status"] = "completed" if all(result[field]["status"] == "ready" for field in ("graph", "simulation")) else "partial"
                 report_started = perf_counter()
                 result["court_report_document"] = {"document_type": "court_simulation", "case_id": case_id,

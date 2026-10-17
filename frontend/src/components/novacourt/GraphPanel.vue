@@ -117,47 +117,15 @@
              LEYENDA
         ====================================================== -->
 
-        <div
-            v-if="hasGraphData"
-            class="graph-legend"
-        >
-
-            <div class="legend-title">
-
-                <span class="legend-title-mark"></span>
-
-                <span>
-                    Clasificación jurídica
-                </span>
-
-            </div>
-
-
+        <details v-if="hasGraphData" class="graph-legend">
+            <summary>Clasificación jurídica y posiciones</summary>
             <div class="legend-items">
-
-                <div
-                    v-for="item in legendItems"
-                    :key="item.key"
-                    class="legend-item"
-                >
-
-                    <span
-                        class="legend-dot"
-                        :style="{
-                            background: item.color,
-                            boxShadow: `0 0 0 3px ${hexToRgba(item.color, .10)}`
-                        }"
-                    ></span>
-
-                    <span>
-                        {{ item.label }}
-                    </span>
-
+                <div v-for="item in legendItems" :key="item.key" class="legend-item">
+                    <span class="legend-dot" :style="{ background: item.color }" aria-hidden="true"></span>
+                    <span>{{ item.label }}</span>
                 </div>
-
             </div>
-
-        </div>
+        </details>
 
 
         <!-- =====================================================
@@ -290,10 +258,18 @@
                 Grafo parcial. Procesamiento de fuentes en curso.
             </p>
             <p v-if="['failed', 'timeout'].includes(graphData?.status)" role="alert" class="graph-notice">
-                Grafo parcial: {{ graphData?.message || 'No se completó el procesamiento.' }}
+                Grafo parcial. No se completó el procesamiento de todas las relaciones.
             </p>
             <div class="graph-filters" aria-label="Filtros del grafo">
-                <label>Buscar nodos <input v-model="query" type="search" placeholder="Título del nodo" /></label>
+                <div class="graph-quick-filters" role="group" aria-label="Categorías del grafo">
+                    <button v-for="filter in quickFilters" :key="filter.key" type="button"
+                        :aria-pressed="activeGroup === filter.key" @click="activeGroup = filter.key">{{ filter.label }}</button>
+                </div>
+                <label>Buscar nodos <input v-model="query" type="search" placeholder="Título, contenido o fuente" /></label>
+                <div v-if="query && searchResults.length" class="graph-search-results" role="listbox" aria-label="Resultados del grafo">
+                    <button v-for="node in searchResults" :key="node.id" type="button" role="option"
+                        @click="focusNode(node)">{{ graphLabel(node) }}: {{ truncateText(node.title || node.name, 72) }}</button>
+                </div>
                 <label>Complejidad <select v-model="complexity">
                     <option value="essential">Vista esencial</option>
                     <option value="complete">Vista completa</option>
@@ -310,7 +286,7 @@
             <details class="graph-text-list">
                 <summary>Lista accesible de nodos ({{ normalizedNodes.length }})</summary>
                 <ul><li v-for="node in normalizedNodes" :key="node.id">
-                    <button type="button" @click="selectedNode = node">
+                    <button type="button" @click="focusNode(node)">
                         {{ getNodeCategoryLabel(node) }}: {{ node.title || node.name }}
                     </button>
                 </li></ul>
@@ -371,6 +347,9 @@
                     </button>
 
 
+                    <button type="button" class="toolbar-button" title="Acercar grafo" aria-label="Acercar grafo" @click="zoomGraph(1.25)">+</button>
+                    <button type="button" class="toolbar-button" title="Alejar grafo" aria-label="Alejar grafo" @click="zoomGraph(0.8)">−</button>
+                    <button type="button" class="toolbar-button" title="Pantalla completa" aria-label="Pantalla completa" @click="toggleFullscreen">Pantalla completa</button>
                     <button
                         type="button"
                         class="toolbar-button"
@@ -510,23 +489,27 @@
 
                     </div>
                     <div v-if="selectedNode.status || selectedNode.date" class="detail-section">
-                        <span v-if="selectedNode.status">Estado: {{ selectedNode.status }}</span>
+                        <span v-if="selectedNode.status">Estado: {{ factStatusLabel(selectedNode) }}</span>
                         <span v-if="selectedNode.date">Fecha: {{ selectedNode.date }}</span>
                     </div>
                     <div v-if="selectedNode.description || selectedNode.excerpt" class="detail-section">
                         <span class="detail-label">Descripción o referencia</span>
                         <p>{{ selectedNode.description || selectedNode.excerpt }}</p>
                     </div>
-                    <div v-if="selectedNode.document_id || selectedNode.page_start || selectedNode.section" class="detail-section">
-                        <span v-if="selectedNode.document_id">Documento: {{ selectedNode.document_id }}</span>
-                        <span v-if="selectedNode.page_start">Página: {{ selectedNode.page_start }}<template v-if="selectedNode.page_end && selectedNode.page_end !== selectedNode.page_start">–{{ selectedNode.page_end }}</template></span>
-                        <span v-if="selectedNode.section">Sección: {{ selectedNode.section }}</span>
+                    <div v-if="nodeLocator(selectedNode)" class="detail-section">
+                        <span class="detail-label">Localizador</span>
+                        <span>{{ nodeLocator(selectedNode) }}</span>
+                    </div>
+                    <div v-if="selectedNode.entity_type === 'DECISION'" class="detail-section" role="status">Resultado de simulación; no es una resolución judicial auténtica.</div>
+                    <div v-if="selectedRelations.length" class="detail-section">
+                        <span class="detail-label">Relaciones</span>
+                        <p v-for="edge in selectedRelations" :key="edge.id">{{ graphRelation(edge) }}: {{ nodeTitle(edge.source === selectedNode.id ? edge.target : edge.source) }}</p>
                     </div>
                     <div v-if="availableSources(selectedNode.source_ids).length" class="detail-section">
                         <span class="detail-label">Fuentes</span>
                         <button v-for="sourceId in availableSources(selectedNode.source_ids)" :key="sourceId"
                             type="button" @click="openSource(sourceId)">
-                            {{ sourceLabel(sourceId) }}
+                            Ver fuente: {{ sourceLabel(sourceId) }}
                         </button>
                     </div>
 
@@ -620,11 +603,10 @@
                 </aside>
                 <aside v-if="selectedEdge" class="node-detail-panel">
                     <button type="button" @click="selectedEdge = null" aria-label="Cerrar relación">×</button>
-                    <h3>{{ selectedEdge.label || selectedEdge.relation_type }}</h3>
-                    <p>{{ selectedEdge.relation_type }}</p>
+                    <h3>{{ graphRelation(selectedEdge) }}</h3>
                     <p>{{ nodeTitle(selectedEdge.source) }} → {{ nodeTitle(selectedEdge.target) }}</p>
                     <button v-for="sourceId in availableSources(selectedEdge.source_ids)" :key="sourceId"
-                        type="button" @click="openSource(sourceId)">{{ sourceLabel(sourceId) }}</button>
+                        type="button" @click="openSource(sourceId)">Ver fuente: {{ sourceLabel(sourceId) }}</button>
                 </aside>
 
             </div>
@@ -669,6 +651,8 @@ import {
 
 import * as d3 from "d3"
 import SourceModal from "../common/SourceModal.vue"
+import { graphKind, graphLabel, graphColor, graphRelation, graphSearchText,
+    authorizedGraphSources, graphLocator } from "../../utils/courtGraphPresentation.js"
 
 
 /* ============================================================
@@ -718,6 +702,7 @@ const selectedNode = ref(null)
 const selectedEdge = ref(null)
 const selectedSource = ref(null)
 const selectedTypes = ref([])
+const activeGroup = ref('all')
 const complexity = ref("essential")
 const query = ref("")
 const viewport = ref(d3.zoomIdentity)
@@ -743,43 +728,38 @@ let currentRoot = null
    PALETA NOVACOURT
 ============================================================ */
 
-const categoryColors = {
-
-    judicial: "#0F2747",
-
-    lawyer: "#2563EB",
-
-    prosecution: "#B08A4C",
-
-    party: "#725C9A",
-
-    evidence: "#2F7D62",
-
-    norm: "#2C6680",
-
-    argument: "#9A4656",
-
-    fact: "#64748B",
-
-    default: "#475569"
-
-}
-
-
 const visibleTypes = computed(() => [...new Set((props.graphData?.nodes || [])
     .map(node => node?.entity_type).filter(Boolean))])
-const legendItems = computed(() => visibleTypes.value.map(type => ({
-    key: type, label: getNodeCategoryLabel({ entity_type: type }),
-    color: getNodeColor({ entity_type: type })
-})))
+const quickFilters = computed(() => {
+    const kinds = new Set((props.graphData?.nodes || []).map(graphKind))
+    return [{ key: 'all', label: 'Todos' },
+        { key: 'facts', label: 'Hechos', kinds: ['accredited', 'alleged', 'undetermined'] },
+        { key: 'evidence', label: 'Evidencia', kinds: ['evidence'] },
+        { key: 'legal', label: 'Fuentes jurídicas', kinds: ['legal'] },
+        { key: 'claimant', label: 'Demandante', kinds: ['claimant'] },
+        { key: 'respondent', label: 'Demandado', kinds: ['respondent'] },
+        { key: 'risk', label: 'Riesgos', kinds: ['risk'] },
+        { key: 'judicial', label: 'Juez y decisión', kinds: ['judge', 'decision'] }]
+        .filter(filter => filter.key === 'all' || filter.kinds.some(kind => kinds.has(kind)))
+})
+const legendItems = computed(() => [...new Map((props.graphData?.nodes || []).map(node => {
+    const key = graphKind(node)
+    return [key, { key, label: graphLabel(node), color: graphColor(node) }]
+})).values()])
+const allNodes = computed(() => (props.graphData?.nodes || [])
+    .filter(node => node?.node_id || node?.uuid)
+    .map(node => ({ ...node, id: String(node.node_id || node.uuid) })))
 const normalizedNodes = computed(() => (props.graphData?.nodes || [])
     .filter(node => node?.node_id || node?.uuid)
     .filter(node => !selectedTypes.value.includes(node.entity_type))
+    .filter(node => activeGroup.value === 'all' ||
+        quickFilters.value.find(filter => filter.key === activeGroup.value)?.kinds?.includes(graphKind(node)))
     .filter(node => complexity.value === "complete" || node.importance === "core" ||
         ["EVIDENCE", "LAW", "JURISPRUDENCE"].includes(node.entity_type))
-    .filter(node => !query.value || String(node.title || node.name || "")
-        .toLocaleLowerCase().includes(query.value.toLocaleLowerCase()))
     .map(node => ({ ...node, id: String(node.node_id || node.uuid) })))
+const searchSourceNames = computed(() => new Map([...sourceById.value].map(([id, source]) => [id, source.title || ''])))
+const searchResults = computed(() => query.value.trim() ? allNodes.value.filter(node =>
+    graphSearchText(node, searchSourceNames.value).includes(query.value.trim().toLocaleLowerCase())).slice(0, 12) : [])
 
 const normalizedLinks = computed(() => {
     const ids = new Set(normalizedNodes.value.map(node => node.id))
@@ -795,19 +775,16 @@ const normalizedLinks = computed(() => {
 })
 
 const hasGraphData = computed(() => (props.graphData?.nodes || []).length > 0)
-const effectiveError = computed(() => props.error || (!hasGraphData.value &&
+const effectiveError = computed(() => (props.error ? 'No se pudo cargar el grafo jurídico.' : '') || (!hasGraphData.value &&
     ["failed", "timeout"].includes(props.graphData?.status)
-    ? props.graphData?.message || "No se pudo completar el grafo." : ""))
-const sourceById = computed(() => new Map(props.sources
-    .filter(source => source?.source_id && (source.source_scope === "public" ||
-        source.source_scope === "case" && source.case_id === props.caseId))
-    .map(source => [source.source_id, source])))
+    ? 'No se pudo completar el grafo jurídico.' : ""))
+const sourceById = computed(() => authorizedGraphSources(props.sources, props.caseId))
 function availableSources(sourceIds) {
     return (Array.isArray(sourceIds) ? sourceIds : []).filter(id => sourceById.value.has(id))
 }
 function sourceLabel(sourceId) {
     const source = sourceById.value.get(sourceId)
-    return source ? `${source.title || "Fuente"}${source.page_start ? ` · pág. ${source.page_start}` : ""}` : "Fuente"
+    return source ? `${source.title || "Fuente"}${graphLocator(source) ? ` · ${graphLocator(source)}` : ""}` : "Fuente"
 }
 function nodeTitle(nodeId) {
     const node = (props.graphData?.nodes || []).find(item =>
@@ -821,6 +798,31 @@ function toggleType(type) {
     selectedTypes.value = selectedTypes.value.includes(type)
         ? selectedTypes.value.filter(item => item !== type)
         : [...selectedTypes.value, type]
+}
+function factStatusLabel(node) {
+    return node.entity_type === 'FACT' ? graphLabel(node).replace('Hecho ', '') :
+        node.entity_type === 'DECISION' ? 'Simulación' : 'Identificado'
+}
+function nodeLocator(node) {
+    return graphLocator(sourceById.value.get((node?.source_ids || [])[0])) || graphLocator(node)
+}
+const selectedRelations = computed(() => selectedNode.value ? normalizedLinks.value.filter(edge =>
+    edge.source === selectedNode.value.id || edge.target === selectedNode.value.id) : [])
+function focusNode(node) {
+    activeGroup.value = 'all'
+    if (selectedTypes.value.includes(node.entity_type)) toggleType(node.entity_type)
+    if (complexity.value !== 'complete' && node.importance !== 'core' &&
+        !['EVIDENCE', 'LAW', 'JURISPRUDENCE'].includes(node.entity_type)) complexity.value = 'complete'
+    selectedNode.value = node
+    query.value = ''
+    nextTick(() => {
+        const point = positions.get(node.id)
+        if (point && currentSvg && zoomBehavior && graphContainer.value) {
+            const transform = d3.zoomIdentity.translate(graphContainer.value.clientWidth / 2 - point.x,
+                graphContainer.value.clientHeight / 2 - point.y)
+            currentSvg.transition().duration(300).call(zoomBehavior.transform, transform)
+        }
+    })
 }
 
 /* ============================================================
@@ -847,7 +849,9 @@ const attributeEntries = computed(() => {
 
         selectedNode.value.attributes
 
-    ).filter(([, value]) =>
+    ).filter(([key, value]) =>
+        !/id|uuid|token|path|metadata|scope|provenance|json/i.test(key) &&
+        ['string', 'number', 'boolean'].includes(typeof value) &&
 
         value !== null &&
         value !== undefined &&
@@ -883,28 +887,15 @@ const selectedNodeConnectionCount = computed(() => {
 ============================================================ */
 
 function getNodeCategory(node) {
-    const type = node?.entity_type
-    if (type === "PARTY") return node?.legal_role === "court" ? "judicial" : "party"
-    if (type === "EVIDENCE" || type === "DOCUMENT") return "evidence"
-    if (type === "LAW" || type === "JURISPRUDENCE") return "norm"
-    if (type === "ARGUMENT" || type === "COUNTERARGUMENT") return "argument"
-    if (type === "FACT" || type === "PROCEDURAL_ACT") return "fact"
-    return "default"
+    return graphKind(node)
 }
 
 function getNodeColor(node) {
-    return categoryColors[getNodeCategory(node)] || categoryColors.default
+    return graphColor(node)
 }
 
 function getNodeCategoryLabel(node) {
-    return ({
-        CASE: "CASO", PARTY: "PARTE", CLAIM: "PRETENSIÓN",
-        LEGAL_ISSUE: "PROBLEMA JURÍDICO", FACT: "HECHO",
-        EVIDENCE: "EVIDENCIA", DOCUMENT: "DOCUMENTO", LAW: "NORMA",
-        JURISPRUDENCE: "JURISPRUDENCIA", ARGUMENT: "ARGUMENTO",
-        COUNTERARGUMENT: "CONTRAARGUMENTO", RISK: "RIESGO",
-        PROCEDURAL_ACT: "ACTUACIÓN"
-    })[node?.entity_type] || "ELEMENTO DEL CASO"
+    return graphLabel(node)
 }
 
 /* ============================================================
@@ -958,15 +949,7 @@ function formatAttributeKey(key) {
 
 
 function formatAttributeValue(value) {
-
-    if (typeof value === "object") {
-
-        return JSON.stringify(value)
-
-    }
-
     return String(value)
-
 }
 
 
@@ -1194,7 +1177,7 @@ function renderGraph() {
             selectedEdge.value = link
         })
     linkSelection.append("title")
-        .text(link => link.label || link.relation_type || "Relación")
+        .text(link => graphRelation(link))
 
 
     /* ========================================================
@@ -1431,15 +1414,7 @@ function renderGraph() {
 
         )
 
-        .text(node => truncateText(
-
-            node.name ||
-
-            "Sin nombre",
-
-            30
-
-        ))
+        .text(node => `${graphLabel(node)} · ${truncateText(node.title || node.name || 'Sin nombre', 30)}`)
 
 
     /* ========================================================
@@ -1569,6 +1544,7 @@ function renderGraph() {
     simulation = d3
 
         .forceSimulation(nodes)
+        .randomSource(d3.randomLcg(1))
 
         .force(
 
@@ -1630,6 +1606,7 @@ function renderGraph() {
         "tick",
 
         () => {
+            for (const node of nodes) positions.set(node.id, { x: node.x, y: node.y })
 
             linkSelection
 
@@ -1933,6 +1910,13 @@ function centerGraph() {
         )
 
 }
+function zoomGraph(factor) {
+    if (currentSvg && zoomBehavior) currentSvg.transition().duration(250).call(zoomBehavior.scaleBy, factor)
+}
+function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen?.()
+    else graphContainer.value?.requestFullscreen?.()
+}
 
 
 function resetGraph() {
@@ -2005,10 +1989,7 @@ watch(
 
 )
 
-watch([selectedTypes, complexity, query], async () => {
-    if (selectedNode.value && !normalizedNodes.value.some(node => node.id === selectedNode.value.id)) {
-        selectedNode.value = null
-    }
+watch([selectedTypes, complexity, activeGroup], async () => {
     if (selectedEdge.value && !normalizedLinks.value.some(edge => edge.id === selectedEdge.value.id)) {
         selectedEdge.value = null
     }
@@ -4591,6 +4572,19 @@ onBeforeUnmount(() => {
 .graph-filters input[type="search"], .graph-filters select { max-width:220px; padding:6px; border:1px solid #b9c8d7; border-radius:5px; }
 .graph-filters fieldset { display:flex; flex-wrap:wrap; gap:8px; border:1px solid #d7e0e8; border-radius:5px; }
 .graph-filters legend { font-size:.75rem; }
+.graph-quick-filters { display:flex; flex-wrap:wrap; gap:5px; width:100%; }
+.graph-quick-filters button { border:1px solid #cbd7e2; border-radius:999px; background:#fff; color:#38516c; padding:5px 10px; cursor:pointer; font-size:.76rem; }
+.graph-quick-filters button[aria-pressed="true"] { background:#17324f; color:#fff; border-color:#17324f; }
+.graph-quick-filters button:focus-visible { outline:2px solid #2c6680; outline-offset:2px; }
+.graph-legend summary { cursor:pointer; color:#38516c; font-size:.78rem; font-weight:700; }
+.graph-legend .legend-items { padding:10px 0 2px; }
+.graph-search-results { display:flex; flex-direction:column; max-height:160px; overflow:auto; min-width:min(260px,100%); border:1px solid #d7e0e8; border-radius:6px; background:#fff; }
+.graph-search-results button { border:0; border-bottom:1px solid #e7edf2; background:#fff; color:#17324f; text-align:left; padding:8px 10px; cursor:pointer; overflow-wrap:anywhere; }
+.graph-search-results button:hover, .graph-search-results button:focus-visible { background:#eef3f7; outline:2px solid #2c6680; outline-offset:-2px; }
+.graph-toolbar .toolbar-actions { flex-wrap:wrap; }
+.graph-canvas:fullscreen { background:#f8fafb; width:100vw; height:100vh; }
+.node-detail-panel h3, .node-detail-panel p, .detail-section { overflow-wrap:anywhere; white-space:normal; }
+.graph-text-list button:focus-visible, .detail-section button:focus-visible { outline:2px solid #2c6680; outline-offset:2px; }
 .graph-notice { margin:10px 20px; padding:10px; background:#f8f4eb; color:#5a4732; border-left:3px solid #b08a4c; }
 .graph-text-list { padding:0 20px 10px; font-size:.82rem; }
 .graph-text-list ul { max-height:180px; overflow:auto; }

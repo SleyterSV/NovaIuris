@@ -12,7 +12,8 @@ from .cancellation import CancellationToken, OperationCancelled
 logger = logging.getLogger(__name__)
 
 ENTITY_TYPES = ("CASE", "PARTY", "CLAIM", "LEGAL_ISSUE", "FACT", "EVIDENCE", "LAW",
-                "JURISPRUDENCE", "ARGUMENT", "COUNTERARGUMENT", "RISK", "PROCEDURAL_ACT", "DOCUMENT")
+                "JURISPRUDENCE", "ARGUMENT", "COUNTERARGUMENT", "RISK", "PROCEDURAL_ACT", "DOCUMENT",
+                "JUDGE_ANALYSIS", "DECISION")
 _RELATION_PAIRS = {
     "ASSERTS": (("CASE", "PARTY"), ("CASE", "CLAIM"), ("CASE", "LEGAL_ISSUE"),
                 ("CASE", "FACT"), ("CASE", "PROCEDURAL_ACT")),
@@ -23,6 +24,8 @@ _RELATION_PAIRS = {
     "CREATES_RISK": (("RISK", "LEGAL_ISSUE"), ("RISK", "ARGUMENT")),
     "CONTAINED_IN": (("EVIDENCE", "DOCUMENT"),),
     "ARGUES": (("ARGUMENT", "LEGAL_ISSUE"), ("COUNTERARGUMENT", "LEGAL_ISSUE")),
+    "EVALUATES": (("JUDGE_ANALYSIS", "LEGAL_ISSUE"),),
+    "LEADS_TO": (("JUDGE_ANALYSIS", "DECISION"),),
 }
 RELATION_TYPES = tuple(_RELATION_PAIRS)
 LEGAL_ONTOLOGY = {
@@ -45,7 +48,7 @@ def normalize_entity_type(value):
 
 SOURCE_FIELDS = ("source_scope", "provenance_version", "source_id", "document_id", "unit_id", "chunk_id", "page_start", "page_end", "section",
                  "court", "case_number", "date", "article", "legal_basis", "official_url",
-                 "excerpt", "paragraph")
+                 "excerpt", "paragraph", "unit_type", "unit_number", "title")
 
 
 def _items(value):
@@ -156,7 +159,8 @@ def build_graph_input(case_result):
                 edge(root, nid, "ASSERTS")
     for item in _items(case_result.get("facts")):
         if isinstance(item, dict):
-            source_ids = sids(item)
+            source_ids = [sid for sid in sids(item)
+                          if sources[sid].get("source_scope") in {"case", "private_case"}]
             nid = node("FACT", _label(item), identity=item.get("fact_id"),
                        source_ids=source_ids, data={"fact_id": item.get("fact_id"),
                        "status": item.get("status"), "date": item.get("date")})
@@ -185,13 +189,20 @@ def build_graph_input(case_result):
             continue
         source = sources[source_ids[0]]
         title = _label(item) or source.get("title") or "Evidencia documental"
-        data = {key: item.get(key, source.get(key)) for key in SOURCE_FIELDS}
+        data = {key: source.get(key) for key in SOURCE_FIELDS}
         nid = node("EVIDENCE", title, identity=(item.get("evidence_id") or source_ids[0], _key(title)),
                    source_ids=source_ids, data=data)
         for sid in source_ids:
             edge(nid, keys.get(("DOCUMENT", sid)), "CONTAINED_IN", [sid], data)
         edge(nid, fact_ids.get(item.get("fact_id")), "PROVES", source_ids, data)
         edge(nid, issue_ids.get(item.get("issue_id")), "SUPPORTS", source_ids, data)
+
+    proven_facts = {edge["target_node_id"] for edge in edges.values()
+                    if edge["relation_type"] == "PROVES"}
+    for fact_id in fact_ids.values():
+        fact = nodes[fact_id]
+        if fact.get("status") in {"supported", "accredited", "proven"} and fact_id not in proven_facts:
+            fact["status"] = "alleged"
 
     arguments = case_result.get("arguments") or case_result.get("legal_arguments") or {}
     for item in _items(arguments.get("main_arguments") if isinstance(arguments, dict) else None):
@@ -219,7 +230,8 @@ def build_graph_input(case_result):
         nid = node("COUNTERARGUMENT", _label(payload), identity=payload.get("counterargument_id"),
                    source_ids=source_ids, data={"counterargument_id": payload.get("counterargument_id"),
                                                 "argument_id": payload.get("argument_id"),
-                                                "issue_id": payload.get("issue_id")})
+                                                "issue_id": payload.get("issue_id"),
+                                                "position": payload.get("position")})
         edge(nid, issue_ids.get(payload.get("issue_id")), "ARGUES", source_ids)
         edge(nid, argument_ids.get(payload.get("argument_id")), "COUNTERS", source_ids)
 
@@ -243,6 +255,42 @@ def build_graph_input(case_result):
     return {"case_id": case_id, "entities": sorted(nodes.values(), key=lambda n: n["node_id"]),
             "relations": sorted(edges.values(), key=lambda e: e["edge_id"]),
             "provenance": sorted(sources)}
+
+
+def add_judicial_projection(graph, simulation):
+    """Append only a verified simulated judicial section to a case-scoped graph snapshot."""
+    if not isinstance(graph, dict) or graph.get("case_id") != simulation.get("case_id"):
+        raise ValueError("Graph case identity mismatch")
+    if simulation.get("status") != "ready" or not simulation.get("judge", {}).get("content", "").strip():
+        return graph
+    result = {**graph, "nodes": list(graph.get("nodes") or []), "edges": list(graph.get("edges") or [])}
+    case_id = graph["case_id"]
+    issues = [node for node in result["nodes"] if node.get("entity_type") == "LEGAL_ISSUE"]
+    judge_id, decision_id = _id("NODE", case_id, "JUDGE_ANALYSIS"), _id("NODE", case_id, "DECISION")
+    judge = {"node_id": judge_id, "uuid": judge_id, "entity_type": "JUDGE_ANALYSIS",
+             "title": "Evaluación judicial simulada", "name": "Evaluación judicial simulada",
+             "description": simulation["judge"]["content"], "source_ids": [],
+             "origin": "simulation", "metadata": {"origin": "simulation"}, "importance": "core"}
+    decision = {"node_id": decision_id, "uuid": decision_id, "entity_type": "DECISION",
+                "title": "Resultado de la simulación", "name": "Resultado de la simulación",
+                "description": simulation["judge"]["content"], "simulation": True,
+                "source_ids": [], "origin": "simulation", "metadata": {"origin": "simulation"},
+                "importance": "core"}
+    result["nodes"] = [node for node in result["nodes"] if node.get("node_id") not in {judge_id, decision_id}]
+    result["nodes"].extend((judge, decision))
+    targets = [(issue["node_id"], "EVALUATES") for issue in issues] + [(decision_id, "LEADS_TO")]
+    result["edges"] = [edge for edge in result["edges"] if edge.get("source_node_id") != judge_id]
+    for target, relation in targets:
+        eid = _id("EDGE", case_id, judge_id, target, relation)
+        result["edges"].append({"edge_id": eid, "uuid": eid, "source_node_id": judge_id,
+                                "target_node_id": target, "source_node_uuid": judge_id,
+                                "target_node_uuid": target, "relation_type": relation,
+                                "label": relation, "source_ids": [], "metadata": {}})
+    result["counts"] = {"node_count": len(result["nodes"]), "edge_count": len(result["edges"]),
+                        "by_type": dict(sorted(Counter(node["entity_type"] for node in result["nodes"]).items()))}
+    result["node_count"], result["edge_count"] = len(result["nodes"]), len(result["edges"])
+    result["version"] = result.get("version", 0) + 1
+    return result
 
 
 def build_legal_context(case_result):

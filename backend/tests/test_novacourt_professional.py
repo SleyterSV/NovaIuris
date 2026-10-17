@@ -157,6 +157,29 @@ class CourtProfessionalTests(unittest.TestCase):
         self.assertEqual(result["simulation"]["status"], "ready")
         self.assertNotIn("private detail", str(result))
 
+    def test_ready_graph_persists_simulated_judicial_projection(self):
+        pipeline, _ = self.pipeline()
+        def ready_graph(case_result, cancellation_token=None, snapshot_callback=None):
+            from app.utils.novacourt_graph import build_graph_input, graph_result
+            contract = build_graph_input(case_result)
+            return graph_result("ready", graph_id="G-1", case_id=case_result["case_id"],
+                version=2, nodes=contract["entities"], edges=contract["relations"])
+        pipeline.graph_service.build_for_case = ready_graph
+        task_id = pipeline.start("Relato", "CASE-A", document_ids=["DOC-A"])
+        completed = await_task(pipeline, task_id)
+        graph = completed["final_result"]["graph"]
+        self.assertEqual(graph["version"], 3)
+        self.assertEqual(graph["case_id"], "CASE-A")
+        self.assertEqual(graph["status"], "ready")
+        self.assertTrue(any(node["entity_type"] == "DECISION" and node["simulation"]
+                            for node in graph["nodes"]))
+        legal = next(node for node in graph["nodes"] if node.get("source_id") == PUBLIC["source_id"])
+        self.assertEqual((legal["source_scope"], legal["provenance_version"],
+                          legal["document_id"], legal["unit_id"]),
+                         ("public_legal", "v2", DOC, UNIT))
+        self.assertFalse(any(node["entity_type"] == "EVIDENCE" and
+                             PUBLIC["source_id"] in node["source_ids"] for node in graph["nodes"]))
+
     def test_private_source_or_secondary_identity_mismatch_never_reaches_other_branch(self):
         pipeline, _ = self.pipeline()
         pipeline.case_service.analyze_case = Mock(return_value={"success": True, "case_id": "CASE-A",

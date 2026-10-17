@@ -46,6 +46,12 @@ assert.equal(second.nodes[1].entity_type, 'LAW')
 const legacy = normalizeGraphState({ status: 'ready', nodes: [{ uuid: 'old-1' }], edges: [] })
 assert.equal(legacy.version, 0)
 assert.equal(legacy.counts.node_count, 1)
+const canonical = normalizeGraphState({ status: 'ready', case_id: 'CASE-A', version: 4,
+  nodes: [{ node_id: 'N-LEGAL', entity_type: 'JURISPRUDENCE', source_scope: 'public_legal',
+    provenance_version: 'v2', source_id: 'SRC-1', document_id: 'DOC-1', unit_id: 'UNIT-1' }],
+  edges: [] })
+assert.deepEqual(['source_scope', 'provenance_version', 'source_id', 'document_id', 'unit_id']
+  .map(key => canonical.nodes[0][key]), ['public_legal', 'v2', 'SRC-1', 'DOC-1', 'UNIT-1'])
 
 const partial = normalizeGraphState({ status: 'failed', version: 1,
   nodes: first.nodes, edges: [], message: 'Zep unavailable' })

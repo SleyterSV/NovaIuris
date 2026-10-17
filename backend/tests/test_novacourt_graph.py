@@ -57,6 +57,55 @@ class NovaCourtGraphTests(unittest.TestCase):
             "internal_only": "no debe indexarse",
         }
 
+    def test_public_v2_provenance_and_private_evidence_semantics(self):
+        case = self.rich_case()
+        private = case["sources"][0]
+        private["source_scope"] = "private_case"
+        legal = case["sources"][1]
+        legal.update(source_scope="public_legal", provenance_version="v2",
+                     document_id="LEGAL-DOC", unit_id="LEGAL-UNIT", unit_type="article",
+                     unit_number="4", excerpt="Texto jurídico canónico")
+        case["sources"] = [private, legal, dict(legal)]
+        case["evidence"]["evidence_links"].append({"text": "Jurisprudencia no es prueba",
+            "fact_id": "F-0", "source_ids": [legal["source_id"]]})
+        case["facts"].append({"fact_id": "F-UNLINKED", "text": "Alegación sin documento",
+                              "status": "supported", "source_ids": [legal["source_id"]]})
+        before = deepcopy(case)
+        graph = NOVACOURT_GRAPH.build_graph_input(case)
+        self.assertEqual(case, before)
+        nodes, edges = graph["entities"], graph["relations"]
+        legal_nodes = [n for n in nodes if n.get("source_id") == legal["source_id"]]
+        self.assertEqual(len(legal_nodes), 1)
+        self.assertEqual({k: legal_nodes[0][k] for k in ("source_scope", "provenance_version",
+                         "source_id", "document_id", "unit_id")},
+                         {k: legal[k] for k in ("source_scope", "provenance_version",
+                          "source_id", "document_id", "unit_id")})
+        self.assertFalse(any(n["entity_type"] == "EVIDENCE" and legal["source_id"] in n["source_ids"]
+                             for n in nodes))
+        self.assertTrue(any(n["entity_type"] == "EVIDENCE" and private["source_id"] in n["source_ids"]
+                            for n in nodes))
+        unlinked = next(n for n in nodes if n.get("fact_id") == "F-UNLINKED")
+        self.assertEqual(unlinked["status"], "alleged")
+        self.assertFalse(any(e["relation_type"] == "PROVES" and e["target_node_id"] == unlinked["node_id"]
+                             for e in edges))
+
+    def test_judicial_projection_is_simulated_and_case_scoped(self):
+        graph = NOVACOURT_GRAPH.graph_result("ready", case_id="CASE-A", version=2,
+            nodes=NOVACOURT_GRAPH.build_graph_input(self.case)["entities"], edges=[])
+        simulation = {"case_id": "CASE-A", "status": "ready", "judge": {"content": "Se analiza la pretensión."}}
+        projected = NOVACOURT_GRAPH.add_judicial_projection(graph, simulation)
+        self.assertEqual(len(graph["nodes"]) + 2, len(projected["nodes"]))
+        self.assertEqual(projected["version"], 3)
+        self.assertEqual({"JUDGE_ANALYSIS", "DECISION"},
+            {n["entity_type"] for n in projected["nodes"] if n["entity_type"] in {"JUDGE_ANALYSIS", "DECISION"}})
+        self.assertTrue(next(n for n in projected["nodes"] if n["entity_type"] == "DECISION")["simulation"])
+        self.assertIn("LEADS_TO", {e["relation_type"] for e in projected["edges"]})
+        again = NOVACOURT_GRAPH.add_judicial_projection(projected, simulation)
+        self.assertEqual(projected["nodes"], again["nodes"])
+        self.assertEqual(projected["edges"], again["edges"])
+        with self.assertRaises(ValueError):
+            NOVACOURT_GRAPH.add_judicial_projection(graph, {**simulation, "case_id": "CASE-B"})
+
     def test_canonical_contract_is_sent_to_builder_and_returns_ready_graph(self):
         builder = ReadyBuilder()
         result = make_orchestrator(lambda: builder).build(self.case)
