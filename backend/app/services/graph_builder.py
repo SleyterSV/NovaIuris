@@ -17,6 +17,7 @@ compatibilidad con la estructura actual del backend.
 """
 
 import logging
+import re
 import threading
 import time
 import uuid
@@ -24,7 +25,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
-from zep_cloud import EpisodeData, EntityEdgeSourceTarget
+from zep_cloud import EpisodeData, EntityEdgeSourceTarget, BadRequestError
 from zep_cloud.client import Zep
 
 from ..config import Config
@@ -35,6 +36,49 @@ from ..services.text_processor import TextProcessor
 
 
 logger = logging.getLogger(__name__)
+
+_ZEP_VALIDATION_FIELD = re.compile(
+    r"\b(?:entity_types|edge_types|graph_ids|user_ids|source_targets|properties|"
+    r"source|target|name|description)(?:\[\d+\])?(?:\.(?:source_targets|"
+    r"properties|source|target|name|description)(?:\[\d+\])?)*\b",
+    re.IGNORECASE,
+)
+
+
+def safe_zep_validation_details(error):
+    """Summarize SDK BadRequest metadata without logging its raw body."""
+    body = getattr(error, "body", None)
+    data = body.model_dump(exclude_none=True) if hasattr(body, "model_dump") else (
+        body if isinstance(body, dict) else {})
+    if not isinstance(data, dict):
+        data = {}
+    fragments = [str(data.get(key) or "")[:1000] for key in ("message", "detail", "field")]
+    for item in data.get("errors", []) if isinstance(data.get("errors"), list) else []:
+        if isinstance(item, dict):
+            fragments.extend(str(item.get(key) or "")[:500] for key in ("field", "message"))
+    text = " ".join(fragments).lower()
+    fields = sorted(set(_ZEP_VALIDATION_FIELD.findall(text)))[:20]
+    categories = {
+        "limit": r"limit|maximum|max |too many|exceed|at most",
+        "duplicate": r"duplicate|already exists|unique",
+        "reserved": r"reserved|forbidden|not allowed",
+        "reference": r"unknown|undefined|not found|invalid source|invalid target",
+        "format": r"format|pattern|invalid|malformed|must be|should be",
+    }
+    reason = next((name for name, pattern in categories.items() if re.search(pattern, text)), "unspecified")
+    if "pascalcase" in text:
+        reason = "PascalCase name required"
+    code = data.get("code")
+    if not isinstance(code, str) or not re.fullmatch(r"[A-Za-z_]{2,40}", code):
+        code = None
+    message = str(data.get("message") or "")[:500]
+    message = re.sub(r"https?://\S+|[A-Za-z]:\\\S+|(?:[0-9a-f]{8}-){1,}[0-9a-f-]+", "[redacted]", message, flags=re.I)
+    message = re.sub(r"['\"][^'\"]+['\"]", "[value]", message)
+    message = re.sub(r"(?i)\b(?:secret|token|authorization|api[_-]?key)[\w-]*\b", "[redacted]", message)
+    message = re.sub(r"[^A-Za-z0-9 .,():_\[\]/=-]", "", message)[:220]
+    return {"http_status": getattr(error, "status_code", None), "error_code": code,
+            "validation_fields": fields, "validation_message": reason,
+            "provider_message": message}
 
 
 # ============================================================
@@ -807,11 +851,16 @@ class GraphBuilderService:
 
             return
 
-        self.client.graph.set_ontology(
-            graph_ids=[graph_id],
-            entities=entity_types or None,
-            edges=edge_definitions or None,
-        )
+        try:
+            self.client.graph.set_ontology(
+                graph_ids=[graph_id],
+                entities=entity_types or None,
+                edges=edge_definitions or None,
+            )
+        except BadRequestError as error:
+            logger.warning("Zep ontology rejected graph_id=%s diagnostics=%s",
+                           graph_id, safe_zep_validation_details(error))
+            raise
 
         logger.info(
             "Ontología configurada correctamente. "

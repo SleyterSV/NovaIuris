@@ -1,15 +1,21 @@
 import unittest
+import re
 from copy import deepcopy
 from types import SimpleNamespace
+from unittest.mock import patch
 from zep_cloud.external_clients.ontology import entity_model_to_api_schema, edge_model_to_api_schema
 from zep_cloud.types import EntityType, EdgeType, EpisodeData
 
 from app.utils.novacourt_graph import (
     ENTITY_TYPES, NovaCourtGraphOrchestrator, provider_ontology,
+    validate_provider_ontology,
 )
 from app.services.novacourt_pipeline_service import humanize_court_references
 from app.services.novacourt_context import prepare_court_context
-from app.services.graph_builder import GraphBuilderService, GraphProcessingTimeoutError
+from app.services.graph_builder import (GraphBuilderService, GraphProcessingTimeoutError,
+                                        safe_zep_validation_details)
+from zep_cloud import BadRequestError
+from zep_cloud.types.api_error import ApiError
 
 
 def orchestrator(builder):
@@ -53,9 +59,76 @@ class CourtSmokeHotfixTests(unittest.TestCase):
         ontology = provider_ontology(nodes)
         self.assertEqual(len(ontology['entity_types']), 10)
         self.assertEqual(nodes, original)
+        self.assertTrue(all(re.fullmatch(r'[A-Z][a-z][A-Za-z0-9]*', item['name'])
+                            for item in ontology['entity_types']))
+        self.assertTrue(all(re.fullmatch(r'[A-Z]+(?:_[A-Z]+)*', item['name'])
+                            for item in ontology['edge_types']))
         self.assertTrue(all(pair['source'] in {item['name'] for item in ontology['entity_types']}
                             and pair['target'] in {item['name'] for item in ontology['entity_types']}
                             for edge in ontology['edge_types'] for pair in edge['source_targets']))
+
+    def test_provider_projection_is_deterministic_and_keeps_canonical_nodes(self):
+        nodes = [{'entity_type': kind, 'node_id': f'NODE-{index}'}
+                 for index, kind in enumerate(ENTITY_TYPES)]
+        before = deepcopy(nodes)
+        self.assertEqual(provider_ontology(nodes), provider_ontology(list(reversed(nodes))))
+        self.assertEqual(nodes, before)
+        self.assertLessEqual(len(provider_ontology(nodes)['edge_types']), 10)
+
+    def test_local_ontology_validation_rejects_limits_duplicates_orphans_and_fields(self):
+        base = {'entity_types': [{'name': 'Case'}, {'name': 'Fact'}],
+                'edge_types': [{'name': 'ASSERTS', 'source_targets':
+                                [{'source': 'Case', 'target': 'Fact'}]}]}
+        self.assertEqual(validate_provider_ontology(deepcopy(base)), base)
+        variants = [
+            ({'entity_types': [{'name': f'Type{i}'} for i in range(11)], 'edge_types': []},
+             'COURT_ONTOLOGY_ENTITY_LIMIT'),
+            ({**base, 'edge_types': [{'name': f'EDGE_{i}', 'source_targets':
+                                     [{'source': 'Case', 'target': 'Fact'}]} for i in range(11)]},
+             'COURT_ONTOLOGY_EDGE_LIMIT'),
+            ({**base, 'entity_types': [{'name': 'Case'}, {'name': 'Case'}]},
+             'COURT_ONTOLOGY_DUPLICATE_ENTITY'),
+            ({**base, 'edge_types': base['edge_types'] * 2},
+             'COURT_ONTOLOGY_DUPLICATE_EDGE'),
+            ({**base, 'edge_types': [{'name': 'ASSERTS', 'source_targets':
+                                     [{'source': 'Unknown', 'target': 'Fact'}]}]},
+             'COURT_ONTOLOGY_ORPHAN_TARGET'),
+            ({**base, 'edge_types': [{'name': 'ASSERTS', 'source_targets':
+                                     [{'source': 'Case', 'target': 'Unknown'}]}]},
+             'COURT_ONTOLOGY_ORPHAN_TARGET'),
+            ({**base, 'entity_types': [{'name': 'Case', 'attributes': [{'name': 'uuid'}]},
+                                      {'name': 'Fact'}]}, 'COURT_ONTOLOGY_RESERVED_FIELD'),
+            ({**base, 'entity_types': [{'name': 'Case', 'attributes':
+                                        [{'name': f'field_{i}'} for i in range(11)]},
+                                      {'name': 'Fact'}]}, 'COURT_ONTOLOGY_FIELD_LIMIT'),
+            ({**base, 'entity_types': [{'name': 'CASE'}, {'name': 'Fact'}]},
+             'COURT_ONTOLOGY_INVALID_NAME'),
+            ({**base, 'edge_types': [{'name': 'Asserts', 'source_targets':
+                                     [{'source': 'Case', 'target': 'Fact'}]}]},
+             'COURT_ONTOLOGY_INVALID_NAME'),
+        ]
+        for ontology, code in variants:
+            with self.subTest(code=code), self.assertRaisesRegex(ValueError, code):
+                validate_provider_ontology(ontology)
+
+    def test_invalid_projection_never_calls_provider(self):
+        builder = FakeBuilder()
+        with patch('app.utils.novacourt_graph.provider_ontology',
+                   side_effect=ValueError('COURT_ONTOLOGY_INVALID_NAME')):
+            graph = orchestrator(builder).build({'case_id': 'CASE-A',
+                'facts': [{'fact_id': 'FACT-1', 'text': 'Aviso', 'status': 'alleged'}]})
+        self.assertEqual(graph['status'], 'failed')
+        self.assertIsNone(graph['graph_id'])
+        self.assertIsNone(builder.ontology)
+
+    def test_zep_bad_request_diagnostics_never_include_raw_body(self):
+        error = BadRequestError(body=ApiError(message=(
+            'Invalid edge_types[0].source_targets[0].source: secret-private-case-text')),
+            headers={'Authorization': 'secret-key'})
+        details = safe_zep_validation_details(error)
+        self.assertEqual(details['http_status'], 400)
+        self.assertTrue(any(field.startswith('edge_types') for field in details['validation_fields']))
+        self.assertNotIn('secret', str(details))
 
     def test_installed_sdk_serializes_selected_ontology_and_episode(self):
         calls = []

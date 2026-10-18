@@ -36,24 +36,85 @@ LEGAL_ONTOLOGY = {
                    for name, pairs in _RELATION_PAIRS.items()],
 }
 PROVIDER_ENTITY_LIMIT = 10
+PROVIDER_EDGE_LIMIT = 10
+_RESERVED_ZEP_FIELDS = {"uuid", "name", "graph_id", "group_id", "name_embedding", "summary", "created_at"}
+_ZEP_ENTITY_NAME = re.compile(r"^[A-Z][a-z][A-Za-z0-9]*$")
+_ZEP_EDGE_NAME = re.compile(r"^[A-Z]+(?:_[A-Z]+)*$")
+PROVIDER_TYPE_BY_CANONICAL = {
+    "CASE": "Case", "PARTY": "Party", "CLAIM": "Argument",
+    "LEGAL_ISSUE": "LegalIssue", "FACT": "Fact", "EVIDENCE": "Evidence",
+    "LAW": "LegalSource", "JURISPRUDENCE": "LegalSource",
+    "ARGUMENT": "Argument", "COUNTERARGUMENT": "Argument",
+    "RISK": "Risk", "PROCEDURAL_ACT": "LegalIssue", "DOCUMENT": "Evidence",
+    "JUDGE_ANALYSIS": "JudgeAnalysis", "DECISION": "Decision",
+}
+PROVIDER_TYPE_ORDER = ("Case", "Party", "Fact", "Evidence", "LegalSource",
+                       "LegalIssue", "Argument", "Risk", "JudgeAnalysis", "Decision")
+PROVIDER_EDGE_BY_CANONICAL = {name: name for name in _RELATION_PAIRS}
+
+
+def validate_provider_ontology(ontology):
+    """Reject an invalid provider projection before creating a remote graph."""
+    entities = ontology.get("entity_types")
+    edges = ontology.get("edge_types")
+    if not isinstance(entities, list) or not isinstance(edges, list) or not entities:
+        raise ValueError("COURT_ONTOLOGY_INVALID_STRUCTURE")
+    if len(entities) > PROVIDER_ENTITY_LIMIT:
+        raise ValueError("COURT_ONTOLOGY_ENTITY_LIMIT")
+    if len(edges) > PROVIDER_EDGE_LIMIT:
+        raise ValueError("COURT_ONTOLOGY_EDGE_LIMIT")
+    entity_names = [item.get("name") for item in entities if isinstance(item, dict)]
+    edge_names = [item.get("name") for item in edges if isinstance(item, dict)]
+    if (len(entity_names) != len(entities) or len(edge_names) != len(edges)
+            or any(not isinstance(name, str) or not _ZEP_ENTITY_NAME.fullmatch(name)
+                   for name in entity_names)
+            or any(not isinstance(name, str) or not _ZEP_EDGE_NAME.fullmatch(name)
+                   for name in edge_names)):
+        raise ValueError("COURT_ONTOLOGY_INVALID_NAME")
+    if len(set(entity_names)) != len(entity_names):
+        raise ValueError("COURT_ONTOLOGY_DUPLICATE_ENTITY")
+    if len(set(edge_names)) != len(edge_names):
+        raise ValueError("COURT_ONTOLOGY_DUPLICATE_EDGE")
+    allowed = set(entity_names)
+    for item in entities + edges:
+        fields = item.get("attributes", [])
+        if not isinstance(fields, list) or len(fields) > 10:
+            raise ValueError("COURT_ONTOLOGY_FIELD_LIMIT")
+        if any(not isinstance(field, dict) or str(field.get("name", "")).lower() in _RESERVED_ZEP_FIELDS
+               for field in fields):
+            raise ValueError("COURT_ONTOLOGY_RESERVED_FIELD")
+    for edge in edges:
+        pairs = edge.get("source_targets")
+        if not isinstance(pairs, list) or not pairs or len(pairs) > 100:
+            raise ValueError("COURT_ONTOLOGY_PAIR_LIMIT")
+        if any(not isinstance(pair, dict) or pair.get("source") not in allowed
+               or pair.get("target") not in allowed for pair in pairs):
+            raise ValueError("COURT_ONTOLOGY_ORPHAN_TARGET")
+    return ontology
 
 
 def provider_ontology(entities):
-    """Keep Zep's per-graph ontology within its ten custom entity types.
-
-    The canonical Court nodes retain their full taxonomy; this only selects
-    extraction hints for the provider from types actually present in the case.
-    """
+    """Project canonical Court types to stable Zep PascalCase extraction hints."""
     present = {item.get("entity_type") for item in entities}
-    selected = set([name for name in ENTITY_TYPES if name in present][:PROVIDER_ENTITY_LIMIT])
-    return {
-        "entity_types": [item for item in LEGAL_ONTOLOGY["entity_types"] if item["name"] in selected],
-        "edge_types": [{**item, "source_targets": [pair for pair in item["source_targets"]
-                        if pair["source"] in selected and pair["target"] in selected]}
-                       for item in LEGAL_ONTOLOGY["edge_types"]
-                       if any(pair["source"] in selected and pair["target"] in selected
-                              for pair in item["source_targets"])],
-    }
+    selected = {PROVIDER_TYPE_BY_CANONICAL[kind] for kind in present
+                if kind in PROVIDER_TYPE_BY_CANONICAL}
+    entity_types = [{"name": name, "description": f"Elemento jurídico {name}."}
+                    for name in PROVIDER_TYPE_ORDER if name in selected]
+    edge_types = []
+    for relation, pairs in _RELATION_PAIRS.items():
+        projected = []
+        for source, target in pairs:
+            if source not in present or target not in present:
+                continue
+            pair = {"source": PROVIDER_TYPE_BY_CANONICAL[source],
+                    "target": PROVIDER_TYPE_BY_CANONICAL[target]}
+            if pair not in projected:
+                projected.append(pair)
+        if projected:
+            edge_types.append({"name": PROVIDER_EDGE_BY_CANONICAL[relation],
+                               "description": relation.replace("_", " ").title(),
+                               "source_targets": projected})
+    return validate_provider_ontology({"entity_types": entity_types, "edge_types": edge_types})
 LEGACY_TYPES = {"Parte": "PARTY", "Hecho": "FACT", "Pretension": "CLAIM",
                 "Pretensión": "CLAIM", "Norma": "LAW", "Argumento": "ARGUMENT",
                 "Evidencia": "EVIDENCE", "Riesgo": "RISK",
@@ -354,6 +415,7 @@ class NovaCourtGraphOrchestrator:
             if len(contract["entities"]) <= 1:
                 return graph_result("not_requested", case_id=case_id)
             entities, relations = contract["entities"], contract["relations"]
+            ontology = provider_ontology(entities)
             snapshot = graph_result("building", case_id=case_id, version=1,
                                     stage="core_entities", nodes=entities, edges=relations)
             if snapshot_callback:
@@ -366,9 +428,14 @@ class NovaCourtGraphOrchestrator:
             operation_count += 1
             token.check()
             stage = "set_ontology"
-            ontology = provider_ontology(entities)
-            logger.info("NovaCourt graph ontology graph_id=%s entity_types=%s edge_types=%s",
-                        graph_id, len(ontology["entity_types"]), len(ontology["edge_types"]))
+            logger.info("NovaCourt graph ontology graph_id=%s entity_count=%s entity_names=%s edge_count=%s edge_names=%s pairs=%s",
+                        graph_id, len(ontology["entity_types"]),
+                        [item["name"] for item in ontology["entity_types"]],
+                        len(ontology["edge_types"]),
+                        [item["name"] for item in ontology["edge_types"]],
+                        [(item["name"], len(item["source_targets"]),
+                          [(pair["source"], pair["target"]) for pair in item["source_targets"]])
+                         for item in ontology["edge_types"]])
             builder.set_ontology(graph_id, ontology)
             operation_count += 1
             stage = "prepare_episodes"
