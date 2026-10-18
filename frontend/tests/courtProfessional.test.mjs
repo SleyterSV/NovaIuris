@@ -88,6 +88,9 @@ test('Court panels show adaptive roles, simulated decision, grounded sources and
     assert.doesNotMatch(ready,/Fiscalía|probabilidad|Proyección orientativa|SRC-CASE001/)
     const decision = await renderToString(createSSRApp({render:()=>h(component,{simulation,caseId:'CASE-A',mode:'decision'})}))
     assert.match(decision,/Decisión simulada/)
+    assert.doesNotMatch(decision, /<h3[^>]*>Decisión simulada<\/h3>/)
+    assert.match(decision,/SIMULACIÓN JURÍDICA/)
+    assert.match(decision,/No constituye una resolución judicial real/)
     assert.doesNotMatch(decision,/Parte demandante|Parte demandada/)
     const failed = await renderToString(createSSRApp({render:()=>h(component,{simulation:{status:'failed'}})}))
     assert.match(failed,/Simulación no disponible/)
@@ -100,6 +103,16 @@ test('Court panels show adaptive roles, simulated decision, grounded sources and
     assert.match(reportHtml,/Contrato/)
     assert.doesNotMatch(reportHtml,/SRC-CASE001/)
   } finally { await server.close() }
+})
+
+test('Court tabs keep the last section reachable without widening the page', async () => {
+  const source = await readFile(new URL('../src/components/novacourt/NovaCourtTabs.vue', import.meta.url), 'utf8')
+  assert.match(source, /overflow-x:\s*auto/)
+  assert.match(source, /flex-wrap:\s*nowrap/)
+  assert.match(source, /max-width:\s*100%/)
+  assert.match(source, /scrollIntoView/)
+  assert.match(source, /id:\s*"graph"/)
+  assert.match(source, /@keydown\.right\.prevent/)
 })
 
 test('Court view keeps simulation separate from strategy and has no fake role progress', async () => {

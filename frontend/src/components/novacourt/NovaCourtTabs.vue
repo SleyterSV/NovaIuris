@@ -13,6 +13,7 @@
 
             <div
                 class="tabs-nav"
+                ref="tabStrip"
                 role="tablist"
                 aria-label="Secciones del análisis"
             >
@@ -20,6 +21,7 @@
                 <button
                     v-for="tab in tabs"
                     :key="tab.id"
+                    :id="`tab-${tab.id}`"
                     type="button"
                     class="tab-button"
                     :class="{
@@ -32,6 +34,7 @@
                     @click="selectTab(tab.id)"
                     @keydown.right.prevent="focusNextTab(tab.id)"
                     @keydown.left.prevent="focusPreviousTab(tab.id)"
+                    @wheel="scrollTabs"
                 >
 
                     <span
@@ -90,10 +93,23 @@
 
 <script setup>
 
-import {
-    ref,
-    watch
-} from "vue"
+import { ref, watch, nextTick } from "vue"
+
+const tabStrip = ref(null)
+
+function scrollTabs(event) {
+    if (event.deltaY && !event.deltaX && tabStrip.value?.scrollWidth > tabStrip.value?.clientWidth) {
+        tabStrip.value.scrollLeft += event.deltaY
+        event.preventDefault()
+    }
+}
+
+async function revealActiveTab(value) {
+    await nextTick()
+    tabStrip.value?.querySelector(`#tab-${value}`)?.scrollIntoView?.({
+        block: 'nearest', inline: 'nearest', behavior: 'smooth'
+    })
+}
 
 
 /* =========================================
@@ -361,6 +377,8 @@ watch(
 
     value => {
 
+        revealActiveTab(value)
+
         emit(
 
             "change",
@@ -434,6 +452,7 @@ watch(
 .novacourt-tabs {
 
     width: 100%;
+    min-width: 0;
 
     margin-top: 34px;
 
@@ -449,6 +468,8 @@ watch(
     position: relative;
 
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
 
     background:
         linear-gradient(
@@ -510,20 +531,21 @@ watch(
     align-items: stretch;
 
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: nowrap;
+    overscroll-behavior-inline: contain;
 
     overflow-x: auto;
 
-    scrollbar-width: none;
+    scrollbar-width: thin;
 
     -webkit-overflow-scrolling: touch;
 
 }
 
-.tabs-nav::-webkit-scrollbar {
-
-    display: none;
-
-}
+.tabs-nav::-webkit-scrollbar { height: 5px; }
+.tabs-nav::-webkit-scrollbar-thumb { background: #C9D4DF; border-radius: 4px; }
 
 
 /* =====================================================

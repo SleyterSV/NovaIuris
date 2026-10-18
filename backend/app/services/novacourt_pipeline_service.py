@@ -26,6 +26,38 @@ CASE_STAGES = (("intake", "Recepción"), ("documents", "Corpus documental del ca
 COURT_STAGES = (("graph_build", "Grafo jurídico"), ("simulation", "Simulación argumentativa"),
                 ("court_citations", "Verificación de citas"))
 
+_COURT_REFERENCE = re.compile(r"(?<![\[A-Za-z0-9_-])(FACT-[A-Za-z0-9_-]{3,80}|SRC-[A-Za-z0-9_-]{6,80})(?![A-Za-z0-9_-])")
+
+
+def humanize_court_references(content, facts, sources):
+    """Render provider identifiers through authorized facts and source markers."""
+    fact_map = {item["fact_id"]: item for item in facts or []
+                if isinstance(item, dict) and item.get("fact_id") and item.get("text")}
+    source_ids = {item["source_id"] for item in sources or []
+                  if isinstance(item, dict) and item.get("source_id")}
+
+    def replace(match):
+        identity = match.group(1)
+        if identity.startswith("SRC-"):
+            # The citation resolver records a safe warning and removes unknown
+            # markers; do not suppress its provenance diagnostics here.
+            return f"[{identity}]"
+        fact = fact_map.get(identity)
+        if not fact:
+            return "hecho no verificable"
+        label = str(fact["text"]).strip()
+        if fact.get("status") not in {"supported", "accredited"}:
+            return f"alegación: «{label}»"
+        evidence = next((sid for sid in fact.get("source_ids", []) if sid in source_ids and
+                         any(source.get("source_id") == sid and source.get("source_scope") == "private_case"
+                             for source in sources)), None)
+        return f"«{label}»" + (f" [{evidence}]" if evidence else "")
+
+    value = str(content or "")
+    value = re.sub(r"\[((?:(?:FACT|SRC)-[A-Za-z0-9_-]+\s*,?\s*)+)\]",
+                   lambda match: "; ".join(replace(item) for item in _COURT_REFERENCE.finditer(match.group(1))), value)
+    return _COURT_REFERENCE.sub(replace, value)
+
 class NovaCourtPipelineService:
     def __init__(self, case_service, graph_service, simulation_service, task_manager=None, legal_repository=None):
         self.case_service = case_service
@@ -225,7 +257,9 @@ class NovaCourtPipelineService:
                             status = value["status"]
                             if status in {"failed", "timeout"}:
                                 warnings.append({"stage": stage, "code": status,
-                                                 "message": "Esta etapa no pudo finalizar."})
+                                                 "message": ("Grafo jurídico no disponible. La simulación argumentativa puede continuar."
+                                                             if stage == "graph_build" else
+                                                             "Simulación argumentativa no disponible. El análisis y el grafo pueden continuar.")})
                             partial[field] = deepcopy(value)
                             update(stage, "completed" if status in {"ready", "empty"} else
                                    "skipped" if status == "not_requested" else "failed")
@@ -252,6 +286,9 @@ class NovaCourtPipelineService:
                         simulation["case_id"] = case_id
                         result["simulation"] = simulation
                 if simulation["status"] == "ready":
+                    for section in sections:
+                        simulation[section]["content"] = humanize_court_references(
+                            simulation[section]["content"], result.get("facts"), result.get("sources"))
                     markers = {section: set(re.findall(r"\[(SRC-[A-Za-z0-9_-]{6,80})\]",
                         simulation.get(section, {}).get("content", ""))) for section in sections}
                     joined = separator.join(simulation.get(section, {}).get("content", "") for section in sections)

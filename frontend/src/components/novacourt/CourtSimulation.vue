@@ -1,12 +1,12 @@
 <template>
 <section class="court-simulation">
-  <h2>Simulación jurídica</h2>
+  <h2>{{ mode === 'decision' ? 'Decisión simulada' : 'Simulación jurídica' }}</h2>
   <p v-if="simulation.status !== 'ready'" role="status">{{ simulation.message || 'Simulación no disponible. El análisis del caso permanece disponible.' }}</p>
   <template v-else>
     <p v-if="mode === 'decision' && !participants.length" role="status">Decisión simulada no disponible.</p>
-    <p>Esta simulación argumentativa se prepara para revisión profesional; no predice una resolución real.</p>
+    <p><strong>SIMULACIÓN JURÍDICA</strong> · No constituye una resolución judicial real.</p>
     <section v-for="participant in participants" :key="participant.title">
-      <h3>{{ participant.title }}</h3>
+      <h3 v-if="mode !== 'decision'">{{ participant.title }}</h3>
       <MarkdownRenderer :content="participant.content" :citations="participant.citations"
         :sources="visibleSources" :case-id="caseId" @select-citation="openCitation" />
     </section>

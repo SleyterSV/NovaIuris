@@ -35,6 +35,25 @@ LEGAL_ONTOLOGY = {
                     "source_targets": [{"source": src, "target": dst} for src, dst in pairs]}
                    for name, pairs in _RELATION_PAIRS.items()],
 }
+PROVIDER_ENTITY_LIMIT = 10
+
+
+def provider_ontology(entities):
+    """Keep Zep's per-graph ontology within its ten custom entity types.
+
+    The canonical Court nodes retain their full taxonomy; this only selects
+    extraction hints for the provider from types actually present in the case.
+    """
+    present = {item.get("entity_type") for item in entities}
+    selected = set([name for name in ENTITY_TYPES if name in present][:PROVIDER_ENTITY_LIMIT])
+    return {
+        "entity_types": [item for item in LEGAL_ONTOLOGY["entity_types"] if item["name"] in selected],
+        "edge_types": [{**item, "source_targets": [pair for pair in item["source_targets"]
+                        if pair["source"] in selected and pair["target"] in selected]}
+                       for item in LEGAL_ONTOLOGY["edge_types"]
+                       if any(pair["source"] in selected and pair["target"] in selected
+                              for pair in item["source_targets"])],
+    }
 LEGACY_TYPES = {"Parte": "PARTY", "Hecho": "FACT", "Pretension": "CLAIM",
                 "Pretensión": "CLAIM", "Norma": "LAW", "Argumento": "ARGUMENT",
                 "Evidencia": "EVIDENCE", "Riesgo": "RISK",
@@ -346,9 +365,13 @@ class NovaCourtGraphOrchestrator:
             graph_id = builder.create_graph("NovaCourt Legal Analysis")
             operation_count += 1
             token.check()
-            stage = "prepare_episodes"
-            builder.set_ontology(graph_id, LEGAL_ONTOLOGY)
+            stage = "set_ontology"
+            ontology = provider_ontology(entities)
+            logger.info("NovaCourt graph ontology graph_id=%s entity_types=%s edge_types=%s",
+                        graph_id, len(ontology["entity_types"]), len(ontology["edge_types"]))
+            builder.set_ontology(graph_id, ontology)
             operation_count += 1
+            stage = "prepare_episodes"
             records = [{"entity_type": n["entity_type"], "node_id": n["node_id"],
                         "title": n["title"], "source_ids": n["source_ids"]} for n in entities]
             records += [{"relation_type": e["relation_type"],
@@ -357,6 +380,11 @@ class NovaCourtGraphOrchestrator:
                          "source_ids": e["source_ids"]} for e in relations]
             episodes = [json.dumps(item, ensure_ascii=False, separators=(",", ":"))
                         for item in records]
+            if not episodes or any(not item.strip() or len(item) > 10000 for item in episodes):
+                raise ValueError("Invalid graph episodes")
+            logger.info("NovaCourt graph episodes graph_id=%s count=%s batches=%s max_characters=%s",
+                        graph_id, len(episodes), (len(episodes) + self.batch_size - 1) // self.batch_size,
+                        max(map(len, episodes)))
             batch_count = (len(episodes) + self.batch_size - 1) // self.batch_size
             input_characters = sum(map(len, episodes))
             token.check()
