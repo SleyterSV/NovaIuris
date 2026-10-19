@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CaseDocumentUpload from '@/components/common/CaseDocumentUpload.vue'
 import ToolDetailModal from '@/components/common/ToolDetailModal.vue'
@@ -8,6 +8,7 @@ import { canAttachDocumentsToCase } from '@/utils/novacasePresentation.js'
 import { authRequired, authState, signIn, signOut, startAuth } from '@/config/supabaseSession.js'
 import { requestJson } from '@/services/taskService.js'
 import { appendTranscript, useVoiceInput } from '@/composables/useVoiceInput.js'
+import { createToolHoverController } from '@/utils/toolHover.js'
 
 const panels = {
   search:defineAsyncComponent(() => import('./NovaSearchView.vue')),
@@ -47,7 +48,11 @@ const draft = ref(typeof route.query.q === 'string' ? route.query.q.slice(0,1000
 const composer = ref(null), uploader = ref(null), mobileMenu = ref(false)
 const selectedDocuments = ref([]), error = ref(''), loginError = ref('')
 const email = ref(''), password = ref(''), loginBusy = ref(false)
-const menuOpen = ref(false), selectorOpen = ref(false), infoTool = ref(null), detailTool = ref(null)
+const menuOpen = ref(false), selectorOpen = ref(false), detailTool = ref(null)
+const hover = createToolHoverController()
+const infoTool = hover.active
+const hoverCard = ref(null)
+const toolAnchors = {}
 const running = ref({ search:false, case:false, court:false })
 const activeTool = computed(() => workspace.value.activeTool)
 const activeMeta = computed(() => tools[activeTool.value] || null)
@@ -60,11 +65,30 @@ const voice = useVoiceInput(text => {
   draft.value = appendTranscript(draft.value, text)
   nextTick(() => composer.value?.focus())
 })
-function onToolLeave(event) {
-  if (!event.currentTarget.contains(event.relatedTarget)) infoTool.value = null
+function openToolCard(key, event) {
+  hover.open(key, event.currentTarget)
 }
 function onDiscoveryKeydown(event) {
-  if (event.key === 'Escape') { infoTool.value = null; selectorOpen.value = false }
+  if (event.key === 'Escape') { hover.close(); selectorOpen.value = false }
+  if (event.key === 'Tab' && !event.shiftKey && event.target.classList?.contains('tool-card') && infoTool.value) {
+    event.preventDefault()
+    void nextTick(() => hoverCard.value?.querySelector('.mini-learn')?.focus())
+  }
+}
+function onHoverCardKeydown(event) {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    const trigger = toolAnchors[infoTool.value]?.querySelector('.tool-card')
+    hover.close()
+    trigger?.focus()
+  } else if (event.key === 'Tab' && event.shiftKey && event.target.classList?.contains('mini-learn')) {
+    event.preventDefault()
+    toolAnchors[infoTool.value]?.querySelector('.tool-card')?.focus()
+  }
+}
+function openToolDetail() {
+  detailTool.value = infoTool.value
+  hover.close()
 }
 function autoGrow(event) {
   const element = event.target
@@ -74,6 +98,18 @@ function autoGrow(event) {
 
 watch(() => route.query.tool, value => { workspace.value.activeTool = normalizeTool(value) })
 watch(() => authState.user, (user, previous) => { if (previous && !user) newConversation() })
+watch(hoverCard, element => hover.setCard(element), { flush:'post' })
+watch(infoTool, value => {
+  if (typeof window === 'undefined') return
+  const action = value ? 'addEventListener' : 'removeEventListener'
+  window[action]('resize', hover.refreshPosition)
+  window[action]('scroll', hover.refreshPosition, true)
+})
+onUnmounted(() => {
+  hover.dispose()
+  window.removeEventListener('resize', hover.refreshPosition)
+  window.removeEventListener('scroll', hover.refreshPosition, true)
+})
 onMounted(async () => {
   await startAuth()
   const caseId = route.query.case_id, taskId = route.query.task_id
@@ -106,7 +142,8 @@ onMounted(async () => {
 function selectTool(value, reveal = true) {
   const tool = normalizeTool(value)
   workspace.value.activeTool = tool
-  infoTool.value = reveal ? tool : null
+  if (reveal && tool && toolAnchors[tool]) hover.open(tool, toolAnchors[tool])
+  else hover.close()
   selectorOpen.value = false
   mobileMenu.value = false
   error.value = ''
@@ -119,7 +156,7 @@ function newConversation() {
   draft.value = ''
   error.value = ''
   running.value = { search:false, case:false, court:false }
-  infoTool.value = null
+  hover.close()
   detailTool.value = null
   selectTool(null, false)
 }
@@ -220,11 +257,10 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
       <button class="new-chat" type="button" @click="newConversation"><span aria-hidden="true">＋</span> Nuevo chat</button>
       <p class="side-label">HERRAMIENTAS</p>
       <nav class="tool-nav" aria-label="Herramientas de MYKE">
-        <div v-for="(item,key) in tools" :key="key" class="tool-wrap" @mouseenter="infoTool = key" @mouseleave="onToolLeave" @focusin="infoTool = key" @focusout="onToolLeave" @keydown="onDiscoveryKeydown">
+        <div v-for="(item,key) in tools" :key="key" :ref="element => { if (element) toolAnchors[key] = element }" class="tool-wrap" @pointerenter="openToolCard(key,$event)" @pointerleave="hover.scheduleClose()" @focusin="openToolCard(key,$event)" @focusout="hover.scheduleClose()" @keydown="onDiscoveryKeydown">
           <button class="tool-card" :class="{ active:activeTool === key }" type="button" :aria-pressed="activeTool === key" :aria-describedby="infoTool === key ? `tool-info-${key}` : undefined" @click="selectTool(key)">
             <span class="tool-icon" aria-hidden="true">{{ key === 'search' ? '⌕' : key === 'case' ? '▤' : '⚖' }}</span><span class="tool-copy"><strong>{{ item.name }}</strong><small>{{ item.description }}</small></span><span aria-hidden="true">›</span>
           </button>
-          <div v-if="infoTool === key" :id="`tool-info-${key}`" class="mini-card"><p class="mini-category">{{ item.category }}</p><strong>{{ item.name }}</strong><p>{{ item.short }}</p><p class="mini-purpose">{{ item.purpose }}</p><button type="button" @click="detailTool = key">Conocer más <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.1 0l3-3A5 5 0 0 0 13 2l-1.7 1.7M14 11a5 5 0 0 0-7.1 0l-3 3A5 5 0 0 0 11 22l1.7-1.7"/></svg></button><button class="mini-close" type="button" :aria-label="`Ocultar información de ${item.name}`" @click="infoTool = null">×</button></div>
         </div>
       </nav>
       <section class="history"><h2>Chats recientes</h2><p>Sin conversaciones recientes</p></section>
@@ -252,6 +288,13 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
         <div class="watermark" aria-hidden="true">⚖</div>
       </main>
     </div>
+    <Teleport to="body">
+      <div v-if="infoTool && tools[infoTool]" :id="`tool-info-${infoTool}`" ref="hoverCard" class="mini-card" :style="{ left:`${hover.position.value.left}px`, top:`${hover.position.value.top}px` }" @pointerenter="hover.enterCard()" @pointerleave="hover.scheduleClose()" @focusin="hover.enterCard()" @focusout="hover.scheduleClose()" @keydown="onHoverCardKeydown">
+        <p class="mini-category">{{ tools[infoTool].category }}</p><strong>{{ tools[infoTool].name }}</strong><p>{{ tools[infoTool].short }}</p><p class="mini-purpose">{{ tools[infoTool].purpose }}</p>
+        <button class="mini-learn" type="button" @click="openToolDetail">Conocer más <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.1 0l3-3A5 5 0 0 0 13 2l-1.7 1.7M14 11a5 5 0 0 0-7.1 0l-3 3A5 5 0 0 0 11 22l1.7-1.7"/></svg></button>
+        <button class="mini-close" type="button" :aria-label="`Ocultar información de ${tools[infoTool].name}`" @click="hover.close()">×</button>
+      </div>
+    </Teleport>
     <ToolDetailModal v-if="detailTool && detailTool !== 'account'" :tool="tools[detailTool]" @close="detailTool = null" @use="selectTool(detailTool,false); detailTool = null" />
     <div v-if="detailTool === 'account'" class="account-backdrop" @click.self="detailTool = null"><section class="account-dialog" role="dialog" aria-modal="true" aria-labelledby="account-title"><button type="button" aria-label="Cerrar" @click="detailTool = null">×</button><h2 id="account-title">Mi cuenta</h2><p>{{ userName }}</p><p>{{ authState.user?.email }}</p></section></div>
   </div>
@@ -263,10 +306,10 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
 .sidebar{flex-basis:310px;padding:32px 21px;background:radial-gradient(circle at 90% 0%,#1c3856 0%,transparent 42%),linear-gradient(165deg,#142f4d,#0c213a 88%)}
 .brand{padding-bottom:32px}.new-chat{padding:15px 17px;border-radius:11px;box-shadow:0 7px 20px #06182a26;transition:background .18s,transform .18s}.new-chat:hover{background:white;transform:translateY(-1px)}
 .tool-wrap{position:relative}.tool-card{min-height:68px;transition:background .18s,border-color .18s}.tool-card:hover,.tool-card:focus-visible,.tool-card.active{background:var(--myke-navy-soft);border-color:#8d826b}.mini-card button svg{vertical-align:middle;margin-left:4px}.notification-icon{display:grid;place-items:center;color:#53677a}
-.mini-card{position:absolute;z-index:30;left:calc(100% + 15px);top:0;width:320px;margin:0;padding:20px 22px;background:#fffdf9;border:1px solid #e0d2bb;border-left:3px solid var(--myke-gold);border-radius:12px;color:#17324f;box-shadow:var(--myke-shadow);font-size:13px;animation:discover .18s ease-out}.mini-card p{margin:8px 0}.mini-card strong{font:normal 22px Georgia,serif}.mini-card .mini-category{color:#96754c}.mini-purpose{color:#66788c}.mini-card button:not(.mini-close){font-weight:700;color:#275780}.mini-card .mini-close{color:#52657b}@keyframes discover{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:translateX(0)}}
+.mini-card{position:fixed;z-index:120;width:min(320px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow-y:auto;margin:0;padding:20px 22px;background:#fffdf9;border:1px solid #e0d2bb;border-left:3px solid var(--myke-gold,#b89a68);border-radius:12px;color:#17324f;box-shadow:var(--myke-shadow,0 18px 45px #142e4d16);font-size:13px;animation:discover .18s ease-out}.mini-card p{margin:8px 0}.mini-card strong{font:normal 22px Georgia,serif}.mini-card .mini-category{color:#96754c}.mini-purpose{color:#66788c}.mini-card button:not(.mini-close){font-weight:700;color:#275780}.mini-card .mini-close{color:#52657b}@keyframes discover{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:translateX(0)}}
 .workspace{background:radial-gradient(circle at 50% 24%,#fffdfb 0%,transparent 55%)}.home{padding-top:12px}.kicker{display:flex;align-items:center;justify-content:center;gap:16px}.kicker::before,.kicker::after{content:'';display:block;width:48px;height:1px;background:#c9b997}.home h1{margin-top:26px}.intro{font-size:15px}.composer-region{margin-top:44px}.composer{border-radius:18px;box-shadow:var(--myke-shadow);padding:21px 23px 13px}.composer textarea{min-height:84px;max-height:220px;resize:none;overflow-y:auto}.composer:focus-within{border-color:#bba77f}.send{background:#23567f;border-radius:10px;transition:background .18s}.send:not(:disabled):hover{background:#173d61}.mic{display:grid;place-items:center;width:37px;height:37px;border-radius:10px;font-size:19px}.mic:hover{background:#f0f4f7}.mic.recording{color:#aa4339;background:#fbecea}.voice-timer{font-size:12px;color:#92423c;font-weight:700;font-variant-numeric:tabular-nums}.voice-message{font-size:12px;color:#42684d;margin:10px 5px}
 .quick-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:28px}.quick-actions button{display:flex;align-items:flex-start;gap:12px;min-width:0;min-height:106px;padding:18px;text-align:left;border-radius:12px;box-shadow:0 8px 23px #142e4d09;transition:transform .18s,border-color .18s,box-shadow .18s}.quick-actions button:hover{transform:translateY(-2px);border-color:#c9b997;box-shadow:0 14px 28px #142e4d13}.quick-icon{font-size:22px;color:#a27f4e}.quick-copy{flex:1}.quick-copy strong,.quick-copy small{display:block}.quick-copy strong{font-size:12px;text-transform:uppercase;letter-spacing:.05em}.quick-copy small{margin-top:9px;color:#69798a;font-size:11px;line-height:1.5}.quick-actions button .quick-arrow{margin:0;color:#a27f4e}.home-quote{margin-top:54px}
 @media(max-width:1280px){.sidebar{flex-basis:274px}.workspace{padding-left:24px;padding-right:24px}.quick-actions button{padding:14px;gap:8px}}
-@media(max-width:900px){.sidebar{position:fixed;z-index:30;transform:translateX(-100%);width:285px;transition:transform .2s}.sidebar.open{transform:none}.mobile-menu{display:block;border:0;background:none;font-size:21px}.mobile-overlay{display:block;position:fixed;inset:0;z-index:29;border:0;background:#0b1d2d88}.mini-card{position:static;width:auto;margin:4px 0 10px 16px}.quick-actions{grid-template-columns:1fr}.quick-actions button{min-height:75px}}
+@media(max-width:900px){.sidebar{position:fixed;z-index:30;transform:translateX(-100%);width:285px;transition:transform .2s}.sidebar.open{transform:none}.mobile-menu{display:block;border:0;background:none;font-size:21px}.mobile-overlay{display:block;position:fixed;inset:0;z-index:29;border:0;background:#0b1d2d88}.quick-actions{grid-template-columns:1fr}.quick-actions button{min-height:75px}}
 @media(max-width:550px){.workspace{padding:38px 16px 28px}.topbar{padding:0 15px}.topbar-copy{font-size:8px}.composer{padding:14px}.selector>button{font-size:11px;padding:7px}.home h1{font-size:40px}.subtitle{font-size:19px}.quick-actions button{min-height:70px}.home-quote{margin-top:36px}}
 </style>

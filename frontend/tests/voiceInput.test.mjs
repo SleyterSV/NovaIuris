@@ -53,10 +53,10 @@ test('voice permission denial is a public Spanish error', async () => {
 
 test('home discovery and voice controls are wired without exposing implementation IDs', async () => {
   const view = await readFile(new URL('../src/views/MikeView.vue',import.meta.url),'utf8')
-  assert.match(view,/@mouseenter="infoTool = key"/)
-  assert.match(view,/@focusin="infoTool = key"/)
+  assert.match(view,/@pointerenter="openToolCard\(key,\$event\)"/)
+  assert.match(view,/@focusin="openToolCard\(key,\$event\)"/)
   assert.match(view,/@keydown="onDiscoveryKeydown"/)
-  assert.match(view,/@click="detailTool = key"/)
+  assert.match(view,/@click="openToolDetail"/)
   assert.match(view,/voice\.state\.value === 'recording'/)
   assert.match(view,/voice\.stop\(\) : voice\.start\(\)/)
   assert.match(view,/Escribe tu consulta jurídica aquí/)

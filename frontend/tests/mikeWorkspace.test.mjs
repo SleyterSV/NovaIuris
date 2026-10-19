@@ -65,7 +65,7 @@ test('routes enter MYKE and turns retain embedded panels', async () => {
   assert.match(view,/workspace.value.activeTool = tool/)
   assert.match(view,/@click="selectTool\(key\)"/)
   assert.match(view,/@use="selectTool\(detailTool,false\); detailTool = null"/)
-  assert.match(view,/@click="detailTool = key"/)
+  assert.match(view,/@click="openToolDetail"/)
   assert.match(view,/aria-haspopup="listbox" :aria-expanded="selectorOpen"/)
   assert.match(view,/if \(!canSend.value\) return/)
 })
