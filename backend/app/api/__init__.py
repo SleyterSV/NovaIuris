@@ -16,3 +16,4 @@ from .export import export_bp
 from .search import search_bp
 from .case import case_bp
 from .documents import documents_bp
+from .voice import voice_bp

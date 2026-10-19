@@ -192,7 +192,8 @@ def create_app(config_class=Config):
         export_bp,
         search_bp,
         case_bp,
-        documents_bp
+        documents_bp,
+        voice_bp
     )
     app.register_blueprint(graph_bp, url_prefix='/api/graph')
     app.register_blueprint(simulation_bp, url_prefix='/api/simulation')
@@ -206,6 +207,7 @@ def create_app(config_class=Config):
         url_prefix='/api'
     )
     app.register_blueprint(documents_bp, url_prefix='/api')
+    app.register_blueprint(voice_bp, url_prefix='/api')
 
     # 健康检查
     @app.route('/health')
