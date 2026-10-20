@@ -54,7 +54,7 @@ const {
 } = useNovaSearch()
 
 const route = useRoute()
-const props = defineProps({ embedded: Boolean, request: { type: Object, default: null } })
+const props = defineProps({ embedded: Boolean, searchActive: { type: Boolean, default: true }, request: { type: Object, default: null } })
 const emit = defineEmits(['task-state', 'handoff-started'])
 const selectedHandoffSource = ref(null)
 const filtersOpen = ref(false)
@@ -195,11 +195,10 @@ function useSuggestion(value) {
         ====================================== -->
 
         <section class="novasearch-workspace">
-            <div class="filter-toolbar">
-                <button type="button" class="filter-toggle" :aria-expanded="filtersOpen" aria-controls="search-filter-panel" @click="filtersOpen = !filtersOpen">Filtros <span aria-hidden="true">⌄</span></button>
-                <span v-if="filters.modulo !== 'Todos' || filters.vigencia_explicit" class="filter-active">Filtros activos</span>
+            <div v-if="searchActive" class="filter-toolbar">
+                <button type="button" class="filter-toggle" :class="{ active: filters.modulo !== 'Todos' || filters.vigencia_explicit }" :aria-expanded="filtersOpen" aria-controls="search-filter-panel" @click="filtersOpen = !filtersOpen"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M7 12h10m-7 6h4"/><circle cx="8" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/></svg>Filtros <span v-if="filters.modulo !== 'Todos' || filters.vigencia_explicit" class="filter-dot" aria-label="Filtros activos"></span><span class="filter-chevron" aria-hidden="true">⌄</span></button>
             </div>
-            <div v-if="filtersOpen" id="search-filter-panel" class="filter-panel">
+            <div v-if="searchActive && filtersOpen" id="search-filter-panel" class="filter-panel">
                 <NovaSearchFilters :filters="filters" :modulos="modulosDisponibles" @update:filters="handleFiltersUpdate" />
             </div>
 
@@ -344,7 +343,7 @@ function useSuggestion(value) {
 
     width: 100%;
     box-sizing: border-box;
-    max-width: 1160px;
+    max-width: 1250px;
 
     margin: 0 auto;
 
@@ -367,7 +366,7 @@ function useSuggestion(value) {
 
     width: 100%;
     box-sizing: border-box;
-    max-width: 1160px;
+    max-width: 1250px;
 
     margin:
         28px auto 0;
@@ -386,10 +385,14 @@ function useSuggestion(value) {
    SIDEBAR
 ========================================= */
 
-.filter-toolbar { display:flex;align-items:center;gap:12px;margin:0 0 22px; }
-.filter-toggle { border:1px solid #d5dfe8;border-radius:6px;background:transparent;padding:8px 13px;color:#315c97;font-family:inherit;font-size:.78rem;font-weight:650;cursor:pointer; }
+.filter-toolbar { display:flex;align-items:center;gap:12px;margin:0 0 22px;padding-bottom:12px;border-bottom:1px solid #e2e8ed; }
+.filter-toggle { display:inline-flex;align-items:center;gap:8px;border:1px solid transparent;border-radius:7px;background:transparent;padding:8px 12px;color:#31516f;font-family:inherit;font-size:.8rem;font-weight:650;cursor:pointer;transition:background .18s,border-color .18s; }
+.filter-toggle:hover,.filter-toggle[aria-expanded="true"] { background:#eef3f6;border-color:#d8e2ea; }
+.filter-toggle.active { color:#17375e;border-color:#d8e2ea; }
+.filter-toggle svg { width:17px;height:17px;flex:none; }
+.filter-chevron { margin-left:2px;font-size:1rem;line-height:1; }
+.filter-dot { width:6px;height:6px;border-radius:50%;background:#b08a4c; }
 .filter-toggle:focus-visible { outline:2px solid #315c97;outline-offset:2px; }
-.filter-active { color:#7a6440;font-size:.73rem; }
 .filter-panel { width:min(340px,100%);margin-bottom:26px; }
 .filter-panel :deep(.search-filters) { box-shadow:none; }
 

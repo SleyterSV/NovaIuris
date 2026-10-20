@@ -41,7 +41,7 @@ const dateLabel = value => {
         <span v-if="isBindingPrecedent(row.result.precedente_vinculante)" class="precedent">Precedente vinculante</span>
       </div>
       <div class="row-excerpt"><p v-if="row.excerpt.primary">{{ row.excerpt.primary }}</p><details v-if="row.excerpt.secondary"><summary>Ver extracto relevante</summary><p>{{ row.excerpt.secondary }}</p></details></div>
-      <div class="row-actions"><button v-if="row.source" type="button" @click="selectedSource = row.source">Ver fuente</button><button v-if="publicUnitReference(row.result)" type="button" class="analyze-action" @click="emit('analyze-case', row.result)">Analizar en NovaCase</button></div>
+      <div class="row-actions"><button v-if="row.source" type="button" class="source-action" :aria-label="`Ver fuente: ${row.result.titulo || 'documento jurídico'}`" @click="selectedSource = row.source">Ver fuente <span aria-hidden="true">↗</span></button><button v-if="publicUnitReference(row.result)" type="button" class="analyze-action" @click="emit('analyze-case', row.result)">Analizar en NovaCase <span aria-hidden="true">→</span></button></div>
     </li></ol>
     <SourceModal :source="selectedSource" @close="selectedSource = null" />
   </section>
@@ -49,4 +49,15 @@ const dateLabel = value => {
 
 <style scoped>
 .search-results{border-top:1px solid #dce3e9;margin-top:58px;padding-top:38px;min-width:0}.search-results h2{font:500 clamp(1.6rem,2.4vw,2.1rem)/1.2 Georgia,serif;color:#17375e;margin:0 0 9px}.search-results header>p{margin:0;color:#667587;line-height:1.6}.result-list{list-style:none;margin:26px 0 0;padding:0}.result-row{display:grid;grid-template-columns:45px minmax(190px,1.1fr) minmax(220px,1.4fr) minmax(135px,.55fr);gap:20px;align-items:start;border-top:1px solid #dce3e9;padding:23px 0;min-width:0}.result-row:last-child{border-bottom:1px solid #dce3e9}.row-index{font:600 .9rem Georgia,serif;color:#9a7a42}.citation-number{color:#315c97}.document-type{font-size:.67rem;font-weight:750;letter-spacing:.1em;text-transform:uppercase;color:#9a7a42}.row-meta,.row-excerpt{min-width:0;overflow-wrap:anywhere}.row-meta h3{font:500 1.1rem/1.35 Georgia,serif;color:#17375e;margin:6px 0 10px}.row-meta p{margin:5px 0;color:#657485;font-size:.76rem;line-height:1.5}.precedent{display:inline-block;margin-top:8px;color:#836a39;font-size:.72rem;font-weight:700}.row-excerpt{border-left:1px solid #e1e7ed;padding-left:20px;color:#374a5e;font-size:.84rem;line-height:1.7}.row-excerpt p{margin:0}.row-excerpt details{margin-top:12px}.row-excerpt summary{color:#315c97;cursor:pointer}.row-excerpt details p{margin-top:8px}.row-actions{display:grid;gap:9px;justify-items:start}.row-actions button{padding:0;border:0;background:none;color:#315c97;font-family:inherit;font-size:.78rem;font-weight:650;text-align:left;cursor:pointer}.row-actions button:hover{text-decoration:underline}.row-actions button:focus-visible{outline:2px solid #315c97;outline-offset:3px}.analyze-action{white-space:normal}@media(max-width:900px){.result-row{grid-template-columns:35px minmax(0,1fr) minmax(0,1.3fr)}.row-actions{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:18px}}@media(max-width:650px){.result-row{grid-template-columns:35px minmax(0,1fr);gap:10px}.row-excerpt,.row-actions{grid-column:2;border:0;padding:0}.row-actions{display:flex}}
+.search-results header h2{display:flex;align-items:center;gap:10px}
+.search-results header h2::before{content:'§';display:inline-grid;place-items:center;width:27px;height:27px;border:1px solid #d7c7a6;border-radius:5px;color:#9a7a42;font:600 1rem Georgia,serif}
+.row-index{font-variant-numeric:tabular-nums}
+.row-actions{gap:11px}
+.row-actions button{min-height:30px;padding:4px 6px;border-radius:5px;text-decoration:none}
+.row-actions button:hover{background:#edf3f7;text-decoration:none}
+.row-actions .source-action{color:#4b6175}
+.row-actions .source-action span{margin-left:3px;color:#9a7a42}
+.row-actions .analyze-action{border:1px solid #d1deea;background:#f1f5f8;color:#214e74;padding:7px 10px}
+.row-actions .analyze-action:hover{background:#e6eef5;border-color:#b9ccda}
+.row-actions .analyze-action span{margin-left:4px}
 </style>
