@@ -49,4 +49,8 @@ function openCitation(citation) {
 .search-answer :deep(.sources-list h3::before){content:'§';display:inline-grid;place-items:center;width:25px;height:25px;border:1px solid #d7c7a6;border-radius:5px;color:#9a7a42;font:600 1rem Georgia,serif}
 .search-answer :deep(.source-citations){min-width:34px}
 .search-answer :deep(.source-entry){gap:13px;padding:13px 0}
+.context-strip{margin-bottom:40px;padding:14px 0}
+.section-heading h2{font-size:clamp(1.9rem,2.7vw,2.45rem)}
+.answer-body{margin:22px 0 26px}
+.search-answer :deep(.sources-list){margin-top:36px;padding-top:20px}
 </style>

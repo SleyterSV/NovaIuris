@@ -66,14 +66,17 @@ test('NovaCase resumes the exact task without creating a second analysis', async
   } finally { globalThis.fetch = original }
 })
 
-test('the selected legal result exposes a deliberate Case action and a compact destination dialog', async () => {
+test('relevant results expose canonical source detail without a Case CTA; handoff service and dialog remain available', async () => {
   const server = await createServer({ server:{ middlewareMode:true, hmr:false, port:0 },
     appType:'custom', logLevel:'error', optimizeDeps:{ noDiscovery:true, include:[] } })
   try {
     const Results = (await server.ssrLoadModule('/src/components/novasearch/NovaSearchResults.vue')).default
     const Dialog = (await server.ssrLoadModule('/src/components/novasearch/SearchCaseDialog.vue')).default
-    const html = await renderToString(createSSRApp({ render:() => h(Results, { results:[result], totalResults:1 }) }))
-    assert.match(html, /Analizar en NovaCase/)
+    const verifiedResult = { ...result, source: { source_id:'SRC-aaaaaaaaaaaaaaaaaaaaaaaa', source_scope:'public_legal',
+      provenance_version:'v2', document_id, unit_id, chunk_id:unit_id, title:'STC' } }
+    const html = await renderToString(createSSRApp({ render:() => h(Results, { results:[verifiedResult], totalResults:1 }) }))
+    assert.match(html, /Ver fuente/)
+    assert.doesNotMatch(html, /Analizar en NovaCase/)
     const noLocator = await renderToString(createSSRApp({ render:() => h(Results, { results:[{ title:'Legacy' }], totalResults:1 }) }))
     assert.doesNotMatch(noLocator, /Analizar en NovaCase/)
     const dialog = await renderToString(createSSRApp({ render:() => h(Dialog, { result }) }))

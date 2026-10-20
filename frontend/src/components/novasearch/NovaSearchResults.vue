@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import { legalTypeLabel, legalUnitLabel, cardExcerpt } from '@/utils/legalSearchPresentation.js'
 import { normalizeSource } from '@/utils/sourceContract.js'
 import { resultCitationNumber } from '@/utils/searchEditorial.js'
-import { publicUnitReference } from '@/services/searchCaseHandoff.js'
 import SourceModal from '@/components/common/SourceModal.vue'
 
 const props = defineProps({
@@ -11,7 +10,6 @@ const props = defineProps({
   sources: { type: Array, default: () => [] },
   citationPresentation: { type: Object, default: () => ({ sources: [], numberBySource: new Map() }) }
 })
-const emit = defineEmits(['analyze-case'])
 const selectedSource = ref(null)
 const rows = computed(() => props.results.map((result, index) => {
   const source = normalizeSource(result.source) || props.sources.find(item => item.document_id === result.document_id && item.unit_id === result.unit_id) || null
@@ -41,7 +39,7 @@ const dateLabel = value => {
         <span v-if="isBindingPrecedent(row.result.precedente_vinculante)" class="precedent">Precedente vinculante</span>
       </div>
       <div class="row-excerpt"><p v-if="row.excerpt.primary">{{ row.excerpt.primary }}</p><details v-if="row.excerpt.secondary"><summary>Ver extracto relevante</summary><p>{{ row.excerpt.secondary }}</p></details></div>
-      <div class="row-actions"><button v-if="row.source" type="button" class="source-action" :aria-label="`Ver fuente: ${row.result.titulo || 'documento jurídico'}`" @click="selectedSource = row.source">Ver fuente <span aria-hidden="true">↗</span></button><button v-if="publicUnitReference(row.result)" type="button" class="analyze-action" @click="emit('analyze-case', row.result)">Analizar en NovaCase <span aria-hidden="true">→</span></button></div>
+      <div class="row-actions"><button v-if="row.source" type="button" class="source-action" :aria-label="`Ver fuente: ${row.result.titulo || 'documento jurídico'}`" @click="selectedSource = row.source">Ver fuente <span aria-hidden="true">↗</span></button></div>
     </li></ol>
     <SourceModal :source="selectedSource" @close="selectedSource = null" />
   </section>
@@ -57,7 +55,9 @@ const dateLabel = value => {
 .row-actions button:hover{background:#edf3f7;text-decoration:none}
 .row-actions .source-action{color:#4b6175}
 .row-actions .source-action span{margin-left:3px;color:#9a7a42}
-.row-actions .analyze-action{border:1px solid #d1deea;background:#f1f5f8;color:#214e74;padding:7px 10px}
-.row-actions .analyze-action:hover{background:#e6eef5;border-color:#b9ccda}
-.row-actions .analyze-action span{margin-left:4px}
+.search-results{margin-top:44px;padding-top:30px}
+.result-list{margin-top:20px}
+.result-row{padding:18px 0;gap:18px}
+.row-actions .source-action{border-bottom:1px solid transparent;border-radius:0;padding:3px 1px}
+.row-actions .source-action:hover{background:transparent;border-bottom-color:#9a7a42}
 </style>

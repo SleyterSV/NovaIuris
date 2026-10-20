@@ -1,8 +1,10 @@
 <script setup>
-import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CaseDocumentUpload from '@/components/common/CaseDocumentUpload.vue'
 import ToolDetailModal from '@/components/common/ToolDetailModal.vue'
+import NovaSearchFilters from '@/components/novasearch/NovaSearchFilters.vue'
+import { defaultSearchFilters, legalAreas } from '@/utils/searchFilters.js'
 import { createWorkspace, createTurn, normalizeTool, caseReuseContext, applySearchCaseHandoff, courtTaskIdentity, taskIdentityQuery } from '@/utils/mikeWorkspace.js'
 import { canAttachDocumentsToCase } from '@/utils/novacasePresentation.js'
 import { authRequired, authState, signIn, signOut, startAuth } from '@/config/supabaseSession.js'
@@ -49,12 +51,15 @@ const composer = ref(null), uploader = ref(null), mobileMenu = ref(false)
 const selectedDocuments = ref([]), error = ref(''), loginError = ref('')
 const email = ref(''), password = ref(''), loginBusy = ref(false)
 const menuOpen = ref(false), selectorOpen = ref(false), detailTool = ref(null)
+const searchFiltersOpen = ref(false)
+const searchFilters = reactive(defaultSearchFilters())
 const hover = createToolHoverController()
 const infoTool = hover.active
 const hoverCard = ref(null)
 const toolAnchors = {}
 const running = ref({ search:false, case:false, court:false })
 const activeTool = computed(() => workspace.value.activeTool)
+watch(activeTool, tool => { if (tool !== 'search') searchFiltersOpen.value = false })
 const activeMeta = computed(() => tools[activeTool.value] || null)
 const placeholder = computed(() => ({ search:'¿Qué necesitas investigar?', case:'Describe el caso o adjunta documentos', court:'Describe el caso o reutiliza un análisis existente' })[activeTool.value] || 'Escribe tu consulta jurídica aquí…')
 const canSend = computed(() => !running.value[activeTool.value || 'search'] &&
@@ -153,6 +158,8 @@ function selectTool(value, reveal = true) {
 }
 function newConversation() {
   workspace.value = createWorkspace()
+  Object.assign(searchFilters, defaultSearchFilters())
+  searchFiltersOpen.value = false
   selectedDocuments.value = []
   draft.value = ''
   error.value = ''
@@ -270,16 +277,18 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
     <button v-if="mobileMenu" class="mobile-overlay" type="button" aria-label="Cerrar menú" @click="mobileMenu = false"></button>
     <div class="main-area">
       <header class="topbar"><button class="mobile-menu" type="button" aria-label="Abrir menú" @click="mobileMenu = true">☰</button><span class="topbar-copy">EL DERECHO, POTENCIADO POR IA</span><div class="top-actions"><button class="search-shortcut" type="button" aria-label="Seleccionar Buscar" @click="selectTool('search',false)">⌕</button><span class="notification-icon" role="img" aria-label="Notificaciones" title="Notificaciones"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></span><div class="account"><button type="button" aria-haspopup="menu" :aria-expanded="menuOpen" @click="menuOpen = !menuOpen"><span class="avatar">{{ initials || 'M' }}</span>⌄</button><div v-if="menuOpen" class="account-menu" role="menu"><div class="account-identity"><strong>{{ userName }}</strong><small>{{ authState.user?.email }}</small></div><button type="button" role="menuitem" @click="menuOpen = false; detailTool = 'account'">Mi cuenta</button><button type="button" role="menuitem" @click="openAbout">Acerca de MYKE</button><hr><button type="button" role="menuitem" @click="logout">Cerrar sesión</button></div></div></div></header>
-      <main class="workspace" :class="{ conversation:workspace.turns.length }">
+      <main class="workspace" :class="{ conversation:workspace.turns.length, 'search-workspace': activeTool === 'search' && workspace.turns.length }">
         <div v-if="!workspace.turns.length" class="home"><p class="kicker">LEGAL INTELLIGENCE</p><h1>Hola, soy <span>MYKE</span></h1><p class="subtitle">Tu asistente jurídico inteligente</p><p class="intro">Investiga el derecho, analiza expedientes y explora escenarios jurídicos desde un mismo entorno.</p></div>
         <section v-else class="thread" :class="{ 'search-thread': activeTool === 'search' }" aria-label="Conversación">
           <article v-for="turn in workspace.turns" :key="turn.id" class="turn" :class="turn.role">
             <div v-if="turn.role === 'user'" class="user-bubble"><p>{{ turn.text }}</p><small>{{ tools[turn.tool].label }}</small></div>
-            <div v-else class="assistant-turn"><p class="turn-label">MYKE · {{ tools[turn.tool].label }}</p><component :is="panels[turn.tool]" embedded :request="turn.request" v-bind="turn.tool === 'search' ? { searchActive: activeTool === 'search' } : {}" @task-state="onTaskState(turn,$event)" @case-completed="onCaseCompleted(turn,$event)" @handoff-started="onSearchHandoff" @reuse-case="reuseCase" @add-documents="addCaseDocuments(turn,$event)" /></div>
+            <div v-else class="assistant-turn"><p class="turn-label">MYKE · {{ tools[turn.tool].label }}</p><component :is="panels[turn.tool]" embedded :request="turn.request" v-bind="turn.tool === 'search' ? { searchFilters } : {}" @task-state="onTaskState(turn,$event)" @case-completed="onCaseCompleted(turn,$event)" @handoff-started="onSearchHandoff" @reuse-case="reuseCase" @add-documents="addCaseDocuments(turn,$event)" /></div>
           </article>
         </section>
         <div class="composer-region">
-          <form class="composer" @submit.prevent="submit"><textarea ref="composer" v-model="draft" rows="2" :placeholder="workspace.turns.length ? placeholder : 'Escribe tu consulta jurídica aquí...'" aria-label="Consulta jurídica" @input="autoGrow" @keydown="onComposerKeydown"></textarea><div class="composer-bottom"><button class="attach" type="button" :disabled="activeTool === 'search' || !activeTool" aria-label="Adjuntar documentos" title="Adjuntar documentos" @click="chooseFiles">＋</button><div class="selector"><button type="button" aria-haspopup="listbox" :aria-expanded="selectorOpen" @click="selectorOpen = !selectorOpen">{{ activeMeta?.label || 'Buscar' }} · {{ activeMeta?.name || 'NovaSearch' }} ▾</button><div v-if="selectorOpen" class="selector-menu" role="listbox" aria-label="Seleccionar herramienta"><button v-for="(item,key) in tools" :key="key" type="button" role="option" :aria-selected="activeTool === key" @click="selectTool(key,false)"><strong>{{ item.label }} · {{ item.name }}</strong><small>{{ item.description }}</small></button></div></div><span class="composer-spacer"></span><span v-if="voice.state.value === 'recording'" class="voice-timer" role="status">● {{ voice.elapsed.value }}</span><span v-if="voice.state.value === 'transcribing'" class="voice-timer" role="status">Transcribiendo...</span><button type="button" class="mic" :class="{ recording:voice.state.value === 'recording' }" :disabled="voice.state.value === 'transcribing' || voice.state.value === 'requesting_permission'" :aria-label="voice.state.value === 'recording' ? 'Detener grabación' : 'Grabar consulta por voz'" :title="voice.state.value === 'recording' ? 'Detener' : microphoneAvailable ? 'Grabar por voz' : 'Micrófono no disponible'" @click="voice.state.value === 'recording' ? voice.stop() : voice.start()"><span v-if="voice.state.value === 'recording'" class="mic-stop" aria-hidden="true"></span><svg v-else class="mic-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg></button><button class="send" type="submit" :disabled="!canSend" aria-label="Enviar consulta">➤</button></div></form>
+          <form class="composer" @submit.prevent="submit"><textarea ref="composer" v-model="draft" rows="2" :placeholder="workspace.turns.length ? placeholder : 'Escribe tu consulta jurídica aquí...'" aria-label="Consulta jurídica" @input="autoGrow" @keydown="onComposerKeydown"></textarea><div class="composer-bottom"><button class="attach" type="button" :disabled="activeTool === 'search' || !activeTool" aria-label="Adjuntar documentos" title="Adjuntar documentos" @click="chooseFiles">＋</button><div class="selector"><button type="button" aria-haspopup="listbox" :aria-expanded="selectorOpen" @click="selectorOpen = !selectorOpen">{{ activeMeta?.label || 'Buscar' }} · {{ activeMeta?.name || 'NovaSearch' }} ▾</button><div v-if="selectorOpen" class="selector-menu" role="listbox" aria-label="Seleccionar herramienta"><button v-for="(item,key) in tools" :key="key" type="button" role="option" :aria-selected="activeTool === key" @click="selectTool(key,false)"><strong>{{ item.label }} · {{ item.name }}</strong><small>{{ item.description }}</small></button></div></div>
+            <div v-if="activeTool === 'search'" class="composer-filters" @keydown.esc="searchFiltersOpen = false"><button type="button" class="composer-filter-toggle" :class="{ active: searchFilters.modulo !== 'Todos' || searchFilters.vigencia_explicit }" aria-controls="composer-search-filters" :aria-expanded="searchFiltersOpen" @click="searchFiltersOpen = !searchFiltersOpen"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M7 12h10m-7 6h4"/><circle cx="8" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/></svg>Filtros<span v-if="searchFilters.modulo !== 'Todos' || searchFilters.vigencia_explicit" class="filter-indicator" aria-label="Filtros activos"></span></button><div v-if="searchFiltersOpen" id="composer-search-filters" class="composer-filter-panel"><NovaSearchFilters :filters="searchFilters" :modulos="legalAreas" @update:filters="Object.assign(searchFilters, $event)" /></div></div>
+            <span class="composer-spacer"></span><span v-if="voice.state.value === 'recording'" class="voice-timer" role="status">● {{ voice.elapsed.value }}</span><span v-if="voice.state.value === 'transcribing'" class="voice-timer" role="status">Transcribiendo...</span><button type="button" class="mic" :class="{ recording:voice.state.value === 'recording' }" :disabled="voice.state.value === 'transcribing' || voice.state.value === 'requesting_permission'" :aria-label="voice.state.value === 'recording' ? 'Detener grabación' : 'Grabar consulta por voz'" :title="voice.state.value === 'recording' ? 'Detener' : microphoneAvailable ? 'Grabar por voz' : 'Micrófono no disponible'" @click="voice.state.value === 'recording' ? voice.stop() : voice.start()"><span v-if="voice.state.value === 'recording'" class="mic-stop" aria-hidden="true"></span><svg v-else class="mic-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg></button><button class="send" type="submit" :disabled="!canSend" aria-label="Enviar consulta">➤</button></div></form>
           <p v-if="voice.message.value || ['requesting_permission','transcribing'].includes(voice.state.value)" class="voice-message" :class="{ error:voice.state.value === 'error' }" aria-live="polite">{{ voice.state.value === 'requesting_permission' ? 'Solicitando acceso al micrófono...' : voice.state.value === 'transcribing' ? 'Transcribiendo...' : voice.message.value }}</p>
           <p v-if="error" class="error" role="alert">{{ error }}</p>
           <CaseDocumentUpload v-show="activeTool === 'case' || activeTool === 'court'" :key="workspace.id" ref="uploader" :case-id="workspace.caseId" :initial-document-ids="workspace.documentIds" :disabled="running.case || running.court" @update:document-ids="selectedDocuments = $event" />
@@ -328,4 +337,17 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
 @media(max-width:900px){.sidebar{width:280px}.workspace{padding:40px 22px 28px}.quick-actions{grid-template-columns:1fr}}
 @media(max-width:550px){.workspace{padding:38px 16px 28px}.topbar{padding:0 15px}.home h1{font-size:40px}.subtitle{font-size:19px}.composer{padding:14px}.quick-actions button{min-height:70px}}
 .thread.search-thread{max-width:min(1220px,100%)}
+.workspace.search-workspace{padding-top:40px}
+.search-workspace .composer-region{max-width:min(1120px,100%);margin-top:24px}
+.search-workspace .composer{padding:14px 18px 10px}
+.search-workspace .composer textarea{min-height:64px}
+.composer-filters{position:relative;flex:none}
+.composer-filter-toggle{display:inline-flex;align-items:center;gap:7px;min-height:33px;padding:6px 10px;border:1px solid #d5dee6;border-radius:7px;background:#f8fafb;color:#244762;font:650 11px Inter,system-ui,sans-serif;transition:background .18s,border-color .18s}
+.composer-filter-toggle svg{width:15px;height:15px;flex:none}
+.composer-filter-toggle:hover,.composer-filter-toggle[aria-expanded="true"]{background:#edf3f7;border-color:#b9cbd9}
+.composer-filter-toggle.active{color:#17375e;border-color:#b9cbd9}
+.composer-filter-toggle:focus-visible{outline:2px solid #b68a3a;outline-offset:2px}
+.filter-indicator{width:6px;height:6px;border-radius:50%;background:#b08a4c}
+.composer-filter-panel{position:absolute;z-index:25;left:0;bottom:calc(100% + 10px);width:min(330px,calc(100vw - 44px));box-shadow:0 14px 34px #17324f1f;border-radius:11px}
+@media(max-width:560px){.composer-filter-panel{left:auto;right:-60px}}
 </style>

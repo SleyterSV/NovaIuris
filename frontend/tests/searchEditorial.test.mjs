@@ -38,7 +38,7 @@ test('unverified provenance cannot become an inline citation or used source', ()
   assert.equal(presentation.used.length, 0)
 })
 
-test('NovaSearch presentation renders editorial sections, five stages and preserves source and Case actions', async () => {
+test('NovaSearch presentation renders editorial sections, five stages and canonical source action', async () => {
   const server = await createServer({ server: { middlewareMode: true, hmr: false, port: 0 }, appType: 'custom', logLevel: 'error', optimizeDeps: { noDiscovery: true, include: [] } })
   try {
     const load = async name => (await server.ssrLoadModule(`/src/components/novasearch/${name}.vue`)).default
@@ -66,7 +66,7 @@ test('NovaSearch presentation renders editorial sections, five stages and preser
     assert.match(results, /Fuentes jurídicas relevantes/)
     assert.match(results, /Documento adicional/)
     assert.match(results, /Extracto recuperado/)
-    assert.match(results, /Analizar en NovaCase/)
+    assert.doesNotMatch(results, /Analizar en NovaCase/)
     assert.match(results, /Ver fuente/)
     assert.doesNotMatch(results, /SRC-|aaaaaaaa-aaaa/)
   } finally { await server.close() }

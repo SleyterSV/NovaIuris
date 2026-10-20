@@ -14,11 +14,13 @@ const citation = { citation_id: 'CIT-A', source_id: source.source_id, label: '[4
 test('Search-only filters are scoped by active workspace tool and wider thread stays local', () => {
   const shell = readFileSync(new URL('../src/views/MikeView.vue', import.meta.url), 'utf8')
   const view = readFileSync(new URL('../src/views/NovaSearchView.vue', import.meta.url), 'utf8')
-  assert.match(shell, /searchActive: activeTool === 'search'/)
+  assert.match(shell, /activeTool === 'search'/)
+  assert.match(shell, /:searchFilters|searchFilters \}/)
   assert.match(shell, /turn\.tool === 'search'/)
   assert.match(shell, /thread\.search-thread/)
-  assert.match(view, /v-if="searchActive" class="filter-toolbar"/)
-  assert.match(view, /v-if="searchActive && filtersOpen"/)
+  assert.doesNotMatch(view, /class="filter-toolbar"/)
+  assert.match(shell, /class="composer-filters"/)
+  assert.match(view, /v-if="!embedded" class="standalone-filters"/)
   assert.match(view, /NovaSearchFilters/)
   assert.match(view, /:class="\{ active: filters\.modulo !== 'Todos' \|\| filters\.vigencia_explicit \}"/)
   assert.doesNotMatch(view, /Tiempo total de búsqueda/)
@@ -49,7 +51,7 @@ test('real analysis fields and editorial source controls render without fabricat
     const results = await render(Results, { results: [{ source, source_id: source.source_id, document_id: source.document_id,
       unit_id: source.unit_id, titulo: source.title, resumen_ia: 'Extracto real del resultado.' }] })
     assert.match(results, /Ver fuente/)
-    assert.match(results, /Analizar en NovaCase/)
+    assert.doesNotMatch(results, /Analizar en NovaCase/)
     assert.doesNotMatch(results, /Próximamente|SRC-|22222222-2222/)
   } finally { await server.close() }
 })

@@ -1,7 +1,8 @@
 import { ref, reactive, onBeforeUnmount } from 'vue'
 import { runSearchTask } from '../services/searchTasks.js'
+import { defaultSearchFilters } from '../utils/searchFilters.js'
 
-export function useNovaSearch() {
+export function useNovaSearch(externalFilters = null) {
   const searchQuery = ref('')
   const isSearching = ref(false)
   const searchError = ref(null)
@@ -22,7 +23,7 @@ export function useNovaSearch() {
   const searchProgress = ref(0)
   const progressStages = ref([])
   const searchCounts = ref({})
-  const filters = reactive({ modulo: 'Todos', solo_vigentes: true, vigencia_explicit: false })
+  const filters = externalFilters || reactive(defaultSearchFilters())
   let controller = null
   let taskId = null
   let requestId = 0
