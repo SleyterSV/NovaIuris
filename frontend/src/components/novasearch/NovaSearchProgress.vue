@@ -1,17 +1,28 @@
 <script setup>
-defineProps({ stage: { type: String, default: '' }, progress: { type: Number, default: 0 }, stages: { type: Array, default: () => [] }, counts: { type: Object, default: () => ({}) } })
+import { computed } from 'vue'
+const props = defineProps({ stage: { type: String, default: '' }, progress: { type: Number, default: 0 }, stages: { type: Array, default: () => [] } })
 defineEmits(['cancel'])
+// The provider drafts before validating citations; keep the visible order truthful.
+const steps = [
+  { label: 'Interpretando la consulta', description: 'Identifico el problema jurídico.', ids: ['query_analysis'] },
+  { label: 'Preparando búsqueda semántica', description: 'Relaciono conceptos y términos jurídicos.', ids: ['embedding'] },
+  { label: 'Buscando en el corpus jurídico', description: 'Recupero y priorizo fuentes pertinentes.', ids: ['retrieval', 'fusion', 'reranking', 'context'] },
+  { label: 'Redactando la síntesis', description: 'Organizo la respuesta con las fuentes recuperadas.', ids: ['answer'] },
+  { label: 'Verificando referencias', description: 'Compruebo las citas y su trazabilidad.', ids: ['citations'] }
+]
+const currentIndex = computed(() => Math.max(0, steps.findIndex(step => step.ids.includes(props.stage))))
+const visibleSteps = computed(() => steps.map((step, index) => ({ ...step, status: index < currentIndex.value ? 'completed' : index === currentIndex.value ? 'active' : 'pending' })))
+const progressWidth = computed(() => Math.max(0, Math.min(100, Number(props.progress) || 0)))
 </script>
 
 <template>
   <section class="search-progress" aria-live="polite" aria-label="Progreso de búsqueda jurídica">
-    <div class="progress-top"><div><span class="eyebrow">INVESTIGACIÓN EN CURSO</span><h2>{{ stages.find(item => item.id === stage)?.label || 'Preparando la búsqueda' }}</h2></div><button type="button" @click="$emit('cancel')">Cancelar búsqueda</button></div>
-    <div class="track" role="progressbar" aria-label="Etapas completadas" :aria-valuemin="0" :aria-valuemax="100" :aria-valuenow="progress"><span :style="{ width: `${progress}%` }" /></div>
-    <div class="counts"><span v-if="counts.retrieved_count !== undefined">{{ counts.retrieved_count }} fuentes recuperadas</span><span v-if="counts.reranked_count !== undefined">{{ counts.reranked_count }} priorizadas</span><span v-if="counts.used_source_count !== undefined">{{ counts.used_source_count }} utilizadas</span></div>
-    <ol><li v-for="item in stages" :key="item.id" :class="item.status"><span aria-hidden="true">{{ item.status === 'completed' ? '✓' : item.status === 'running' ? '●' : item.status === 'skipped' ? '–' : '○' }}</span>{{ item.label }}</li></ol>
+    <div class="progress-top"><div><span class="eyebrow">NOVA SEARCH</span><h2>{{ visibleSteps[currentIndex].label }}</h2><p>{{ visibleSteps[currentIndex].description }}</p></div><button type="button" @click="$emit('cancel')">Cancelar búsqueda</button></div>
+    <div class="track" role="progressbar" aria-label="Progreso de búsqueda" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="progressWidth"><span :style="{ width: `${progressWidth}%` }" /></div>
+    <ol><li v-for="(item, index) in visibleSteps" :key="item.label" :class="item.status"><span class="step-mark" aria-hidden="true">{{ item.status === 'completed' ? '✓' : String(index + 1).padStart(2, '0') }}</span><div><strong>{{ item.label }}</strong><small>{{ item.description }}</small></div></li></ol>
   </section>
 </template>
 
 <style scoped>
-.search-progress{padding:22px;background:#fff;border:1px solid #dfe6ed;border-radius:12px;color:#25364a}.progress-top{display:flex;align-items:center;justify-content:space-between;gap:18px}.eyebrow{font-size:.65rem;letter-spacing:.12em;font-weight:750;color:#8a7046}.progress-top h2{margin:7px 0 12px;color:#17375e;font:600 1.12rem Georgia,serif}.progress-top button{border:1px solid #cbd5df;border-radius:7px;background:white;padding:8px 12px;color:#315c97;font-family:inherit;font-size:.76rem;font-weight:600;cursor:pointer}.track{height:6px;overflow:hidden;border-radius:9px;background:#e8edf2}.track span{display:block;height:100%;background:#315c97;transition:width .2s ease}.counts{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;color:#637286;font-size:.73rem}ol{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 18px;margin:20px 0 0;padding:0;list-style:none}li{display:flex;gap:8px;align-items:center;color:#8793a1;font-size:.76rem}li.completed{color:#32664d}li.running{color:#17375e;font-weight:700}li span{width:16px}@media(max-width:620px){.progress-top{align-items:flex-start;flex-direction:column}ol{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.search-progress{padding:54px 0 36px;color:#25364a}.progress-top{display:flex;align-items:start;justify-content:space-between;gap:24px}.eyebrow{font-size:.7rem;letter-spacing:.15em;font-weight:750;color:#a0824b}.progress-top h2{margin:14px 0 12px;color:#17375e;font:500 clamp(2rem,3vw,2.7rem)/1.16 Georgia,serif}.progress-top p{margin:0 0 32px;color:#647486;line-height:1.65}.progress-top button{border:0;background:none;padding:8px;color:#315c97;font-family:inherit;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap}.progress-top button:focus-visible{outline:2px solid #315c97}.track{height:4px;overflow:hidden;border-radius:9px;background:#e1e8ef}.track span{display:block;height:100%;background:#aa8952;transition:width .25s ease}ol{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:15px;margin:28px 0 0;padding:0;list-style:none}li{display:flex;align-items:start;gap:9px;min-width:0;color:#85919d}.step-mark{display:grid;place-items:center;flex:none;width:26px;height:26px;border:1px solid #cbd6df;border-radius:50%;font-size:.7rem;font-weight:700}li.completed .step-mark{background:#a8844e;border-color:#a8844e;color:white}li.active .step-mark{border-color:#315c97;color:#17375e}li strong,li small{display:block;line-height:1.4}li strong{font-size:.78rem;font-weight:650}li small{font-size:.7rem;margin-top:4px}li.active strong{color:#17375e}@media(max-width:900px){ol{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.progress-top{flex-direction:column;gap:4px}ol{grid-template-columns:1fr}}
 </style>

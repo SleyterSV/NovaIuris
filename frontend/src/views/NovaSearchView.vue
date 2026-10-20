@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useNovaSearch } from '@/composables/useNovaSearch'
 
@@ -14,6 +14,7 @@ import SearchCaseDialog from '@/components/novasearch/SearchCaseDialog.vue'
 import NovaSearchFallback from '@/components/novasearch/NovaSearchFallback.vue'
 import NovaSearchEmptyState from '@/components/novasearch/NovaSearchEmptyState.vue'
 import NovaSearchError from '@/components/novasearch/NovaSearchError.vue'
+import { editorialCitations } from '@/utils/searchEditorial.js'
 
 
 /* =========================================
@@ -56,6 +57,8 @@ const route = useRoute()
 const props = defineProps({ embedded: Boolean, request: { type: Object, default: null } })
 const emit = defineEmits(['task-state', 'handoff-started'])
 const selectedHandoffSource = ref(null)
+const filtersOpen = ref(false)
+const citationPresentation = computed(() => editorialCitations(answer.value, citations.value, sources.value))
 function handoffStarted(value) {
     selectedHandoffSource.value = null
     emit('handoff-started', value)
@@ -158,6 +161,7 @@ function useSuggestion(value) {
 
     <main
         class="novasearch-view"
+        :class="{ 'has-search': isSearching || searchResults.length > 0 }"
         aria-label="NOVA SEARCH"
     >
 
@@ -191,24 +195,13 @@ function useSuggestion(value) {
         ====================================== -->
 
         <section class="novasearch-workspace">
-
-
-            <!-- =================================
-                 FILTROS
-            ================================== -->
-
-            <aside
-                class="novasearch-sidebar"
-                aria-label="Filtros jurídicos"
-            >
-
-                <NovaSearchFilters
-                    :filters="filters"
-                    :modulos="modulosDisponibles"
-                    @update:filters="handleFiltersUpdate"
-                />
-
-            </aside>
+            <div class="filter-toolbar">
+                <button type="button" class="filter-toggle" :aria-expanded="filtersOpen" aria-controls="search-filter-panel" @click="filtersOpen = !filtersOpen">Filtros <span aria-hidden="true">⌄</span></button>
+                <span v-if="filters.modulo !== 'Todos' || filters.vigencia_explicit" class="filter-active">Filtros activos</span>
+            </div>
+            <div v-if="filtersOpen" id="search-filter-panel" class="filter-panel">
+                <NovaSearchFilters :filters="filters" :modulos="modulosDisponibles" @update:filters="handleFiltersUpdate" />
+            </div>
 
 
             <!-- =================================
@@ -254,9 +247,8 @@ function useSuggestion(value) {
                         :sources="sources"
                         :citations="citations"
                         :source-warnings="sourceWarnings"
-                        :search-time="searchTime"
                         :total-results="totalResults"
-                        :analysis="analysis"
+                        :rama="analysis.rama || ''"
                     />
 
 
@@ -276,6 +268,8 @@ function useSuggestion(value) {
                     <NovaSearchResults
                         :results="searchResults"
                         :total-results="totalResults"
+                        :sources="sources"
+                        :citation-presentation="citationPresentation"
                         @analyze-case="selectedHandoffSource = $event"
                     />
 
@@ -349,7 +343,8 @@ function useSuggestion(value) {
 .novasearch-search-section {
 
     width: 100%;
-    max-width: 1280px;
+    box-sizing: border-box;
+    max-width: 1160px;
 
     margin: 0 auto;
 
@@ -359,6 +354,9 @@ function useSuggestion(value) {
         0;
 
 }
+.has-search .novasearch-search-section :deep(.nova-search-input) { padding:18px 22px;box-shadow:none;border-color:#dce3e9;background:#fff; }
+.has-search .novasearch-search-section :deep(.nova-search-input-header) { display:none; }
+.has-search .novasearch-search-section :deep(.nova-search-footer) { display:none; }
 
 
 /* =========================================
@@ -368,7 +366,8 @@ function useSuggestion(value) {
 .novasearch-workspace {
 
     width: 100%;
-    max-width: 1280px;
+    box-sizing: border-box;
+    max-width: 1160px;
 
     margin:
         28px auto 0;
@@ -378,15 +377,7 @@ function useSuggestion(value) {
         32px
         60px;
 
-    display: grid;
-
-    grid-template-columns:
-        260px
-        minmax(0, 1fr);
-
-    align-items: start;
-
-    gap: 28px;
+    display: block;
 
 }
 
@@ -395,15 +386,12 @@ function useSuggestion(value) {
    SIDEBAR
 ========================================= */
 
-.novasearch-sidebar {
-
-    position: sticky;
-
-    top: 96px;
-
-    align-self: start;
-
-}
+.filter-toolbar { display:flex;align-items:center;gap:12px;margin:0 0 22px; }
+.filter-toggle { border:1px solid #d5dfe8;border-radius:6px;background:transparent;padding:8px 13px;color:#315c97;font-family:inherit;font-size:.78rem;font-weight:650;cursor:pointer; }
+.filter-toggle:focus-visible { outline:2px solid #315c97;outline-offset:2px; }
+.filter-active { color:#7a6440;font-size:.73rem; }
+.filter-panel { width:min(340px,100%);margin-bottom:26px; }
+.filter-panel :deep(.search-filters) { box-shadow:none; }
 
 
 /* =========================================
@@ -463,11 +451,6 @@ function useSuggestion(value) {
 
     .novasearch-workspace {
 
-        grid-template-columns:
-            1fr;
-
-        gap: 20px;
-
         padding:
             0
             24px
@@ -476,13 +459,6 @@ function useSuggestion(value) {
     }
 
 
-    .novasearch-sidebar {
-
-        position: static;
-
-        width: 100%;
-
-    }
 
 }
 
@@ -513,8 +489,6 @@ function useSuggestion(value) {
             18px
             40px;
 
-        gap:
-            16px;
 
     }
 
