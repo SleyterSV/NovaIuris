@@ -11,6 +11,7 @@ import { authRequired, authState, signIn, signOut, startAuth } from '@/config/su
 import { requestJson } from '@/services/taskService.js'
 import { appendTranscript, useVoiceInput } from '@/composables/useVoiceInput.js'
 import { createToolHoverController } from '@/utils/toolHover.js'
+import { createComposerPopovers } from '@/utils/composerPopovers.js'
 
 const panels = {
   search:defineAsyncComponent(() => import('./NovaSearchView.vue')),
@@ -50,8 +51,12 @@ const draft = ref(typeof route.query.q === 'string' ? route.query.q.slice(0,1000
 const composer = ref(null), uploader = ref(null), mobileMenu = ref(false)
 const selectedDocuments = ref([]), error = ref(''), loginError = ref('')
 const email = ref(''), password = ref(''), loginBusy = ref(false)
-const menuOpen = ref(false), selectorOpen = ref(false), detailTool = ref(null)
-const searchFiltersOpen = ref(false)
+const menuOpen = ref(false), detailTool = ref(null)
+const popovers = createComposerPopovers()
+const { selectorOpen, filtersOpen: searchFiltersOpen } = popovers
+const selectorPopover = ref(null), filterPopover = ref(null)
+const selectorTrigger = ref(null), filtersTrigger = ref(null)
+const filterBelow = ref(false), filterAlignRight = ref(false)
 const searchFilters = reactive(defaultSearchFilters())
 const hover = createToolHoverController()
 const infoTool = hover.active
@@ -101,6 +106,24 @@ function autoGrow(event) {
   element.style.height = 'auto'
   element.style.height = `${Math.min(element.scrollHeight, 220)}px`
 }
+function toggleFilters() {
+  if (!searchFiltersOpen.value && filtersTrigger.value && typeof window !== 'undefined') {
+    const rect = filtersTrigger.value.getBoundingClientRect()
+    filterBelow.value = rect.top < 235 && window.innerHeight - rect.bottom > rect.top
+    filterAlignRight.value = rect.left + 276 > window.innerWidth - 16
+  }
+  popovers.toggleFilters()
+}
+function onPopoverPointer(event) {
+  popovers.outsidePointer(event.target, selectorPopover.value, filterPopover.value)
+}
+function onPopoverKeydown(event) {
+  if (event.key !== 'Escape') return
+  const focus = popovers.closeOnEscape()
+  if (!focus) return
+  event.preventDefault()
+  void nextTick(() => (focus === 'filters' ? filtersTrigger : selectorTrigger).value?.focus())
+}
 
 watch(() => route.query.tool, value => { workspace.value.activeTool = normalizeTool(value) })
 watch(() => authState.user, (user, previous) => { if (previous && !user) newConversation() })
@@ -113,10 +136,14 @@ watch(infoTool, value => {
 })
 onUnmounted(() => {
   hover.dispose()
+  document.removeEventListener('pointerdown', onPopoverPointer)
+  document.removeEventListener('keydown', onPopoverKeydown)
   window.removeEventListener('resize', hover.refreshPosition)
   window.removeEventListener('scroll', hover.refreshPosition, true)
 })
 onMounted(async () => {
+  document.addEventListener('pointerdown', onPopoverPointer)
+  document.addEventListener('keydown', onPopoverKeydown)
   await startAuth()
   const caseId = route.query.case_id, taskId = route.query.task_id
   if (!['case', 'court'].includes(route.query.tool) || typeof caseId !== 'string' || typeof taskId !== 'string') return
@@ -286,8 +313,8 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
           </article>
         </section>
         <div class="composer-region">
-          <form class="composer" @submit.prevent="submit"><textarea ref="composer" v-model="draft" rows="2" :placeholder="workspace.turns.length ? placeholder : 'Escribe tu consulta jurídica aquí...'" aria-label="Consulta jurídica" @input="autoGrow" @keydown="onComposerKeydown"></textarea><div class="composer-bottom"><button class="attach" type="button" :disabled="activeTool === 'search' || !activeTool" aria-label="Adjuntar documentos" title="Adjuntar documentos" @click="chooseFiles">＋</button><div class="selector"><button type="button" aria-haspopup="listbox" :aria-expanded="selectorOpen" @click="selectorOpen = !selectorOpen">{{ activeMeta?.label || 'Buscar' }} · {{ activeMeta?.name || 'NovaSearch' }} ▾</button><div v-if="selectorOpen" class="selector-menu" role="listbox" aria-label="Seleccionar herramienta"><button v-for="(item,key) in tools" :key="key" type="button" role="option" :aria-selected="activeTool === key" @click="selectTool(key,false)"><strong>{{ item.label }} · {{ item.name }}</strong><small>{{ item.description }}</small></button></div></div>
-            <div v-if="activeTool === 'search'" class="composer-filters" @keydown.esc="searchFiltersOpen = false"><button type="button" class="composer-filter-toggle" :class="{ active: searchFilters.modulo !== 'Todos' || searchFilters.vigencia_explicit }" aria-controls="composer-search-filters" :aria-expanded="searchFiltersOpen" @click="searchFiltersOpen = !searchFiltersOpen"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M7 12h10m-7 6h4"/><circle cx="8" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/></svg>Filtros<span v-if="searchFilters.modulo !== 'Todos' || searchFilters.vigencia_explicit" class="filter-indicator" aria-label="Filtros activos"></span></button><div v-if="searchFiltersOpen" id="composer-search-filters" class="composer-filter-panel"><NovaSearchFilters :filters="searchFilters" :modulos="legalAreas" @update:filters="Object.assign(searchFilters, $event)" /></div></div>
+          <form class="composer" @submit.prevent="submit"><textarea ref="composer" v-model="draft" rows="2" :placeholder="workspace.turns.length ? placeholder : 'Escribe tu consulta jurídica aquí...'" aria-label="Consulta jurídica" @input="autoGrow" @keydown="onComposerKeydown"></textarea><div class="composer-bottom"><button class="attach" type="button" :disabled="activeTool === 'search' || !activeTool" aria-label="Adjuntar documentos" title="Adjuntar documentos" @click="chooseFiles">＋</button><div ref="selectorPopover" class="selector"><button ref="selectorTrigger" type="button" aria-haspopup="listbox" aria-controls="composer-tool-options" :aria-expanded="selectorOpen" @click="popovers.toggleSelector()">{{ activeMeta?.label || 'Buscar' }} · {{ activeMeta?.name || 'NovaSearch' }} ▾</button><div v-if="selectorOpen" id="composer-tool-options" class="selector-menu" role="listbox" aria-label="Seleccionar herramienta"><button v-for="(item,key) in tools" :key="key" type="button" role="option" :aria-selected="activeTool === key" @click="selectTool(key,false)"><strong>{{ item.label }} · {{ item.name }}</strong><small>{{ item.description }}</small></button></div></div>
+            <div v-if="activeTool === 'search'" ref="filterPopover" class="composer-filters"><button ref="filtersTrigger" type="button" class="composer-filter-toggle" :class="{ active: searchFilters.modulo !== 'Todos' || searchFilters.vigencia_explicit }" aria-controls="composer-search-filters" :aria-expanded="searchFiltersOpen" @click="toggleFilters"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M7 12h10m-7 6h4"/><circle cx="8" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/></svg>Filtros<span v-if="searchFilters.modulo !== 'Todos' || searchFilters.vigencia_explicit" class="filter-indicator" aria-label="Filtros activos"></span></button><div v-if="searchFiltersOpen" id="composer-search-filters" class="composer-filter-panel" :class="{ below: filterBelow, 'align-right': filterAlignRight }"><NovaSearchFilters :filters="searchFilters" :modulos="legalAreas" @update:filters="Object.assign(searchFilters, $event)" /></div></div>
             <span class="composer-spacer"></span><span v-if="voice.state.value === 'recording'" class="voice-timer" role="status">● {{ voice.elapsed.value }}</span><span v-if="voice.state.value === 'transcribing'" class="voice-timer" role="status">Transcribiendo...</span><button type="button" class="mic" :class="{ recording:voice.state.value === 'recording' }" :disabled="voice.state.value === 'transcribing' || voice.state.value === 'requesting_permission'" :aria-label="voice.state.value === 'recording' ? 'Detener grabación' : 'Grabar consulta por voz'" :title="voice.state.value === 'recording' ? 'Detener' : microphoneAvailable ? 'Grabar por voz' : 'Micrófono no disponible'" @click="voice.state.value === 'recording' ? voice.stop() : voice.start()"><span v-if="voice.state.value === 'recording'" class="mic-stop" aria-hidden="true"></span><svg v-else class="mic-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg></button><button class="send" type="submit" :disabled="!canSend" aria-label="Enviar consulta">➤</button></div></form>
           <p v-if="voice.message.value || ['requesting_permission','transcribing'].includes(voice.state.value)" class="voice-message" :class="{ error:voice.state.value === 'error' }" aria-live="polite">{{ voice.state.value === 'requesting_permission' ? 'Solicitando acceso al micrófono...' : voice.state.value === 'transcribing' ? 'Transcribiendo...' : voice.message.value }}</p>
           <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -348,6 +375,8 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
 .composer-filter-toggle.active{color:#17375e;border-color:#b9cbd9}
 .composer-filter-toggle:focus-visible{outline:2px solid #b68a3a;outline-offset:2px}
 .filter-indicator{width:6px;height:6px;border-radius:50%;background:#b08a4c}
-.composer-filter-panel{position:absolute;z-index:25;left:0;bottom:calc(100% + 10px);width:min(330px,calc(100vw - 44px));box-shadow:0 14px 34px #17324f1f;border-radius:11px}
-@media(max-width:560px){.composer-filter-panel{left:auto;right:-60px}}
+.composer-filter-panel{position:absolute;z-index:25;left:0;bottom:calc(100% + 8px);width:min(276px,calc(100vw - 32px));max-height:calc(100vh - 24px);overflow-y:auto;box-shadow:0 12px 28px #17324f1b;border-radius:10px}
+.composer-filter-panel.below{bottom:auto;top:calc(100% + 8px)}
+.composer-filter-panel.align-right{left:auto;right:0}
+@media(max-width:560px){.composer-filter-panel{left:auto;right:0}}
 </style>
