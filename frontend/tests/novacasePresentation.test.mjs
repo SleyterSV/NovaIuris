@@ -99,11 +99,20 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     })
     assert.match(analysisHtml,/STC Exp. 00001-2024-PA\/TC/)
     assert.match(analysisHtml,/Fundamento 7/)
+    const citedAnalysis=await render('novacase/AnalysisView',{
+      analysis:{summary:'Criterio jurídico respaldado [1]'},sources:[source],caseId:'CASE-A',
+      citations:[{citation_id:'citation-one',label:'[1]',source_id:source.source_id}]
+    })
+    assert.match(citedAnalysis,/aria-label="Ver fuente 1"/)
+    assert.ok(!citedAnalysis.includes(source.source_id))
 
     const riskHtml=await render('novacase/RiskView',{risk:{procedural:[{risk:'Plazo por comprobar',impact:'Alto',mitigation:'Verificar notificación'}]}})
     assert.match(riskHtml,/Riesgos procesales/)
     assert.match(riskHtml,/Mitigación/)
     assert.match(riskHtml,/Verificar notificación/)
+    const emptyRisk=await render('novacase/RiskView',{risk:{}})
+    assert.match(emptyRisk,/No se identificó información suficiente para evaluar riesgos/)
+    assert.ok(!emptyRisk.includes('Riesgos procesales'))
 
     const summaryHtml=await render('common/ExecutiveSummary',{summary:{documentos:0,fuentes_juridicas:1}})
     assert.match(summaryHtml,/Documentos del caso/)
@@ -127,7 +136,7 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.match(caseView,/@add-documents="addDocuments"/)
     assert.match(mikeView,/@add-documents="addCaseDocuments\(turn,\$event\)"/)
     assert.match(mikeView,/canAttachDocumentsToCase\(payload\?\.caseId, workspace\.value\.caseId/)
-    assert.match(summaryCss,/\.card-title\s*\{[^}]*white-space: normal/s)
+    assert.match(summaryCss,/\.summary-facts dd\{[^}]*overflow-wrap:anywhere/s)
   } finally { await server.close() }
 })
 

@@ -257,7 +257,7 @@ class ApiTests(unittest.TestCase):
         response = self.client.post('/api/export/prepare',json={'case_id':'CASE-A','result':b,'tool':'case'})
         self.assertEqual(response.status_code,400)
         with patch('subprocess.run') as subprocess_run:
-            self.assertEqual(self.client.post('/api/export/pdf',json={}).status_code,501)
+            self.assertEqual(self.client.post('/api/export/pdf',json={}).status_code,400)
             subprocess_run.assert_not_called()
 
 

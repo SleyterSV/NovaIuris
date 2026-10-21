@@ -215,7 +215,7 @@ test('actual Vue panels render canonical data and professional empty states', as
       ['novacourt/CourtSummary',{summary:{proceso:'PROCESO-A'}},'PROCESO-A'],
       ['novacourt/CourtAnalysis',{content:normalizeRenderableContent(result.arguments)},'ARGUMENTO-A'],
       ['novacourt/CourtSimulation',{simulation:{status:'ready',prosecutor:{content:'FISCAL-A'}}},'FISCAL-A'],
-      ['common/ExecutiveSummary',{summary:result.summary},EMPTY_CONTENT],
+      ['common/ExecutiveSummary',{summary:result.summary},'No determinado'],
       ['common/MarkdownRenderer',{content:[]},EMPTY_CONTENT]
     ]) {
       const {default:component}=await server.ssrLoadModule(`/src/components/${name}.vue`)
@@ -238,7 +238,7 @@ test('actual Vue panels render canonical data and professional empty states', as
         {id:'documents',title:'Documentos',status:'skipped'},
         {id:'report',title:'Informe',status:'failed'}]
     })}))
-    assert.match(progressHtml,/Analisis completado con incidencias/)
+    assert.match(progressHtml,/Análisis completado con incidencias/)
     assert.match(progressHtml,/2\/3/)
     assert.match(progressHtml,/No requerido/)
     assert.match(progressHtml,/No completado/)
@@ -276,11 +276,11 @@ test('NovaCase report renders verified citations, source details and partial fai
     }
     const html=await renderToString(createSSRApp({render:()=>h(component,props)}))
     assert.match(html,/Informe del caso A/)
-    assert.match(html,/CASE-A/)
+    assert.doesNotMatch(html,/CASE-A/)
     assert.match(html,/data-citation-id=/)
     assert.match(html,/Copiar informe/)
     assert.match(html,/demanda\.pdf/)
-    assert.match(html,/PDF · próximamente/)
+    assert.match(html,/Descargar PDF/)
     assert.match(html,/disabled/)
     assert.ok(!html.includes('[object Object]'))
     assert.ok(!/\b(?:undefined|null)\b/.test(html))
@@ -305,8 +305,9 @@ test('NovaCase workspace exposes sections only when corresponding result data ex
   assert.ok(source.includes(':available-tabs="availableTabs"'))
   assert.ok(source.includes('<template #arguments>'))
   assert.ok(source.includes('<template #sources>'))
-  assert.ok(source.includes('canonicalResult?.facts?.length'))
-  assert.ok(source.includes('factStatusLabel(fact.status)'))
+  assert.ok(source.includes('factGroups.some(group => group.facts.length)'))
+  assert.ok(source.includes("fact.status === 'supported' && factSources(fact).length"))
+  assert.ok(source.includes("fact.status === 'supported' && !factSources(fact).length ? 'alleged'"))
   assert.ok(source.includes('canonicalResult?.evidence?.evidence_links?.length'))
   assert.ok(source.includes('issuesForLink(link)'))
   assert.ok(source.includes('source.case_id === canonicalResult.value?.case_id'))

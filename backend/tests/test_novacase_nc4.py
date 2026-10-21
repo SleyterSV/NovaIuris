@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from pypdf import PdfReader
 
 from flask import g, request
 
@@ -14,6 +15,7 @@ from app.services.case_corpus import CaseCorpusRepository, DocumentIngestionServ
 from app.services.novacourt_pipeline_service import NovaCourtPipelineService
 from app.services.runtime_security import CaseOwnershipRepository
 from app.services.task_repository import TaskRepository
+from app.services.case_pdf import render_case_pdf
 
 
 class Embeddings:
@@ -58,6 +60,45 @@ class NovaCaseNC4Tests(unittest.TestCase):
         return self.client.post('/api/export/prepare', json={
             'case_id': case_id, 'task_id': task_id or self.task_id, 'tool': 'case', **extra},
             headers={'X-Test-Owner': owner})
+
+    def test_scoped_pdf_uses_persisted_report_and_single_footer_mark(self):
+        payload = {'case_id':'CASE-A', 'task_id':self.task_id, 'tool':'case'}
+        def pdf(owner='owner-a', data=None):
+            return self.client.post('/api/export/pdf', json=data or payload,
+                                    headers={'X-Test-Owner':owner})
+        self.assertEqual(pdf().status_code, 409)
+        self.tasks.update_task(self.task_id, status=TaskStatus.PROCESSING)
+        self.tasks.complete_task(self.task_id, {**self.result,
+            'report':'## Objeto y alcance\nHecho documentado para revisión.\n\n## Conclusión\nRevisar la prueba.',
+            'report_document':{'case_id':'CASE-A', 'title':'Informe jurídico',
+                'sections':[{'title':'Objeto y alcance', 'content':'Hecho documentado para revisión.'},
+                            {'title':'Conclusión', 'content':'Revisar la prueba [1].'}],
+                'citations':[{'label':'[1]', 'source_id':'SRC-1'}],
+                'sources':[{'source_id':'SRC-1', 'title':'Documento de prueba', 'page_start':2}]}})
+        response = pdf()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, 'application/pdf')
+        reader = PdfReader(io.BytesIO(response.data))
+        content = '\n'.join(page.extract_text() or '' for page in reader.pages)
+        self.assertIn('Hecho documentado', content)
+        self.assertIn('Conclusión', content)
+        self.assertIn('Documento de prueba', content)
+        self.assertEqual(content.count('Generado por MYKE'), 1)
+        self.assertNotIn('CASE-A', content)
+        self.assertEqual(pdf(owner='owner-b').status_code, 404)
+        self.assertEqual(pdf(data={**payload, 'case_id':'CASE-B'}).status_code, 404)
+        self.assertEqual(pdf(data={**payload, 'tool':'court'}).status_code, 400)
+        self.assertEqual(pdf(data={**payload, 'report':'Texto impuesto'}).status_code, 400)
+
+    def test_pdf_footer_once_on_each_page(self):
+        document = {'case_id': 'CASE-A', 'sections': [
+            {'title': 'Análisis jurídico', 'content': ('Un párrafo sintético para revisar la paginación.\n' * 180)}]}
+        data = render_case_pdf({'success': True, 'case_id': 'CASE-A',
+                                'report': 'Informe sintético', 'report_document': document})
+        reader = PdfReader(io.BytesIO(data))
+        self.assertGreaterEqual(len(reader.pages), 2)
+        for page in reader.pages:
+            self.assertEqual((page.extract_text() or '').count('Generado por MYKE'), 1)
 
     def test_restart_scoped_export_and_isolation(self):
         waiting = self.request_export()

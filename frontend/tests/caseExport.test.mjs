@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFile } from 'node:fs/promises'
-import { prepareCaseExport } from '../src/services/caseExport.js'
+import { prepareCaseExport, downloadCasePdf } from '../src/services/caseExport.js'
 
 test('Case export sends only server-owned identifiers', async () => {
   const calls = []
@@ -34,6 +34,19 @@ test('Case refresh recovers an explicit scoped task and report print verifies it
 
 test('Case UI distinguishes explicit cancellation from component cleanup', async () => {
   const caseView = await readFile(new URL('../src/views/NovaCaseView.vue', import.meta.url), 'utf8')
-  assert.match(caseView, /@click="controller\?\.abort\('user'\)"/)
+  assert.match(caseView, /class="cancel-analysis" @click="controller\?\.abort\('user'\)"/)
   assert.match(caseView, /onBeforeUnmount\(\(\) => controller\?\.abort\('detach'\)\)/)
+})
+
+test('PDF download sends only scoped identifiers and expects a PDF response', async () => {
+  const calls = []
+  const pdf = new Blob(['%PDF-1.7'], { type:'application/pdf' })
+  const result = await downloadCasePdf('CASE-A', 'TASK-A', async (url, options) => {
+    calls.push({ url, options })
+    return { ok:true, headers:new Headers({ 'Content-Type':'application/pdf' }), blob:async () => pdf }
+  })
+  assert.equal(result, pdf)
+  assert.match(calls[0].url, /\/export\/pdf$/)
+  assert.deepEqual(JSON.parse(calls[0].options.body), { case_id:'CASE-A', task_id:'TASK-A', tool:'case' })
+  await assert.rejects(() => downloadCasePdf('', 'TASK-A'), /incompleta/)
 })

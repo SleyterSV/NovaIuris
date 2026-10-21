@@ -11,7 +11,7 @@
           {{ copied ? 'Copiado' : 'Copiar informe' }}
         </button>
         <button type="button" :disabled="!report" @click="printReport">Imprimir</button>
-        <button type="button" disabled title="Disponible en una fase posterior">PDF · próximamente</button>
+        <button type="button" :disabled="!report || !caseId || !taskId || pdfBusy" @click="savePdf">{{ pdfBusy ? 'Preparando PDF…' : 'Descargar PDF' }}</button>
         <button type="button" disabled title="Disponible en una fase posterior">DOCX · próximamente</button>
       </div>
     </header>
@@ -31,7 +31,6 @@
     </div>
 
     <div v-if="report" class="report-meta">
-      <span v-if="reportDocument.case_id">Caso {{ reportDocument.case_id }}</span>
       <span v-if="generatedDate">Generado {{ generatedDate }}</span>
       <span>{{ wordCount }} palabras</span>
     </div>
@@ -68,7 +67,7 @@ import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 import SourcesList from '@/components/common/SourcesList.vue'
 import SourceModal from '@/components/common/SourceModal.vue'
 import { presentableText } from '@/utils/novacasePresentation.js'
-import { prepareCaseExport } from '@/services/caseExport.js'
+import { prepareCaseExport, downloadCasePdf } from '@/services/caseExport.js'
 
 const props = defineProps({
   report: { type: String, default: '' },
@@ -87,6 +86,7 @@ const selectedSource = ref(null)
 const copied = ref(false)
 const copyMessage = ref('')
 const printError = ref('')
+const pdfBusy = ref(false)
 let copyReset
 onBeforeUnmount(() => clearTimeout(copyReset))
 const reportDocument = computed(() => props.reportDocument || {})
@@ -139,6 +139,26 @@ async function printReport() {
     }
   }
   window.print()
+}
+async function savePdf() {
+  if (!props.caseId || !props.taskId || pdfBusy.value) return
+  printError.value = ''
+  pdfBusy.value = true
+  try {
+    const blob = await downloadCasePdf(props.caseId, props.taskId)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'informe-juridico-novacase.pdf'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  } catch {
+    printError.value = 'No fue posible descargar el informe PDF. Inténtalo de nuevo.'
+  } finally {
+    pdfBusy.value = false
+  }
 }
 </script>
 

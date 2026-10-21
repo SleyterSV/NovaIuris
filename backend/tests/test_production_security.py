@@ -87,8 +87,9 @@ class ProductionSecurityTests(unittest.TestCase):
                      '/api/report/generate', '/api/search'):
             response = self.client.post(path, json={'caso': 'x'})
             self.assertEqual(response.status_code, 410)
-        self.assertEqual(self.client.post('/api/export/pdf', headers=self.headers('a-token'),
-            json={}).json['error']['code'], 'EXPORT_NOT_AVAILABLE')
+        pdf_without_scope = self.client.post('/api/export/pdf', headers=self.headers('a-token'), json={})
+        self.assertEqual(pdf_without_scope.status_code, 400)
+        self.assertEqual(pdf_without_scope.json['error']['code'], 'INVALID_REQUEST')
         self.assertEqual(response.headers['X-Content-Type-Options'], 'nosniff')
         allowed = self.client.options('/api/case', headers={'Origin': 'https://beta.example.test',
                                                             'Access-Control-Request-Method': 'POST'})

@@ -107,10 +107,10 @@
 
 
                     <h2 v-if="loading">
-                        NovaCase está analizando el caso
+                        NovaCase está consolidando el análisis del caso
                     </h2>
 
-                    <h2 v-else-if="hasFailed">Analisis completado con incidencias</h2>
+                    <h2 v-else-if="hasFailed">Análisis completado con incidencias</h2>
 
                     <h2 v-else-if="hasCompleted">
                         Análisis jurídico completado
@@ -126,7 +126,7 @@
                         y construyendo el análisis jurídico integral.
                     </p>
 
-                    <p v-else-if="hasFailed">El analisis estructurado esta disponible; una o mas etapas no pudieron completarse.</p>
+                    <p v-else-if="hasFailed">El análisis estructurado está disponible; una o más etapas no pudieron completarse.</p>
 
                     <p v-else-if="hasCompleted">
                         El análisis ha finalizado correctamente.
@@ -356,7 +356,7 @@
 
                 <span>
                     NovaCase está procesando la información.
-                    No cierres esta ventana.
+                    Puedes volver a esta tarea para consultar su avance.
                 </span>
 
             </div>

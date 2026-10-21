@@ -1,7 +1,7 @@
 <template>
 <section class="risk-view">
   <header class="risk-heading"><p>MYKE · NOVACASE</p><h2>Evaluación de riesgos</h2>
-    <span v-if="risk.risk_level">Nivel general: {{ risk.risk_level }}</span></header>
+    <span v-if="risk.risk_level">Nivel general: {{ levelLabel(risk.risk_level) }}</span></header>
   <div class="risk-grid">
     <article v-for="section in sections" :key="section.key" class="risk-card">
       <h3>{{ section.title }}</h3>
@@ -9,13 +9,13 @@
         <li v-for="(item,index) in section.items" :key="index">
           <strong v-if="item.title">{{ item.title }}</strong>
           <p>{{ item.text }}</p>
-          <p v-if="item.impact" class="risk-detail"><strong>Impacto</strong> {{ item.impact }}</p>
+          <p v-if="item.impact" class="risk-detail"><strong>Impacto</strong> {{ levelLabel(item.impact) }}</p>
           <p v-if="item.mitigation" class="risk-mitigation"><strong>Mitigación</strong> {{ item.mitigation }}</p>
         </li>
       </ul>
-      <p v-else class="risk-empty">No identificado con la información disponible.</p>
     </article>
   </div>
+  <p v-if="!sections.length && !recommendations.length" class="risk-empty" role="status">No se identificó información suficiente para evaluar riesgos.</p>
   <div v-if="recommendations.length" class="risk-recommendations">
     <h3>Medidas recomendadas</h3><MarkdownRenderer :content="recommendations" />
   </div>
@@ -25,6 +25,8 @@
 import { computed } from 'vue'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 const props = defineProps({ risk: { type: Object, default: () => ({}) } })
+const levelLabel = value => ({ high:'Alto', medium:'Medio', low:'Bajo', critical:'Crítico',
+  severe:'Grave', unknown:'No determinado' })[String(value || '').toLowerCase()] || value
 const riskItem = value => typeof value === 'string' ? { text:value } : {
   title:value?.title || value?.name || '',
   text:value?.risk || value?.description || value?.text || '',
@@ -34,7 +36,7 @@ const sections = computed(() => [
   ['procedural','Riesgos procesales'], ['evidentiary','Riesgos probatorios'],
   ['legal','Riesgos jurídicos'], ['strategic','Riesgos críticos']
 ].map(([key,title]) => ({ key,title,items:(Array.isArray(props.risk[key]) ? props.risk[key] :
-  props.risk[key] ? [props.risk[key]] : []).map(riskItem).filter(item => item.text || item.title) })))
+  props.risk[key] ? [props.risk[key]] : []).map(riskItem).filter(item => item.text || item.title) })).filter(section => section.items.length))
 const recommendations = computed(() => props.risk.recommendations || [])
 </script>
 <style scoped>

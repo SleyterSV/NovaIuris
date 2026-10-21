@@ -1,0 +1,71 @@
+/* Presentation only: NovaCase's legal sections share one quiet editorial rhythm. */
+.novacase-page{--case-navy:#17375e;--case-gold:#a98551;--case-line:#dce5ee;--case-muted:#60748a;background:#f8f9f7}
+.novacase-page .case-container{width:min(1240px,calc(100% - 44px));padding-top:30px}
+.novacase-page .case-dashboard{gap:22px}
+.novacase-page .progress-section{gap:14px}
+.novacase-page .cancel-analysis{align-self:flex-end;padding:9px 14px;border:1px solid #c5d2df;border-radius:7px;background:#fff;color:#244866;font:650 .8rem system-ui,sans-serif;cursor:pointer}
+.novacase-page .cancel-analysis:hover{background:#f1f5f8}
+.novacase-page .cancel-analysis:focus-visible{outline:2px solid var(--case-gold);outline-offset:2px}
+.novacase-page .nova-analysis-progress{padding:clamp(20px,2.8vw,32px);border-color:var(--case-line);box-shadow:0 8px 24px #17375e0b}
+.novacase-page .progress-heading h2{font-family:Georgia,serif;font-size:clamp(1.45rem,2.3vw,2rem)}
+.novacase-page .progress-track-wrapper{margin:22px 0 26px}
+.novacase-page .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.novacase-page .nova-analysis-progress .step{display:block;min-height:0;padding:14px 12px 10px 0;border-top:1px solid var(--case-line)}
+.novacase-page .nova-analysis-progress .step-connector{display:none}
+.novacase-page .step-indicator{margin-bottom:10px}
+.novacase-page .step-content{padding-bottom:0}
+.novacase-page .step-content p{margin:5px 0 0}
+.novacase-page .progress-footer{margin-top:18px}
+.novacase-page .case-tabs{min-width:0;border-radius:10px;box-shadow:0 8px 24px #17375e0a}
+.novacase-page .tabs-content{min-height:0;padding:clamp(22px,3vw,38px)}
+.novacase-page .report-view,
+.novacase-page .nova-case-analysis,
+.novacase-page .evidence-view,
+.novacase-page .risk-view,
+.novacase-page .counter-view,
+.novacase-page .strategy-view{min-width:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;animation:none}
+.novacase-page .analysis-grid,
+.novacase-page .argument-grid,
+.novacase-page .evidence-grid,
+.novacase-page .risk-grid,
+.novacase-page .counter-grid,
+.novacase-page .strategy-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+.novacase-page .case-tabs .analysis-card,
+.novacase-page .case-tabs .argument-card,
+.novacase-page .case-tabs .risk-card,
+.novacase-page .counter-grid>* ,
+.novacase-page .strategy-grid>* ,
+.novacase-page .evidence-grid .analysis-section{min-width:0;padding:20px 0;border:0;border-bottom:1px solid var(--case-line);border-radius:0;background:transparent;box-shadow:none;animation:none;transform:none;overflow-wrap:anywhere}
+.novacase-page .case-tabs .analysis-card:hover,
+.novacase-page .case-tabs .argument-card:hover,
+.novacase-page .case-tabs .risk-card:hover,
+.novacase-page .counter-grid>*:hover,
+.novacase-page .strategy-grid>*:hover{transform:none;box-shadow:none}
+.novacase-page .analysis-card::before{display:none}
+.novacase-page .analysis-card .card-footer{display:none}
+.novacase-page .evidence-grid .section-icon{display:none}
+.novacase-page .argument-section{padding:7px 0 12px;border-bottom:1px solid var(--case-line)}
+.novacase-page .argument-card{padding-left:34px;position:relative}
+.novacase-page .argument-number{position:absolute;left:0;top:22px}
+.novacase-page .argument-sources button{width:fit-content;max-width:100%;border:0;border-bottom:1px solid #a9bfd2;border-radius:0;padding:5px 0;background:transparent}
+.novacase-page .case-facts,.novacase-page .evidence-links{padding:22px 0;border:0;border-top:1px solid var(--case-line);border-radius:0;background:transparent}
+.novacase-page .fact-group{padding:18px 0;border-top:1px solid var(--case-line)}
+.novacase-page .fact-group h4{margin:0 0 12px;color:var(--case-navy);font:600 1.12rem Georgia,serif}
+.novacase-page .case-facts .fact-group ol{display:grid;gap:0;margin:0;padding-left:30px;list-style:decimal-leading-zero}
+.novacase-page .case-facts .fact-group li{padding:13px 0;border-bottom:1px solid #e8edf2;line-height:1.65}
+.novacase-page .probative-facts{padding:20px 0;border-top:1px solid var(--case-line)}
+.novacase-page .probative-facts h3{margin:0 0 12px;color:var(--case-navy);font:600 1.12rem Georgia,serif}
+.novacase-page .probative-facts ol{display:grid;gap:0;margin:0;padding-left:30px;list-style:decimal-leading-zero}
+.novacase-page .probative-facts li{padding:12px 0;border-bottom:1px solid #e8edf2}
+.novacase-page .citation-inline,.novacase-page .citation-link{display:inline;position:relative;top:-.07em;margin:0 .13em;padding:.08em .36em;border:1px solid #d7e2ec;border-radius:4px;background:#f1f5f8;color:#1b496f;font-family:inherit;font-size:.76em;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer}
+.novacase-page .citation-inline:hover,.novacase-page .citation-link:hover{background:#e3edf5;border-color:#b9cddb}
+.novacase-page .citation-inline:focus-visible,.novacase-page .citation-link:focus-visible{outline:2px solid #315c97;outline-offset:2px}
+.novacase-page .report-paper{max-width:860px;margin-inline:auto;font-size:.98rem;line-height:1.72}
+.novacase-page .report-header{padding-bottom:18px;border-bottom:1px solid var(--case-line)}
+.novacase-page .report-meta{border-top:0}
+.novacase-page .verification-scope{border:0;border-left:2px solid #b69a6a;background:#faf8f2}
+.novacase-page .toolbar button:focus-visible,
+.novacase-page .argument-sources button:focus-visible,
+.novacase-page .case-tabs button:focus-visible{outline:2px solid var(--case-gold);outline-offset:2px}
+@media(max-width:720px){.novacase-page .case-container{width:calc(100% - 28px)}.novacase-page .tabs-content{padding:20px}.novacase-page .steps{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.novacase-page .steps{grid-template-columns:1fr}.novacase-page .results-header{padding-inline:0}}

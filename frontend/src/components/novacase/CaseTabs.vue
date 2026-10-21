@@ -6,18 +6,25 @@
              NAVEGACIÓN
         ====================================================== -->
 
-        <div class="tabs-header">
+        <nav class="tabs-nav" aria-label="Secciones del análisis">
+        <button type="button" class="tabs-scroll" aria-label="Desplazar pestañas a la izquierda" :disabled="!canScrollLeft" @click="scrollTabs(-1)">‹</button>
+        <div ref="tabsHeader" class="tabs-header" role="tablist" aria-label="Resultados del análisis" @scroll="updateScroll" @keydown="onTabsKeydown">
 
             <button
                 v-for="tab in visibleTabs"
                 :key="tab.id"
                 type="button"
                 class="tab-button"
+                :ref="element => { if (element) tabButtons[tab.id] = element }"
+                role="tab"
+                :id="`case-tab-${tab.id}`"
+                :aria-controls="`case-panel-${tab.id}`"
+                :tabindex="activeTab === tab.id ? 0 : -1"
                 :class="{
                     active: activeTab === tab.id
                 }"
                 :aria-selected="activeTab === tab.id"
-                @click="activeTab = tab.id"
+                @click="selectTab(tab.id)"
             >
 
                 <span class="tab-icon">
@@ -219,13 +226,15 @@
             </button>
 
         </div>
+        <button type="button" class="tabs-scroll" aria-label="Desplazar pestañas a la derecha" :disabled="!canScrollRight" @click="scrollTabs(1)">›</button>
+        </nav>
 
 
         <!-- =====================================================
              CONTENIDO
         ====================================================== -->
 
-        <div class="tabs-content">
+        <div class="tabs-content" role="tabpanel" :id="`case-panel-${activeTab}`" :aria-labelledby="`case-tab-${activeTab}`">
 
             <slot
                 :name="activeTab"
@@ -242,6 +251,9 @@
 
 import {
     computed,
+    nextTick,
+    onMounted,
+    onUnmounted,
     ref,
     watch
 } from "vue"
@@ -331,6 +343,39 @@ const tabs = [
 const activeTab = ref(
     props.defaultTab
 )
+const tabsHeader = ref(null)
+const tabButtons = {}
+const canScrollLeft = ref(false)
+const canScrollRight = ref(false)
+function updateScroll() {
+    const element = tabsHeader.value
+    if (!element) return
+    canScrollLeft.value = element.scrollLeft > 2
+    canScrollRight.value = element.scrollLeft + element.clientWidth < element.scrollWidth - 2
+}
+function scrollTabs(direction) {
+    tabsHeader.value?.scrollBy({ left: direction * Math.max(180, tabsHeader.value.clientWidth * .7), behavior: 'smooth' })
+}
+function selectTab(id) {
+    activeTab.value = id
+    void nextTick(() => {
+        tabButtons[id]?.scrollIntoView?.({ block:'nearest', inline:'nearest', behavior:'smooth' })
+        updateScroll()
+    })
+}
+function onTabsKeydown(event) {
+    const ids = visibleTabs.value.map(tab => tab.id)
+    const index = ids.indexOf(activeTab.value)
+    const target = event.key === 'ArrowRight' ? ids[Math.min(index + 1, ids.length - 1)]
+        : event.key === 'ArrowLeft' ? ids[Math.max(index - 1, 0)]
+        : event.key === 'Home' ? ids[0] : event.key === 'End' ? ids[ids.length - 1] : null
+    if (!target) return
+    event.preventDefault()
+    selectTab(target)
+    void nextTick(() => tabButtons[target]?.focus())
+}
+onMounted(() => { updateScroll(); window.addEventListener('resize', updateScroll) })
+onUnmounted(() => window.removeEventListener('resize', updateScroll))
 
 const visibleTabs = computed(() => props.availableTabs.length
     ? tabs.filter(tab => props.availableTabs.includes(tab.id))
@@ -340,6 +385,7 @@ watch(visibleTabs, (available) => {
     if (available.length && !available.some(tab => tab.id === activeTab.value)) {
         activeTab.value = available[0].id
     }
+    void nextTick(updateScroll)
 }, { immediate: true })
 
 
@@ -774,4 +820,13 @@ watch(
 
 }
 
+.tabs-nav{display:flex;align-items:stretch;min-width:0;border-bottom:1px solid #dce5ee;background:#fbfcfd}
+.tabs-nav .tabs-header{flex:1;min-width:0;border-bottom:0;scrollbar-width:thin;scrollbar-color:#becbd7 transparent;scroll-behavior:smooth}
+.tabs-nav .tabs-header::-webkit-scrollbar{display:block;height:4px}
+.tabs-nav .tabs-header::-webkit-scrollbar-thumb{background:#becbd7;border-radius:4px}
+.tabs-scroll{flex:none;width:33px;border:0;background:#fbfcfd;color:#315676;font-size:24px;cursor:pointer}
+.tabs-scroll:hover:not(:disabled){background:#eef3f7}.tabs-scroll:disabled{opacity:.3;cursor:default}
+.tabs-scroll:focus-visible,.tab-button:focus-visible{outline:2px solid #b08a4c;outline-offset:-3px}
+.tab-button{flex:none}
+@media(prefers-reduced-motion:reduce){.tabs-nav .tabs-header{scroll-behavior:auto}}
 </style>

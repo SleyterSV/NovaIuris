@@ -47,7 +47,9 @@
              SECCIONES DEL ANÁLISIS
         ==================================================== -->
 
+        <p v-if="!sections.length" role="status">No se identificó información suficiente para esta sección.</p>
         <section
+            v-else
             class="analysis-grid"
             aria-label="Secciones del análisis jurídico"
         >
@@ -123,6 +125,10 @@
 
                     <MarkdownRenderer
                         :content="section.content"
+                        :citations="citations"
+                        :sources="sources"
+                        :case-id="caseId"
+                        @select-citation="openCitation"
                     />
 
                 </div>
@@ -133,7 +139,7 @@
                 <footer class="card-footer">
 
                     <span>
-                        NovaCase Intelligence
+                        Análisis NovaCase
                     </span>
 
                     <span class="card-footer-mark">
@@ -290,9 +296,16 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
-    sources: { type: Array, default: () => [] }
+    sources: { type: Array, default: () => [] },
+    citations: { type: Array, default: () => [] },
+    caseId: { type: String, default: null }
 
 })
+const emit = defineEmits(['select-source'])
+function openCitation(citation) {
+    const source = props.sources.find(item => item.source_id === citation.source_id)
+    if (source) emit('select-source', source)
+}
 
 
 /* =========================================================
@@ -310,8 +323,7 @@ const sections = computed(() => [
         title: "Resumen Ejecutivo",
 
         content:
-            props.analysis.summary ||
-            "No identificado con la información disponible."
+            props.analysis.summary
 
     },
 
@@ -324,8 +336,7 @@ const sections = computed(() => [
         title: "Hechos Relevantes",
 
         content:
-            props.analysis.facts ||
-            "No identificado con la información disponible."
+            props.analysis.facts
 
     },
 
@@ -352,8 +363,7 @@ const sections = computed(() => [
         title: "Normativa preliminar identificada",
 
         content:
-            props.analysis.law ||
-            "No identificado con la información disponible."
+            props.analysis.law
 
     },
 
@@ -366,8 +376,7 @@ const sections = computed(() => [
         title: "Jurisprudencia",
 
         content:
-            jurisprudenceMarkdown(props.sources) ||
-            "No identificado con la información disponible."
+            jurisprudenceMarkdown(props.sources)
 
     },
 
@@ -380,12 +389,12 @@ const sections = computed(() => [
         title: "Observaciones",
 
         content:
-            props.analysis.observations ||
-            "No identificado con la información disponible."
+            props.analysis.observations
 
     }
 
-])
+].filter(section => Array.isArray(section.content) ? section.content.length :
+    typeof section.content === 'string' ? section.content.trim() : Boolean(section.content)))
 
 
 /* =========================================================
@@ -394,7 +403,7 @@ const sections = computed(() => [
 
 const processSteps = computed(() => props.stages.map((stage, index) => ({
     id: stage.id || stage.key || index,
-    title: stage.title || stage.label || stage.key || "Etapa",
+    title: stage.title || stage.label || `Etapa ${index + 1}`,
     description: stage.description || "",
     status: stage.status || "pending"
 })))

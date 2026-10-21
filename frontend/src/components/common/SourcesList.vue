@@ -28,7 +28,8 @@ const unitLabel = source => source.unit_type === 'foundation' ? `Fundamento ${so
   : source.unit_type === 'decision' ? 'Decisión'
   : source.unit_type === 'article' ? `Artículo ${source.unit_number || ''}`.trim()
   : source.unit_type === 'separate_opinion' ? 'Voto separado' : null
-const location = source => [source.court || source.issuer || legalTypeLabel(source.source_type),
+const location = source => [source.court || source.issuer ||
+  (['case', 'private_case'].includes(source.source_scope) ? 'Documento aportado' : legalTypeLabel(source.source_type)),
   unitLabel(source) || source.article || source.legal_basis,
   source.page_start ? `pág. ${source.page_start}${source.page_end && source.page_end !== source.page_start ? `–${source.page_end}` : ''}` : null,
   source.section].filter(Boolean).join(' · ')

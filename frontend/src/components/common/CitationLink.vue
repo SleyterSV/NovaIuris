@@ -1,5 +1,5 @@
 <template>
-  <button class="citation-link" type="button" :aria-label="`Abrir fuente ${label}`" @click="$emit('select', citation)">
+  <button class="citation-link" type="button" :aria-label="`Ver fuente ${String(label).replace(/[\[\]]/g, '')}`" @click="$emit('select', citation)">
     {{ label }}
   </button>
 </template>

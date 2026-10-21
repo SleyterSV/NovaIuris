@@ -58,6 +58,13 @@
 
         </div>
 
+        <section v-for="group in factGroups" v-show="group.facts.length" :key="group.key" class="probative-facts">
+            <h3>{{ group.title }}</h3>
+            <ol><li v-for="fact in group.facts" :key="fact.fact_id">
+                <MarkdownRenderer :content="fact.text" />
+            </li></ol>
+        </section>
+
         <section v-if="legalSources.length" class="legal-support" aria-label="Fuentes jurídicas de apoyo">
             <h3>Fuentes jurídicas de apoyo</h3>
             <p>{{ legalSources.length }} fuentes jurídicas verificadas. No constituyen prueba de los hechos del caso.</p>
@@ -156,6 +163,7 @@ const props = defineProps({
 
     },
     documentCount: { type: Number, default: 0 },
+    factGroups: { type: Array, default: () => [] },
     sources: { type: Array, default: () => [] }
 
 })

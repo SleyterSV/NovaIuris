@@ -183,7 +183,7 @@ md.renderer.rules.text = (tokens, idx) => {
         if (!citation) output += md.utils.escapeHtml(match[0])
         else {
             const citationId = md.utils.escapeHtml(citation.citation_id)
-            output += `<button type="button" class="citation-inline" data-citation-id="${citationId}" aria-label="Abrir fuente ${match[0]}">${match[0]}</button>`
+            output += `<button type="button" class="citation-inline" data-citation-id="${citationId}" aria-label="Ver fuente ${match[0].slice(1, -1)}">${match[0]}</button>`
         }
         cursor = match.index + match[0].length
     }

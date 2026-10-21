@@ -58,7 +58,7 @@ const fields = computed(() => {
   const s = safeSource.value || {}
   if (!isV2Unit(s)) {
     return [
-      ['Tipo', s.source_type], ['Entidad', s.entity], ['Tribunal', s.court],
+      ['Tipo', ['case', 'private_case'].includes(s.source_scope) ? 'Documento aportado' : legalTypeLabel(s.source_type)], ['Entidad', s.entity], ['Tribunal', s.court],
       ['Expediente', s.case_number], ['Número', s.document_number], ['Artículo', s.article],
       ['Fundamento', s.legal_basis], ['Fecha', s.date], ['Documento', s.title],
       ['Página', s.page_start ? (s.page_end && s.page_end !== s.page_start ? `${s.page_start}–${s.page_end}` : s.page_start) : null],
