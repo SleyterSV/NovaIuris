@@ -17,6 +17,9 @@
 .novacase-page .step-content p{margin:5px 0 0}
 .novacase-page .progress-footer{margin-top:18px}
 .novacase-page .case-tabs{min-width:0;border-radius:10px;box-shadow:0 8px 24px #17375e0a}
+.novacase-page .summary-court-cta{display:inline-flex;align-items:center;gap:9px;width:auto;margin-top:24px;padding:10px 14px;border:1px solid #c8d6e2;border-radius:7px;background:#fff;color:#194366;font:650 .84rem system-ui,sans-serif;cursor:pointer;transition:background .16s,border-color .16s}
+.novacase-page .summary-court-cta:hover{background:#f1f5f8;border-color:#9db5c9}
+.novacase-page .summary-court-cta:focus-visible{outline:2px solid var(--case-gold);outline-offset:2px}
 .novacase-page .tabs-content{min-height:0;padding:clamp(22px,3vw,38px)}
 .novacase-page .report-view,
 .novacase-page .nova-case-analysis,

@@ -185,10 +185,6 @@
                     </div>
 
                 </header>
-                <div class="research-notice" :class="researchMessage.tone" role="status">
-                    <strong>Investigación jurídica</strong>
-                    <span>{{ researchMessage.text }}</span>
-                </div>
                 <div v-if="privateDocumentCount === 0" class="case-documents-notice">
                     <span>Sin documentos aportados: los hechos del relato permanecen como alegaciones.</span>
                     <button type="button" @click="addDocuments">Agregar documentos al caso</button>
@@ -204,13 +200,20 @@
                 ============================================== -->
 
                 <CaseTabs
-                    defaultTab="report"
+                    defaultTab="summary"
                     :available-tabs="availableTabs"
                 >
 
                     <template #summary>
                         <ExecutiveSummary :summary="analysisSummary" :analysis="analysis"
-                            :facts="canonicalResult?.facts || []" :partial="canonicalResult?.status === 'partial'" />
+                            :facts="canonicalResult?.facts || []"
+                            :report-document="canonicalResult?.report_document || {}"
+                            :sources="[...(canonicalResult?.research?.sources || []), ...(canonicalResult?.sources || []), ...(canonicalResult?.sources_used || [])]"
+                            :case-id="canonicalResult?.case_id" :partial="canonicalResult?.status === 'partial'" />
+                        <button v-if="hasResults && caseTaskCompleted && canonicalResult?.case_id"
+                            type="button" class="summary-court-cta" @click="continueInNovaCourt">
+                            Simular en NovaCourt <span aria-hidden="true">→</span>
+                        </button>
                     </template>
 
                     <!-- =========================================
@@ -373,7 +376,6 @@
 
                 </CaseTabs>
                 <SourceModal :source="selectedSource" :case-id="canonicalResult?.case_id" @close="selectedSource = null" />
-                <button v-if="hasResults && caseTaskCompleted && canonicalResult?.case_id" type="button" @click="continueInNovaCourt">Simular este caso</button>
 
             </section>
 
@@ -479,7 +481,7 @@
 import '@/styles/novacaseEditorial.css'
 import { useRouter } from "vue-router"
 import { normalizeCaseResult } from "@/utils/caseContract.js"
-import { factAllegationOrigin, researchNotice } from "@/utils/novacasePresentation.js"
+import { factAllegationOrigin } from "@/utils/novacasePresentation.js"
 import { caseReuseContext } from "@/utils/mikeWorkspace.js"
 import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue"
 import { normalizeRenderableContent } from "@/utils/content.js"
@@ -798,7 +800,6 @@ const analysisSummary = computed(() => summary.value)
 const privateDocumentCount = computed(() => canonicalResult.value?.document_ids?.length || 0)
 const publicSourceCount = computed(() => canonicalResult.value?.research?.public_source_count ??
     (canonicalResult.value?.research?.sources || []).filter(source => source.source_scope === 'public_legal').length)
-const researchMessage = computed(() => researchNotice(canonicalResult.value?.research?.status, publicSourceCount.value))
 
 async function addDocuments() {
     const caseId = canonicalResult.value?.case_id

@@ -215,7 +215,7 @@ test('actual Vue panels render canonical data and professional empty states', as
       ['novacourt/CourtSummary',{summary:{proceso:'PROCESO-A'}},'PROCESO-A'],
       ['novacourt/CourtAnalysis',{content:normalizeRenderableContent(result.arguments)},'ARGUMENTO-A'],
       ['novacourt/CourtSimulation',{simulation:{status:'ready',prosecutor:{content:'FISCAL-A'}}},'FISCAL-A'],
-      ['common/ExecutiveSummary',{summary:result.summary},'No determinado'],
+      ['common/ExecutiveSummary',{summary:result.summary},'No identificado'],
       ['common/MarkdownRenderer',{content:[]},EMPTY_CONTENT]
     ]) {
       const {default:component}=await server.ssrLoadModule(`/src/components/${name}.vue`)

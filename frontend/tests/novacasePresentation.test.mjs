@@ -136,7 +136,7 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.match(caseView,/@add-documents="addDocuments"/)
     assert.match(mikeView,/@add-documents="addCaseDocuments\(turn,\$event\)"/)
     assert.match(mikeView,/canAttachDocumentsToCase\(payload\?\.caseId, workspace\.value\.caseId/)
-    assert.match(summaryCss,/\.summary-facts dd\{[^}]*overflow-wrap:anywhere/s)
+    assert.match(summaryCss,/\.summary-card dd\{[^}]*overflow-wrap:break-word/s)
   } finally { await server.close() }
 })
 
@@ -200,5 +200,58 @@ test('Case sources tab renders private files and groups public units without emp
     assert.match(html,/Ver fuente/)
     assert.doesNotMatch(html,/<li[^>]*>\s*<\/li>/)
     assert.ok(!html.includes(source.unit_id) && !html.includes(second.unit_id) && !html.includes(privateOne.source_id))
+  } finally { await server.close() }
+})
+
+test('executive summary restores six real indicators and evidence-aware key facts', async () => {
+  const server=await createServer({server:{middlewareMode:true,hmr:false,port:0},appType:'custom',logLevel:'error',optimizeDeps:{noDiscovery:true,include:[]}})
+  try {
+    const component=(await server.ssrLoadModule('/src/components/common/ExecutiveSummary.vue')).default
+    const privateSource={source_id:'SRC-private-case',source_scope:'private_case',case_id:'CASE-A'}
+    const facts=[
+      {fact_id:'FACT-first',text:'Se contrató un reemplazo',status:'alleged',source_ids:[]},
+      {fact_id:'FACT-second',text:'Memorando comunicó la no renovación',status:'supported',source_ids:[privateSource.source_id]},
+      ...Array.from({length:5},(_,index)=>({fact_id:'FACT-extra-'+index,text:'Alegación adicional '+index,status:'alleged',source_ids:[]}))
+    ]
+    const html=await renderToString(createSSRApp({render:()=>h(component,{
+      summary:{resumen:'El caso requiere revisión de la no renovación.',rama:'Derecho Laboral Público',
+        proceso:'Proceso contencioso administrativo de revisión',riesgo:'HIGH',evidencia:'MEDIUM',
+        documentos:2,fuentes_juridicas:14,problema_juridico:'Determinar la validez de la no renovación.',
+        hallazgo_principal:'La conclusión depende de la prueba documental.'},
+      facts,sources:[privateSource],caseId:'CASE-A'
+    })}))
+    assert.match(html,/SÍNTESIS DEL CASO/)
+    assert.match(html,/Resumen ejecutivo/)
+    assert.match(html,/El caso requiere revisión de la no renovación/)
+    assert.equal((html.match(/<dt\b/g)||[]).length,6)
+    for(const text of ['Derecho Laboral Público','Proceso contencioso administrativo de revisión',
+      'Alto','Medio','Documentos del caso','Fuentes jurídicas recuperadas','Hechos clave',
+      'Problema jurídico','Determinar la validez de la no renovación',
+      'Hallazgo principal','La conclusión depende de la prueba documental']) assert.ok(html.includes(text),text)
+    assert.match(html,/>2<\/dd>/)
+    assert.match(html,/>14<\/dd>/)
+    assert.ok(html.indexOf('Memorando comunicó') < html.indexOf('Se alega que se contrató'))
+    assert.equal((html.match(/<li\b/g)||[]).length,5)
+    assert.ok(!html.includes('FACT-') && !html.includes('SRC-'))
+    assert.ok(!/>\s*(?:HIGH|MEDIUM|summary|risk|evidence|completed)\s*</i.test(html))
+    const mismatchedCase=await renderToString(createSSRApp({render:()=>h(component,{
+      summary:{documentos:1,fuentes_juridicas:0},facts:[facts[1]],
+      sources:[{...privateSource,case_id:'CASE-B'}],caseId:'CASE-A'
+    })}))
+    assert.match(mismatchedCase,/Se alega que memorando comunicó la no renovación/)
+    const reportBacked=await renderToString(createSSRApp({render:()=>h(component,{
+      summary:{rama:'Laboral',documentos:0,fuentes_juridicas:0},
+      reportDocument:{sections:[
+        {title:'Objeto y alcance',content:'La controversia requiere revisión documental. [1]'},
+        {title:'Conclusión',content:'La conclusión permanece condicionada a la prueba.'}
+      ]}
+    })}))
+    assert.match(reportBacked,/La controversia requiere revisión documental/)
+    assert.match(reportBacked,/La conclusión permanece condicionada a la prueba/)
+    assert.ok(!reportBacked.includes('[1]'))
+    const view=await readFile(new URL('../src/views/NovaCaseView.vue',import.meta.url),'utf8')
+    assert.ok(!view.includes('class="research-notice"'))
+    assert.match(view,/defaultTab="summary"/)
+    assert.match(view,/class="summary-court-cta" @click="continueInNovaCourt"/)
   } finally { await server.close() }
 })
