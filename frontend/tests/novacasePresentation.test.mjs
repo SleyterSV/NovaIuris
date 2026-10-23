@@ -222,9 +222,10 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.ok(!argumentsHtml.includes('Supporting fact ids'))
 
     const evidenceHtml=await render('novacase/EvidenceView',{evidence:{documents:'Contrato alegado'},documentCount:0})
-    assert.match(evidenceHtml,/Sin documentos aportados al caso/)
+    assert.match(evidenceHtml,/No se identificaron documentos incorporados al caso/)
     assert.match(evidenceHtml,/Agregar documentos al caso/)
-    assert.match(evidenceHtml,/No aportada/)
+    assert.match(evidenceHtml,/No se identificaron testimonios, peritajes ni evidencia digital/)
+    assert.doesNotMatch(evidenceHtml,/Motor de anÃ¡lisis|MYKE \/ NovaCase/)
     assert.ok(!evidenceHtml.includes('Contrato alegado'))
 
     const verifiedHtml=await render('novacase/ArgumentsView',{
@@ -241,10 +242,55 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
       evidence:{documents:'STC Exp. 00001-2024-PA/TC'},documentCount:0,sources:[source]
     })
     assert.match(legalEvidence,/Fuentes jurídicas de apoyo/)
-    assert.match(legalEvidence,/No aportada/)
+    assert.match(legalEvidence,/no constituyen prueba de los hechos del caso/)
     assert.equal((legalEvidence.match(/STC Exp. 00001-2024-PA\/TC/g) || []).length,1)
 
-    const privateSource={source_id:'SRC-private-analysis',source_scope:'private_case',case_id:'CASE-A',title:'Contrato CAS',page_start:1}
+    const privateEvidenceSource={source_id:'SRC-private-doc-page-one',source_scope:'private_case',case_id:'CASE-A',
+      document_id:'44444444-4444-4444-8444-444444444444',title:'Contrato CAS (SRC-aaaaaaaaaaaaaaaaaaaaaaaa)',
+      display_title:'Contrato CAS (SRC-aaaaaaaaaaaaaaaaaaaaaaaa)',page_start:1}
+    const privateEvidenceSourcePage2={...privateEvidenceSource,source_id:'SRC-private-doc-page-two',page_start:2}
+    const privateMemo={source_id:'SRC-private-memo-page-one',source_scope:'private_case',case_id:'CASE-A',
+      document_id:'55555555-5555-4555-8555-555555555555',title:'Memorando de no renovación',display_title:'Memorando de no renovación',page_start:1}
+    const factualRecord={fact_id:'FACT-cccccccccccccccccccccccc',text:'El contrato acredita las funciones pactadas y la jornada institucional.',
+      status:'supported',source_ids:[privateEvidenceSource.source_id]}
+    const allegedRecord={fact_id:'FACT-dddddddddddddddddddddddd',text:'Se alega que las labores continuaron de forma permanente.',status:'alleged',source_ids:[]}
+    const evidenceSources=[source,privateEvidenceSource,privateEvidenceSourcePage2,privateMemo]
+    const evidenceCitations=[
+      {citation_id:'EVIDENCE-CIT-1',source_id:privateEvidenceSource.source_id,label:'[1]'},
+      {citation_id:'EVIDENCE-CIT-2',source_id:privateEvidenceSourcePage2.source_id,label:'[2]'},
+      {citation_id:'EVIDENCE-CIT-3',source_id:privateMemo.source_id,label:'[3]'},
+      {citation_id:'EVIDENCE-CIT-4',source_id:source.source_id,label:'[4]'}
+    ]
+    const professionalEvidence=await render('novacase/EvidenceView',{
+      evidence:{summary:'La documentación acredita el vínculo y la comunicación de no renovación. Documento rotulado como "ficticio" en el entorno QA.'},
+      analysis:{nivel_evidencia:'MEDIUM'},documentCount:2,caseId:'CASE-A',sources:evidenceSources,citations:evidenceCitations,
+      facts:[factualRecord,allegedRecord],factGroups:[
+        {key:'supported',facts:[factualRecord]},{key:'alleged',facts:[allegedRecord]},{key:'pending',facts:[]}
+      ],issues:[{issue_id:issueId,title:'Permanencia de las funciones',text:'¿Las labores desempeñadas fueron permanentes?'}],
+      evidenceLinks:[{evidence_id:'EVIDENCE-1',issue_id:issueId,fact_ids:[factId],source_ids:[privateEvidenceSource.source_id,privateEvidenceSourcePage2.source_id],
+        what_it_supports:'El contrato identifica las funciones administrativas y logísticas.',
+        limitations:'No acredita por sí solo la permanencia efectiva de las labores.'}]
+    })
+    assert.match(professionalEvidence,/Análisis probatorio/)
+    assert.match(professionalEvidence,/Evaluación probatoria/)
+    assert.match(professionalEvidence,/>Media</)
+    assert.match(professionalEvidence,/Documentos aportados/)
+    assert.match(professionalEvidence,/Hechos acreditados documentalmente/)
+    assert.match(professionalEvidence,/Hechos pendientes de corroboración/)
+    assert.match(professionalEvidence,/Pendiente de corroboración/)
+    assert.match(professionalEvidence,/Fuentes jurídicas de apoyo/)
+    assert.match(professionalEvidence,/no constituyen prueba de los hechos del caso/)
+    assert.match(professionalEvidence,/Evidencia vinculada a las cuestiones jurídicas/)
+    assert.match(professionalEvidence,/Limitaciones/)
+    assert.match(professionalEvidence,/Contrato CAS · pág\. 1/)
+    assert.match(professionalEvidence,/Fundamento 7/)
+    assert.match(professionalEvidence,/Ver documento/)
+    assert.doesNotMatch(professionalEvidence,/SRC-[a-f0-9]{12,}|source_id|document_id|unit_id|private_case|public_legal|Motor de análisis|ficticio|entorno QA|Consultar fuente documental/i)
+
+    const evidenceViewSource=await readFile(new URL('../src/components/novacase/EvidenceView.vue',import.meta.url),'utf8')
+    assert.match(evidenceViewSource,/@click="selectSource\(source\)"/)
+    assert.match(evidenceViewSource,/emit\('select-source', source\)/)
+    const privateSource={source_id:'SRC-private-analysis',source_scope:'private_case',case_id:'CASE-A'}
     const analysisHtml=await render('novacase/AnalysisView',{
       analysis:{rama_derecho:'Laboral',tipo_proceso:'Proceso laboral',pretension_principal:'Reposición',
         nivel_evidencia:'MEDIUM',issues:['¿La no renovación requiere motivación?'],law:[{title:'Decreto Legislativo N.º 1057',description:'Régimen de contratación administrativa de servicios.'}],

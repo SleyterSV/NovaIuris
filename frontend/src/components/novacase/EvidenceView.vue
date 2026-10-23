@@ -1,1110 +1,313 @@
 <template>
-
-    <section class="evidence-view">
-
-        <!-- =====================================================
-             CABECERA
-        ====================================================== -->
-
-        <header class="evidence-header">
-
-            <div class="evidence-heading">
-
-                <div class="section-eyebrow">
-
-                    <span class="eyebrow-line"></span>
-
-                    NOVACASE · EVIDENCIA
-
-                </div>
-
-                <h2>
-                    Análisis Probatorio
-                </h2>
-
-                <p>
-                    Evaluación de las pruebas identificadas durante
-                    el análisis jurídico del caso.
-                </p>
-
-            </div>
-
-        </header>
-
-
-        <!-- =====================================================
-             EVIDENCIAS
-        ====================================================== -->
-
-        <div class="evidence-grid">
-
-            <AnalysisSection
-
-                v-for="item in evidences"
-
-                :key="item.id"
-
-                :title="item.title"
-
-                :subtitle="item.subtitle"
-
-                :icon="item.icon"
-
-                :content="item.content"
-
-                :status="item.status"
-
-            />
-
+  <main class="evidence-editorial" aria-labelledby="evidence-title">
+    <header class="evidence-header">
+      <p class="evidence-eyebrow"><span aria-hidden="true"></span> NOVACASE · EVIDENCIA</p>
+      <div class="evidence-title-row">
+        <div>
+          <h2 id="evidence-title">Análisis probatorio</h2>
+          <p class="evidence-deck">Evaluación de los medios probatorios disponibles y de su relación con los hechos relevantes del caso.</p>
         </div>
+        <span v-if="evidenceLevel" class="evidence-level"><span>Nivel general de evidencia</span><strong>{{ evidenceLevel }}</strong></span>
+      </div>
+    </header>
 
-        <section v-for="group in factGroups" v-show="group.facts.length" :key="group.key" class="probative-facts">
-            <h3>{{ group.title }}</h3>
-            <ol><li v-for="fact in group.facts" :key="fact.fact_id">
-                <MarkdownRenderer :content="fact.text" />
-            </li></ol>
-        </section>
-
-        <section v-if="legalSources.length" class="legal-support" aria-label="Fuentes jurídicas de apoyo">
-            <h3>Fuentes jurídicas de apoyo</h3>
-            <p>{{ legalSources.length }} fuentes jurídicas verificadas. No constituyen prueba de los hechos del caso.</p>
-            <ul><li v-for="source in legalSources" :key="source.source_id">
-                <button type="button" @click="$emit('select-source', source)">{{ sourceHumanLabel(source) }} · Ver fuente</button>
-            </li></ul>
-        </section>
-
-        <div v-if="documentCount === 0" class="documents-empty" role="status">
-            <div><strong>Sin documentos aportados al caso</strong>
-                <p>Los hechos permanecen como alegaciones. Puede agregar contratos, resoluciones, memorandos o escritos para evaluar su respaldo documental.</p></div>
-            <button type="button" @click="$emit('add-documents')">Agregar documentos al caso</button>
-        </div>
-
-
-        <!-- =====================================================
-             ESTADÍSTICAS
-        ====================================================== -->
-
-
-
-
-        <!-- =====================================================
-             CONCLUSIÓN PROBATORIA
-        ====================================================== -->
-
-        <section class="evidence-summary">
-
-            <div class="summary-header">
-
-                <div>
-
-                    <div class="summary-eyebrow">
-
-                        <span class="summary-line"></span>
-
-                        CONCLUSIÓN PROBATORIA
-
-                    </div>
-
-                    <h3>
-                        Evaluación general de la evidencia
-                    </h3>
-
-                </div>
-
-                <div class="summary-badge">
-
-                    <span class="summary-dot"></span>
-
-                    Evaluación realizada
-
-                </div>
-
-            </div>
-
-
-            <div class="summary-content">
-
-                <MarkdownRenderer
-                    :content="summary"
-                />
-
-            </div>
-
-        </section>
-
+    <section class="evidence-context" aria-label="Síntesis probatoria">
+      <h3>Evaluación probatoria</h3>
+      <dl>
+        <div><dt>Nivel general</dt><dd>{{ evidenceLevel || 'No identificado' }}</dd></div>
+        <div><dt>Documentos aportados</dt><dd>{{ documentCount }}</dd></div>
+        <div><dt>Hechos con respaldo documental</dt><dd>{{ supportedFacts.length }}</dd></div>
+        <div><dt>Hechos pendientes de corroboración</dt><dd>{{ pendingFacts.length }}</dd></div>
+        <div><dt>Fuentes jurídicas de apoyo</dt><dd>{{ legalSources.length }}</dd></div>
+      </dl>
     </section>
 
+    <div class="evidence-overview-grid">
+      <section class="evidence-section documents-section" aria-labelledby="documents-title">
+        <header class="section-heading">
+          <p class="section-kicker">DOCUMENTACIÓN APORTADA</p>
+          <h3 id="documents-title">Documentos del caso</h3>
+        </header>
+        <p v-if="documentGroups.length === 0 && !documentNarrative" class="section-empty">No se identificaron documentos incorporados al caso.</p>
+        <div v-if="documentGroups.length === 0 && documentNarrative" class="document-narrative"><MarkdownRenderer :content="documentNarrative" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></div>
+        <ol v-if="documentGroups.length" class="document-list">
+          <li v-for="(group, index) in documentGroups" :key="group.key" class="document-row">
+            <span class="row-number" aria-hidden="true">{{ number(index + 1) }}</span>
+            <div class="document-content">
+              <h4>{{ group.title }}</h4>
+              <p v-if="group.supports.length" class="document-note"><strong>Acredita:</strong> <span v-for="(item, supportIndex) in group.supports" :key="`support-${supportIndex}`"><MarkdownRenderer :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></span></p>
+              <p v-if="group.limitations.length" class="document-note limitation-note"><strong>Limitaciones:</strong> <span v-for="(item, limitationIndex) in group.limitations" :key="`limit-${limitationIndex}`"><MarkdownRenderer :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></span></p>
+              <ul class="document-pages">
+                <li v-for="source in group.sources" :key="source.source_id">
+                  <button type="button" class="source-action" :aria-label="`Ver documento${pageLabel(source) ? `, ${pageLabel(source)}` : ''}`" @click="selectSource(source)">
+                    <span v-if="citationFor(source)" class="citation-badge">{{ citationFor(source).label }}</span>
+                    <span>{{ pageActionLabel(source) }}</span><span aria-hidden="true">↗</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </li>
+        </ol>
+        <div v-if="documentCount === 0" class="documents-empty" role="status">
+          <p>Los hechos permanecen como alegaciones hasta contar con respaldo documental.</p>
+          <button type="button" @click="$emit('add-documents')">Agregar documentos al caso</button>
+        </div>
+      </section>
+
+      <section class="evidence-section other-evidence" aria-labelledby="other-evidence-title">
+        <header class="section-heading">
+          <p class="section-kicker">MEDIOS COMPLEMENTARIOS</p>
+          <h3 id="other-evidence-title">Otros medios probatorios</h3>
+        </header>
+        <ul v-if="hasOtherEvidence" class="other-evidence-list">
+          <li v-for="item in otherEvidence" :key="item.key">
+            <span>{{ item.label }}</span>
+            <MarkdownRenderer v-if="item.content" :content="item.content" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" />
+            <strong v-else>No identificado</strong>
+          </li>
+        </ul>
+        <p v-else class="section-empty">No se identificaron testimonios, peritajes ni evidencia digital en la información aportada.</p>
+      </section>
+    </div>
+
+    <section v-if="supportedFacts.length" class="evidence-section fact-section" aria-labelledby="supported-facts-title">
+      <header class="section-heading">
+        <p class="section-kicker">HECHOS RESPALDADOS</p>
+        <h3 id="supported-facts-title">Hechos acreditados documentalmente</h3>
+        <p>Hechos respaldados por los documentos incorporados al caso.</p>
+      </header>
+      <ol class="fact-list">
+        <li v-for="(fact, index) in supportedFacts" :key="fact.fact_id || `supported-${index}`">
+          <span class="row-number" aria-hidden="true">{{ number(index + 1) }}</span>
+          <div><MarkdownRenderer :content="safeText(fact.text)" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" />
+            <div v-if="factSourceList(fact).length" class="fact-sources"><span>Fuente:</span>
+              <button v-for="source in factSourceList(fact)" :key="source.source_id" type="button" class="source-action" :aria-label="`Ver fuente${citationFor(source) ? ` ${citationFor(source).label.slice(1,-1)}` : ''}: ${humanSourceLabel(source)}`" @click="selectSource(source)">
+                <span v-if="citationFor(source)" class="citation-badge">{{ citationFor(source).label }}</span>{{ humanSourceLabel(source) }} <span aria-hidden="true">↗</span>
+              </button>
+            </div>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section v-if="pendingFacts.length" class="evidence-section fact-section alleged-section" aria-labelledby="pending-facts-title">
+      <header class="section-heading">
+        <p class="section-kicker">RELATO PENDIENTE DE RESPALDO</p>
+        <h3 id="pending-facts-title">Hechos pendientes de corroboración</h3>
+        <p>Elementos provenientes del relato del caso que aún requieren respaldo documental.</p>
+      </header>
+      <ol class="fact-list">
+        <li v-for="(fact, index) in pendingFacts" :key="fact.fact_id || `pending-${index}`">
+          <span class="row-number" aria-hidden="true">{{ number(index + 1) }}</span>
+          <div><MarkdownRenderer :content="safeText(fact.text)" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" />
+            <span class="pending-label">Pendiente de corroboración</span>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section v-if="legalSourceGroups.length" class="evidence-section legal-support" aria-labelledby="legal-support-title">
+      <header class="section-heading">
+        <p class="section-kicker">AUTORIDAD JURÍDICA</p>
+        <h3 id="legal-support-title">Fuentes jurídicas de apoyo</h3>
+        <p>Las siguientes fuentes sustentan el análisis jurídico, pero no constituyen prueba de los hechos del caso.</p>
+      </header>
+      <ol class="legal-source-list">
+        <li v-for="group in legalSourceGroups" :key="group.key">
+          <div class="legal-source-heading"><h4>{{ group.title }}</h4><p v-if="group.court">{{ group.court }}</p></div>
+          <p v-if="group.units.length" class="legal-locators"><span>Unidades relevantes</span>{{ group.units.join(' · ') }}</p>
+          <ul class="unit-actions"><li v-for="source in group.sources" :key="source.source_id">
+            <button type="button" class="source-action" :aria-label="`Ver fuente: ${sourceUnitActionLabel(source)}`" @click="selectSource(source)">
+              <span v-if="citationFor(source)" class="citation-badge">{{ citationFor(source).label }}</span>{{ sourceUnitActionLabel(source) }}<span aria-hidden="true">↗</span>
+            </button>
+          </li></ul>
+        </li>
+      </ol>
+    </section>
+
+    <section v-if="conclusionText || strengths.length || limitations.length" class="evidence-section conclusion-section" aria-labelledby="evidence-conclusion-title">
+      <header class="section-heading"><p class="section-kicker">SÍNTESIS EJECUTIVA</p><h3 id="evidence-conclusion-title">Conclusión probatoria</h3></header>
+      <p v-if="evidenceLevel" class="conclusion-level"><span>Nivel de evidencia</span><strong>{{ evidenceLevel }}</strong></p>
+      <MarkdownRenderer v-if="conclusionText" :content="conclusionText" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" />
+      <div v-if="strengths.length" class="conclusion-points"><h4>Fortalezas</h4><ul><li v-for="(item,index) in strengths" :key="`strength-${index}`"><MarkdownRenderer :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></li></ul></div>
+      <div v-if="limitations.length" class="conclusion-points"><h4>Limitaciones</h4><ul><li v-for="(item,index) in limitations" :key="`limitation-${index}`"><MarkdownRenderer :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></li></ul></div>
+    </section>
+
+    <section v-if="issueEvidence.length" class="evidence-section issue-evidence" aria-labelledby="issue-evidence-title">
+      <header class="section-heading"><p class="section-kicker">ANÁLISIS POR CUESTIÓN</p><h3 id="issue-evidence-title">Evidencia vinculada a las cuestiones jurídicas</h3></header>
+      <ol class="issue-evidence-list">
+        <li v-for="(item, index) in issueEvidence" :key="item.key">
+          <span class="row-number" aria-hidden="true">{{ number(index + 1) }}</span>
+          <article>
+            <h4>{{ item.title }}</h4>
+            <section v-if="item.issue"><h5>Cuestión jurídica</h5><MarkdownRenderer :content="item.issue" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></section>
+            <section v-if="item.description"><h5>Evidencia disponible</h5><MarkdownRenderer :content="item.description" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></section>
+            <section v-if="item.probativeValue"><h5>Valor probatorio</h5><MarkdownRenderer :content="item.probativeValue" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></section>
+            <section v-if="item.limitations"><h5>Limitaciones</h5><MarkdownRenderer :content="item.limitations" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></section>
+            <div v-if="item.sources.length" class="linked-sources"><h5>Fuentes</h5>
+              <button v-for="source in item.sources" :key="source.source_id" type="button" class="source-action" :aria-label="`Ver fuente${citationFor(source) ? ` ${citationFor(source).label.slice(1,-1)}` : ''}: ${humanSourceLabel(source)}`" @click="selectSource(source)">
+                <span v-if="citationFor(source)" class="citation-badge">{{ citationFor(source).label }}</span>{{ humanSourceLabel(source) }}<span aria-hidden="true">↗</span>
+              </button>
+            </div>
+          </article>
+        </li>
+      </ol>
+    </section>
+  </main>
 </template>
 
-
 <script setup>
-
-import { computed } from "vue"
-
-import AnalysisSection
-    from "@/components/common/AnalysisSection.vue"
-
-import MarkdownRenderer
-    from "@/components/common/MarkdownRenderer.vue"
-import { evidenceAvailability, publicLegalSources, sourceHumanLabel } from '@/utils/novacasePresentation.js'
-
-
-/* =========================================================
-   PROPS
-========================================================= */
+import { computed } from 'vue'
+import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
+import { evidenceAvailability, presentableText, sourceHumanLabel, sourceUnitLabel, argumentCitationForSource } from '@/utils/novacasePresentation.js'
+import { normalizeSource, normalizeSources } from '@/utils/sourceContract.js'
 
 const props = defineProps({
-
-    evidence: {
-
-        type: Object,
-
-        default: () => ({})
-
-    },
-    documentCount: { type: Number, default: 0 },
-    factGroups: { type: Array, default: () => [] },
-    sources: { type: Array, default: () => [] }
-
+  evidence: { type: Object, default: () => ({}) },
+  analysis: { type: Object, default: () => ({}) },
+  documentCount: { type: Number, default: 0 },
+  factGroups: { type: Array, default: () => [] },
+  facts: { type: Array, default: () => [] },
+  issues: { type: Array, default: () => [] },
+  evidenceLinks: { type: Array, default: () => [] },
+  sources: { type: Array, default: () => [] },
+  citations: { type: Array, default: () => [] },
+  caseId: { type: String, default: null }
 })
-defineEmits(['add-documents', 'select-source'])
-const legalSources = computed(() => publicLegalSources(props.sources))
+const emit = defineEmits(['add-documents', 'select-source'])
 
+function safeText(value) {
+  if (typeof value !== 'string') return ''
+  return presentableText(value).replace(/Documento rotulado como\s+["'“]?ficticio["'”]?\s+en el entorno\s+QA\.?/gi, '').replace(/\(\s*\)|\[\s*\]/g, '').replace(/\s{2,}/g, ' ').trim()
+}
+function recordsList(value) {
+  const items = Array.isArray(value) ? value : value == null || value === '' ? [] : [value]
+  return items.map(displayContent).filter(Boolean)
+}
+function displayContent(value) {
+  if (Array.isArray(value)) return value.map(displayContent).filter(Boolean).join('\n\n')
+  if (value && typeof value === 'object') return displayContent(value.text || value.description || value.content || value.summary)
+  if (typeof value === 'string') {
+    const text = safeText(value).trim()
+    const status = text.toLocaleLowerCase()
+    const translated = ({ supported: 'Con respaldo documental', alleged: 'Pendiente de corroboración', verified: 'Acreditado', unknown: 'No identificado', not_identified: 'No identificado' })[status]
+    if (translated) return translated
+    return evidenceAvailability(text) === 'not_identified' ? '' : text
+  }
+  return ''
+}
+function firstValue(...values) { return values.find(value => typeof value === 'string' && value.trim()) || '' }
+function number(value) { return String(value).padStart(2, '0') }
+function selectSource(value) {
+  const source = normalizeSource(value, props.caseId)
+  if (source) emit('select-source', source)
+}
+function openCitation(citation) {
+  const source = normalizedSources.value.find(item => item.source_id === citation?.source_id)
+  if (source) selectSource(source)
+}
+function citationFor(source) {
+  return argumentCitationForSource(source, props.citations, normalizedSources.value, props.caseId)
+}
+function pageLabel(source) {
+  if (!source.page_start) return ''
+  return source.page_end && source.page_end !== source.page_start
+    ? `págs. ${source.page_start}–${source.page_end}` : `pág. ${source.page_start}`
+}
+function humanSourceTitle(source) { return safeText(source.display_title || source.title || 'Documento del caso') }
+function humanSourceLabel(source) { return safeText(sourceHumanLabel(source)) }
+function pageActionLabel(source) { return ['case', 'private_case'].includes(source.source_scope) ? `Ver documento${pageLabel(source) ? ` · ${pageLabel(source)}` : ''}` : `Ver fuente${pageLabel(source) ? ` · ${pageLabel(source)}` : ''}` }
+function sourceUnitActionLabel(source) { return [sourceUnitLabel(source) || 'Ver fuente', pageLabel(source)].filter(Boolean).join(' · ') }
+function factSourceList(fact) {
+  const ids = new Set(fact.source_ids || [])
+  return normalizedSources.value.filter(source => ids.has(source.source_id) && ['case', 'private_case'].includes(source.source_scope))
+}
 
-/* =========================================================
-   EVIDENCIAS
-========================================================= */
-
-const evidences = computed(() => [
-
-    {
-
-        id: "documents",
-
-        title: "Documentos",
-
-        subtitle: "Pruebas documentales",
-
-        icon: "📄",
-
-        content:
-            (props.documentCount === 0 ? 'No aportada.' : props.evidence.documents) ||
-
-            "No identificado con la información disponible.",
-
-        status: evidenceAvailability(props.evidence.documents, { documentCount: props.documentCount, documentary: true })
-
-    },
-
-
-    {
-
-        id: "testimonies",
-
-        title: "Testimonios",
-
-        subtitle: "Declaraciones relevantes",
-
-        icon: "👤",
-
-        content:
-            props.evidence.testimonies ||
-
-            "No identificado con la información disponible.",
-
-        status: evidenceAvailability(props.evidence.testimonies)
-
-    },
-
-
-    {
-
-        id: "expert",
-
-        title: "Peritajes",
-
-        subtitle: "Informes periciales",
-
-        icon: "🧪",
-
-        content:
-            props.evidence.expertReports ||
-
-            "No identificado con la información disponible.",
-
-        status: evidenceAvailability(props.evidence.expertReports)
-
-    },
-
-
-    {
-
-        id: "digital",
-
-        title: "Evidencia digital",
-
-        subtitle: "Mensajes, correos y archivos",
-
-        icon: "💻",
-
-        content:
-            props.evidence.digitalEvidence ||
-
-            "No identificado con la información disponible.",
-
-        status: evidenceAvailability(props.evidence.digitalEvidence)
-
-    }
-
+const normalizedSources = computed(() => normalizeSources(props.sources, props.caseId))
+const privateSources = computed(() => normalizedSources.value.filter(source => ['case', 'private_case'].includes(source.source_scope)))
+const legalSources = computed(() => normalizedSources.value.filter(source => source.source_scope === 'public_legal'))
+const evidenceLevel = computed(() => {
+  const raw = firstValue(props.analysis?.nivel_evidencia, props.analysis?.evidence_level,
+    props.analysis?.evidence_strength, props.evidence?.level, props.evidence?.evidence_level, props.evidence?.summary)
+  const normalized = raw.toLocaleLowerCase().trim()
+  if (['low', 'bajo', 'baja', 'limited', 'limitada'].includes(normalized)) return 'Baja'
+  if (['medium', 'medio', 'media', 'moderate', 'moderada'].includes(normalized)) return 'Media'
+  if (['high', 'alto', 'alta', 'strong', 'sólida'].includes(normalized)) return 'Alta'
+  if (['critical', 'crítico', 'crítica'].includes(normalized)) return 'Crítica'
+  if (['unknown', 'not identified', 'not_identified', 'desconocida', 'no identificado'].includes(normalized)) return 'No identificado'
+  return ''
+})
+const supportedFacts = computed(() => props.factGroups.find(group => group.key === 'supported')?.facts || [])
+const pendingFacts = computed(() => [
+  ...(props.factGroups.find(group => group.key === 'alleged')?.facts || []),
+  ...(props.factGroups.find(group => group.key === 'pending')?.facts || [])
 ])
-
-
-/* =========================================================
-   RESUMEN
-========================================================= */
-
-const summary = computed(() =>
-
-    props.evidence.summary ||
-
-    `### Conclusión
-
-NovaCase no encontró una conclusión probatoria disponible.`
-
-)
-
-
-/* =========================================================
-   PROMEDIO
-========================================================= */
-
+const otherEvidence = computed(() => [
+  { key: 'testimonies', label: 'Testimonios', content: displayContent(props.evidence.testimonies) },
+  { key: 'expert', label: 'Peritajes', content: displayContent(props.evidence.expertReports) },
+  { key: 'digital', label: 'Evidencia digital', content: displayContent(props.evidence.digitalEvidence) }
+])
+const hasOtherEvidence = computed(() => otherEvidence.value.some(item => item.content))
+const documentNarrative = computed(() => props.documentCount > 0 ? displayContent(props.evidence.documents) : '')
+const strengths = computed(() => recordsList(props.evidence.strengths))
+const limitations = computed(() => [...recordsList(props.evidence.weaknesses), ...recordsList(props.evidence.missing_evidence)])
+const conclusionText = computed(() => {
+  const summary = displayContent(props.evidence.conclusion || props.analysis?.evidence_summary || props.evidence.summary)
+  const levelValue = ['baja', 'low', 'media', 'medio', 'medium', 'alta', 'alto', 'high', 'crítica', 'crítico', 'critical', 'desconocida', 'unknown', 'no identificado', 'not identified', 'not_identified']
+  return levelValue.includes(summary.toLocaleLowerCase().trim()) ? '' : summary
+})
+const documentGroups = computed(() => {
+  const groups = new Map()
+  for (const source of privateSources.value) {
+    const title = humanSourceTitle(source)
+    const key = source.document_id || source.metadata?.document_id || title
+    if (!groups.has(key)) groups.set(key, { key, title, sources: [], supports: [], limitations: [] })
+    const group = groups.get(key)
+    group.sources.push(source)
+    for (const link of props.evidenceLinks) {
+      if (!(link.source_ids || []).includes(source.source_id)) continue
+      const support = displayContent(link.what_it_supports || link.evidence_summary || link.text)
+      const limitation = displayContent(link.limitations)
+      if (support && !group.supports.includes(support)) group.supports.push(support)
+      if (limitation && !group.limitations.includes(limitation)) group.limitations.push(limitation)
+    }
+  }
+  return [...groups.values()].map(group => ({ ...group, sources: group.sources.sort((a, b) => (a.page_start || 0) - (b.page_start || 0)) }))
+})
+const legalSourceGroups = computed(() => {
+  const groups = new Map()
+  for (const source of legalSources.value) {
+    const key = source.document_id || source.display_title || source.title
+    if (!groups.has(key)) groups.set(key, { key, title: humanSourceTitle(source), court: safeText(source.court || source.issuer || source.entity || ''), sources: [], units: [] })
+    const group = groups.get(key)
+    group.sources.push(source)
+    const unit = sourceUnitLabel(source)
+    if (unit && !group.units.includes(unit)) group.units.push(unit)
+  }
+  return [...groups.values()]
+})
+const factsById = computed(() => new Map(props.facts.map(fact => [fact.fact_id, fact])))
+const issuesById = computed(() => new Map(props.issues.map(issue => [issue.issue_id, issue])))
+const issueEvidence = computed(() => props.evidenceLinks.map((link, index) => {
+  const issue = issuesById.value.get(link.issue_id)
+  const sourceIds = new Set(link.source_ids || [])
+  const linkedSources = normalizedSources.value.filter(source => sourceIds.has(source.source_id))
+  const facts = (link.fact_ids || []).map(id => factsById.value.get(id)).filter(fact => fact?.text)
+  const description = displayContent(link.what_it_supports || link.evidence_summary || link.text)
+  const limitations = displayContent(link.limitations)
+  const probativeValue = displayContent(link.probative_value || link.value_assessment || link.assessment)
+  const issueText = safeText(issue?.text || issue?.description || issue?.question || '')
+  const title = safeText(link.title || issue?.title || '')
+  const evidenceDescription = description || facts.map(fact => safeText(fact.text)).filter(Boolean).join('\n\n')
+  return title || issueText || evidenceDescription || linkedSources.length
+    ? { key: link.evidence_id || `${link.issue_id || 'evidence'}-${index}`, title: title || (issueText ? 'Cuestión jurídica relacionada' : 'Evidencia relacionada'), issue: issueText, description: evidenceDescription, probativeValue, limitations, sources: linkedSources }
+    : null
+}).filter(Boolean))
 </script>
 
-
 <style scoped>
-
-/* =========================================================
-   EVIDENCE VIEW
-========================================================= */
-
-.evidence-view {
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 28px;
-
-    padding: 30px;
-
-    background: #FFFFFF;
-
-    border:
-        1px solid
-        #DCE5EE;
-
-    border-radius: 14px;
-
-    box-shadow:
-        0 8px 24px
-        rgba(
-            23,
-            55,
-            94,
-            .055
-        );
-
-    animation:
-        evidenceAppear
-        .45s
-        ease-out;
-
-}
-
-
-/* =========================================================
-   CABECERA
-========================================================= */
-
-.evidence-header {
-
-    display: flex;
-
-    align-items: flex-start;
-
-    justify-content: space-between;
-
-    padding-bottom: 22px;
-
-    border-bottom:
-        1px solid
-        #E2E8F0;
-
-}
-
-
-.evidence-heading {
-
-    min-width: 0;
-
-}
-
-
-.section-eyebrow {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 8px;
-
-    margin-bottom: 10px;
-
-    color: #8A6A36;
-
-    font-size: .57rem;
-
-    font-weight: 800;
-
-    letter-spacing: 1.4px;
-
-}
-
-
-.eyebrow-line {
-
-    width: 20px;
-
-    height: 1px;
-
-    background: #B08A4C;
-
-}
-
-
-.evidence-header h2 {
-
-    margin: 0;
-
-    color: #17375E;
-
-    font-family:
-        Georgia,
-        "Times New Roman",
-        serif;
-
-    font-size: 1.55rem;
-
-    font-weight: 600;
-
-    line-height: 1.3;
-
-}
-
-
-.evidence-header p {
-
-    max-width: 720px;
-
-    margin:
-        7px
-        0
-        0;
-
-    color: #718090;
-
-    font-size: .79rem;
-
-    line-height: 1.7;
-
-}
-
-
-/* =========================================================
-   GRID DE EVIDENCIAS
-========================================================= */
-
-.evidence-grid {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            2,
-            minmax(
-                0,
-                1fr
-            )
-        );
-
-    gap: 18px;
-
-}
-
-
-/* =========================================================
-   ESTADÍSTICAS
-========================================================= */
-
-.evidence-stats {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            3,
-            minmax(
-                0,
-                1fr
-            )
-        );
-
-    gap: 14px;
-
-}
-
-
-.stat-card {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 13px;
-
-    min-width: 0;
-
-    padding: 17px;
-
-    background:
-        linear-gradient(
-            180deg,
-            #FFFFFF 0%,
-            #FBFCFD 100%
-        );
-
-    border:
-        1px solid
-        #E1E7ED;
-
-    border-radius: 11px;
-
-    box-shadow:
-        0 4px 14px
-        rgba(
-            23,
-            55,
-            94,
-            .035
-        );
-
-    transition:
-        transform .22s ease,
-        border-color .22s ease,
-        box-shadow .22s ease;
-
-}
-
-
-.stat-card:hover {
-
-    transform:
-        translateY(-2px);
-
-    border-color:
-        #C8D6E4;
-
-    box-shadow:
-        0 8px 20px
-        rgba(
-            23,
-            55,
-            94,
-            .07
-        );
-
-}
-
-
-/* =========================================================
-   ICONOS DE ESTADÍSTICAS
-========================================================= */
-
-.stat-icon {
-
-    width: 35px;
-
-    height: 35px;
-
-    flex:
-        0 0
-        35px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    border:
-        1px solid
-        rgba(
-            176,
-            138,
-            76,
-            .32
-        );
-
-    border-radius: 8px;
-
-    background:
-        #FCF9F4;
-
-    color: #8A6A36;
-
-    font-size: .58rem;
-
-    font-weight: 800;
-
-}
-
-
-.stat-icon span {
-
-    display: block;
-
-}
-
-
-.success-icon {
-
-    border-color:
-        #D8E7DD;
-
-    background:
-        #F7FAF8;
-
-    color: #668B70;
-
-    font-size: .9rem;
-
-}
-
-
-/* =========================================================
-   CONTENIDO DE ESTADÍSTICAS
-========================================================= */
-
-.stat-content {
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 4px;
-
-    min-width: 0;
-
-}
-
-
-.stat-label {
-
-    color: #7C8997;
-
-    font-size: .57rem;
-
-    font-weight: 750;
-
-    letter-spacing: .65px;
-
-    text-transform: uppercase;
-
-}
-
-
-.stat-value {
-
-    color: #17375E;
-
-    font-size: 1.18rem;
-
-    font-weight: 750;
-
-    line-height: 1.2;
-
-}
-
-
-.stat-success {
-
-    color: #587161;
-
-    font-size: .9rem;
-
-    font-weight: 750;
-
-    line-height: 1.3;
-
-}
-
-
-/* =========================================================
-   RESUMEN
-========================================================= */
-
-.evidence-summary {
-
-    overflow: hidden;
-
-    background:
-        linear-gradient(
-            180deg,
-            #FFFFFF 0%,
-            #FBFCFD 100%
-        );
-
-    border:
-        1px solid
-        #DCE5EE;
-
-    border-radius: 12px;
-
-    box-shadow:
-        0 5px 18px
-        rgba(
-            23,
-            55,
-            94,
-            .035
-        );
-
-    transition:
-        border-color .25s ease,
-        box-shadow .25s ease;
-
-}
-
-
-.evidence-summary:hover {
-
-    border-color:
-        #C8D6E4;
-
-    box-shadow:
-        0 8px 22px
-        rgba(
-            23,
-            55,
-            94,
-            .06
-        );
-
-}
-
-
-/* =========================================================
-   CABECERA DEL RESUMEN
-========================================================= */
-
-.summary-header {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    gap: 20px;
-
-    padding:
-        20px
-        22px;
-
-    border-bottom:
-        1px solid
-        #E5EAF0;
-
-}
-
-
-.summary-eyebrow {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 7px;
-
-    margin-bottom: 6px;
-
-    color: #8A6A36;
-
-    font-size: .54rem;
-
-    font-weight: 800;
-
-    letter-spacing: 1.25px;
-
-}
-
-
-.summary-line {
-
-    width: 17px;
-
-    height: 1px;
-
-    background:
-        #B08A4C;
-
-}
-
-
-.summary-header h3 {
-
-    margin: 0;
-
-    color: #17375E;
-
-    font-family:
-        Georgia,
-        "Times New Roman",
-        serif;
-
-    font-size: 1.05rem;
-
-    font-weight: 600;
-
-}
-
-
-/* =========================================================
-   BADGE DEL RESUMEN
-========================================================= */
-
-.summary-badge {
-
-    display: inline-flex;
-
-    align-items: center;
-
-    gap: 7px;
-
-    flex-shrink: 0;
-
-    min-height: 27px;
-
-    padding:
-        0
-        10px;
-
-    border:
-        1px solid
-        #D8E7DD;
-
-    border-radius: 999px;
-
-    background:
-        #F7FAF8;
-
-    color: #587161;
-
-    font-size: .57rem;
-
-    font-weight: 750;
-
-}
-
-
-.summary-dot {
-
-    width: 5px;
-
-    height: 5px;
-
-    border-radius: 50%;
-
-    background:
-        #668B70;
-
-    box-shadow:
-        0 0 0 3px
-        rgba(
-            102,
-            139,
-            112,
-            .10
-        );
-
-}
-
-
-/* =========================================================
-   CONTENIDO DEL RESUMEN
-========================================================= */
-
-.summary-content {
-
-    padding:
-        20px
-        22px;
-
-    color: #526477;
-
-    font-size: .79rem;
-
-    line-height: 1.75;
-
-}
-
-
-:deep(.summary-content) {
-
-    color: #526477;
-
-}
-
-
-:deep(.markdown-container) {
-
-    margin: 0;
-
-}
-
-
-:deep(.markdown-container h1),
-:deep(.markdown-container h2),
-:deep(.markdown-container h3) {
-
-    color: #17375E;
-
-}
-
-
-:deep(.markdown-container p) {
-
-    color: #526477;
-
-}
-
-
-/* =========================================================
-   RESPONSIVE — 1100 PX
-========================================================= */
-
-@media (max-width: 1100px) {
-
-    .evidence-grid {
-
-        grid-template-columns:
-            1fr;
-
-    }
-
-}
-
-
-/* =========================================================
-   RESPONSIVE — 900 PX
-========================================================= */
-
-@media (max-width: 900px) {
-
-    .evidence-view {
-
-        padding: 24px;
-
-    }
-
-
-    .evidence-stats {
-
-        grid-template-columns:
-            repeat(
-                2,
-                minmax(
-                    0,
-                    1fr
-                )
-            );
-
-    }
-
-}
-
-
-/* =========================================================
-   RESPONSIVE — 700 PX
-========================================================= */
-
-@media (max-width: 700px) {
-
-    .evidence-view {
-
-        gap: 22px;
-
-        padding: 20px;
-
-    }
-
-
-    .evidence-header {
-
-        padding-bottom: 18px;
-
-    }
-
-
-    .evidence-header h2 {
-
-        font-size: 1.35rem;
-
-    }
-
-
-    .evidence-header p {
-
-        font-size: .76rem;
-
-    }
-
-
-    .evidence-stats {
-
-        grid-template-columns:
-            1fr;
-
-    }
-
-
-    .summary-header {
-
-        align-items: flex-start;
-
-        flex-direction: column;
-
-    }
-
-
-    .summary-badge {
-
-        align-self: flex-start;
-
-    }
-
-}
-
-
-/* =========================================================
-   RESPONSIVE — 480 PX
-========================================================= */
-
-@media (max-width: 480px) {
-
-    .evidence-view {
-
-        padding: 16px;
-
-        border-radius: 11px;
-
-    }
-
-
-    .evidence-header h2 {
-
-        font-size: 1.22rem;
-
-    }
-
-
-    .evidence-header p {
-
-        font-size: .73rem;
-
-    }
-
-
-    .stat-card {
-
-        padding: 15px;
-
-    }
-
-
-    .summary-header {
-
-        padding:
-            17px
-            18px;
-
-    }
-
-
-    .summary-content {
-
-        padding:
-            17px
-            18px;
-
-    }
-
-
-    .summary-header h3 {
-
-        font-size: .96rem;
-
-    }
-
-}
-
-
-/* =========================================================
-   ANIMACIONES
-========================================================= */
-
-@keyframes evidenceAppear {
-
-    from {
-
-        opacity: 0;
-
-        transform:
-            translateY(10px);
-
-    }
-
-    to {
-
-        opacity: 1;
-
-        transform:
-            translateY(0);
-
-    }
-
-}
-
-
-/* =========================================================
-   REDUCIR MOVIMIENTO
-========================================================= */
-
-@media (
-    prefers-reduced-motion: reduce
-) {
-
-    .evidence-view,
-    .stat-card {
-
-        animation: none;
-
-        transition: none;
-
-    }
-
-}
-
-.documents-empty{display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid #decda9;border-radius:10px;background:#fcf9f2;padding:18px 20px;color:#483d2b}.documents-empty p{margin:5px 0 0;max-width:650px;font-size:.86rem;line-height:1.5}.documents-empty button{flex:none;border:1px solid #173a5f;border-radius:7px;background:#173a5f;color:#fff;padding:10px 14px;font-weight:650;cursor:pointer}@media(max-width:700px){.documents-empty{align-items:stretch;flex-direction:column}.documents-empty button{width:100%}}
-.legal-support{border:1px solid #d9e2ec;border-radius:11px;padding:20px;background:#f8fafc}.legal-support h3{margin:0 0 5px;color:#17375e;font:600 1rem Georgia,serif}.legal-support p{margin:0 0 12px;color:#526477;font-size:.82rem}.legal-support ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}.legal-support button{border:0;background:transparent;color:#17446d;text-align:left;cursor:pointer;padding:5px 0;font:inherit}.legal-support button:hover{text-decoration:underline}
+.conclusion-level{display:flex;align-items:center;gap:10px;margin:10px 0;color:#718094;font-size:.8rem}.conclusion-level strong{color:#17375e;font-size:.88rem}.conclusion-points{margin-top:14px}.conclusion-points h4{margin:0 0 6px;color:#725f3f;font-size:.76rem;font-weight:750;letter-spacing:.07em;text-transform:uppercase}.conclusion-points ul{display:grid;gap:5px;margin:0;padding-left:20px}.conclusion-points li{color:#405469;font-size:.85rem;line-height:1.65}
+@media(max-width:1080px){.evidence-context dl{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:13px}.evidence-context dl>div:nth-child(4){padding-left:0;border-left:0}.evidence-overview-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+@media(max-width:680px){.evidence-editorial{gap:22px}.evidence-title-row{flex-direction:column;gap:12px}.evidence-context dl{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:12px}.evidence-context dl>div:nth-child(odd){padding-left:0;border-left:0}.evidence-context dl>div:nth-child(4){padding-left:16px;border-left:1px solid #e6e9ed}.document-row,.fact-list>li,.issue-evidence-list>li{grid-template-columns:28px minmax(0,1fr);gap:9px}.legal-source-heading{align-items:flex-start;flex-direction:column;gap:3px}.other-evidence-list li{grid-template-columns:1fr;gap:4px}}
+@media(max-width:420px){.evidence-context{padding:13px}.evidence-context dl{grid-template-columns:1fr}.evidence-context dl>div,.evidence-context dl>div:nth-child(4){padding:8px 0 0;border:0;border-top:1px solid #e6e9ed}.evidence-context dl>div:first-child{padding-top:0;border-top:0}.source-action{white-space:normal}}
 </style>

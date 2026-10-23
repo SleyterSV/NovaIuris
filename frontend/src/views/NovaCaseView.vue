@@ -277,30 +277,19 @@
 
                         <EvidenceView
                             :evidence="evidence"
+                            :analysis="analysis"
                             :fact-groups="factGroups"
+                            :facts="canonicalResult?.facts || []"
+                            :issues="canonicalResult?.issues || []"
+                            :evidence-links="canonicalResult?.evidence?.evidence_links || []"
                             :document-count="privateDocumentCount"
-                            :sources="canonicalResult?.research?.sources || []"
+                            :sources="[...(canonicalResult?.research?.sources || []), ...(canonicalResult?.sources || []), ...(canonicalResult?.sources_used || [])]"
+                            :citations="canonicalResult?.citations || []"
+                            :case-id="canonicalResult?.case_id"
                             @select-source="selectedSource = $event"
                             @add-documents="addDocuments"
                         />
-                        <section v-if="canonicalResult?.evidence?.evidence_links?.length" class="evidence-links">
-                            <h3>Relación entre evidencia y hechos</h3>
-                            <article v-for="(link, index) in canonicalResult.evidence.evidence_links" :key="`${link.issue_id || 'link'}-${index}`">
-                                <MarkdownRenderer :content="link.what_it_supports" />
-                                <p v-if="link.limitations"><strong>Limitaciones:</strong> {{ link.limitations }}</p>
-                                <TraceabilityChain :issue="issuesForLink(link)[0] || null" :facts="factsForLink(link)" :sources="sourcesForLink(link)" @select-source="selectedSource = $event" />
-                                <p v-for="issue in issuesForLink(link)" :key="issue.issue_id" class="fact-reference">
-                                    Problema relacionado: {{ issue.text }}
-                                </p>
-                                <span v-for="fact in factsForLink(link)" :key="fact.fact_id" class="fact-reference">
-                                    {{ fact.text }}
-                                </span>
-                                <button v-for="source in sourcesForLink(link)" :key="source.source_id" type="button"
-                                    class="fact-source" @click="selectedSource = source">
-                                    Consultar fuente documental<span v-if="source.page_start">, pág. {{ source.page_start }}</span>
-                                </button>
-                            </article>
-                        </section>
+
 
                     </template>
 
@@ -499,7 +488,6 @@ import AnalysisProgress
 import ExecutiveSummary
     from "@/components/common/ExecutiveSummary.vue"
 import CaseSourcesView from "@/components/novacase/CaseSourcesView.vue"
-import TraceabilityChain from "@/components/common/TraceabilityChain.vue"
 import SourceModal from "@/components/common/SourceModal.vue"
 
 import CaseTabs
@@ -845,22 +833,6 @@ function factSources(fact) {
         source && ["case", "private_case"].includes(source.source_scope) && source.case_id === canonicalResult.value?.case_id)
 }
 
-function factsForLink(link) {
-    const ids = new Set(link.fact_ids || [])
-    return (canonicalResult.value?.facts || []).filter(fact => ids.has(fact.fact_id))
-}
-
-function issuesForLink(link) {
-    const issue = (canonicalResult.value?.issues || []).find(item => item.issue_id === link.issue_id)
-    return issue ? [issue] : []
-}
-
-function sourcesForLink(link) {
-    const sources = sourceMap()
-    return (link.source_ids || []).map(id => sources.get(id)).filter(source =>
-        source && (!["case", "private_case"].includes(source.source_scope) || source.case_id === canonicalResult.value?.case_id))
-}
-
 function continueInNovaCourt() {
   const result = canonicalResult.value
   if (!result?.case_id) return
@@ -934,15 +906,12 @@ watch(() => props.request, request => {
 <style scoped>
 .research-notice,.case-documents-notice{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;border-radius:9px;padding:13px 16px;margin:14px 0;color:#27415d;font-size:.86rem;line-height:1.45}.research-notice{border:1px solid #cddce9;background:#f4f8fc}.research-notice.verified{border-color:#b6d9c9;background:#f1f9f5}.research-notice.error{border-color:#e4bdb9;background:#fff5f3}.research-notice.unavailable{border-color:#e1d4b5;background:#fcfaf3}.case-documents-notice{justify-content:space-between;border:1px solid #e1d4b5;background:#fcfaf3}.case-documents-notice button{border:1px solid #173a5f;border-radius:6px;padding:9px 13px;background:#173a5f;color:#fff;font-weight:650;cursor:pointer}@media(max-width:640px){.case-documents-notice button{width:100%}}
 
-.case-facts, .evidence-links { margin: 18px 0; padding: 18px; background: #fff; border: 1px solid #dce5ee; border-radius: 10px; }
-.case-facts h3, .evidence-links h3 { margin: 0 0 12px; color: #17375e; font: 600 1rem Georgia, serif; }
+.case-facts { margin: 18px 0; padding: 18px; background: #fff; border: 1px solid #dce5ee; border-radius: 10px; }
+.case-facts h3 { margin: 0 0 12px; color: #17375e; font: 600 1rem Georgia, serif; }
 .case-facts ul { display: grid; gap: 12px; margin: 0; padding-left: 20px; }
-.case-facts li, .evidence-links article { padding: 10px 0; border-bottom: 1px solid #e8edf2; }
+.case-facts li { padding: 10px 0; border-bottom: 1px solid #e8edf2; }
 .fact-status { display: inline-block; margin: 6px 8px 0 0; color: #65768a; font-size: .75rem; }
-.fact-source { margin: 5px 6px 0 0; padding: 4px 8px; border: 1px solid #d4deea; border-radius: 5px; background: #f7f9fb; color: #244c73; cursor: pointer; }
-.fact-source:focus-visible { outline: 2px solid #b68a3a; outline-offset: 2px; }
 .fact-reference { display: block; margin: 6px 0; color: #65768a; font-size: .82rem; }
-.evidence-links article p { color: #65768a; font-size: .85rem; }
 
 /* =========================================================
    NOVACASE — MAIN VIEW
