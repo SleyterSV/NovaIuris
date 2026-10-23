@@ -1,1534 +1,219 @@
 <template>
-
-<section class="strategy-view">
-
-    <!-- =====================================================
-         HEADER
-    ====================================================== -->
-
+  <main class="strategy-editorial" aria-labelledby="strategy-title">
     <header class="strategy-header">
-
-        <div class="strategy-heading">
-
-            <div class="strategy-eyebrow">
-
-                <span class="eyebrow-line"></span>
-
-                ANÁLISIS ESTRATÉGICO
-
-            </div>
-
-            <h2>
-                Estrategia Jurídica
-            </h2>
-
-            <p>
-                Recomendaciones estratégicas generadas por NovaCase
-                para orientar la actuación jurídica y fortalecer
-                la posición del caso.
-            </p>
-
-        </div>
-
-        <div class="strategy-status">
-
-            <span class="status-dot"></span>
-
-            ESTRATEGIA ANALIZADA
-
-        </div>
-
+      <div>
+        <p class="strategy-eyebrow"><span aria-hidden="true"></span> MYKE · NOVACASE</p>
+        <h2 id="strategy-title">Estrategia jurídica</h2>
+        <p class="strategy-subtitle">Plan de actuación elaborado a partir de los hechos, la evidencia, los riesgos y las fuentes jurídicas analizadas en el caso.</p>
+      </div>
+      <span v-if="analyzed" class="strategy-status"><span aria-hidden="true"></span>Estrategia analizada</span>
     </header>
 
-
-    <!-- =====================================================
-         INTRODUCCIÓN
-    ====================================================== -->
-
-    <div class="strategy-intro">
-
-        <div class="intro-icon">
-            <span>◆</span>
-        </div>
-
-        <div class="intro-content">
-
-            <strong>
-                Orientación estratégica del caso
-            </strong>
-
-            <span>
-                NovaCase consolida los principales objetivos,
-                actuaciones, riesgos y recomendaciones derivados
-                del análisis jurídico.
-            </span>
-
-        </div>
-
-    </div>
-
-
-    <!-- =====================================================
-         MATRIZ ESTRATÉGICA
-    ====================================================== -->
-
-    <div class="strategy-section-header">
-
-        <div>
-
-            <span class="section-kicker">
-                MATRIZ ESTRATÉGICA
-            </span>
-
-            <h3>
-                Líneas principales de actuación
-            </h3>
-
-        </div>
-
-        <span class="strategy-count">
-            {{ strategies.length }} áreas analizadas
-        </span>
-
-    </div>
-
-
-    <!-- =====================================================
-         ESTRATEGIAS
-    ====================================================== -->
-
-    <div class="strategy-grid">
-
-        <AnalysisSection
-            v-for="item in strategies"
-            :key="item.id"
-            :title="item.title"
-            :subtitle="item.subtitle"
-            :icon="item.icon"
-            :content="item.content"
-            :status="item.status"
-        />
-
-    </div>
-
-
-    <!-- =====================================================
-         CONCLUSIÓN ESTRATÉGICA
-    ====================================================== -->
-
-    <section class="strategy-summary">
-
-        <header class="summary-header">
-
-            <div class="summary-heading">
-
-                <div class="summary-icon">
-                    <span>◆</span>
-                </div>
-
-                <div>
-
-                    <span class="section-kicker">
-                        SÍNTESIS ESTRATÉGICA
-                    </span>
-
-                    <h3>
-                        Conclusión Estratégica
-                    </h3>
-
-                    <p>
-                        Síntesis consolidada de la estrategia
-                        recomendada para el caso.
-                    </p>
-
-                </div>
-
-            </div>
-
-            <div class="summary-label">
-
-                <span class="summary-label-dot"></span>
-
-                ANÁLISIS NOVACASE
-
-            </div>
-
-        </header>
-
-
-        <div class="summary-body">
-
-            <MarkdownRenderer
-                :content="summary"
-            />
-
-        </div>
-
-
-        <footer class="summary-footer">
-
-            <div class="summary-footer-label">
-
-                <span class="footer-line"></span>
-
-                LECTURA ESTRATÉGICA
-
-            </div>
-
-            <span class="footer-note">
-                Evaluación generada a partir de la información
-                disponible del caso.
-            </span>
-
-        </footer>
-
+    <section v-if="executiveItems.length" class="strategy-overview" aria-label="Síntesis estratégica">
+      <article v-for="item in executiveItems" :key="item.label" class="overview-item">
+        <span>{{ item.label }}</span>
+        <MarkdownRenderer :content="item.value" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" />
+      </article>
     </section>
 
+    <section v-if="objective" class="strategy-section objective-section" aria-labelledby="objective-title">
+      <header class="section-heading"><p class="section-kicker">OBJETIVO DEL CASO</p><h3 id="objective-title">Objetivo jurídico</h3></header>
+      <div class="objective-copy"><p class="field-label">Pretensión principal</p><MarkdownRenderer :content="objective" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /></div>
+    </section>
 
-    <!-- =====================================================
-         AVISO PROFESIONAL
-    ====================================================== -->
+    <section v-if="mainLine || strategyFoundations.length" class="strategy-section main-strategy" aria-labelledby="main-strategy-title">
+      <header class="section-heading"><p class="section-kicker">LÍNEA DE ACTUACIÓN</p><h3 id="main-strategy-title">Estrategia principal</h3></header>
+      <div v-if="mainLine" class="main-line"><p class="field-label">Pretensión y vía propuestas</p><MarkdownRenderer :content="mainLine" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /></div>
+      <div v-if="strategyFoundations.length" class="foundation-list">
+        <header class="foundation-heading"><p class="section-kicker">SUSTENTO JURÍDICO Y FÁCTICO</p><h4>Fundamentos de la estrategia</h4></header>
+        <article v-for="(item,index) in strategyFoundations" :key="item.key" class="foundation-row">
+          <span class="editorial-number" aria-hidden="true">{{ number(index + 1) }}</span>
+          <div><h4 v-if="item.title">{{ item.title }}</h4><MarkdownRenderer v-if="item.body" :content="item.body" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" />
+            <section v-if="item.legalBasis.length" class="foundation-detail"><h5>Fundamento jurídico</h5><MarkdownRenderer v-for="(text, basisIndex) in item.legalBasis" :key="`${item.key}-basis-${basisIndex}`" :content="text" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /></section>
+            <section v-if="item.facts.length" class="foundation-detail"><h5>Hechos relacionados</h5><ul><li v-for="(fact,factIndex) in item.facts" :key="`${item.key}-fact-${factIndex}`"><MarkdownRenderer :content="fact" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /></li></ul></section>
+            <div v-if="item.sources.length" class="source-list"><h5>Fuentes jurídicas</h5><ul><li v-for="source in item.sources" :key="source.source_id"><span class="source-label">{{ citationLabel(source) || sourceHumanLabel(source) }}</span><span v-if="citationLabel(source)" class="source-detail">{{ sourceHumanLabel(source) }}</span><button type="button" class="source-open" :aria-label="`Ver fuente ${citationLabel(source)?.replace(/[\[\]]/g, '') || sourceHumanLabel(source)}`" @click="selectSource(source)">Ver fuente <span aria-hidden="true">↗</span></button></li></ul></div>
+          </div>
+        </article>
+      </div>
+    </section>
 
-    <div class="strategy-disclaimer">
+    <section v-if="pendingItems.length" class="strategy-section" aria-labelledby="pending-title">
+      <header class="section-heading"><p class="section-kicker">ANTES DE DEFINIR LA ACTUACIÓN</p><h3 id="pending-title">Información clave pendiente</h3><p>Documentación y elementos que deben incorporarse antes de consolidar la estrategia procesal.</p></header>
+      <div class="editorial-list"><article v-for="(item,index) in pendingItems" :key="item.key" class="editorial-row"><span class="editorial-number" aria-hidden="true">{{ number(index + 1) }}</span><div><h4 v-if="item.title">{{ item.title }}</h4><MarkdownRenderer :content="item.body" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /></div></article></div>
+    </section>
 
-        <span class="disclaimer-icon">
-            i
-        </span>
+    <section v-if="opposingItems.length" class="strategy-section" aria-labelledby="opposing-title">
+      <header class="section-heading"><p class="section-kicker">LECTURA ADVERSARIAL</p><h3 id="opposing-title">Objeciones previsibles</h3><p>Principales argumentos que podrían ser planteados contra la pretensión.</p></header>
+      <ol class="editorial-list"><li v-for="(item,index) in opposingItems" :key="item.key" class="editorial-row"><span class="editorial-number" aria-hidden="true">{{ number(index + 1) }}</span><div><h4 v-if="item.title">{{ item.title }}</h4><MarkdownRenderer :content="item.body" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /><section v-if="item.response" class="strategic-response"><h5>Respuesta estratégica</h5><MarkdownRenderer :content="item.response" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /></section></div></li></ol>
+    </section>
 
-        <p>
-            Las recomendaciones estratégicas generadas por NovaCase
-            constituyen una herramienta de apoyo al análisis jurídico
-            y deben ser evaluadas considerando las circunstancias
-            específicas del caso y el criterio profesional.
-        </p>
+    <section v-if="priorityEvidence.length" class="strategy-section" aria-labelledby="evidence-title">
+      <header class="section-heading"><p class="section-kicker">SUSTENTO PROBATORIO</p><h3 id="evidence-title">Evidencia prioritaria</h3><p>Elementos probatorios que pueden fortalecer o condicionar la estrategia propuesta.</p></header>
+      <ol class="editorial-list"><li v-for="(item,index) in priorityEvidence" :key="item.key" class="editorial-row"><span class="editorial-number" aria-hidden="true">{{ number(index + 1) }}</span><div><h4 v-if="item.title">{{ item.title }}</h4><p v-if="item.relevance" class="field-label">Relevancia</p><MarkdownRenderer v-if="item.relevance" :content="item.relevance" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /><p v-if="item.status" class="evidence-status"><strong>Estado</strong> {{ item.status }}</p><MarkdownRenderer v-if="item.body" :content="item.body" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /><div v-if="item.sources.length" class="inline-source-actions"><button v-for="source in item.sources" :key="source.source_id" type="button" class="source-open" :aria-label="`Ver fuente ${citationLabel(source)?.replace(/[\[\]]/g, '') || sourceHumanLabel(source)}`" @click="selectSource(source)">{{ citationLabel(source) || sourceHumanLabel(source) }} · Ver fuente ↗</button></div></div></li></ol>
+    </section>
 
-    </div>
+    <section v-if="actionGroups.length" class="strategy-section" aria-labelledby="actions-title">
+      <header class="section-heading"><p class="section-kicker">SECUENCIA DE PREPARACIÓN</p><h3 id="actions-title">Plan de actuación</h3><p>Acciones necesarias para preparar y ejecutar la estrategia jurídica.</p></header>
+      <section v-for="group in actionGroups" :key="group.key" class="action-group"><h4 v-if="group.title">{{ group.title }}</h4><ol class="editorial-list"><li v-for="(item,index) in group.items" :key="item.key" class="editorial-row"><span class="editorial-number" aria-hidden="true">{{ number(index + 1) }}</span><div><MarkdownRenderer :content="item.body" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /></div></li></ol></section>
+    </section>
 
-</section>
+    <section v-if="strategicRisks.length" class="strategy-section risk-section" aria-labelledby="risks-title">
+      <header class="section-heading"><p class="section-kicker">CONTINGENCIAS DE EJECUCIÓN</p><h3 id="risks-title">Riesgos que condicionan la estrategia</h3><p>Aspectos que requieren preparación o mitigación dentro de la línea propuesta.</p></header>
+      <ol class="editorial-list"><li v-for="(item,index) in strategicRisks" :key="item.key" class="editorial-row"><span class="editorial-number" aria-hidden="true">{{ number(index + 1) }}</span><div><h4 v-if="item.title">{{ item.title }}</h4><MarkdownRenderer :content="item.body" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /><section v-if="item.mitigation" class="strategic-response"><h5>Medida de mitigación</h5><MarkdownRenderer :content="item.mitigation" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /></section></div></li></ol>
+    </section>
 
+    <section v-if="strategicConclusion" class="strategy-conclusion" aria-labelledby="conclusion-title">
+      <p class="section-kicker">SÍNTESIS ESTRATÉGICA</p><h3 id="conclusion-title">Conclusión estratégica</h3>
+      <p v-if="diagnosis" class="field-label">Diagnóstico</p><MarkdownRenderer v-if="diagnosis" :content="diagnosis" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" />
+      <p v-if="strategicConclusion.conditions.length" class="field-label">Condiciones para ejecutarla</p><ul v-if="strategicConclusion.conditions.length"><li v-for="(item,index) in strategicConclusion.conditions" :key="`condition-${index}`"><MarkdownRenderer :content="item" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /></li></ul>
+      <div v-if="strategicConclusion.alternative" class="conclusion-alternative"><p class="field-label">Alternativa procesal</p><MarkdownRenderer :content="strategicConclusion.alternative" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" /></div>
+    </section>
+
+    <p v-if="!hasStrategyData" class="strategy-empty" role="status">No se identificó información suficiente para formular una estrategia.</p>
+    <p v-if="hasStrategyData" class="strategy-disclaimer">La estrategia constituye una herramienta de apoyo al análisis jurídico y debe evaluarse considerando las circunstancias específicas del caso y el criterio profesional.</p>
+  </main>
 </template>
 
-
 <script setup>
-
-import { computed } from "vue"
-
-import AnalysisSection
-    from "@/components/common/AnalysisSection.vue"
-
-import MarkdownRenderer
-    from "@/components/common/MarkdownRenderer.vue"
-
+import { computed } from 'vue'
+import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
+import { presentableText, relatedFactTexts, verifiedArgumentSources, sourceHumanLabel, argumentCitationForSource } from '@/utils/novacasePresentation.js'
+import { normalizeSource, normalizeSources } from '@/utils/sourceContract.js'
 
 const props = defineProps({
-
-    strategy: {
-
-        type: Object,
-
-        default: () => ({})
-
-    }
-
+  strategy: { type: Object, default: () => ({}) }, finalStrategy: { type: Object, default: () => ({}) },
+  arguments: { type: Object, default: () => ({}) }, facts: { type: Array, default: () => [] },
+  issues: { type: Array, default: () => [] }, evidence: { type: Object, default: () => ({}) },
+  risks: { type: Object, default: () => ({}) }, counterArguments: { type: Object, default: () => ({}) },
+  sources: { type: Array, default: () => [] }, citations: { type: Array, default: () => [] },
+  caseId: { type: String, default: null }, analyzed: { type: Boolean, default: false }
 })
+const emit = defineEmits(['select-source'])
+const safeSources = computed(() => normalizeSources(props.sources, props.caseId))
 
-
-/* ============================================================
-   MATRIZ ESTRATÉGICA
-============================================================ */
-
-const strategies = computed(() => [
-
-    {
-
-        id: "objective",
-
-        title: "Objetivo Principal",
-
-        subtitle:
-            "Resultado jurídico esperado",
-
-        icon: "🎯",
-
-        content:
-
-            props.strategy.objective ||
-
-            "No identificado con la información disponible.",
-
-        status: "completed"
-
-    },
-
-    {
-
-        id: "strategy",
-
-        title: "Estrategia Recomendada",
-
-        subtitle:
-            "Línea principal de actuación",
-
-        icon: "⚖️",
-
-        content:
-
-            props.strategy.strategy ||
-
-            "No identificado con la información disponible.",
-
-        status: "completed"
-
-    },
-
-    {
-
-        id: "actions",
-
-        title: "Actuaciones Sugeridas",
-
-        subtitle:
-            "Acciones prioritarias",
-
-        icon: "📋",
-
-        content:
-
-            props.strategy.actions ||
-
-            "No identificado con la información disponible.",
-
-        status: "completed"
-
-    },
-
-    {
-
-        id: "execution",
-
-        title: "Riesgos procesales",
-
-        subtitle:
-            "Aspectos que requieren seguimiento",
-
-        icon: "⚠️",
-
-        content:
-
-            props.strategy.execution ||
-
-            "No identificado con la información disponible.",
-
-        status: "completed"
-
-    },
-
-    {
-
-        id: "recommendations",
-
-        title: "Recomendaciones Finales",
-
-        subtitle:
-            "Buenas prácticas para fortalecer el caso",
-
-        icon: "💡",
-
-        content:
-
-            props.strategy.recommendations ||
-
-            "No identificado con la información disponible.",
-
-        status: "completed"
-
+function list(value) { return Array.isArray(value) ? value : value == null || value === '' ? [] : [value] }
+function clean(value) { return typeof value === 'string' ? presentableText(value).replace(/\s{2,}/g, ' ').trim() : '' }
+function firstText(record, keys) {
+  if (typeof record === 'string') return clean(record)
+  if (!record || typeof record !== 'object' || Array.isArray(record)) return ''
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'string' && clean(value)) return clean(value)
+    if (Array.isArray(value)) {
+      const items = value.map(item => firstText(item, ['text','description','content','title','name'])).filter(Boolean)
+      if (items.length) return items.join('\n\n')
     }
+  }
+  return ''
+}
+function titleOf(record, fallback = '') { return (typeof record === 'string' ? fallback : firstText(record, ['title','name','heading','document_title','display_title'])) || fallback }
+function bodyOf(record) { return firstText(record, ['argument','principal_line','claim_strategy','risk','opposing_position','counterargument','objection','description','text','content','summary','what_it_supports','evidence','recommendation','action','query']) }
+function keyOf(record, prefix, index, text) { return record?.argument_id || record?.risk_id || record?.evidence_id || `${prefix}-${index}-${text.slice(0,24)}` }
+function numberedText(value, prefix) {
+  return list(value).map((raw,index) => {
+    const body = bodyOf(raw)
+    if (!body || isTechnicalOnly(body)) return null
+    const title = titleOf(raw)
+    return { key:keyOf(raw,prefix,index,title || body), title, body, raw }
+  }).filter(Boolean)
+}
+function isTechnicalOnly(value) { return /^(?:(?:ISSUE|SRC|FACT)-[a-f0-9]{12,}|[0-9a-f-]{36})$/i.test(value.trim()) }
+function number(value) { return String(value).padStart(2,'0') }
+function statusLabel(value) {
+  const key=String(value || '').toLocaleLowerCase().trim()
+  return ({supported:'Identificada', verified:'Verificada', available:'Disponible', alleged:'Pendiente de corroboración', missing:'Pendiente de incorporación', unavailable:'No disponible', recommended:'Recomendada', pending:'Pendiente de verificación', unknown:'No determinada', 'not identified':'No identificada', not_identified:'No identificada', 'pending verification':'Pendiente de verificación'})[key] || (/^[A-Z_ -]+$/.test(String(value || '')) ? '' : clean(value))
+}
+function categoryLabel(value) {
+  const raw=clean(value)
+  const key=raw.toLocaleLowerCase().replace(/[_-]+/g,' ').trim()
+  const labels={documentation:'Documentación esencial',documents:'Documentación esencial',documental:'Documentación esencial',evidence:'Acreditación probatoria',evidentiary:'Acreditación probatoria',procedural:'Vía y plazos',deadlines:'Vía y plazos',strategy:'Preparación procesal'}
+  if(labels[key]) return labels[key]
+  const phase=key.match(/^phase\s+(\d+)$/)
+  if(phase) return `Fase ${phase[1]}`
+  if(/^(?:phase|category|group|objective|documentation|documents|evidence|procedural|strategy)\b/i.test(raw)) return ''
+  return raw
+}
+function citationLabel(source) { return argumentCitationForSource(source,props.citations,safeSources.value,props.caseId)?.label || '' }
+function sourceList(record) { return verifiedArgumentSources(record,safeSources.value,props.caseId,props.citations) }
+function selectSource(value) { const source=normalizeSource(value,props.caseId); if(source) emit('select-source',source) }
+function openCitation(citation) { const source=safeSources.value.find(item=>item.source_id===citation?.source_id); if(source) selectSource(source) }
 
-])
-
-
-/* ============================================================
-   RESUMEN
-============================================================ */
-
-const summary = computed(() =>
-
-    props.strategy.summary ||
-
-`# Conclusión Estratégica
-
-NovaCase no generó una estrategia final para este caso.
-
-Cuando el backend esté conectado, aquí aparecerá la estrategia jurídica consolidada elaborada por el sistema.`
-
-)
-
+const finalPlan = computed(() => props.finalStrategy || {})
+const objective = computed(() => firstText(finalPlan.value,['objective']) || firstText(props.strategy,['objective','claim']) || firstText(props.issues?.[0],['objective','pretension_principal']))
+const mainLine = computed(() => firstText(finalPlan.value,['principal_line','claim_strategy','strategy']) || firstText(props.strategy,['strategy','claim_strategy']))
+const pendingItems = computed(() => numberedText(finalPlan.value.missing_information?.length ? finalPlan.value.missing_information : props.strategy.missing_information,'pending'))
+const opposingItems = computed(() => numberedText(finalPlan.value.opposing_positions?.length ? finalPlan.value.opposing_positions : props.counterArguments.main_counterarguments,'opposing').map(item => ({...item,response:firstText(item.raw,['response','reply','answer'])})))
+const priorityEvidence = computed(() => list(finalPlan.value.priority_evidence?.length ? finalPlan.value.priority_evidence : [...list(props.evidence.recommended_documents),...list(props.evidence.recommended_evidence)]).map((raw,index)=>{
+  const title=titleOf(raw)
+  const body=firstText(raw,['description','text','content','evidence'])
+  const relevance=firstText(raw,['relevance','why_important','what_it_supports','probative_value'])
+  if(!title && !body && !relevance) return null
+  return {key:keyOf(raw,'priority-evidence',index,title || body || relevance),title,body,relevance,
+    status:statusLabel(firstText(raw,['status','availability','state'])),sources:sourceList(raw)}
+}).filter(Boolean))
+const actionGroups = computed(() => {
+  const inputs=[...list(finalPlan.value.recommended_actions),...list(props.strategy.recommended_actions || props.strategy.actions)]
+  const seen=new Set(), groups=new Map()
+  inputs.forEach((raw,index)=>{
+    const body=bodyOf(raw), identity=body.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim()
+    if(!body || isTechnicalOnly(body) || seen.has(identity)) return
+    seen.add(identity)
+    const title=categoryLabel(typeof raw === 'object' && raw !== null ? firstText(raw,['phase','category','group','objective']) : '')
+    const key=title || 'actions'
+    if(!groups.has(key)) groups.set(key,{key,title,items:[]})
+    groups.get(key).items.push({key:`action-${index}`,body})
+  })
+  return [...groups.values()]
+})
+const strategicRisks = computed(() => numberedText(finalPlan.value.risks_to_mitigate?.length ? finalPlan.value.risks_to_mitigate : [...list(props.risks.critical_risks),...list(props.risks.procedural_risks)],'strategic-risk').slice(0,5).map(item=>({...item,mitigation:firstText(item.raw,['mitigation','recommendation','recommended_action'])})))
+const strategyFoundations = computed(() => numberedText(finalPlan.value.supporting_arguments?.length ? finalPlan.value.supporting_arguments : props.arguments.main_arguments,'foundation').map(item=>{
+  const record=item.raw || {}
+  const legalBasis=list(record.legal_basis || record.foundation || record.legal_foundation).map(value=>bodyOf(value) || clean(value)).filter(Boolean)
+  const facts=relatedFactTexts(record,props.facts).map(clean).filter(Boolean)
+  return {...item,body:firstText(record,['argument','text','content','description']),legalBasis,facts,sources:sourceList(record)}
+}).filter(item=>item.body || item.title || item.legalBasis.length || item.facts.length || item.sources.length))
+const executiveItems = computed(() => [
+  {label:'Objetivo',value:objective.value},
+  {label:'Vía principal propuesta',value:mainLine.value},
+  {label:'Condición clave',value:pendingItems.value[0]?.body}
+].filter(item=>item.value))
+const explicitConclusion = computed(()=>firstText(finalPlan.value,['strategic_conclusion','conclusion','summary']) || firstText(props.strategy,['strategic_conclusion','conclusion']))
+const diagnosis = computed(()=>explicitConclusion.value || (objective.value && mainLine.value
+  ? `La línea propuesta se orienta al objetivo jurídico identificado. ${pendingItems.value.length ? 'Su preparación queda sujeta a completar la información pendiente identificada.' : ''}`.trim()
+  : ''))
+const strategicConclusion = computed(()=>{
+  const conditions=numberedText(finalPlan.value.execution_conditions || finalPlan.value.conditions || props.strategy.execution_conditions,'condition').map(item=>item.body)
+  const alternative=firstText(finalPlan.value,['alternative_process','alternative_route']) || firstText(props.strategy,['alternative_strategy','alternative_route'])
+  return diagnosis.value || conditions.length || alternative ? {conditions,alternative} : null
+})
+const hasStrategyData = computed(()=>Boolean(objective.value || mainLine.value || pendingItems.value.length || opposingItems.value.length || priorityEvidence.value.length || actionGroups.value.length || strategicRisks.value.length || strategyFoundations.value.length || strategicConclusion.value))
 </script>
 
-
 <style scoped>
-
-/* ============================================================
-   VARIABLES
-============================================================ */
-
-.strategy-view {
-
-    --nova-navy: #0F2747;
-
-    --nova-blue: #2563EB;
-
-    --nova-blue-hover: #1D4ED8;
-
-    --nova-blue-light: #EFF6FF;
-
-    --nova-blue-border: #BFDBFE;
-
-    --nova-text: #334155;
-
-    --nova-muted: #64748B;
-
-    --nova-soft: #F8FAFC;
-
-    --nova-border: #E2E8F0;
-
-    --nova-white: #FFFFFF;
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 28px;
-
-    padding: 32px;
-
-    background: var(--nova-white);
-
-    border: 1px solid var(--nova-border);
-
-    border-radius: 24px;
-
-    box-shadow:
-        0 8px 24px rgba(15, 39, 71, .06);
-
-    animation:
-        strategyFadeIn
-        .45s
-        ease
-        both;
-
-}
-
-
-/* ============================================================
-   HEADER
-============================================================ */
-
-.strategy-header {
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: flex-start;
-
-    gap: 24px;
-
-    padding-bottom: 24px;
-
-    border-bottom:
-        1px solid var(--nova-border);
-
-}
-
-
-.strategy-heading {
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 8px;
-
-}
-
-
-.strategy-eyebrow {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 9px;
-
-    margin-bottom: 2px;
-
-    color: var(--nova-blue);
-
-    font-size: .72rem;
-
-    font-weight: 800;
-
-    letter-spacing: .12em;
-
-}
-
-
-.eyebrow-line {
-
-    width: 28px;
-
-    height: 2px;
-
-    flex-shrink: 0;
-
-    border-radius: 999px;
-
-    background:
-        var(--nova-blue);
-
-}
-
-
-.strategy-header h2 {
-
-    margin: 0;
-
-    color: var(--nova-navy);
-
-    font-size: 1.8rem;
-
-    line-height: 1.2;
-
-    font-weight: 750;
-
-    letter-spacing: -.025em;
-
-}
-
-
-.strategy-header p {
-
-    max-width: 820px;
-
-    margin: 0;
-
-    color: var(--nova-muted);
-
-    font-size: .95rem;
-
-    line-height: 1.7;
-
-}
-
-
-/* ============================================================
-   STATUS
-============================================================ */
-
-.strategy-status {
-
-    display: inline-flex;
-
-    align-items: center;
-
-    gap: 8px;
-
-    flex-shrink: 0;
-
-    padding: 8px 12px;
-
-    border:
-        1px solid #D1FAE5;
-
-    border-radius: 999px;
-
-    background: #F0FDF4;
-
-    color: #15803D;
-
-    font-size: .68rem;
-
-    font-weight: 800;
-
-    letter-spacing: .06em;
-
-}
-
-
-.status-dot {
-
-    width: 7px;
-
-    height: 7px;
-
-    flex-shrink: 0;
-
-    border-radius: 50%;
-
-    background: #16A34A;
-
-    box-shadow:
-        0 0 0 3px rgba(22, 163, 74, .10);
-
-}
-
-
-/* ============================================================
-   INTRODUCCIÓN
-============================================================ */
-
-.strategy-intro {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 16px;
-
-    padding: 18px 20px;
-
-    border:
-        1px solid var(--nova-blue-border);
-
-    border-radius: 16px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #F8FBFF 0%,
-            #EFF6FF 100%
-        );
-
-}
-
-
-.intro-icon {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    width: 42px;
-
-    height: 42px;
-
-    flex-shrink: 0;
-
-    border:
-        1px solid var(--nova-blue-border);
-
-    border-radius: 12px;
-
-    background:
-        var(--nova-white);
-
-    color:
-        var(--nova-blue);
-
-    font-size: .85rem;
-
-    box-shadow:
-        0 4px 10px rgba(37, 99, 235, .08);
-
-}
-
-
-.intro-content {
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 4px;
-
-}
-
-
-.intro-content strong {
-
-    color:
-        var(--nova-navy);
-
-    font-size: .94rem;
-
-    font-weight: 700;
-
-}
-
-
-.intro-content span {
-
-    color:
-        var(--nova-muted);
-
-    font-size: .85rem;
-
-    line-height: 1.5;
-
-}
-
-
-/* ============================================================
-   SECTION HEADER
-============================================================ */
-
-.strategy-section-header {
-
-    display: flex;
-
-    align-items: flex-end;
-
-    justify-content: space-between;
-
-    gap: 20px;
-
-}
-
-
-.section-kicker {
-
-    display: block;
-
-    margin-bottom: 6px;
-
-    color:
-        var(--nova-blue);
-
-    font-size: .68rem;
-
-    font-weight: 800;
-
-    letter-spacing: .12em;
-
-}
-
-
-.strategy-section-header h3 {
-
-    margin: 0;
-
-    color:
-        var(--nova-navy);
-
-    font-size: 1.15rem;
-
-    line-height: 1.3;
-
-    font-weight: 700;
-
-    letter-spacing: -.01em;
-
-}
-
-
-.strategy-count {
-
-    padding: 7px 11px;
-
-    border:
-        1px solid var(--nova-border);
-
-    border-radius: 8px;
-
-    background:
-        var(--nova-soft);
-
-    color:
-        var(--nova-muted);
-
-    font-size: .72rem;
-
-    font-weight: 700;
-
-    white-space: nowrap;
-
-}
-
-
-/* ============================================================
-   GRID
-============================================================ */
-
-.strategy-grid {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            2,
-            minmax(0, 1fr)
-        );
-
-    gap: 20px;
-
-}
-
-
-.strategy-grid > * {
-
-    min-width: 0;
-
-    transition:
-        transform .25s ease,
-        box-shadow .25s ease;
-
-    animation:
-        cardAppear
-        .55s
-        ease
-        both;
-
-}
-
-
-.strategy-grid > *:nth-child(2) {
-
-    animation-delay:
-        .06s;
-
-}
-
-
-.strategy-grid > *:nth-child(3) {
-
-    animation-delay:
-        .12s;
-
-}
-
-
-.strategy-grid > *:nth-child(4) {
-
-    animation-delay:
-        .18s;
-
-}
-
-
-.strategy-grid > *:nth-child(5) {
-
-    animation-delay:
-        .24s;
-
-}
-
-
-.strategy-grid > *:hover {
-
-    transform:
-        translateY(-3px);
-
-}
-
-
-/* ============================================================
-   SUMMARY
-============================================================ */
-
-.strategy-summary {
-
-    position: relative;
-
-    overflow: hidden;
-
-    border:
-        1px solid var(--nova-border);
-
-    border-radius: 20px;
-
-    background:
-        var(--nova-white);
-
-    box-shadow:
-        0 4px 14px rgba(15, 39, 71, .035);
-
-    animation:
-        summaryAppear
-        .65s
-        ease
-        both;
-
-    transition:
-        border-color .25s ease,
-        box-shadow .25s ease,
-        transform .25s ease;
-
-}
-
-
-.strategy-summary::before {
-
-    content: "";
-
-    position: absolute;
-
-    top: 0;
-
-    left: 0;
-
-    width: 100%;
-
-    height: 3px;
-
-    background:
-        linear-gradient(
-            90deg,
-            #2563EB,
-            #3B82F6,
-            #60A5FA
-        );
-
-}
-
-
-.strategy-summary:hover {
-
-    border-color:
-        #D6E4F8;
-
-    box-shadow:
-        0 12px 28px rgba(15, 39, 71, .07);
-
-    transform:
-        translateY(-2px);
-
-}
-
-
-/* ============================================================
-   SUMMARY HEADER
-============================================================ */
-
-.summary-header {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    gap: 20px;
-
-    padding: 22px 24px;
-
-    border-bottom:
-        1px solid var(--nova-border);
-
-    background:
-        linear-gradient(
-            180deg,
-            #FFFFFF 0%,
-            #FBFDFF 100%
-        );
-
-}
-
-
-.summary-heading {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 14px;
-
-}
-
-
-.summary-icon {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    width: 40px;
-
-    height: 40px;
-
-    flex-shrink: 0;
-
-    border:
-        1px solid var(--nova-blue-border);
-
-    border-radius: 11px;
-
-    background:
-        var(--nova-blue-light);
-
-    color:
-        var(--nova-blue);
-
-    font-size: .75rem;
-
-}
-
-
-.summary-header h3 {
-
-    margin: 0;
-
-    color:
-        var(--nova-navy);
-
-    font-size: 1.15rem;
-
-    line-height: 1.3;
-
-    font-weight: 750;
-
-}
-
-
-.summary-header p {
-
-    max-width: 720px;
-
-    margin: 5px 0 0;
-
-    color:
-        var(--nova-muted);
-
-    font-size: .82rem;
-
-    line-height: 1.55;
-
-}
-
-
-.summary-label {
-
-    display: inline-flex;
-
-    align-items: center;
-
-    gap: 7px;
-
-    flex-shrink: 0;
-
-    color:
-        var(--nova-muted);
-
-    font-size: .66rem;
-
-    font-weight: 800;
-
-    letter-spacing: .08em;
-
-}
-
-
-.summary-label-dot {
-
-    width: 6px;
-
-    height: 6px;
-
-    border-radius: 50%;
-
-    background:
-        var(--nova-blue);
-
-}
-
-
-/* ============================================================
-   SUMMARY BODY
-============================================================ */
-
-.summary-body {
-
-    padding: 26px;
-
-}
-
-
-.strategy-summary :deep(.markdown-body) {
-
-    color:
-        var(--nova-text);
-
-}
-
-
-/* ============================================================
-   SUMMARY FOOTER
-============================================================ */
-
-.summary-footer {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    gap: 20px;
-
-    padding: 15px 24px;
-
-    border-top:
-        1px solid var(--nova-border);
-
-    background:
-        var(--nova-soft);
-
-}
-
-
-.summary-footer-label {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 8px;
-
-    color:
-        var(--nova-navy);
-
-    font-size: .67rem;
-
-    font-weight: 800;
-
-    letter-spacing: .08em;
-
-}
-
-
-.footer-line {
-
-    width: 18px;
-
-    height: 2px;
-
-    border-radius: 999px;
-
-    background:
-        var(--nova-blue);
-
-}
-
-
-.footer-note {
-
-    color:
-        var(--nova-muted);
-
-    font-size: .72rem;
-
-    line-height: 1.4;
-
-}
-
-
-/* ============================================================
-   DISCLAIMER
-============================================================ */
-
-.strategy-disclaimer {
-
-    display: flex;
-
-    align-items: flex-start;
-
-    gap: 11px;
-
-    padding: 14px 16px;
-
-    border:
-        1px solid var(--nova-border);
-
-    border-radius: 12px;
-
-    background:
-        #FAFBFC;
-
-}
-
-
-.disclaimer-icon {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    width: 20px;
-
-    height: 20px;
-
-    flex-shrink: 0;
-
-    border:
-        1px solid #CBD5E1;
-
-    border-radius: 50%;
-
-    color:
-        var(--nova-muted);
-
-    font-size: .7rem;
-
-    font-weight: 700;
-
-}
-
-
-.strategy-disclaimer p {
-
-    margin: 0;
-
-    color:
-        var(--nova-muted);
-
-    font-size: .72rem;
-
-    line-height: 1.55;
-
-}
-
-
-/* ============================================================
-   RESPONSIVE
-============================================================ */
-
-@media (max-width: 1100px) {
-
-    .strategy-grid {
-
-        grid-template-columns:
-            1fr;
-
-    }
-
-}
-
-
-@media (max-width: 992px) {
-
-    .strategy-view {
-
-        padding: 26px;
-
-    }
-
-    .strategy-header {
-
-        flex-direction: column;
-
-        align-items: flex-start;
-
-    }
-
-    .strategy-status {
-
-        align-self: flex-start;
-
-    }
-
-}
-
-
-@media (max-width: 768px) {
-
-    .strategy-view {
-
-        gap: 24px;
-
-        padding: 20px;
-
-        border-radius: 20px;
-
-    }
-
-
-    .strategy-header {
-
-        padding-bottom: 20px;
-
-    }
-
-
-    .strategy-header h2 {
-
-        font-size: 1.5rem;
-
-    }
-
-
-    .strategy-header p {
-
-        font-size: .9rem;
-
-    }
-
-
-    .strategy-intro {
-
-        align-items: flex-start;
-
-        padding: 16px;
-
-    }
-
-
-    .strategy-section-header {
-
-        align-items: flex-start;
-
-        flex-direction: column;
-
-        gap: 12px;
-
-    }
-
-
-    .summary-header {
-
-        align-items: flex-start;
-
-        flex-direction: column;
-
-        padding: 20px;
-
-    }
-
-
-    .summary-label {
-
-        margin-left: 54px;
-
-    }
-
-
-    .summary-body {
-
-        padding: 20px;
-
-    }
-
-
-    .summary-footer {
-
-        align-items: flex-start;
-
-        flex-direction: column;
-
-        padding: 16px 20px;
-
-    }
-
-}
-
-
-@media (max-width: 576px) {
-
-    .strategy-view {
-
-        gap: 20px;
-
-        padding: 16px;
-
-    }
-
-
-    .strategy-header h2 {
-
-        font-size: 1.4rem;
-
-    }
-
-
-    .strategy-header p {
-
-        font-size: .88rem;
-
-    }
-
-
-    .strategy-intro {
-
-        padding: 14px;
-
-    }
-
-
-    .intro-icon {
-
-        width: 38px;
-
-        height: 38px;
-
-    }
-
-
-    .intro-content strong {
-
-        font-size: .88rem;
-
-    }
-
-
-    .intro-content span {
-
-        font-size: .79rem;
-
-    }
-
-
-    .strategy-grid {
-
-        gap: 16px;
-
-    }
-
-
-    .strategy-count {
-
-        font-size: .68rem;
-
-    }
-
-
-    .summary-heading {
-
-        align-items: flex-start;
-
-    }
-
-
-    .summary-header h3 {
-
-        font-size: 1.05rem;
-
-    }
-
-
-    .summary-header p {
-
-        font-size: .78rem;
-
-    }
-
-
-    .summary-label {
-
-        margin-left: 0;
-
-    }
-
-
-    .summary-body {
-
-        padding: 17px;
-
-    }
-
-
-    .strategy-disclaimer {
-
-        padding: 12px;
-
-    }
-
-}
-
-
-/* ============================================================
-   ANIMATIONS
-============================================================ */
-
-@keyframes strategyFadeIn {
-
-    from {
-
-        opacity: 0;
-
-        transform:
-            translateY(16px);
-
-    }
-
-    to {
-
-        opacity: 1;
-
-        transform:
-            translateY(0);
-
-    }
-
-}
-
-
-@keyframes cardAppear {
-
-    from {
-
-        opacity: 0;
-
-        transform:
-            translateY(14px);
-
-    }
-
-    to {
-
-        opacity: 1;
-
-        transform:
-            translateY(0);
-
-    }
-
-}
-
-
-@keyframes summaryAppear {
-
-    from {
-
-        opacity: 0;
-
-        transform:
-            translateY(18px);
-
-    }
-
-    to {
-
-        opacity: 1;
-
-        transform:
-            translateY(0);
-
-    }
-
-}
-
-
-/* ============================================================
-   REDUCED MOTION
-============================================================ */
-
-@media (prefers-reduced-motion: reduce) {
-
-    .strategy-view,
-    .strategy-grid > *,
-    .strategy-summary {
-
-        animation: none;
-
-        transition: none;
-
-    }
-
-}
-
+.strategy-editorial{width:100%;max-width:1240px;min-width:0;margin:0 auto;display:grid;gap:clamp(36px,4vw,56px);color:#304357}
+.strategy-header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding-bottom:22px;border-bottom:1px solid #e2e8ef}
+.strategy-eyebrow,.section-kicker{display:flex;align-items:center;gap:8px;margin:0 0 9px;color:#8a6a37;font-size:.62rem;font-weight:750;letter-spacing:.13em}
+.strategy-eyebrow span{width:20px;height:1px;background:#b08a4c}
+.strategy-header h2,.section-heading h3,.strategy-conclusion h3{margin:0;color:#17375e;font-family:Georgia,'Times New Roman',serif;font-weight:600}
+.strategy-header h2{font-size:clamp(1.7rem,2.5vw,2.15rem);line-height:1.25}
+.strategy-subtitle,.section-heading>p:last-child{max-width:840px;margin:8px 0 0;color:#69798a;font-size:.91rem;line-height:1.68}
+.strategy-status{display:inline-flex;align-items:center;gap:8px;flex:none;padding:7px 11px;border:1px solid #dce7df;border-radius:999px;background:#f8fbf8;color:#55745d;font-size:.7rem;font-weight:650}
+.strategy-status span{width:6px;height:6px;border-radius:50%;background:#72917a}
+.strategy-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-block:1px solid #e2e8ef}
+.overview-item{min-width:0;padding:15px 20px 15px 0}.overview-item+.overview-item{padding-left:20px;border-left:1px solid #e2e8ef}
+.overview-item>span,.field-label{display:block;margin:0 0 7px;color:#8a6a37;font-size:.64rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+.overview-item :deep(.markdown-body),.strategy-editorial :deep(.markdown-body){min-width:0;width:100%;color:#3d4e60;font-size:.91rem;line-height:1.75;word-break:normal;overflow-wrap:break-word}
+.strategy-editorial :deep(.markdown-body p){margin:0 0 10px}.strategy-editorial :deep(.markdown-body p:last-child){margin-bottom:0}
+.strategy-section{min-width:0}.section-heading{margin-bottom:18px}.section-heading h3,.strategy-conclusion h3{font-size:1.34rem;line-height:1.35}.section-heading>p:last-child{font-size:.84rem}
+.objective-copy,.main-line{max-width:960px}.objective-copy{padding-left:17px;border-left:2px solid #b69a6a}.main-line{margin-bottom:24px;padding:18px 20px;border:1px solid #e4e9ed;border-left:3px solid #b08a4c;border-radius:8px;background:#fcfbf8}
+.foundation-list,.editorial-list{margin:0;padding:0;list-style:none;border-top:1px solid #e4eaf0}.foundation-heading{padding:15px 0 4px}.foundation-heading .section-kicker{margin-bottom:5px}.foundation-heading h4{margin:0;color:#263d55;font:600 1rem/1.45 Georgia,'Times New Roman',serif}.foundation-row,.editorial-row{display:grid;grid-template-columns:38px minmax(0,1fr);gap:14px;min-width:0;padding:19px 0;border-bottom:1px solid #e4eaf0}
+.editorial-number{padding-top:2px;color:#a17c43;font:600 .9rem Georgia,'Times New Roman',serif}.foundation-row>div,.editorial-row>div{min-width:0;max-width:960px}.foundation-row h4,.editorial-row h4,.action-group>h4{margin:0 0 8px;color:#263d55;font:600 1rem/1.45 Georgia,'Times New Roman',serif;overflow-wrap:break-word}
+.foundation-detail,.source-list{margin-top:16px}.foundation-detail h5,.source-list h5,.strategic-response h5{margin:0 0 7px;color:#7d6845;font-size:.68rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.foundation-detail ul,.strategy-conclusion ul{margin:0;padding-left:18px;color:#405469}.foundation-detail li,.strategy-conclusion li{padding:3px 0;line-height:1.65}
+.source-list ul{margin:0;padding:0;list-style:none;border-top:1px solid #edf0f3}.source-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:4px 14px;padding:9px 0;border-bottom:1px solid #edf0f3}.source-label{min-width:0;color:#315c83;font-size:.83rem;font-weight:650;overflow-wrap:break-word}.source-detail{grid-column:1;color:#7a8794;font-size:.75rem;line-height:1.5}.source-open{justify-self:end;padding:3px 5px;border:0;border-radius:4px;background:transparent;color:#315c83;font-family:inherit;font-size:.76rem;font-weight:600;line-height:1.5;white-space:nowrap;cursor:pointer}.source-open:hover{background:#edf3f7;color:#17375e}.source-open:focus-visible{outline:2px solid #b08a4c;outline-offset:2px}
+.strategic-response{margin-top:15px;padding:12px 15px;border-left:2px solid #b69a6a;background:#faf8f2}.strategic-response h5{color:#806b49}.evidence-status{margin:10px 0 0;color:#607184;font-size:.83rem}.evidence-status strong{margin-right:7px;color:#718094;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase}
+.action-group+.action-group{margin-top:24px}.action-group>h4{color:#8a6a37;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase}.action-group .editorial-row{padding-block:12px}
+.risk-section .editorial-row{padding-block:15px}.strategy-conclusion{padding:22px clamp(18px,2.5vw,30px);border:1px solid #e6e1d7;border-left:3px solid #b08a4c;border-radius:8px;background:#fdfcf9}.strategy-conclusion h3{margin-bottom:17px}.strategy-conclusion ul{margin:0 0 15px}.conclusion-alternative{margin-top:14px;padding-top:12px;border-top:1px solid #e7e2d8}.strategy-disclaimer{margin:-22px 0 0;color:#758394;font-size:.75rem;line-height:1.6}.strategy-empty{margin:0;padding:14px 16px;border-left:2px solid #d4c29e;background:#faf9f5;color:#637286;font-size:.86rem;line-height:1.65}
+.strategy-editorial :deep(.citation-inline),.strategy-editorial :deep(.citation-link){display:inline;position:relative;top:-.07em;margin:0 .13em;padding:.08em .36em;border:1px solid #d7e2ec;border-radius:4px;background:#f1f5f8;color:#1b496f;font-family:inherit;font-size:.76em;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer}.strategy-editorial :deep(.citation-link:hover){background:#e3edf5;border-color:#b9cddb}.strategy-editorial :deep(.citation-link:focus-visible){outline:2px solid #315c97;outline-offset:2px}
+@media(max-width:900px){.strategy-overview{grid-template-columns:1fr}.overview-item,.overview-item+.overview-item{padding:13px 0;border-left:0}.overview-item+.overview-item{border-top:1px solid #e2e8ef}}
+@media(max-width:680px){.strategy-editorial{gap:32px}.strategy-header{align-items:flex-start;flex-direction:column;gap:13px}.foundation-row,.editorial-row{grid-template-columns:30px minmax(0,1fr);gap:9px;padding:16px 0}.source-list li{grid-template-columns:minmax(0,1fr)}.source-open{justify-self:start}.main-line{padding:15px}.strategy-conclusion{padding:18px}}
 </style>

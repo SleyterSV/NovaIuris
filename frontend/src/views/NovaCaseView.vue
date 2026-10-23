@@ -330,14 +330,20 @@
                     ========================================== -->
 
                     <template #strategy>
-
-                        <section v-if="canonicalResult?.final_strategy" class="final-strategy">
-                            <h3>Estrategia consolidada</h3>
-                            <MarkdownRenderer :content="canonicalResult.final_strategy" />
-                        </section>
-
                         <StrategyView
                             :strategy="strategy"
+                            :final-strategy="canonicalResult?.final_strategy || {}"
+                            :arguments="canonicalResult?.arguments || {}"
+                            :facts="canonicalResult?.facts || []"
+                            :issues="canonicalResult?.issues || []"
+                            :evidence="canonicalResult?.evidence || {}"
+                            :risks="canonicalResult?.risks || {}"
+                            :counter-arguments="canonicalResult?.counter_arguments || {}"
+                            :sources="[...(canonicalResult?.research?.sources || []), ...(canonicalResult?.sources || []), ...(canonicalResult?.sources_used || [])]"
+                            :citations="canonicalResult?.citations || []"
+                            :case-id="canonicalResult?.case_id"
+                            :analyzed="Boolean(canonicalResult?.final_strategy)"
+                            @select-source="selectedSource = $event"
                         />
 
                     </template>
@@ -459,7 +465,6 @@ import { useRouter } from "vue-router"
 import { normalizeCaseResult } from "@/utils/caseContract.js"
 import { factAllegationOrigin } from "@/utils/novacasePresentation.js"
 import { caseReuseContext } from "@/utils/mikeWorkspace.js"
-import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue"
 import { normalizeRenderableContent } from "@/utils/content.js"
 
 import {

@@ -419,6 +419,51 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
   } finally { await server.close() }
 })
 
+test('NovaCase strategy renders one editorial plan and resolves only canonical source references', async () => {
+  const server=await createServer({server:{middlewareMode:true,hmr:false,port:0},appType:'custom',logLevel:'error',optimizeDeps:{noDiscovery:true,include:[]}})
+  try {
+    const component=(await server.ssrLoadModule('/src/components/novacase/StrategyView.vue')).default
+    const citations=[{citation_id:'CIT-STRATEGY-1',label:'[1]',citation_number:1,source_id:source.source_id,
+      source_scope:'public_legal',provenance_version:'v2',document_id:source.document_id,unit_id:source.unit_id}]
+    const finalStrategy={
+      objective:'Reposición en el puesto o en otro de similar nivel.',
+      principal_line:'Solicitar la nulidad del acto de no renovación y la reposición laboral.',
+      supporting_arguments:[{title:'Motivación insuficiente del acto',argument:'El memorando invoca únicamente el vencimiento del plazo. [1]',
+        legal_basis:['La motivación debe evaluarse conforme al criterio constitucional. [1]'],supporting_fact_ids:[factId],source_ids:[source.source_id],issue_id:issueId,strength:'Alta',risk:'Medio'}],
+      priority_evidence:[{title:'Renovaciones del vínculo',relevance:'Permitirían verificar la continuidad temporal del CAS.',status:'pending',source_ids:[source.source_id]}],
+      risks_to_mitigate:[{title:'Idoneidad de la vía',risk:'Puede cuestionarse la vía propuesta.',mitigation:'Preparar el sustento procesal.'}],
+      opposing_positions:[{title:'Vía igualmente satisfactoria',argument:'La parte contraria podría objetar la idoneidad del amparo.'}],
+      recommended_actions:['Recabar adendas de renovación.','Verificar el cómputo del plazo.','Recabar adendas de renovación.'],
+      missing_information:['Adendas y resoluciones de renovación.']
+    }
+    const html=await renderToString(createSSRApp({render:()=>h(component,{
+      strategy:{objective:'Reposición en el puesto o en otro de similar nivel.',claim_strategy:'Solicitar la nulidad del acto de no renovación y la reposición laboral.',
+        recommended_actions:['Recabar adendas de renovación.'],missing_information:['Adendas y resoluciones de renovación.']},
+      finalStrategy,arguments:{main_arguments:finalStrategy.supporting_arguments},facts:[{fact_id:factId,text:'El memorando comunicó la no renovación.'}],
+      issues:[{issue_id:issueId,text:'¿La motivación del acto fue suficiente?'}],sources:[source],citations,caseId:'CASE-A',analyzed:true
+    })}))
+    assert.match(html,/strategy-title/)
+    assert.match(html,/objective-title/)
+    assert.match(html,/main-strategy-title/)
+    assert.match(html,/pending-title/)
+    assert.match(html,/opposing-title/)
+    assert.match(html,/evidence-title/)
+    assert.match(html,/actions-title/)
+    assert.match(html,/risks-title/)
+    assert.match(html,/Fundamentos de la estrategia/)
+    assert.match(html,/conclusion-title/)
+    assert.match(html,/source-label[^>]*>\[1\]/)
+    assert.match(html,/Ver fuente 1/)
+    const visible=html.replace(/<[^>]*>/g, ' ')
+    assert.equal((visible.match(/Recabar adendas de renovaci.n/g)||[]).length,1,"repeated recommendations are consolidated")
+    assert.doesNotMatch(visible,/Missing information|Opposing positions|Principal line|Priority evidence|Recommended actions|Risks to mitigate|Supporting arguments|Issue id|Source ids|Supporting fact ids|Legal basis|Strength|Title/i)
+    assert.doesNotMatch(html,/ISSUE-[a-f0-9]{24}|SRC-[a-f0-9]{24}|FACT-[a-f0-9]{24}|source_id|fact_id|issue_id|document_id|unit_id|task_id|case_id/i)
+    const view=await readFile(new URL('../src/views/NovaCaseView.vue',import.meta.url),'utf8')
+    assert.doesNotMatch(view,/<MarkdownRenderer\s+:content="canonicalResult\.final_strategy"/)
+    assert.match(view,/:final-strategy="canonicalResult\?\.final_strategy/)
+  } finally { await server.close() }
+})
+
 test('Informe shows one cited source list, safe actions and no QA scope box', async () => {
   const server=await createServer({server:{middlewareMode:true,hmr:false,port:0},appType:'custom',logLevel:'error',optimizeDeps:{noDiscovery:true,include:[]}})
   try {
