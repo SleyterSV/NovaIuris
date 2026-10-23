@@ -283,6 +283,8 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.match(professionalEvidence,/Evidencia vinculada a las cuestiones jurídicas/)
     assert.match(professionalEvidence,/Limitaciones/)
     assert.match(professionalEvidence,/Contrato CAS · pág\. 1/)
+    assert.match(professionalEvidence,/Documento contractual · 2 páginas utilizadas/)
+    assert.doesNotMatch(professionalEvidence,/01_Contrato_CAS|01\s+<span class="row-number"|•\s*\[1\]/)
     assert.match(professionalEvidence,/Fundamento 7/)
     assert.match(professionalEvidence,/Ver documento/)
     assert.doesNotMatch(professionalEvidence,/SRC-[a-f0-9]{12,}|source_id|document_id|unit_id|private_case|public_legal|Motor de análisis|ficticio|entorno QA|Consultar fuente documental/i)
@@ -290,6 +292,10 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     const evidenceViewSource=await readFile(new URL('../src/components/novacase/EvidenceView.vue',import.meta.url),'utf8')
     assert.match(evidenceViewSource,/@click="selectSource\(source\)"/)
     assert.match(evidenceViewSource,/emit\('select-source', source\)/)
+    assert.match(evidenceViewSource,/\.evidence-editorial\{[^}]*max-width:1240px/s)
+    assert.match(evidenceViewSource,/\.document-list,[^}]*list-style:none/s)
+    assert.match(evidenceViewSource,/\.source-action\{display:inline-flex/)
+    assert.match(evidenceViewSource,/\.evidence-context dl\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/)
     const privateSource={source_id:'SRC-private-analysis',source_scope:'private_case',case_id:'CASE-A'}
     const analysisHtml=await render('novacase/AnalysisView',{
       analysis:{rama_derecho:'Laboral',tipo_proceso:'Proceso laboral',pretension_principal:'Reposición',
