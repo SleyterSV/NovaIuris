@@ -262,7 +262,8 @@
 
                     <template #arguments>
                         <ArgumentsView :arguments="canonicalResult?.arguments || {}"
-                            :facts="canonicalResult?.facts || []" :sources="canonicalResult?.research?.sources || []"
+                            :facts="canonicalResult?.facts || []"
+                            :sources="[...(canonicalResult?.research?.sources || []), ...(canonicalResult?.sources || []), ...(canonicalResult?.sources_used || [])]"
                             :citations="canonicalResult?.citations || []"
                             :case-id="canonicalResult?.case_id" @select-source="selectedSource = $event" />
                     </template>
@@ -325,6 +326,11 @@
 
                         <CounterArgumentsView
                             :counter-arguments="counterArguments"
+                            :responses="canonicalResult?.arguments?.counterargument_responses || []"
+                            :sources="[...(canonicalResult?.research?.sources || []), ...(canonicalResult?.sources || []), ...(canonicalResult?.sources_used || [])]"
+                            :citations="canonicalResult?.citations || []"
+                            :case-id="canonicalResult?.case_id"
+                            @select-source="selectedSource = $event"
                         />
 
                     </template>

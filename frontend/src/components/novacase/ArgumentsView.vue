@@ -1,74 +1,166 @@
 <template>
-  <section class="arguments-view" aria-label="Argumentos del caso">
-    <header class="section-heading">
-      <p class="eyebrow">MYKE · NOVACASE</p>
-      <h2>Argumentos jurídicos</h2>
-      <p>Se distinguen las fuentes verificadas de las hipótesis que requieren revisión profesional.</p>
+  <main class="arguments-editorial" aria-labelledby="arguments-title">
+    <header class="arguments-header">
+      <p class="arguments-eyebrow"><span aria-hidden="true"></span> MYKE · NOVACASE</p>
+      <h2 id="arguments-title">Argumentos jurídicos</h2>
+      <p>Argumentos, fundamentos y fuentes que sustentan las principales posiciones jurídicas del caso.</p>
     </header>
 
-    <section v-for="section in sections" :key="section.key" class="argument-section">
-      <h3>{{ section.label }}</h3>
-      <div class="argument-grid">
-        <article v-for="(entry, index) in section.items" :key="index" class="argument-card">
-          <span class="argument-number">{{ String(index + 1).padStart(2, '0') }}</span>
-          <h4 v-if="entry.title">{{ presentableText(entry.title) }}</h4>
-          <div v-if="entry.argument || entry.text" class="argument-body">
-            <span class="field-label">Argumento</span>
-            <MarkdownRenderer :content="presentableText(entry.argument || entry.text)" />
+    <p v-if="!argumentSections.length && !counterPairs.length && !unmatchedResponses.length && !observations.length" class="arguments-empty" role="status">No se identificaron argumentos con la información disponible.</p>
+
+    <section v-for="section in argumentSections" :key="section.key" class="argument-section" :aria-labelledby="`argument-group-${section.key}`">
+      <header class="group-heading"><p class="group-eyebrow">ESTRATEGIA ARGUMENTATIVA</p><h3 :id="`argument-group-${section.key}`">{{ section.label }}</h3></header>
+      <ol class="argument-list">
+        <li v-for="(entry, index) in section.items" :key="entry.key" class="argument-entry">
+          <span class="argument-number" aria-hidden="true">{{ formatNumber(index + 1) }}</span>
+          <div class="argument-content">
+            <h4 v-if="entry.title">{{ entry.title }}</h4>
+            <MarkdownRenderer v-if="entry.body" class="argument-prose" :content="entry.body" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" />
+
+            <section v-if="entry.foundation.length" class="argument-subsection">
+              <h5>Fundamento jurídico</h5>
+              <MarkdownRenderer :content="entry.foundation" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" />
+            </section>
+
+            <section v-if="entry.facts.length" class="argument-subsection argument-facts">
+              <h5>Hechos que respaldan este argumento</h5>
+              <ul><li v-for="(fact, factIndex) in entry.facts" :key="`${entry.key}-fact-${factIndex}`"><span aria-hidden="true">✓</span><MarkdownRenderer :content="fact" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" /></li></ul>
+            </section>
+
+            <div v-if="entry.sources.length" class="argument-source-block">
+              <h5>Fuentes</h5>
+              <ul class="argument-source-list"><li v-for="source in entry.sources" :key="source.source_id">
+                <span class="source-reference-label">{{ citationLabel(source) || sourceHumanLabel(source) }}</span>
+                <span v-if="citationLabel(source)" class="source-human-detail">{{ sourceHumanLabel(source) }}</span>
+                <button type="button" class="source-open" :aria-label="`Ver fuente ${citationLabel(source)?.replace(/[\[\]]/g, '') || sourceHumanLabel(source)}`" @click="selectSource(source)">Ver fuente <span aria-hidden="true">↗</span></button>
+              </li></ul>
+            </div>
+            <p v-if="entry.needsVerification" class="verification-note">El fundamento requiere verificación documental o jurídica adicional.</p>
           </div>
-          <div v-if="entry.legal_basis?.length && (!verifiedArgumentSources(entry, sources, caseId, citations).length ||
-            !/pendiente|preliminar|por verificar/i.test(String(entry.legal_basis)))" class="argument-body">
-            <span class="field-label">Fundamento jurídico</span>
-            <MarkdownRenderer :content="presentableText(entry.legal_basis)" />
+        </li>
+      </ol>
+    </section>
+
+    <section v-if="counterPairs.length || unmatchedResponses.length" class="argument-section counterargument-section" aria-labelledby="counterarguments-title">
+      <header class="group-heading"><p class="group-eyebrow">LECTURA ADVERSARIAL</p><h3 id="counterarguments-title">Contraargumentos previsibles</h3><p>Principales objeciones que podría formular la parte contraria.</p></header>
+      <ol class="argument-list">
+        <li v-for="(item, index) in counterPairs" :key="item.key" class="argument-entry counterargument-entry">
+          <span class="argument-number" aria-hidden="true">{{ formatNumber(index + 1) }}</span>
+          <div class="argument-content">
+            <h4 v-if="item.title">{{ item.title }}</h4>
+            <div class="counterargument-copy"><h5>Contraargumento</h5><MarkdownRenderer :content="item.body" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" /></div>
+            <div v-if="item.response" class="response-copy"><h5>Respuesta jurídica</h5><MarkdownRenderer :content="item.response.body" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" />
+              <div v-if="item.response.sources.length" class="response-source-list"><button v-for="source in item.response.sources" :key="source.source_id" type="button" class="source-open" @click="selectSource(source)">{{ citationLabel(source) || sourceHumanLabel(source) }} · Ver fuente ↗</button></div>
+            </div>
           </div>
-          <p v-if="entry.risk" class="argument-detail"><strong>Riesgo</strong> {{ presentableText(entry.risk) }}</p>
-          <p v-if="entry.strength" class="argument-detail"><strong>Solidez</strong> {{ presentableText(entry.strength) }}</p>
-          <div v-if="relatedFactTexts(entry, facts).length" class="argument-body">
-            <span class="field-label">Hechos de respaldo</span>
-            <ul><li v-for="(fact, factIndex) in relatedFactTexts(entry, facts)" :key="factIndex">{{ presentableText(fact) }}</li></ul>
-          </div>
-          <div v-if="verifiedArgumentSources(entry, sources, caseId, citations).length" class="argument-sources">
-            <span class="field-label">Fuentes vinculadas</span>
-            <button v-for="source in verifiedArgumentSources(entry, sources, caseId, citations)" :key="source.source_id"
-              type="button" @click="$emit('select-source', source)">
-              {{ sourceHumanLabel(source) }} · Ver fuente
-            </button>
-          </div>
-          <p v-if="argumentNeedsVerification(entry, sources, caseId, citations) &&
-            (entry.legal_basis?.length || entry.jurisprudence?.length ||
-            ['jurisprudence_used','normative_arguments','constitutional_arguments'].includes(section.key))" class="unverified">
-            Fundamento pendiente de verificación.
-          </p>
+        </li>
+      </ol>
+      <div v-if="unmatchedResponses.length" class="unmatched-responses">
+        <h4>Respuestas jurídicas relacionadas</h4>
+        <article v-for="item in unmatchedResponses" :key="item.key" class="unmatched-response">
+          <h5 v-if="item.title">{{ item.title }}</h5>
+          <MarkdownRenderer :content="item.body" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" />
+          <div v-if="item.sources.length" class="response-source-list"><button v-for="source in item.sources" :key="source.source_id" type="button" class="source-open" @click="selectSource(source)">{{ citationLabel(source) || sourceHumanLabel(source) }} · Ver fuente ↗</button></div>
         </article>
       </div>
     </section>
-    <p v-if="!sections.length" class="empty-state">No se identificaron argumentos con la información disponible.</p>
-  </section>
+
+    <section v-if="observations.length" class="argument-section observations-section" aria-labelledby="observations-title">
+      <header class="group-heading"><p class="group-eyebrow">PUNTOS DE ATENCIÓN</p><h3 id="observations-title">Observaciones generales</h3></header>
+      <ul class="observation-list"><li v-for="item in observations" :key="item.key"><MarkdownRenderer :content="item.body" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" /></li></ul>
+    </section>
+  </main>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
-import { ARGUMENT_SECTION_LABELS, presentableText, relatedFactTexts, verifiedArgumentSources, argumentNeedsVerification, sourceHumanLabel } from '@/utils/novacasePresentation.js'
+import { presentableText, relatedFactTexts, verifiedArgumentSources, argumentNeedsVerification, sourceHumanLabel } from '@/utils/novacasePresentation.js'
+import { normalizeSource, normalizeSources } from '@/utils/sourceContract.js'
 
 const props = defineProps({
-  arguments: { type: Object, default: () => ({}) },
-  facts: { type: Array, default: () => [] },
-  sources: { type: Array, default: () => [] },
-  citations: { type: Array, default: () => [] },
+  arguments: { type: Object, default: () => ({}) }, facts: { type: Array, default: () => [] },
+  sources: { type: Array, default: () => [] }, citations: { type: Array, default: () => [] },
   caseId: { type: String, default: null }
 })
-defineEmits(['select-source'])
+const emit = defineEmits(['select-source'])
+const labels = {
+  main_arguments: 'Argumentos principales', secondary_arguments: 'Argumentos complementarios',
+  constitutional_arguments: 'Argumentos constitucionales', procedural_arguments: 'Argumentos procesales',
+  normative_arguments: 'Argumentos normativos'
+}
+const safeSources = computed(() => normalizeSources(props.sources, props.caseId))
+function textOf(value) {
+  if (Array.isArray(value)) return value.map(textOf).filter(Boolean).join('\n\n')
+  if (typeof value === 'string') return presentableText(value).trim()
+  if (value && typeof value === 'object') return textOf(value.text || value.description || value.content || value.title)
+  return ''
+}
+function isTechnicalReference(value) { return typeof value === 'string' && (/^(?:SRC|FACT|ISSUE)-[a-f0-9]{12,}$/i.test(value.trim()) || /^[0-9a-f-]{36}$/i.test(value.trim())) }
+function recordsOf(value) { return (Array.isArray(value) ? value : value == null || value === '' ? [] : [value]).filter(item => item != null && item !== '') }
+function sourceList(entry) { return verifiedArgumentSources(entry, safeSources.value, props.caseId, props.citations) }
+function citationLabel(source) { return props.citations.find(item => item.source_id === source.source_id)?.label || '' }
+function selectSource(source) { const safe = normalizeSource(source, props.caseId); if (safe) emit('select-source', safe) }
+function openCitation(citation) { const source = safeSources.value.find(item => item.source_id === citation?.source_id); if (source) selectSource(source) }
+function formatNumber(value) { return String(value).padStart(2, '0') }
 
-const sections = computed(() => Object.entries(ARGUMENT_SECTION_LABELS).flatMap(([key, label]) => {
-  const raw = props.arguments[key]
-  const items = (Array.isArray(raw) ? raw : raw ? [raw] : []).filter(Boolean).map(item =>
-    typeof item === 'string' ? { text: /^[0-9a-f-]{36}$/i.test(item) || /^SRC-[0-9a-f]{24}$/i.test(item) ? '' : item,
-      source_ids: [item] } : item && typeof item === 'object' ? item : { text: String(item) })
+function argumentEntry(raw, sectionKey, index) {
+  const entry = typeof raw === 'string' ? { text: raw } : raw && typeof raw === 'object' ? raw : { text: String(raw) }
+  const title = textOf(entry.title || entry.name || entry.heading)
+  const body = textOf(entry.argument || entry.text || entry.content || entry.description)
+  const foundation = recordsOf(entry.legal_basis || entry.foundation || entry.legal_foundation).map(item =>
+    typeof item === 'string' ? textOf(item) : textOf(item?.text || item?.description || item?.title)).filter(Boolean)
+  const facts = relatedFactTexts(entry, props.facts).map(textOf).filter(Boolean)
+  const sources = sourceList(entry)
+  return {
+    key: entry.argument_id || entry.id || `${sectionKey}-${index}-${title || body.slice(0, 30)}`,
+    title, body, foundation, facts, sources,
+    needsVerification: argumentNeedsVerification(entry, safeSources.value, props.caseId, props.citations) &&
+      (foundation.length > 0 || Boolean(entry.jurisprudence?.length) || ['normative_arguments','constitutional_arguments'].includes(sectionKey))
+  }
+}
+const argumentSections = computed(() => Object.entries(labels).flatMap(([key, label]) => {
+  const items = recordsOf(props.arguments?.[key]).map((entry, index) => argumentEntry(entry, key, index))
+    .filter(entry => entry.title || entry.body || entry.foundation.length || entry.facts.length || entry.sources.length)
   return items.length ? [{ key, label, items }] : []
 }))
+
+function normalizeRelated(value) { return textOf(value).toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim() }
+function counterEntry(raw, key, index) {
+  const item = typeof raw === 'string' ? { text: raw } : raw && typeof raw === 'object' ? raw : { text: String(raw) }
+  const body = key === 'response'
+    ? textOf(item.response || item.reply || item.answer || item.text || item.content || item.argument)
+    : textOf(item.argument || item.counterargument || item.objection || item.text || item.content || item.description)
+  const title = textOf(item.title || item.name || item.heading)
+  const sources = sourceList(item)
+  return { key: item.response_id || item.id || item.counterargument_id || `${key}-${index}-${body.slice(0,24)}`, title, body, sources,
+    relationId: item.counterargument_id || item.objection_id || item.related_counterargument_id || item.id || null,
+    relationText: normalizeRelated(item.counterargument || item.objection || item.title || item.name), raw: item }
+}
+const counterResponseMapping = computed(() => {
+  const objections = recordsOf(props.arguments?.possible_counterarguments).map((item,index)=>counterEntry(item,'counter',index)).filter(item=>item.body || item.title)
+  const responses = recordsOf(props.arguments?.counterargument_responses).map((item,index)=>counterEntry(item,'response',index)).filter(item=>item.body || item.title)
+  const used = new Set()
+  const pairs = objections.map(objection => {
+    const responseIndex = responses.findIndex((response,index) => !used.has(index) && (
+      (response.relationId && response.relationId === objection.relationId) ||
+      (response.relationText && objection.relationText && response.relationText === objection.relationText)
+    ))
+    const response = responseIndex >= 0 ? responses[responseIndex] : null
+    if (response) used.add(responseIndex)
+    return { ...objection, response }
+  })
+  return { pairs, used, responses }
+})
+const counterPairs = computed(() => counterResponseMapping.value.pairs)
+const unmatchedResponses = computed(() => counterResponseMapping.value.responses.filter((_, index) => !counterResponseMapping.value.used.has(index)))
+const observations = computed(() => recordsOf(props.arguments?.general_observations).map((item,index) => {
+  const body = textOf(typeof item === 'string' ? item : item?.text || item?.observation || item?.content || item?.description)
+  return body && !isTechnicalReference(body) ? { key: item?.id || `observation-${index}`, body } : null
+}).filter(Boolean))
 </script>
 
 <style scoped>
-.arguments-view{display:grid;gap:26px;color:#20364f;min-width:0}.section-heading h2,.argument-section h3{font-family:Georgia,serif}.section-heading h2{font-size:clamp(1.4rem,2.5vw,2rem);margin:4px 0}.section-heading p:last-child{color:#62758a;margin:8px 0 0}.eyebrow,.field-label{color:#987849;font-size:.72rem;font-weight:750;letter-spacing:.07em;text-transform:uppercase}.argument-section{display:grid;gap:14px;min-width:0}.argument-section h3{font-size:1.2rem;margin:0}.argument-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:14px;align-items:start}.argument-card{min-width:0;border:1px solid #dfe7ed;border-radius:12px;background:#fff;padding:20px;box-shadow:0 4px 16px #102d4810;overflow-wrap:anywhere}.argument-card h4{font:600 1.08rem/1.35 Georgia,serif;color:#173654;margin:8px 0 14px}.argument-number{color:#9b7740;font-size:.75rem;font-weight:750}.argument-body{margin-top:14px}.argument-body ul{padding-left:20px}.argument-detail{display:flex;gap:10px;margin:13px 0 0;color:#40566e}.argument-detail strong{min-width:58px;color:#1c3855}.argument-sources{display:grid;gap:8px;margin-top:16px}.argument-sources button{border:1px solid #b8cce0;background:#f3f8fc;color:#17446d;border-radius:7px;padding:10px;text-align:left;cursor:pointer;overflow-wrap:anywhere}.argument-sources button:hover{background:#e9f3fb}.unverified,.empty-state{border-left:3px solid #bd9556;background:#fbf8f1;padding:10px 13px;color:#6c5736;font-size:.85rem;line-height:1.5;margin:16px 0 0}
+.arguments-editorial{width:100%;min-width:0;max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:32px;color:#304357}.arguments-header{padding-bottom:23px;border-bottom:1px solid #e2e8ef}.arguments-eyebrow,.group-eyebrow{display:flex;align-items:center;gap:8px;margin:0 0 9px;color:#8a6a37;font-size:.62rem;font-weight:750;letter-spacing:.13em}.arguments-eyebrow span{width:20px;height:1px;background:#b08a4c}.arguments-header h2,.group-heading h3{margin:0;color:#17375e;font-family:Georgia,'Times New Roman',serif;font-weight:600}.arguments-header h2{font-size:clamp(1.7rem,2.5vw,2.15rem);line-height:1.25}.arguments-header>p:last-child,.group-heading>p:last-child{max-width:800px;margin:8px 0 0;color:#69798a;font-size:.91rem;line-height:1.65}.arguments-empty{margin:0;color:#64758a;line-height:1.6}.argument-section{min-width:0}.group-heading{margin-bottom:16px}.group-eyebrow{margin-bottom:6px;font-size:.57rem}.group-heading h3{font-size:1.28rem;line-height:1.4}.group-heading>p:last-child{font-size:.83rem}.argument-list{margin:0;padding:0;list-style:none;border-top:1px solid #e4eaf0}.argument-entry{display:grid;grid-template-columns:40px minmax(0,1fr);gap:13px;padding:22px 0;border-bottom:1px solid #e4eaf0}.argument-number{padding-top:4px;color:#a17c43;font-family:Georgia,serif;font-size:.92rem;font-weight:600}.argument-content{min-width:0;max-width:960px}.argument-content>h4{max-width:900px;margin:0 0 13px;color:#203a55;font-family:Georgia,'Times New Roman',serif;font-size:1.12rem;font-weight:600;line-height:1.45;overflow-wrap:break-word;hyphens:none}.argument-prose :deep(.markdown-body),.argument-subsection :deep(.markdown-body),.counterargument-copy :deep(.markdown-body),.response-copy :deep(.markdown-body),.unmatched-response :deep(.markdown-body),.observation-list :deep(.markdown-body){font-size:.94rem;line-height:1.78;color:#3d4e60}.argument-prose :deep(p),.argument-subsection :deep(p),.counterargument-copy :deep(p),.response-copy :deep(p),.unmatched-response :deep(p),.observation-list :deep(p){margin:0 0 10px}.argument-prose :deep(p:last-child),.argument-subsection :deep(p:last-child),.counterargument-copy :deep(p:last-child),.response-copy :deep(p:last-child),.unmatched-response :deep(p:last-child),.observation-list :deep(p:last-child){margin-bottom:0}.argument-subsection{margin-top:19px}.argument-subsection h5,.argument-source-block h5,.counterargument-copy h5,.response-copy h5,.unmatched-response h5{margin:0 0 8px;color:#7d6845;font-size:.71rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.argument-facts ul{display:grid;gap:7px;margin:0;padding:0;list-style:none}.argument-facts li{display:grid;grid-template-columns:16px minmax(0,1fr);gap:8px;align-items:start}.argument-facts li>span{padding-top:2px;color:#718e78;font-size:.83rem}.argument-facts li :deep(.markdown-body){font-size:.88rem;line-height:1.65}.argument-source-block{margin-top:19px}.argument-source-list{margin:0;padding:0;border-top:1px solid #edf0f3;list-style:none}.argument-source-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:3px 14px;padding:9px 0;border-bottom:1px solid #edf0f3}.source-reference-label{min-width:0;color:#315c83;font-size:.83rem;font-weight:650;overflow-wrap:anywhere}.source-human-detail{grid-column:1;color:#7a8794;font-size:.75rem;line-height:1.5}.source-open{justify-self:end;padding:3px 5px;border:0;border-radius:4px;background:transparent;color:#315c83;font-family:inherit;font-size:.76rem;font-weight:600;line-height:1.5;white-space:nowrap;cursor:pointer}.source-open:hover{background:#edf3f7;color:#17375e}.source-open:focus-visible{outline:2px solid #b08a4c;outline-offset:2px}.verification-note{margin:15px 0 0;padding-left:11px;border-left:2px solid #b08a4c;color:#806b49;font-size:.8rem;line-height:1.55}.counterargument-section{padding-top:4px}.counterargument-entry{padding-block:20px}.counterargument-copy{padding:12px 14px;border-left:2px solid #c5b38e;background:#fbfaf7}.response-copy{margin-top:13px;padding:12px 14px;border-left:2px solid #9ab0c2;background:#f6f8fa}.response-copy h5{color:#31536f}.response-source-list{display:flex;flex-wrap:wrap;gap:5px 10px;margin-top:9px}.response-source-list .source-open{justify-self:auto}.unmatched-responses{margin-top:22px;padding-top:17px;border-top:1px solid #e5eaf0}.unmatched-responses>h4{margin:0 0 11px;color:#263e56;font-family:Georgia,serif;font-size:1rem;font-weight:600}.unmatched-response{padding:13px 0;border-bottom:1px solid #e8edf2}.unmatched-response h5{margin-bottom:6px;color:#31536f}.observation-list{display:grid;gap:0;margin:0;padding:0;border-top:1px solid #e4eaf0;list-style:none}.observation-list>li{padding:12px 0;border-bottom:1px solid #e4eaf0}.arguments-editorial :deep(.citation-inline),.arguments-editorial :deep(.citation-link){display:inline;position:relative;top:-.07em;margin:0 .13em;padding:.08em .36em;border:1px solid #d7e2ec;border-radius:4px;background:#f1f5f8;color:#1b496f;font-family:inherit;font-size:.76em;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer}.arguments-editorial :deep(.citation-inline:hover),.arguments-editorial :deep(.citation-link:hover){background:#e3edf5;border-color:#b9cddb}.arguments-editorial :deep(.citation-inline:focus-visible),.arguments-editorial :deep(.citation-link:focus-visible){outline:2px solid #315c97;outline-offset:2px}
+@media(max-width:680px){.arguments-editorial{gap:26px}.argument-entry{grid-template-columns:30px minmax(0,1fr);gap:8px;padding:18px 0}.argument-content>h4{font-size:1.02rem}.argument-source-list li{grid-template-columns:minmax(0,1fr)}.source-human-detail{grid-column:1}.source-open{justify-self:start}.counterargument-copy,.response-copy{padding:10px 11px}}
 </style>

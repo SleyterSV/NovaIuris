@@ -66,9 +66,50 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
       facts:[{fact_id:factId,text:'Cese comunicado al trabajador'}],sources:[],caseId:'CASE-A'
     })
     assert.match(argumentsHtml,/Argumentos principales/)
-    assert.match(argumentsHtml,/Fundamento pendiente de verificación/)
+    assert.match(argumentsHtml,/El fundamento requiere verificación documental o jurídica adicional/)
     assert.match(argumentsHtml,/Cese comunicado al trabajador/)
     assert.ok(!argumentsHtml.includes(factId) && !argumentsHtml.includes(issueId))
+
+    const argumentData={main_arguments:[{title:'Insuficiencia de motivación del memorando',
+      argument:'El acto se limitó a invocar el vencimiento del plazo.',legal_basis:['El criterio constitucional exige valorar la causa del cese. [1]'],
+      supporting_fact_ids:[factId],source_ids:[source.source_id],risk:'Alto',strength:'Alta'}],
+      constitutional_arguments:[{title:'Tutela constitucional',text:'La controversia compromete el derecho al trabajo.'}],
+      jurisprudence_used:[source.source_id],general_observations:['']}
+    const argumentsEditorial=await render('novacase/ArgumentsView',{
+      arguments:argumentData,facts:[{fact_id:factId,text:'El memorando comunicó la no renovación.'}],
+      sources:[source],caseId:'CASE-A',citations:[{citation_id:'citation-one',label:'[1]',source_id:source.source_id}]
+    })
+    assert.match(argumentsEditorial,/MYKE · NOVACASE/)
+    assert.match(argumentsEditorial,/Argumentos jurídicos/)
+    assert.match(argumentsEditorial,/Argumentos principales/)
+    assert.match(argumentsEditorial,/Argumentos constitucionales/)
+    assert.match(argumentsEditorial,/El acto se limitó a invocar el vencimiento del plazo/)
+    assert.match(argumentsEditorial,/Fundamento jurídico/)
+    assert.match(argumentsEditorial,/Hechos que respaldan este argumento/)
+    assert.match(argumentsEditorial,/aria-label="Ver fuente 1"/)
+    assert.match(argumentsEditorial,/Ver fuente/)
+    assert.doesNotMatch(argumentsEditorial,/>Riesgo<|>Solidez<|>Alto<|>Alta<|Jurisprudencia considerada|Observaciones generales|case_document|public_legal|private_case|source_id|unit_id|\bSRC-[a-f0-9]{24}/i)
+    assert.doesNotMatch(argumentsEditorial,/<span class="field-label">Argumento<\/span>/)
+    assert.equal(argumentData.main_arguments[0].risk,'Alto')
+    const argumentComponentSource=await readFile(new URL('../src/components/novacase/ArgumentsView.vue',import.meta.url),'utf8')
+    assert.doesNotMatch(argumentComponentSource,/argument-grid|repeat\(auto-fit|minmax\(min\(100%,310px\)/)
+
+    const counterEditorial=await render('novacase/CounterArgumentsView',{
+      counterArguments:{procedural:[{id:'OBJECTION-1',title:'Vencimiento contractual',
+        text:'La entidad alegaría que el vínculo concluyó al vencer el plazo.',risk:'HIGH',strength:'LOW',source_ids:[source.source_id]}],
+        summary:'La objeción debe contrastarse con las circunstancias documentadas.'},
+      responses:[{id:'RESPONSE-1',counterargument_id:'OBJECTION-1',response:'El vencimiento no excluye el control de la causa alegada.',source_ids:[source.source_id]}],
+      sources:[source],caseId:'CASE-A',citations:[{citation_id:'citation-one',label:'[1]',source_id:source.source_id}]
+    })
+    assert.match(counterEditorial,/Contraargumentos previsibles/)
+    assert.match(counterEditorial,/La entidad alegaría que el vínculo concluyó/)
+    assert.match(counterEditorial,/Respuesta jurídica/)
+    assert.match(counterEditorial,/El vencimiento no excluye el control/)
+    assert.match(counterEditorial,/aria-label="Ver fuente 1"/)
+    assert.doesNotMatch(counterEditorial,/>Riesgo<|>Solidez<|>HIGH<|>LOW<|source_id|unit_id|public_legal|private_case/i)
+    const emptyCounter=await render('novacase/CounterArgumentsView',{counterArguments:{procedural:['','   ']},responses:[]})
+    assert.doesNotMatch(emptyCounter,/<li[^>]*>\s*<span[^>]*>0[1-9]<\/span>/)
+    assert.match(emptyCounter,/No se identificaron objeciones/)
     assert.ok(!argumentsHtml.includes('Supporting fact ids'))
 
     const evidenceHtml=await render('novacase/EvidenceView',{evidence:{documents:'Contrato alegado'},documentCount:0})
