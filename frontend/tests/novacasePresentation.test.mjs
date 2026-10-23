@@ -93,6 +93,19 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.equal(argumentData.main_arguments[0].risk,'Alto')
     const argumentComponentSource=await readFile(new URL('../src/components/novacase/ArgumentsView.vue',import.meta.url),'utf8')
     assert.doesNotMatch(argumentComponentSource,/argument-grid|repeat\(auto-fit|minmax\(min\(100%,310px\)/)
+    assert.match(argumentComponentSource,/grid-template-columns:40px minmax\(0,1fr\)/)
+    assert.match(argumentComponentSource,/\.argument-content\{min-width:0;max-width:960px\}/)
+    assert.match(argumentComponentSource,/argument-content>h4[^}]*overflow-wrap:break-word;hyphens:none/)
+    assert.match(argumentComponentSource,/\.argument-prose :deep\(\.markdown-body\)[^}]*word-break:normal;overflow-wrap:break-word/)
+    assert.doesNotMatch(argumentComponentSource,/word-break:\s*break-all/)
+    const counterComponentSource=await readFile(new URL('../src/components/novacase/CounterArgumentsView.vue',import.meta.url),'utf8')
+    assert.match(counterComponentSource,/grid-template-columns:40px minmax\(0,1fr\)/)
+    assert.match(counterComponentSource,/\.counter-content,\.response-entry>div\{min-width:0;max-width:960px\}/)
+    assert.match(counterComponentSource,/\.counter-editorial :deep\(\.markdown-body\)\{[^}]*word-break:normal;overflow-wrap:break-word/)
+    assert.doesNotMatch(counterComponentSource,/word-break:\s*break-all/)
+    const editorialStyles=await readFile(new URL('../src/styles/novacaseEditorial.css',import.meta.url),'utf8')
+    assert.doesNotMatch(editorialStyles,/\.novacase-page \.argument-number\s*\{[^}]*position:\s*absolute/)
+    assert.match(editorialStyles,/\.novacase-page \.argument-card \.argument-number\s*\{[^}]*position:\s*absolute/)
 
     const counterEditorial=await render('novacase/CounterArgumentsView',{
       counterArguments:{procedural:[{id:'OBJECTION-1',title:'Vencimiento contractual',
