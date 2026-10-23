@@ -94,17 +94,49 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.match(legalEvidence,/No aportada/)
     assert.equal((legalEvidence.match(/STC Exp. 00001-2024-PA\/TC/g) || []).length,1)
 
+    const privateSource={source_id:'SRC-private-analysis',source_scope:'private_case',case_id:'CASE-A',title:'Contrato CAS',page_start:1}
     const analysisHtml=await render('novacase/AnalysisView',{
-      analysis:{jurisprudence:'No identificado con la información disponible.'},sources:[source]
+      analysis:{rama_derecho:'Laboral',tipo_proceso:'Proceso laboral',pretension_principal:'Reposición',
+        nivel_evidencia:'MEDIUM',issues:['¿La no renovación requiere motivación?'],law:[{title:'Decreto Legislativo N.º 1057',description:'Régimen de contratación administrativa de servicios.'}],
+        observations:['Corroborar las funciones desempeñadas.']},
+      facts:[
+        {fact_id:factId,text:'El contrato fue suscrito el 1 de marzo de 2021. [1]',status:'supported',source_ids:[privateSource.source_id],date:'2021-03-01'},
+        {fact_id:'FACT-bbbbbbbbbbbbbbbbbbbbbbbb',text:'Se alega continuidad de las funciones.',status:'alleged',source_ids:[],date:'2021-04-01'}
+      ],
+      timelineData:[
+        {fact_id:'FACT-bbbbbbbbbbbbbbbbbbbbbbbb',date:'2021-04-01',description:'Se alega continuidad de las funciones.'},
+        {fact_id:factId,date:'2021-03-01',description:'El contrato fue suscrito el 1 de marzo de 2021. [1]',source_ids:[privateSource.source_id]}
+      ],
+      sources:[source,privateSource],caseId:'CASE-A',documentCount:1,publicSourceCount:1,
+      citations:[{citation_id:'citation-one',label:'[1]',source_id:privateSource.source_id}]
     })
+    assert.match(analysisHtml,/Análisis jurídico/)
+    assert.match(analysisHtml,/Visión general/)
+    assert.match(analysisHtml,/Base fáctica del caso/)
+    assert.match(analysisHtml,/Hechos con respaldo documental/)
+    assert.match(analysisHtml,/Hechos alegados/)
+    assert.match(analysisHtml,/Pendiente de corroboración/)
+    assert.match(analysisHtml,/Problemas jurídicos/)
+    assert.match(analysisHtml,/Marco normativo aplicable/)
+    assert.match(analysisHtml,/Jurisprudencia relevante/)
+    assert.match(analysisHtml,/Observaciones y elementos por verificar/)
+    assert.match(analysisHtml,/Cronología del caso/)
+    assert.ok(analysisHtml.indexOf('01 MAR 2021') < analysisHtml.indexOf('01 ABR 2021'))
+    assert.match(analysisHtml,/Ver fuente/)
+    assert.match(analysisHtml,/aria-label="Ver fuente 1"/)
+    const internalLeak = analysisHtml.match(/METODOLOGÍA|Proceso de Análisis|intake|documents|\bFACT-[a-f0-9]{24}|\bSRC-[a-f0-9]{24}|private_case|public_legal|unit_id|source_id/i)?.[0]
+    assert.equal(internalLeak,undefined,`Texto interno visible: ${internalLeak || ''}`)
+    assert.match(analysisHtml,/Medio/)
+    assert.match(analysisHtml,/no renovación requiere motivación/i)
     assert.match(analysisHtml,/STC Exp. 00001-2024-PA\/TC/)
     assert.match(analysisHtml,/Fundamento 7/)
     const citedAnalysis=await render('novacase/AnalysisView',{
-      analysis:{summary:'Criterio jurídico respaldado [1]'},sources:[source],caseId:'CASE-A',
+      analysis:{issues:['Criterio jurídico respaldado [1]']},sources:[source],caseId:'CASE-A',
       citations:[{citation_id:'citation-one',label:'[1]',source_id:source.source_id}]
     })
     assert.match(citedAnalysis,/aria-label="Ver fuente 1"/)
     assert.ok(!citedAnalysis.includes(source.source_id))
+    assert.doesNotMatch(citedAnalysis,/METODOLOGÍA|ETAPA 01|Proceso de Análisis/)
 
     const riskHtml=await render('novacase/RiskView',{risk:{procedural:[{risk:'Plazo por comprobar',impact:'Alto',mitigation:'Verificar notificación'}]}})
     assert.match(riskHtml,/Riesgos procesales/)
@@ -183,9 +215,11 @@ test('case text remains an allegation and never adds a private document', async 
   assert.equal(factAllegationOrigin({status:'alleged',source_ids:[]},[]),'Relato proporcionado')
   assert.equal(factAllegationOrigin({status:'alleged',source_ids:['SRC-private']},[{source_id:'SRC-private'}]),'')
   const view = await readFile(new URL('../src/views/NovaCaseView.vue',import.meta.url),'utf8')
-  assert.match(view,/factAllegationOrigin\(fact, factSources\(fact\)\)/)
-  assert.match(view,/\["case", "private_case"\]\.includes\(source\.source_scope\)/)
-  assert.match(view,/:sources="\[\.\.\.\(canonicalResult\?\.research\?\.sources \|\| \[\]\)/)
+  assert.match(view,/<AnalysisView[\s\S]*?:facts="canonicalResult\?\.facts \|\| \[\]"/)
+  assert.match(view,/:sources="\[\.\.\.\(canonicalResult\?\.research\?\.sources \|\| \[\]\), \.\.\.\(canonicalResult\?\.sources \|\| \[\]\)/)
+  const analysis = await readFile(new URL('../src/components/novacase/AnalysisView.vue',import.meta.url),'utf8')
+  assert.match(analysis,/\['case', 'private_case'\]\.includes\(source\.source_scope\) && source\.case_id === props\.caseId/)
+  assert.match(analysis,/Pendiente de corroboración/)
 })
 
 test('canonical unit number and heading make missing-number references readable', () => {

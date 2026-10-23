@@ -246,36 +246,17 @@
 
                         <AnalysisView
                             :analysis="analysis"
-                            :stages="steps"
-                            :sources="[...(canonicalResult?.research?.sources || []), ...(canonicalResult?.sources_used || [])]"
+                            :summary="summary"
+                            :facts="canonicalResult?.facts || []"
+                            :timeline-data="canonicalResult?.timeline || []"
+                            :sources="[...(canonicalResult?.research?.sources || []), ...(canonicalResult?.sources || []), ...(canonicalResult?.sources_used || [])]"
                             :citations="canonicalResult?.citations || []"
                             :case-id="canonicalResult?.case_id"
+                            :document-count="privateDocumentCount"
+                            :public-source-count="publicSourceCount"
+                            :completed="canonicalResult?.status === 'completed'"
                             @select-source="selectedSource = $event"
                         />
-                        <section v-if="factGroups.some(group => group.facts.length)" class="case-facts">
-                            <h3>Base fáctica del caso</h3>
-                            <section v-for="group in factGroups" v-show="group.facts.length" :key="group.key" class="fact-group">
-                                <h4>{{ group.title }}</h4>
-                                <ol>
-                                <li v-for="fact in group.facts" :key="fact.fact_id">
-                                    <MarkdownRenderer :content="fact.text" />
-                                    <span class="fact-status">{{ factStatusLabel(fact.status === 'supported' && !factSources(fact).length ? 'alleged' : fact.status) }}</span>
-                                    <span v-if="factAllegationOrigin(fact, factSources(fact))" class="fact-source">{{ factAllegationOrigin(fact, factSources(fact)) }}</span>
-                                    <button v-for="source in factSources(fact)" :key="source.source_id"
-                                        type="button" class="fact-source" @click="selectedSource = source">
-                                        Ver documento fuente<span v-if="source.page_start">, pág. {{ source.page_start }}</span>
-                                    </button>
-                                </li>
-                                </ol>
-                            </section>
-                        </section>
-                        <section v-if="canonicalResult?.timeline?.length" class="case-timeline">
-                            <h3>Cronología con fechas identificadas</h3>
-                            <ol><li v-for="event in canonicalResult.timeline" :key="event.fact_id">
-                                <time :datetime="event.date">{{ event.date }}</time>
-                                <MarkdownRenderer :content="event.description" />
-                            </li></ol>
-                        </section>
 
                     </template>
 

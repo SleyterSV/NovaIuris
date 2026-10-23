@@ -230,8 +230,9 @@ test('actual Vue panels render canonical data and professional empty states', as
     const stageHtml=await renderToString(createSSRApp({render:()=>h(analysisPanel,{
       analysis:{facts:['HECHO-A']},stages:[{id:'report',title:'Informe',status:'failed',description:'Etapa no completada.'}]
     })}))
-    assert.match(stageHtml,/No completado/)
-    assert.match(stageHtml,/Etapa no completada/)
+    assert.match(stageHtml,/Base fáctica del caso/)
+    assert.match(stageHtml,/HECHO-A/)
+    assert.doesNotMatch(stageHtml,/Proceso de Análisis|METODOLOGÍA|Etapa no completada/)
     const {default:progressPanel}=await server.ssrLoadModule('/src/components/novacase/AnalysisProgress.vue')
     const progressHtml=await renderToString(createSSRApp({render:()=>h(progressPanel,{
       loading:false,steps:[{id:'facts',title:'Hechos',status:'completed'},
@@ -305,9 +306,12 @@ test('NovaCase workspace exposes sections only when corresponding result data ex
   assert.ok(source.includes(':available-tabs="availableTabs"'))
   assert.ok(source.includes('<template #arguments>'))
   assert.ok(source.includes('<template #sources>'))
-  assert.ok(source.includes('factGroups.some(group => group.facts.length)'))
+  assert.ok(source.includes(':facts="canonicalResult?.facts || []"'))
+  const analysis=await readFile(new URL('../src/components/novacase/AnalysisView.vue',import.meta.url),'utf8')
+  assert.match(analysis,/Base fáctica del caso/)
+  assert.match(analysis,/timelineData/)
   assert.ok(source.includes("fact.status === 'supported' && factSources(fact).length"))
-  assert.ok(source.includes("fact.status === 'supported' && !factSources(fact).length ? 'alleged'"))
+  assert.ok(source.includes("fact.status === 'supported' && !factSources(fact).length"))
   assert.ok(source.includes('canonicalResult?.evidence?.evidence_links?.length'))
   assert.ok(source.includes('issuesForLink(link)'))
   assert.ok(source.includes('source.case_id === canonicalResult.value?.case_id'))
