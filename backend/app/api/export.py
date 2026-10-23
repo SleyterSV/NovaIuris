@@ -6,6 +6,7 @@ from flask import Blueprint, current_app, g, jsonify, request, send_file
 
 from ..services.document_output import prepare_document
 from ..services.case_pdf import render_case_pdf
+from ..services.case_docx import render_case_docx
 from ..services.runtime_security import authenticated_user_id, case_ownership
 from ..utils.api_response import api_error
 
@@ -66,8 +67,27 @@ def generar_pdf():
         pdf = render_case_pdf(result)
     except (ValueError, TypeError, KeyError):
         return api_error('TASK_NOT_READY', 'El informe no está disponible para exportación.', g.request_id, 409)
-    except Exception:
-        current_app.logger.exception('case_pdf_export_failed request_id=%s', g.request_id)
+    except Exception as exc:
+        current_app.logger.error('case_pdf_export_failed request_id=%s error_type=%s',
+                                 g.request_id, type(exc).__name__)
         return api_error('EXPORT_NOT_AVAILABLE', 'No fue posible preparar el PDF.', g.request_id, 503)
     return send_file(BytesIO(pdf), mimetype='application/pdf', as_attachment=True,
                      download_name='informe-juridico-novacase.pdf')
+
+
+@export_bp.route('/docx', methods=['POST'])
+def generar_docx():
+    result, error = _scoped_case_result()
+    if error:
+        return error
+    try:
+        content = render_case_docx(result)
+    except (ValueError, TypeError, KeyError):
+        return api_error('TASK_NOT_READY', 'El informe no está disponible para exportación.', g.request_id, 409)
+    except Exception as exc:
+        current_app.logger.error('case_docx_export_failed request_id=%s error_type=%s',
+                                 g.request_id, type(exc).__name__)
+        return api_error('EXPORT_NOT_AVAILABLE', 'No fue posible preparar el DOCX.', g.request_id, 503)
+    return send_file(BytesIO(content),
+                     mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                     as_attachment=True, download_name='informe-juridico-novacase.docx')

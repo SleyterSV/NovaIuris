@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 from pypdf import PdfReader
+from docx import Document
 
 from flask import g, request
 
@@ -16,6 +17,7 @@ from app.services.novacourt_pipeline_service import NovaCourtPipelineService
 from app.services.runtime_security import CaseOwnershipRepository
 from app.services.task_repository import TaskRepository
 from app.services.case_pdf import render_case_pdf
+from app.services.case_report_content import report_blocks
 
 
 class Embeddings:
@@ -99,6 +101,59 @@ class NovaCaseNC4Tests(unittest.TestCase):
         self.assertGreaterEqual(len(reader.pages), 2)
         for page in reader.pages:
             self.assertEqual((page.extract_text() or '').count('Generado por MYKE'), 1)
+
+    def test_docx_and_pdf_share_persisted_report_and_scope(self):
+        payload = {'case_id': 'CASE-A', 'task_id': self.task_id, 'tool': 'case'}
+        report = ('# Informe jurídico de análisis\n'
+                  '## Objeto y alcance\nSe examina el contrato aportado [1].\n'
+                  '## Conclusiones\n1. La alegación requiere corroboración.\n'
+                  '## Fuentes\nReferencia duplicada que no debe presentarse.')
+        source = {'source_id': 'SRC-1', 'case_id': 'CASE-A', 'source_scope': 'private_case',
+                  'display_title': 'Contrato aportado', 'page_start': 1}
+        self.tasks.update_task(self.task_id, status=TaskStatus.PROCESSING)
+        self.tasks.complete_task(self.task_id, {**self.result, 'report': report,
+            'report_document': {'case_id': 'CASE-A', 'title': 'Informe jurídico de análisis',
+                'sections': [{'title': 'Objeto y alcance', 'content': 'Se examina el contrato aportado [1].'},
+                             {'title': 'Conclusiones', 'content': '1. La alegación requiere corroboración.'},
+                             {'title': 'Fuentes', 'content': 'Referencia duplicada que no debe presentarse.'}],
+                'citations': [{'citation_id': 'CIT-1', 'label': '[1]', 'source_id': 'SRC-1'}],
+                'sources': [source]}})
+        for fmt in ('pdf', 'docx'):
+            with self.subTest(fmt=fmt):
+                def export(data=payload, owner='owner-a'):
+                    return self.client.post(f'/api/export/{fmt}', json=data,
+                                            headers={'X-Test-Owner': owner})
+                response = export()
+                self.assertEqual(response.status_code, 200)
+                self.assertGreater(len(response.data), 1000)
+                if fmt == 'pdf':
+                    self.assertEqual(response.mimetype, 'application/pdf')
+                    page = PdfReader(io.BytesIO(response.data)).pages[0]
+                    text = page.extract_text()
+                    self.assertAlmostEqual(float(page.mediabox.width), 595.3, delta=1)
+                else:
+                    self.assertEqual(response.mimetype,
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+                    self.assertTrue(response.data.startswith(b'PK'))
+                    document = Document(io.BytesIO(response.data))
+                    self.assertAlmostEqual(document.sections[0].page_width.cm, 21, delta=.1)
+                    text = '\n'.join(paragraph.text for paragraph in document.paragraphs)
+                    text += '\n' + '\n'.join(paragraph.text for paragraph in document.sections[0].footer.paragraphs)
+                self.assertIn('Se examina el contrato aportado [1]', text)
+                self.assertIn('Contrato aportado', text)
+                self.assertIn('Generado por MYKE', text)
+                self.assertNotIn('Referencia duplicada', text)
+                self.assertNotIn('SRC-1', text)
+                self.assertEqual(export(owner='owner-b').status_code, 404)
+                self.assertEqual(export(data={**payload, 'case_id': 'CASE-B'}).status_code, 404)
+                self.assertEqual(export(data={**payload, 'tool': 'court'}).status_code, 400)
+                self.assertEqual(export(data={**payload, 'report': 'Texto impuesto'}).status_code, 400)
+
+    def test_narrative_sections_keep_prose_while_action_sections_keep_lists(self):
+        self.assertEqual(report_blocks('- Párrafo jurídico.', 'Análisis jurídico'),
+                         [('paragraph', 'Párrafo jurídico.')])
+        self.assertEqual(report_blocks('- Acopiar el contrato.', 'Estrategia y actuaciones recomendadas'),
+                         [('list', 'Acopiar el contrato.')])
 
     def test_restart_scoped_export_and_isolation(self):
         waiting = self.request_export()

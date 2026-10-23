@@ -125,8 +125,9 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
 
     const reportHtml=await render('novacase/ReportView',{report:`# Informe ${factId}\nHecho por verificar.`,
       reportDocument:{},documentCount:0,publicSourceCount:0,caseId:'CASE-A'})
-    assert.match(reportHtml,/Hechos alegados/)
-    assert.match(reportHtml,/Marco jurídico preliminar/)
+    assert.match(reportHtml,/Documento de análisis preparado para revisión profesional/)
+    assert.ok(!reportHtml.includes('Hechos alegados:'))
+    assert.ok(!reportHtml.includes('Marco jurídico preliminar'))
     assert.ok(!reportHtml.includes(factId))
 
     const caseView=await readFile(new URL('../src/views/NovaCaseView.vue',import.meta.url),'utf8')
@@ -137,6 +138,29 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.match(mikeView,/@add-documents="addCaseDocuments\(turn,\$event\)"/)
     assert.match(mikeView,/canAttachDocumentsToCase\(payload\?\.caseId, workspace\.value\.caseId/)
     assert.match(summaryCss,/\.summary-card dd\{[^}]*overflow-wrap:break-word/s)
+  } finally { await server.close() }
+})
+
+test('Informe shows one cited source list, safe actions and no QA scope box', async () => {
+  const server=await createServer({server:{middlewareMode:true,hmr:false,port:0},appType:'custom',logLevel:'error',optimizeDeps:{noDiscovery:true,include:[]}})
+  try {
+    const {default:ReportView}=await server.ssrLoadModule('/src/components/novacase/ReportView.vue')
+    const citation={citation_id:'CIT-1',source_id:source.source_id,label:'[1]'}
+    const report='# Informe jurídico\n## Objeto y alcance\nEl criterio citado [1] requiere revisión.\n## Fuentes\nListado duplicado.'
+    const html=await renderToString(createSSRApp({render:()=>h(ReportView,{
+      report,reportDocument:{title:'Informe jurídico',citations:[citation],sources:[source]},
+      caseId:'CASE-A',taskId:'00000000-0000-4000-8000-000000000001'
+    })}))
+    assert.equal((html.match(/<h3[^>]*>Fuentes utilizadas<\/h3>/g)||[]).length,1)
+    assert.match(html,/Ver fuente 1/)
+    assert.match(html,/Documento de análisis preparado para revisión profesional/)
+    assert.match(html,/Descargar PDF/)
+    assert.match(html,/Descargar DOCX/)
+    assert.match(html,/Tribunal Constitucional/)
+    assert.ok(!html.includes('Listado duplicado'))
+    assert.ok(!html.includes('Hechos alegados:'))
+    assert.ok(!html.includes(source.source_id))
+    assert.ok(!html.includes(source.document_id))
   } finally { await server.close() }
 })
 

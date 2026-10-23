@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFile } from 'node:fs/promises'
-import { prepareCaseExport, downloadCasePdf } from '../src/services/caseExport.js'
+import { prepareCaseExport, downloadCasePdf, downloadCaseDocx } from '../src/services/caseExport.js'
+import { reportForReading, reportUsedSources } from '../src/utils/caseReportPresentation.js'
 
 test('Case export sends only server-owned identifiers', async () => {
   const calls = []
@@ -26,8 +27,8 @@ test('Case refresh recovers an explicit scoped task and report print verifies it
   assert.match(mike, /existingTaskId:taskId/)
   assert.match(caseView, /:task-id="completedTaskId"/)
   assert.match(report, /await prepareCaseExport\(props.caseId, props.taskId\)/)
-  assert.match(report, /TASK_NOT_READY/)
-  assert.match(report, /EXPORT_NOT_AVAILABLE/)
+  assert.match(report, /await prepareCaseExport\(props.caseId, props.taskId\)/)
+  assert.match(report, /No fue posible preparar el informe para imprimir/)
   const legacy = await readFile(new URL('../components/Step4Report.vue', root), 'utf8')
   assert.match(legacy, /class="export-pdf-btn" type="button" disabled/)
 })
@@ -49,4 +50,25 @@ test('PDF download sends only scoped identifiers and expects a PDF response', as
   assert.match(calls[0].url, /\/export\/pdf$/)
   assert.deepEqual(JSON.parse(calls[0].options.body), { case_id:'CASE-A', task_id:'TASK-A', tool:'case' })
   await assert.rejects(() => downloadCasePdf('', 'TASK-A'), /incompleta/)
+})
+
+test('DOCX uses the same scoped identity and validates the file response', async () => {
+  const docx = new Blob(['PK-document'],
+    { type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+  const calls=[]
+  const result=await downloadCaseDocx('CASE-A','TASK-A',async (url,options)=>{
+    calls.push({url,options})
+    return {ok:true,headers:new Headers({'Content-Type':docx.type}),blob:async()=>docx}
+  })
+  assert.equal(result,docx)
+  assert.match(calls[0].url,/\/export\/docx$/)
+  assert.deepEqual(JSON.parse(calls[0].options.body),
+    {case_id:'CASE-A',task_id:'TASK-A',tool:'case'})
+  await assert.rejects(()=>downloadCaseDocx('','TASK-A'),/incompleta/)
+})
+
+test('report presentation removes only duplicate source section and keeps canonical citations', () => {
+  const report='# Informe\n## Objeto y alcance\nSe examina [1].\n## Fuentes\nDuplicado.\n'
+  assert.equal(reportForReading(report),'## Objeto y alcance\nSe examina [1].')
+  assert.deepEqual(reportUsedSources([{source_id:'A'}],[{source_id:'A'},{source_id:'B'}]),[{source_id:'A'}])
 })

@@ -1,61 +1,66 @@
 <template>
   <section class="report-view" aria-labelledby="report-title">
     <header class="report-header">
-      <div>
+      <div class="report-heading">
         <p class="eyebrow">NOVACASE · INFORME JURÍDICO</p>
-        <h2 id="report-title">{{ reportDocument.title || 'Informe jurídico' }}</h2>
+        <h2 id="report-title">{{ title }}</h2>
         <p class="intro">Documento de análisis preparado para revisión profesional.</p>
-      </div>
-      <div class="toolbar">
-        <button type="button" class="primary" :disabled="!report" @click="copyReport">
-          {{ copied ? 'Copiado' : 'Copiar informe' }}
-        </button>
-        <button type="button" :disabled="!report" @click="printReport">Imprimir</button>
-        <button type="button" :disabled="!report || !caseId || !taskId || pdfBusy" @click="savePdf">{{ pdfBusy ? 'Preparando PDF…' : 'Descargar PDF' }}</button>
-        <button type="button" disabled title="Disponible en una fase posterior">DOCX · próximamente</button>
+        <div v-if="report" class="report-meta">
+          <span v-if="generatedDate">Generado: {{ generatedDate }}</span>
+          <span>{{ wordCount }} palabras</span>
+        </div>
       </div>
     </header>
 
-    <p v-if="printError" class="partial-message" role="alert">{{ printError }}</p>
-    <p v-if="reportStatus === 'failed'" class="partial-message" role="status">
+    <div v-if="report" class="toolbar" aria-label="Acciones del informe">
+      <button type="button" class="action secondary" @click="copyReport" :disabled="actionBusy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></svg>
+        {{ copied ? 'Copiado' : 'Copiar informe' }}
+      </button>
+      <button type="button" class="action secondary" @click="printReport" :disabled="actionBusy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 15h12v6H6z"/></svg>
+        Imprimir
+      </button>
+      <button type="button" class="action primary" @click="saveFile('pdf')"
+        :disabled="!caseId || !taskId || actionBusy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></svg>
+        {{ exportBusy === 'pdf' ? 'Descargando PDF…' : 'Descargar PDF' }}
+      </button>
+      <button type="button" class="action secondary" @click="saveFile('docx')"
+        :disabled="!caseId || !taskId || actionBusy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></svg>
+        {{ exportBusy === 'docx' ? 'Descargando DOCX…' : 'Descargar DOCX' }}
+      </button>
+    </div>
+    <p v-if="actionMessage" class="action-message" role="alert">{{ actionMessage }}</p>
+    <p v-if="reportStatus === 'failed'" class="action-message" role="status">
       {{ reportError?.message || 'No se pudo preparar el informe final. El análisis estructurado permanece disponible.' }}
     </p>
-    <div v-if="report" class="verification-scope" role="note">
-      <p><strong>Hechos alegados:</strong> el relato del caso requiere contraste con documentación.</p>
-      <p v-if="documentCount === 0"><strong>Hechos acreditados y fuentes privadas:</strong> no se aportaron documentos al caso.</p>
-      <p v-else><strong>Fuentes privadas:</strong> {{ documentCount }} documento{{ documentCount === 1 ? '' : 's' }} aportado{{ documentCount === 1 ? '' : 's' }}; su contenido requiere evaluación profesional.</p>
-      <p v-if="publicSourceCount === 0"><strong>Marco jurídico preliminar — pendiente de verificación:</strong> no se recuperaron fuentes jurídicas V2. Las referencias normativas del borrador no son citas verificadas.</p>
-      <p v-else-if="!citations.length"><strong>Fuentes jurídicas verificadas:</strong> se recuperaron {{ publicSourceCount }}, pero el informe no contiene citas validadas a ellas.</p>
-      <p v-else><strong>Fuentes jurídicas verificadas:</strong> {{ citations.length }} cita{{ citations.length === 1 ? '' : 's' }} enlazada{{ citations.length === 1 ? '' : 's' }} a fuentes entregadas al informe.</p>
-      <p><strong>Puntos pendientes:</strong> verificar las alegaciones, documentos y autoridades antes de usar este borrador como conclusión jurídica.</p>
-    </div>
-
-    <div v-if="report" class="report-meta">
-      <span v-if="generatedDate">Generado {{ generatedDate }}</span>
-      <span>{{ wordCount }} palabras</span>
-    </div>
 
     <article v-if="report" class="report-paper">
-      <MarkdownRenderer
-        :content="displayReport"
-        :citations="citations"
-        :sources="sources"
-        :case-id="caseId"
-        @select-citation="openCitation"
-      />
-      <SourcesList
-        :sources="sources"
-        :citations="citations"
-        :case-id="caseId"
-        @select="selectedSource = $event"
-        @select-citation="openCitation"
-      />
+      <MarkdownRenderer :content="displayReport" :citations="usedCitations" :sources="usedSources"
+        :case-id="caseId" @select-citation="openCitation" />
+      <section v-if="referenceGroups.length" class="report-references" aria-labelledby="references-title">
+        <h3 id="references-title">Fuentes utilizadas</h3>
+        <p>Documentos del caso y fuentes jurídicas citadas en el informe.</p>
+        <div v-for="group in referenceGroups" :key="group.label" class="reference-group">
+          <h4>{{ group.label }}</h4>
+          <ol>
+            <li v-for="entry in group.items" :key="entry.source.source_id">
+              <span class="reference-number">{{ entry.label }}</span>
+              <button type="button" class="reference-action" @click="selectedSource = entry.source">
+                <strong>{{ entry.source.display_title || entry.source.title }}</strong>
+                <small v-if="entry.detail">{{ entry.detail }}</small>
+              </button>
+            </li>
+          </ol>
+        </div>
+      </section>
     </article>
     <div v-else class="empty-report" role="status">
       <h3>{{ reportStatus === 'failed' ? 'El informe no está disponible' : 'No hay informe disponible' }}</h3>
       <p>El análisis estructurado del caso permanece disponible en las demás secciones.</p>
     </div>
-
     <SourceModal :source="selectedSource" :case-id="caseId" @close="selectedSource = null" />
     <span class="sr-only" aria-live="polite">{{ copyMessage }}</span>
   </section>
@@ -64,10 +69,11 @@
 <script setup>
 import { computed, onBeforeUnmount, ref } from 'vue'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
-import SourcesList from '@/components/common/SourcesList.vue'
 import SourceModal from '@/components/common/SourceModal.vue'
-import { presentableText } from '@/utils/novacasePresentation.js'
-import { prepareCaseExport, downloadCasePdf } from '@/services/caseExport.js'
+import { normalizeSources } from '@/utils/sourceContract.js'
+import { sourceHumanLabel, presentableText } from '@/utils/novacasePresentation.js'
+import { reportForReading, reportUsedSources } from '@/utils/caseReportPresentation.js'
+import { prepareCaseExport, downloadCasePdf, downloadCaseDocx } from '@/services/caseExport.js'
 
 const props = defineProps({
   report: { type: String, default: '' },
@@ -81,35 +87,56 @@ const props = defineProps({
   documentCount: { type: Number, default: 0 },
   publicSourceCount: { type: Number, default: 0 }
 })
-
 const selectedSource = ref(null)
 const copied = ref(false)
 const copyMessage = ref('')
-const printError = ref('')
-const pdfBusy = ref(false)
+const actionMessage = ref('')
+const exportBusy = ref('')
+const actionBusy = computed(() => Boolean(exportBusy.value))
 let copyReset
 onBeforeUnmount(() => clearTimeout(copyReset))
-const reportDocument = computed(() => props.reportDocument || {})
-const citations = computed(() => Array.isArray(reportDocument.value.citations)
-  ? reportDocument.value.citations : props.citations)
-const sources = computed(() => Array.isArray(reportDocument.value.sources)
-  ? reportDocument.value.sources : props.sources)
+
+const reportData = computed(() => props.reportDocument || {})
+const title = computed(() => presentableText(reportData.value.title || 'Informe jurídico'))
+const allCitations = computed(() => Array.isArray(reportData.value.citations) ? reportData.value.citations : props.citations)
+const allSources = computed(() => Array.isArray(reportData.value.sources) ? reportData.value.sources : props.sources)
+const displayReport = computed(() => reportForReading(props.report))
+const usedCitations = computed(() => allCitations.value.filter(item =>
+  /^\[\d+\]$/.test(item?.label || '') && displayReport.value.includes(item.label)))
+const usedSources = computed(() => normalizeSources(
+  reportUsedSources(usedCitations.value, allSources.value), props.caseId))
 const generatedDate = computed(() => {
-  const value = reportDocument.value.generated_at
-  if (!value) return ''
-  const date = new Date(value)
-  return Number.isNaN(date.valueOf()) ? '' : new Intl.DateTimeFormat('es-PE', { dateStyle: 'long' }).format(date)
+  const date = new Date(reportData.value.generated_at)
+  return reportData.value.generated_at && !Number.isNaN(date.valueOf())
+    ? new Intl.DateTimeFormat('es-PE', { dateStyle: 'long' }).format(date) : ''
 })
-const displayReport = computed(() => presentableText(props.report || ''))
 const wordCount = computed(() => displayReport.value ? displayReport.value.split(/\s+/).length : 0)
-
+const referenceGroups = computed(() => {
+  const byId = new Map(usedSources.value.map(source => [source.source_id, source]))
+  const groups = [
+    { label: 'DOCUMENTOS DEL CASO', items: [] },
+    { label: 'FUENTES JURÍDICAS', items: [] }
+  ]
+  const seen = new Set()
+  for (const citation of usedCitations.value) {
+    if (seen.has(citation.source_id)) continue
+    const source = byId.get(citation.source_id)
+    if (!source) continue
+    seen.add(citation.source_id)
+    const isPrivate = ['case', 'private_case'].includes(source.source_scope)
+    const detail = sourceHumanLabel({ ...source, display_title: '', title: '' })
+      .replace(/^\s*·\s*/, '') || (isPrivate ? 'Documento del caso' : '')
+    groups[isPrivate ? 0 : 1].items.push({ source, label: citation.label, detail })
+  }
+  return groups.filter(group => group.items.length)
+})
 function openCitation(citation) {
-  selectedSource.value = sources.value.find(source => source.source_id === citation.source_id) || null
+  selectedSource.value = usedSources.value.find(source => source.source_id === citation.source_id) || null
 }
-
 async function copyReport() {
-  if (!props.report || !navigator.clipboard?.writeText) {
-    copyMessage.value = 'No fue posible copiar el informe en este navegador.'
+  actionMessage.value = ''
+  if (!navigator.clipboard?.writeText) {
+    actionMessage.value = 'No fue posible copiar el informe en este navegador.'
     return
   }
   try {
@@ -119,49 +146,58 @@ async function copyReport() {
     clearTimeout(copyReset)
     copyReset = setTimeout(() => { copied.value = false }, 1800)
   } catch {
-    copyMessage.value = 'No fue posible copiar el informe.'
+    actionMessage.value = 'No fue posible copiar el informe.'
   }
 }
-
 async function printReport() {
-  if (!props.report) return
-  printError.value = ''
-  if (props.taskId && props.caseId) {
-    try {
-      await prepareCaseExport(props.caseId, props.taskId)
-    } catch (error) {
-      printError.value = error?.code === 'TASK_NOT_READY'
-        ? 'La tarea aún no está lista para imprimir.'
-        : error?.code === 'EXPORT_NOT_AVAILABLE' || error?.code === 'SERVICE_UNAVAILABLE'
-          ? 'La preparación del informe no está disponible.'
-          : 'No fue posible verificar el informe para imprimir.'
-      return
-    }
-  }
-  window.print()
-}
-async function savePdf() {
-  if (!props.caseId || !props.taskId || pdfBusy.value) return
-  printError.value = ''
-  pdfBusy.value = true
+  actionMessage.value = ''
   try {
-    const blob = await downloadCasePdf(props.caseId, props.taskId)
+    if (props.taskId && props.caseId) await prepareCaseExport(props.caseId, props.taskId)
+    window.print()
+  } catch {
+    actionMessage.value = 'No fue posible preparar el informe para imprimir.'
+  }
+}
+async function saveFile(format) {
+  if (!props.caseId || !props.taskId || actionBusy.value) return
+  actionMessage.value = ''
+  exportBusy.value = format
+  try {
+    const blob = format === 'pdf'
+      ? await downloadCasePdf(props.caseId, props.taskId)
+      : await downloadCaseDocx(props.caseId, props.taskId)
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'informe-juridico-novacase.pdf'
+    link.download = `informe-juridico-novacase.${format}`
     document.body.appendChild(link)
     link.click()
     link.remove()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   } catch {
-    printError.value = 'No fue posible descargar el informe PDF. Inténtalo de nuevo.'
+    actionMessage.value = 'No fue posible generar el documento. Inténtalo nuevamente.'
   } finally {
-    pdfBusy.value = false
+    exportBusy.value = ''
   }
 }
 </script>
 
 <style scoped>
-.report-view{display:grid;gap:20px;width:100%;min-width:0;padding:clamp(18px,3vw,30px);border:1px solid #dce5ee;border-radius:14px;background:#fff;color:#26384b}.report-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.eyebrow{margin:0 0 7px;color:#92713c;font-size:.68rem;font-weight:750;letter-spacing:.1em}.report-header h2{margin:0;color:#17324f;font:600 clamp(1.35rem,3vw,1.8rem)/1.3 Georgia,serif}.intro{margin:8px 0 0;color:#65758a;font-size:.88rem}.toolbar{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px}.toolbar button{border:1px solid #d6dee7;border-radius:6px;background:#fff;padding:9px 12px;color:#38516c;font:600 .75rem/1.2 system-ui,sans-serif;cursor:pointer}.toolbar button.primary{border-color:#17375e;background:#17375e;color:#fff}.toolbar button:disabled{cursor:not-allowed;opacity:.48}.partial-message{margin:0;border-left:3px solid #b68a3a;background:#fbf8f0;padding:11px 14px;color:#634f2b;font-size:.85rem}.verification-scope{border:1px solid #e1d4b5;border-left:3px solid #b68a3a;border-radius:7px;background:#fcfaf5;padding:12px 16px;color:#584d3b;font-size:.82rem;line-height:1.5}.verification-scope p{margin:5px 0}.verification-scope strong{color:#263c55}.report-meta{display:flex;flex-wrap:wrap;gap:8px 18px;border-block:1px solid #e7ebef;padding:11px 0;color:#6b7888;font-size:.76rem}.report-paper{max-width:900px;width:100%;margin-inline:auto}.empty-report{min-height:220px;display:grid;align-content:center;justify-items:center;text-align:center;color:#64748b}.empty-report h3{margin:0;color:#193653;font:600 1.2rem Georgia,serif}.empty-report p{max-width:540px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:700px){.report-header{flex-direction:column}.toolbar{justify-content:flex-start}.report-view{padding:17px}}@media print{.toolbar,.partial-message{display:none!important}.report-view{border:0;padding:0}.report-paper{max-width:none}}
+.report-view{width:100%;min-width:0;padding:clamp(18px,3vw,30px);border:1px solid #dce5ee;border-radius:14px;background:#fff;color:#26384b}
+.action svg{width:15px;height:15px;flex:none}
+.report-header{display:flex;justify-content:space-between;gap:20px;padding-bottom:20px;border-bottom:1px solid #dce5ee}.report-heading{width:100%;max-width:900px;margin:auto}.eyebrow{margin:0 0 9px;color:#92713c;font-size:.68rem;font-weight:750;letter-spacing:.1em}.report-header h2{margin:0;color:#17324f;font:600 clamp(1.45rem,3vw,2rem)/1.3 Georgia,serif;overflow-wrap:break-word}.intro{margin:9px 0;color:#65758a;font-size:.9rem}.report-meta{display:flex;flex-wrap:wrap;gap:6px 17px;margin-top:15px;color:#6b7888;font-size:.75rem}
+.toolbar{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;max-width:900px;margin:16px auto 0}.action{display:inline-flex;align-items:center;gap:7px;border:1px solid #cfdae4;border-radius:7px;background:#fff;padding:9px 12px;color:#244a6a;font:600 .78rem/1.2 system-ui,sans-serif;cursor:pointer;transition:background .16s,border-color .16s}.action:hover{background:#f1f5f8;border-color:#aebfd0}.action.primary{border-color:#17375e;background:#17375e;color:#fff}.action.primary:hover{background:#244a72}.action:focus-visible,.reference-action:focus-visible{outline:2px solid #b68a3a;outline-offset:2px}.action:disabled{cursor:not-allowed;opacity:.55}.action-message{max-width:900px;margin:10px auto 0;padding:8px 12px;border-left:2px solid #b68a3a;background:#fbf8f0;color:#634f2b;font-size:.82rem}.report-paper{width:100%;max-width:900px;margin:24px auto 0;font-size:.98rem;line-height:1.72}.report-paper :deep(.markdown-body h1){display:none}.report-paper :deep(.markdown-body h2){font-family:Georgia,serif;font-weight:600}.report-paper :deep(.citation-inline){display:inline;position:relative;top:-.07em;margin:0 .13em;padding:.08em .36em;border:1px solid #d7e2ec;border-radius:4px;background:#f1f5f8;color:#1b496f;font-family:inherit;font-size:.76em;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer}.report-paper :deep(.citation-inline:hover){background:#e3edf5;border-color:#b9cddb}.report-paper :deep(.citation-inline:focus-visible){outline:2px solid #315c97;outline-offset:2px}
+.report-references{margin-top:35px;padding-top:25px;border-top:1px solid #dce5ee}.report-references h3{margin:0;color:#17324f;font:600 1.25rem Georgia,serif}.report-references>p{margin:6px 0 20px;color:#65758a;font-size:.86rem}.reference-group{margin-top:18px}.reference-group h4{margin:0 0 8px;color:#92713c;font:700 .7rem system-ui,sans-serif;letter-spacing:.09em}.reference-group ol{list-style:none;margin:0;padding:0}.reference-group li{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid #e8edf2}.reference-number{min-width:27px;color:#244a6a;font-weight:700;font-size:.83rem}.reference-action{display:grid;gap:4px;padding:0;border:0;background:none;text-align:left;color:#26384b;cursor:pointer}.reference-action:hover strong{text-decoration:underline}.reference-action strong{font-size:.88rem;font-weight:650}.reference-action small{font-size:.75rem;color:#718096}.empty-report{min-height:220px;display:grid;align-content:center;justify-items:center;text-align:center;color:#64748b}.empty-report h3{margin:0;color:#193653;font:600 1.2rem Georgia,serif}.empty-report p{max-width:540px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:700px){.report-header{flex-direction:column}.toolbar{justify-content:flex-start}.report-view{padding:17px}}@media print{.report-view{border:0;padding:0}.report-header{border:0}.toolbar,.action-message{display:none!important}.report-paper{max-width:none}.report-references{break-before:auto}}
+</style>
+
+<style>
+@media print {
+  @page{size:A4;margin:2.3cm}
+  body:has(.report-view) *{visibility:hidden!important}
+  body:has(.report-view) .report-view,
+  body:has(.report-view) .report-view *{visibility:visible!important}
+  body:has(.report-view) .report-view{position:absolute;top:0;left:0;width:100%;border:0;box-shadow:none}
+  body:has(.report-view) .report-view .toolbar,
+  body:has(.report-view) .report-view .action-message{display:none!important}
+}
 </style>
