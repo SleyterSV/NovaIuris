@@ -358,10 +358,36 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.ok(!citedAnalysis.includes(source.source_id))
     assert.doesNotMatch(citedAnalysis,/METODOLOGÍA|ETAPA 01|Proceso de Análisis/)
 
-    const riskHtml=await render('novacase/RiskView',{risk:{procedural:[{risk:'Plazo por comprobar',impact:'Alto',mitigation:'Verificar notificación'}]}})
+    const repeatedCriticalText='Puede cuestionarse la idoneidad de la vía si se considera igualmente satisfactoria.'
+    const riskHtml=await render('novacase/RiskView',{risk:{risk_level:'MEDIUM',summary_text:'Las principales contingencias dependen de la vía y de completar el respaldo documental.',
+      strategic:[{title:'Idoneidad de la vía procesal',risk:repeatedCriticalText,impact:'HIGH'}],
+      procedural:[{title:'Idoneidad de la vía procesal',risk:repeatedCriticalText,mitigation:'Preparar subsidiariamente la vía contencioso-administrativa.'}],
+      evidentiary:[{title:'Renovaciones no acreditadas',description:'No se incorporaron las adendas.',impact:'Puede afectar la continuidad acreditada.',mitigation:'Recabar las adendas disponibles.'}],
+      legal:[{title:'Suficiencia de la motivación',text:'La motivación del acto puede ser objeto de controversia.'}],
+      recommendations:[{category:'Documentación contractual',action:'Solicitar copias de las adendas.'},{category:'Vía procesal',action:'Revisar el cómputo del plazo.'}]}})
+    assert.match(riskHtml,/Evaluación de riesgos/)
+    assert.match(riskHtml,/Nivel general/)
+    assert.match(riskHtml,/>Medio</)
+    assert.match(riskHtml,/Riesgos prioritarios/)
+    assert.ok(riskHtml.indexOf('aria-labelledby="priority-title"') < riskHtml.indexOf('id="risk-section-procedural"'))
     assert.match(riskHtml,/Riesgos procesales/)
-    assert.match(riskHtml,/Mitigación/)
-    assert.match(riskHtml,/Verificar notificación/)
+    assert.match(riskHtml,/Riesgos probatorios/)
+    assert.match(riskHtml,/Riesgos jurídicos/)
+    assert.match(riskHtml,/Plan de mitigación/)
+    assert.match(riskHtml,/Documentación contractual/)
+    assert.match(riskHtml,/Preparar subsidiariamente la vía contencioso-administrativa/)
+    assert.equal((riskHtml.match(/Puede cuestionarse la idoneidad de la vía si se considera igualmente satisfactoria\./g) || []).length,1)
+    assert.match(riskHtml,/Alto/)
+    assert.match(riskHtml,/Impacto/)
+    const visibleRiskText=riskHtml.replace(/<[^>]*>/g,' ')
+    assert.doesNotMatch(visibleRiskText,/probabilidad de ganar|\b(?:70|80)%|\b(?:HIGH|MEDIUM|LOW|CRITICAL)\b/i)
+    assert.doesNotMatch(riskHtml,/risk_analysis|procedural_risks|critical_risks|source_id|task_id|case_id|document_id|unit_id|SRC-[a-f0-9]{24}/i)
+    const riskComponent=await readFile(new URL('../src/components/novacase/RiskView.vue',import.meta.url),'utf8')
+    assert.match(riskComponent,/\.risk-editorial\{[^}]*max-width:1240px/s)
+    assert.match(riskComponent,/\.risk-summary\{display:grid;grid-template-columns/)
+    assert.match(riskComponent,/@media\(max-width:1439px\)/)
+    assert.match(riskComponent,/criticalRisks\.value\.length/)
+    assert.doesNotMatch(riskComponent,/overall_probability|win_probability|probability.*%/i)
     const emptyRisk=await render('novacase/RiskView',{risk:{}})
     assert.match(emptyRisk,/No se identificó información suficiente para evaluar riesgos/)
     assert.ok(!emptyRisk.includes('Riesgos procesales'))

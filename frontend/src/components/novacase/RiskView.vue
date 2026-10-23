@@ -1,1222 +1,269 @@
 <template>
-<section class="risk-view">
-  <header class="risk-heading"><p>MYKE · NOVACASE</p><h2>Evaluación de riesgos</h2>
-    <span v-if="risk.risk_level">Nivel general: {{ levelLabel(risk.risk_level) }}</span></header>
-  <div class="risk-grid">
-    <article v-for="section in sections" :key="section.key" class="risk-card">
-      <h3>{{ section.title }}</h3>
-      <ul v-if="section.items.length">
-        <li v-for="(item,index) in section.items" :key="index">
-          <strong v-if="item.title">{{ item.title }}</strong>
-          <p>{{ item.text }}</p>
-          <p v-if="item.impact" class="risk-detail"><strong>Impacto</strong> {{ levelLabel(item.impact) }}</p>
-          <p v-if="item.mitigation" class="risk-mitigation"><strong>Mitigación</strong> {{ item.mitigation }}</p>
+  <main class="risk-editorial" aria-labelledby="risk-title">
+    <header class="risk-header">
+      <div>
+        <p class="risk-eyebrow"><span aria-hidden="true"></span> MYKE · NOVACASE</p>
+        <div class="risk-heading-row">
+          <div>
+            <h2 id="risk-title">Evaluación de riesgos</h2>
+            <p class="risk-subtitle">Identificación de contingencias jurídicas, procesales y probatorias que pueden afectar la viabilidad del caso.</p>
+          </div>
+          <span v-if="overallLevel" class="overall-risk" :class="levelClass(overallLevel)">
+            <span>Nivel general</span><strong>{{ overallLevel }}</strong>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <section v-if="summaryMetrics.length" class="risk-summary" aria-label="Síntesis de riesgos">
+      <div v-for="metric in summaryMetrics" :key="metric.key" class="summary-metric" :class="{ 'summary-overall': metric.key === 'overall' }">
+        <span>{{ metric.label }}</span>
+        <strong v-if="metric.key === 'overall'" :class="levelClass(metric.value)">{{ metric.value }}</strong>
+        <strong v-else>{{ metric.value }}</strong>
+      </div>
+    </section>
+
+    <p v-if="executiveConclusion" class="risk-conclusion">{{ executiveConclusion }}</p>
+
+    <section v-if="criticalRisks.length" class="risk-priority" aria-labelledby="priority-title">
+      <header class="risk-section-heading">
+        <p class="risk-kicker">ATENCIÓN PRIORITARIA</p>
+        <h3 id="priority-title">Riesgos prioritarios</h3>
+        <p>Contingencias que requieren atención antes de definir o ejecutar la estrategia procesal.</p>
+      </header>
+      <ol class="priority-list">
+        <li v-for="(item,index) in criticalRisks" :key="item.key" class="priority-row">
+          <span class="risk-number" aria-hidden="true">{{ number(index + 1) }}</span>
+          <div class="risk-copy">
+            <div class="risk-row-heading">
+              <h4>{{ item.title || 'Riesgo prioritario' }}</h4>
+              <span v-if="item.severityLabel" class="severity-badge" :class="levelClass(item.severityLabel)">{{ item.severityLabel }}</span>
+            </div>
+            <p v-if="item.duplicateSection" class="risk-cross-reference">
+              El desarrollo completo se presenta en <a :href="`#risk-section-${item.duplicateSection.key}`">{{ item.duplicateSection.title.toLocaleLowerCase() }}</a>.
+            </p>
+            <p v-else-if="item.text" class="risk-description">{{ item.text }}</p>
+            <p v-if="item.impact" class="risk-detail"><strong>Impacto</strong><span>{{ item.impact }}</span></p>
+            <p v-if="item.mitigation && !item.duplicateSection" class="risk-mitigation"><strong>Mitigación</strong><span>{{ item.mitigation }}</span></p>
+          </div>
         </li>
-      </ul>
-    </article>
-  </div>
-  <p v-if="!sections.length && !recommendations.length" class="risk-empty" role="status">No se identificó información suficiente para evaluar riesgos.</p>
-  <div v-if="recommendations.length" class="risk-recommendations">
-    <h3>Medidas recomendadas</h3><MarkdownRenderer :content="recommendations" />
-  </div>
-</section>
+      </ol>
+    </section>
+
+    <section v-for="section in detailedSections" :id="`risk-section-${section.key}`" :key="section.key" class="risk-category" :aria-labelledby="`risk-heading-${section.key}`">
+      <header class="risk-section-heading">
+        <p class="risk-kicker">{{ section.eyebrow }}</p>
+        <h3 :id="`risk-heading-${section.key}`">{{ section.title }}</h3>
+        <p v-if="section.description">{{ section.description }}</p>
+      </header>
+      <ol class="risk-list">
+        <li v-for="(item,index) in section.items" :key="item.key" class="risk-row">
+          <span class="risk-number" aria-hidden="true">{{ number(index + 1) }}</span>
+          <div class="risk-copy">
+            <div class="risk-row-heading">
+              <h4 v-if="item.title">{{ item.title }}</h4>
+              <span v-if="item.severityLabel" class="severity-badge" :class="levelClass(item.severityLabel)">{{ item.severityLabel }}</span>
+            </div>
+            <p v-if="item.text" class="risk-description">{{ item.text }}</p>
+            <p v-if="item.impact" class="risk-detail"><strong>Impacto</strong><span>{{ item.impact }}</span></p>
+            <p v-if="item.mitigation" class="risk-mitigation"><strong>Mitigación</strong><span>{{ item.mitigation }}</span></p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section v-if="recommendationGroups.length" class="risk-plan" aria-labelledby="risk-plan-title">
+      <header class="risk-section-heading">
+        <p class="risk-kicker">ACCIONES PARA REDUCIR CONTINGENCIAS</p>
+        <h3 id="risk-plan-title">Plan de mitigación</h3>
+        <p>Acciones recomendadas para atender los riesgos identificados y fortalecer la posición jurídica.</p>
+      </header>
+      <section v-for="group in recommendationGroups" :key="group.key" class="mitigation-group">
+        <h4 v-if="group.title">{{ group.title }}</h4>
+        <ol class="recommendation-list">
+          <li v-for="(item,index) in group.items" :key="item.key">
+            <span class="risk-number" aria-hidden="true">{{ number(index + 1) }}</span>
+            <div class="risk-copy"><p>{{ item.text }}</p></div>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <p v-if="!hasRiskData" class="risk-empty" role="status">No se identificó información suficiente para evaluar riesgos.</p>
+  </main>
 </template>
+
 <script setup>
 import { computed } from 'vue'
-import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
+import { presentableText } from '@/utils/novacasePresentation.js'
+
 const props = defineProps({ risk: { type: Object, default: () => ({}) } })
-const levelLabel = value => ({ high:'Alto', medium:'Medio', low:'Bajo', critical:'Crítico',
-  severe:'Grave', unknown:'No determinado' })[String(value || '').toLowerCase()] || value
-const riskItem = value => typeof value === 'string' ? { text:value } : {
-  title:value?.title || value?.name || '',
-  text:value?.risk || value?.description || value?.text || '',
-  impact:value?.impact || '', mitigation:value?.mitigation || value?.recommendation || ''
+
+const severityLabels = {
+  high: 'Alto', alta: 'Alto', alto: 'Alto',
+  medium: 'Medio', media: 'Medio', medio: 'Medio',
+  low: 'Bajo', baja: 'Bajo', bajo: 'Bajo',
+  critical: 'Crítico', critica: 'Crítico', crítico: 'Crítico',
+  severe: 'Grave', grave: 'Grave',
+  unknown: 'No determinado', desconocido: 'No determinado', desconocida: 'No determinada',
+  'not identified': 'No identificado', not_identified: 'No identificado'
 }
-const sections = computed(() => [
-  ['procedural','Riesgos procesales'], ['evidentiary','Riesgos probatorios'],
-  ['legal','Riesgos jurídicos'], ['strategic','Riesgos críticos']
-].map(([key,title]) => ({ key,title,items:(Array.isArray(props.risk[key]) ? props.risk[key] :
-  props.risk[key] ? [props.risk[key]] : []).map(riskItem).filter(item => item.text || item.title) })).filter(section => section.items.length))
-const recommendations = computed(() => props.risk.recommendations || [])
+const categoryConfig = [
+  { key: 'procedural', title: 'Riesgos procesales', eyebrow: 'VÍA Y PLAZOS', description: 'Contingencias relacionadas con la procedencia, los plazos y los requisitos procesales.' },
+  { key: 'evidentiary', title: 'Riesgos probatorios', eyebrow: 'ACREDITACIÓN', description: 'Vacíos documentales que pueden afectar la acreditación de los hechos centrales del caso.' },
+  { key: 'legal', title: 'Riesgos jurídicos', eyebrow: 'INTERPRETACIÓN', description: 'Cuestiones de interpretación jurídica que pueden afectar la pretensión.' }
+]
+
+function cleanText(value) {
+  if (typeof value !== 'string') return ''
+  return presentableText(value).replace(/\s{2,}/g, ' ').trim()
+}
+function levelLabel(value) {
+  if (typeof value !== 'string') return ''
+  const key = value.toLocaleLowerCase().trim()
+  return severityLabels[key] || cleanText(value)
+}
+function isKnownLevel(value) {
+  return typeof value === 'string' && Object.hasOwn(severityLabels, value.toLocaleLowerCase().trim())
+}
+function levelClass(value) {
+  const key = String(value || '').toLocaleLowerCase()
+  if (['alto', 'alta', 'high'].includes(key)) return 'severity-high'
+  if (['crítico', 'critica', 'critical', 'grave', 'severe'].includes(key)) return 'severity-critical'
+  if (['medio', 'media', 'medium'].includes(key)) return 'severity-medium'
+  if (['bajo', 'baja', 'low'].includes(key)) return 'severity-low'
+  return 'severity-neutral'
+}
+function asList(value) { return Array.isArray(value) ? value : value == null || value === '' ? [] : [value] }
+function extractMitigation(text) {
+  const match = text.match(/(?:[;.]\s*|\n\s*)(?:Mitigación|Medida de mitigación):\s*([\s\S]+)$/i)
+  return match ? { text: text.slice(0, match.index).replace(/[;,.\s]+$/, ''), mitigation: cleanText(match[1]) } : { text, mitigation: '' }
+}
+function normalizeRisk(value, key) {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : { text: value }
+  const rawText = cleanText(source.risk || source.description || source.text || source.detail || '')
+  const parsed = extractMitigation(rawText)
+  const rawImpact = cleanText(source.impact || '')
+  const impactIsLevel = isKnownLevel(rawImpact)
+  const severity = levelLabel(source.severity || source.level || source.risk_level || source.priority || (impactIsLevel ? rawImpact : ''))
+  return {
+    key,
+    title: cleanText(source.title || source.name || ''),
+    text: parsed.text,
+    severityLabel: severity && severity !== cleanText(source.title || '') ? severity : '',
+    impact: rawImpact && !impactIsLevel ? rawImpact : '',
+    mitigation: cleanText(source.mitigation || source.recommendation || parsed.mitigation)
+  }
+}
+function identityText(value) { return cleanText(value).toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim() }
+function number(value) { return String(value).padStart(2, '0') }
+
+const overallLevel = computed(() => {
+  const raw = props.risk.risk_level || props.risk.summary || ''
+  const level = levelLabel(raw)
+  return level && !['No determinado', 'No identificado'].includes(level) ? level : ''
+})
+const criticalRisks = computed(() => asList(props.risk.strategic || props.risk.critical_risks)
+  .map((item, index) => normalizeRisk(item, `critical-${index}`)).filter(item => item.text || item.title)
+  .map(item => {
+    const duplicateSection = categoryConfig.map(section => ({
+      ...section,
+      items: asList(props.risk[section.key] || props.risk[`${section.key === 'procedural' ? 'procedural' : section.key}_risks`])
+        .map((value, index) => normalizeRisk(value, `${section.key}-${index}`))
+    })).find(section => section.items.some(detail =>
+      (item.text && identityText(detail.text) === identityText(item.text)) ||
+      (item.title && identityText(detail.title) === identityText(item.title))))
+    return { ...item, duplicateSection: duplicateSection ? { key: duplicateSection.key, title: duplicateSection.title } : null }
+  }))
+const detailedSections = computed(() => categoryConfig.map(section => ({
+  ...section,
+  items: asList(props.risk[section.key] || props.risk[`${section.key}_risks`])
+    .map((item, index) => normalizeRisk(item, `${section.key}-${index}`))
+    .filter(item => item.text || item.title)
+})).filter(section => section.items.length))
+const summaryMetrics = computed(() => [
+  ...(overallLevel.value ? [{ key: 'overall', label: 'Nivel general', value: overallLevel.value }] : []),
+  ...detailedSections.value.map(section => ({ key: section.key, label: section.title, value: section.items.length })),
+  ...(criticalRisks.value.length ? [{ key: 'critical', label: 'Riesgos críticos', value: criticalRisks.value.length }] : [])
+])
+const executiveConclusion = computed(() => {
+  const value = cleanText(props.risk.executive_summary || props.risk.summary_text || props.risk.overview || props.risk.conclusion || '')
+  if (!value || identityText(value) === identityText(props.risk.risk_level)) return ''
+  return value
+})
+const recommendationGroups = computed(() => {
+  const items = asList(props.risk.recommendations).map((value, index) => {
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : { text: value }
+    const text = cleanText(source.action || source.recommendation || source.text || source.description || '')
+    const title = cleanText(source.category || source.objective || source.phase || source.group || '')
+    return text ? { key: `recommendation-${index}`, title, text } : null
+  }).filter(Boolean)
+  const groups = new Map()
+  for (const item of items) {
+    const title = item.title || 'Acciones recomendadas'
+    if (!groups.has(title)) groups.set(title, { key: title, title: item.title, items: [] })
+    groups.get(title).items.push(item)
+  }
+  return [...groups.values()]
+})
+const hasRiskData = computed(() => Boolean(overallLevel.value || criticalRisks.value.length || detailedSections.value.length || recommendationGroups.value.length || executiveConclusion.value))
 </script>
+
 <style scoped>
-
-/* =========================================================
-   BASE
-========================================================= */
-
-.risk-view {
-
-    --nova-navy: #0f2747;
-
-    --nova-blue: #2563eb;
-
-    --nova-blue-light: #eff6ff;
-
-    --nova-border: #dbe4ef;
-
-    --nova-text: #334e68;
-
-    --nova-muted: #64748b;
-
-    --nova-bg: #f8fafc;
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 28px;
-
-    width: 100%;
-
-    padding: 34px;
-
-    background: #ffffff;
-
-    border: 1px solid var(--nova-border);
-
-    border-radius: 24px;
-
-    box-shadow:
-        0 10px 35px rgba(15, 39, 71, 0.06);
-
-    color: var(--nova-text);
-
-    box-sizing: border-box;
-
-}
-
-
-/* =========================================================
-   HEADER
-========================================================= */
-
-.risk-header {
-
-    display: flex;
-
-    align-items: flex-start;
-
-    justify-content: space-between;
-
-    gap: 30px;
-
-    padding-bottom: 26px;
-
-    border-bottom: 1px solid var(--nova-border);
-
-}
-
-.risk-heading {
-
-    max-width: 820px;
-
-}
-
-.eyebrow {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 10px;
-
-    margin-bottom: 12px;
-
-    color: var(--nova-blue);
-
-    font-size: 11px;
-
-    font-weight: 700;
-
-    letter-spacing: 1.5px;
-
-}
-
-.eyebrow-line {
-
-    width: 28px;
-
-    height: 2px;
-
-    background: var(--nova-blue);
-
-    border-radius: 10px;
-
-}
-
-.risk-header h2 {
-
-    margin: 0;
-
-    color: var(--nova-navy);
-
-    font-size: clamp(1.8rem, 3vw, 2.35rem);
-
-    line-height: 1.15;
-
-    font-weight: 700;
-
-    letter-spacing: -0.04em;
-
-}
-
-.risk-header p {
-
-    max-width: 760px;
-
-    margin: 12px 0 0;
-
-    color: var(--nova-muted);
-
-    font-size: 14px;
-
-    line-height: 1.7;
-
-}
-
-.risk-status {
-
-    display: inline-flex;
-
-    align-items: center;
-
-    gap: 8px;
-
-    flex-shrink: 0;
-
-    padding: 9px 13px;
-
-    border: 1px solid #dbeafe;
-
-    border-radius: 999px;
-
-    background: #f8fbff;
-
-    color: #31577f;
-
-    font-size: 11px;
-
-    font-weight: 600;
-
-}
-
-.status-dot {
-
-    width: 7px;
-
-    height: 7px;
-
-    border-radius: 50%;
-
-    background: #22c55e;
-
-    box-shadow: 0 0 0 4px #dcfce7;
-
-}
-
-
-/* =========================================================
-   OVERVIEW
-========================================================= */
-
-.risk-overview {
-
-    display: grid;
-
-    grid-template-columns:
-        minmax(0, 2fr)
-        auto
-        minmax(150px, 1fr)
-        minmax(170px, 1fr);
-
-    align-items: center;
-
-    gap: 26px;
-
-    padding: 24px;
-
-    border: 1px solid #dbe7f3;
-
-    border-radius: 20px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #f8fbff 0%,
-            #ffffff 65%
-        );
-
-}
-
-.overview-main {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 17px;
-
-}
-
-.overview-icon {
-
-    display: grid;
-
-    place-items: center;
-
-    width: 54px;
-
-    height: 54px;
-
-    flex-shrink: 0;
-
-    border: 1px solid #bfdbfe;
-
-    border-radius: 15px;
-
-    background: #eff6ff;
-
-    color: var(--nova-blue);
-
-    font-size: 23px;
-
-}
-
-.overview-label {
-
-    display: block;
-
-    margin-bottom: 3px;
-
-    color: var(--nova-muted);
-
-    font-size: 10px;
-
-    font-weight: 700;
-
-    letter-spacing: 1.2px;
-
-}
-
-.overview-value {
-
-    display: block;
-
-    margin-bottom: 5px;
-
-    font-size: 1.45rem;
-
-    font-weight: 800;
-
-    letter-spacing: -.02em;
-
-}
-
-.overview-value.high {
-
-    color: #b91c1c;
-
-}
-
-.overview-value.medium {
-
-    color: #b45309;
-
-}
-
-.overview-value.low {
-
-    color: #15803d;
-
-}
-
-.overview-main p {
-
-    margin: 0;
-
-    color: var(--nova-muted);
-
-    font-size: 12px;
-
-    line-height: 1.5;
-
-}
-
-.overview-divider {
-
-    width: 1px;
-
-    height: 58px;
-
-    background: var(--nova-border);
-
-}
-
-.overview-stat {
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 7px;
-
-}
-
-.overview-stat span {
-
-    color: var(--nova-muted);
-
-    font-size: 10px;
-
-    font-weight: 700;
-
-    letter-spacing: .8px;
-
-}
-
-.overview-stat strong {
-
-    color: var(--nova-navy);
-
-    font-size: 1.55rem;
-
-    font-weight: 750;
-
-}
-
-.overview-stat strong.success {
-
-    color: #15803d;
-
-}
-
-
-/* =========================================================
-   SECTION HEADING
-========================================================= */
-
-.analysis-block {
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 20px;
-
-}
-
-.section-heading {
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: flex-end;
-
-}
-
-.section-eyebrow {
-
-    display: block;
-
-    margin-bottom: 6px;
-
-    color: var(--nova-blue);
-
-    font-size: 10px;
-
-    font-weight: 700;
-
-    letter-spacing: 1.3px;
-
-}
-
-.section-heading h3 {
-
-    margin: 0;
-
-    color: var(--nova-navy);
-
-    font-size: 1.35rem;
-
-    font-weight: 700;
-
-    letter-spacing: -.025em;
-
-}
-
-.section-heading p {
-
-    margin: 7px 0 0;
-
-    color: var(--nova-muted);
-
-    font-size: 13px;
-
-    line-height: 1.6;
-
-}
-
-
-/* =========================================================
-   RISK GRID
-========================================================= */
-
-.risk-grid {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            2,
-            minmax(0, 1fr)
-        );
-
-    gap: 18px;
-
-}
-
-
-/* =========================================================
-   METRICS
-========================================================= */
-
-.risk-metrics {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            4,
-            minmax(0, 1fr)
-        );
-
-    gap: 14px;
-
-}
-
-.metric-card {
-
-    position: relative;
-
-    display: flex;
-
-    flex-direction: column;
-
-    min-width: 0;
-
-    padding: 20px;
-
-    border: 1px solid var(--nova-border);
-
-    border-radius: 17px;
-
-    background: #ffffff;
-
-    transition:
-        transform .25s ease,
-        border-color .25s ease,
-        box-shadow .25s ease;
-
-}
-
-.metric-card:hover {
-
-    transform: translateY(-3px);
-
-    border-color: #bfdbfe;
-
-    box-shadow:
-        0 12px 28px rgba(37, 99, 235, .09);
-
-}
-
-.metric-top {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    gap: 10px;
-
-}
-
-.metric-label {
-
-    color: var(--nova-muted);
-
-    font-size: 10px;
-
-    font-weight: 700;
-
-    text-transform: uppercase;
-
-    letter-spacing: .8px;
-
-}
-
-.metric-icon {
-
-    display: grid;
-
-    place-items: center;
-
-    width: 29px;
-
-    height: 29px;
-
-    border: 1px solid #dbeafe;
-
-    border-radius: 9px;
-
-    background: #f8fbff;
-
-    color: var(--nova-blue);
-
-    font-size: 13px;
-
-    font-weight: 700;
-
-}
-
-.metric-icon.success-icon {
-
-    color: #15803d;
-
-    border-color: #bbf7d0;
-
-    background: #f0fdf4;
-
-}
-
-.metric-icon.high {
-
-    color: #b91c1c;
-
-    border-color: #fecaca;
-
-    background: #fef2f2;
-
-}
-
-.metric-icon.medium {
-
-    color: #b45309;
-
-    border-color: #fde68a;
-
-    background: #fffbeb;
-
-}
-
-.metric-icon.low {
-
-    color: #15803d;
-
-    border-color: #bbf7d0;
-
-    background: #f0fdf4;
-
-}
-
-.metric-value {
-
-    margin-top: 16px;
-
-    color: var(--nova-navy);
-
-    font-size: 1.65rem;
-
-    line-height: 1;
-
-    font-weight: 800;
-
-    letter-spacing: -.04em;
-
-}
-
-.metric-value.success {
-
-    color: #15803d;
-
-}
-
-.metric-value.high {
-
-    color: #b91c1c;
-
-}
-
-.metric-value.medium {
-
-    color: #b45309;
-
-}
-
-.metric-value.low {
-
-    color: #15803d;
-
-}
-
-.metric-description {
-
-    margin-top: 8px;
-
-    color: #8a9bad;
-
-    font-size: 11px;
-
-}
-
-
-/* =========================================================
-   SUMMARY
-========================================================= */
-
-.risk-summary {
-
-    overflow: hidden;
-
-    border: 1px solid var(--nova-border);
-
-    border-radius: 20px;
-
-    background: #ffffff;
-
-}
-
-.summary-header {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    gap: 20px;
-
-    padding: 24px;
-
-    border-bottom: 1px solid var(--nova-border);
-
-    background:
-        linear-gradient(
-            135deg,
-            #f8fbff,
-            #ffffff
-        );
-
-}
-
-.summary-heading h3 {
-
-    margin: 0;
-
-    color: var(--nova-navy);
-
-    font-size: 1.3rem;
-
-    font-weight: 700;
-
-    letter-spacing: -.025em;
-
-}
-
-.summary-heading p {
-
-    margin: 7px 0 0;
-
-    color: var(--nova-muted);
-
-    font-size: 12px;
-
-    line-height: 1.6;
-
-}
-
-.summary-badge {
-
-    display: inline-flex;
-
-    align-items: center;
-
-    gap: 8px;
-
-    flex-shrink: 0;
-
-    padding: 9px 14px;
-
-    border-radius: 999px;
-
-    font-size: 10px;
-
-    font-weight: 800;
-
-    letter-spacing: .8px;
-
-}
-
-.summary-badge.high {
-
-    border: 1px solid #fecaca;
-
-    background: #fef2f2;
-
-    color: #b91c1c;
-
-}
-
-.summary-badge.medium {
-
-    border: 1px solid #fde68a;
-
-    background: #fffbeb;
-
-    color: #b45309;
-
-}
-
-.summary-badge.low {
-
-    border: 1px solid #bbf7d0;
-
-    background: #f0fdf4;
-
-    color: #15803d;
-
-}
-
-.badge-dot {
-
-    width: 6px;
-
-    height: 6px;
-
-    border-radius: 50%;
-
-    background: currentColor;
-
-}
-
-.summary-body {
-
-    padding: 28px;
-
-    color: var(--nova-text);
-
-    line-height: 1.8;
-
-}
-
-.summary-footer {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(
-            3,
-            1fr
-        );
-
-    gap: 20px;
-
-    padding: 19px 24px;
-
-    border-top: 1px solid var(--nova-border);
-
-    background: #f8fafc;
-
-}
-
-.summary-item {
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 5px;
-
-}
-
-.summary-item span {
-
-    color: var(--nova-muted);
-
-    font-size: 10px;
-
-    font-weight: 700;
-
-    text-transform: uppercase;
-
-    letter-spacing: .6px;
-
-}
-
-.summary-item strong {
-
-    color: var(--nova-navy);
-
-    font-size: 14px;
-
-    font-weight: 750;
-
-}
-
-.summary-item strong.success {
-
-    color: #15803d;
-
-}
-
-.summary-item strong.high {
-
-    color: #b91c1c;
-
-}
-
-.summary-item strong.medium {
-
-    color: #b45309;
-
-}
-
-.summary-item strong.low {
-
-    color: #15803d;
-
-}
-
-
-/* =========================================================
-   DISCLAIMER
-========================================================= */
-
-.risk-disclaimer {
-
-    display: flex;
-
-    align-items: flex-start;
-
-    gap: 10px;
-
-    padding: 13px 15px;
-
-    border: 1px solid #e2e8f0;
-
-    border-radius: 12px;
-
-    background: #f8fafc;
-
-}
-
-.disclaimer-icon {
-
-    display: grid;
-
-    place-items: center;
-
-    width: 19px;
-
-    height: 19px;
-
-    flex-shrink: 0;
-
-    border: 1px solid #cbd5e1;
-
-    border-radius: 50%;
-
-    color: #64748b;
-
-    font-size: 11px;
-
-    font-weight: 700;
-
-}
-
-.risk-disclaimer p {
-
-    margin: 0;
-
-    color: #718096;
-
-    font-size: 10px;
-
-    line-height: 1.6;
-
-}
-
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
-
-@media (max-width: 1100px) {
-
-    .risk-overview {
-
-        grid-template-columns:
-            1fr 1fr;
-
-    }
-
-    .overview-divider {
-
-        display: none;
-
-    }
-
-    .risk-metrics {
-
-        grid-template-columns:
-            repeat(
-                2,
-                1fr
-            );
-
-    }
-
-}
-
-
-@media (max-width: 850px) {
-
-    .risk-view {
-
-        padding: 24px;
-
-    }
-
-    .risk-header {
-
-        flex-direction: column;
-
-    }
-
-    .risk-status {
-
-        align-self: flex-start;
-
-    }
-
-    .risk-grid {
-
-        grid-template-columns: 1fr;
-
-    }
-
-}
-
-
-@media (max-width: 650px) {
-
-    .risk-view {
-
-        gap: 22px;
-
-        padding: 18px;
-
-        border-radius: 18px;
-
-    }
-
-    .risk-overview {
-
-        grid-template-columns: 1fr;
-
-        gap: 18px;
-
-        padding: 18px;
-
-    }
-
-    .risk-metrics {
-
-        grid-template-columns: 1fr;
-
-    }
-
-    .summary-header {
-
-        flex-direction: column;
-
-        align-items: flex-start;
-
-        padding: 19px;
-
-    }
-
-    .summary-body {
-
-        padding: 20px;
-
-    }
-
-    .summary-footer {
-
-        grid-template-columns: 1fr;
-
-        padding: 18px;
-
-    }
-
-}
-
-
-/* =========================================================
-   ANIMACIONES
-========================================================= */
-
-.risk-view {
-
-    animation:
-        novaFadeIn
-        .45s
-        ease
-        both;
-
-}
-
-.risk-overview {
-
-    animation:
-        novaSlideUp
-        .45s
-        ease
-        .05s
-        both;
-
-}
-
-.risk-grid > * {
-
-    animation:
-        novaSlideUp
-        .5s
-        ease
-        both;
-
-}
-
-.risk-grid > *:nth-child(2) {
-
-    animation-delay: .06s;
-
-}
-
-.risk-grid > *:nth-child(3) {
-
-    animation-delay: .12s;
-
-}
-
-.risk-grid > *:nth-child(4) {
-
-    animation-delay: .18s;
-
-}
-
-.metric-card {
-
-    animation:
-        novaSlideUp
-        .5s
-        ease
-        both;
-
-}
-
-.metric-card:nth-child(2) {
-
-    animation-delay: .05s;
-
-}
-
-.metric-card:nth-child(3) {
-
-    animation-delay: .1s;
-
-}
-
-.metric-card:nth-child(4) {
-
-    animation-delay: .15s;
-
-}
-
-.risk-summary {
-
-    animation:
-        novaSlideUp
-        .55s
-        ease
-        both;
-
-}
-
-@keyframes novaFadeIn {
-
-    from {
-
-        opacity: 0;
-
-    }
-
-    to {
-
-        opacity: 1;
-
-    }
-
-}
-
-@keyframes novaSlideUp {
-
-    from {
-
-        opacity: 0;
-
-        transform: translateY(12px);
-
-    }
-
-    to {
-
-        opacity: 1;
-
-        transform: translateY(0);
-
-    }
-
-}
-
-
-/* =========================================================
-   REDUCE MOTION
-========================================================= */
-
-@media (prefers-reduced-motion: reduce) {
-
-    .risk-view,
-    .risk-overview,
-    .risk-grid > *,
-    .metric-card,
-    .risk-summary {
-
-        animation: none;
-
-    }
-
-    .metric-card {
-
-        transition: none;
-
-    }
-
-}
-
-.risk-view{padding:clamp(18px,3vw,30px);gap:22px}.risk-heading p{font-size:.72rem;font-weight:750;letter-spacing:.08em;color:#967445;margin:0}.risk-heading h2{font:600 clamp(1.35rem,2.5vw,1.9rem)/1.3 Georgia,serif;color:#173654;margin:5px 0 9px}.risk-heading span{color:#60758a;font-size:.85rem}.risk-grid{align-items:start}.risk-card{min-width:0;border:1px solid #dce5ed;border-radius:10px;padding:18px;background:#fff;overflow-wrap:anywhere}.risk-card h3,.risk-recommendations h3{font:600 1.1rem/1.35 Georgia,serif;color:#193a5b;margin:0 0 12px}.risk-card ul{list-style:none;padding:0;margin:0;display:grid;gap:12px}.risk-card li{border-top:1px solid #edf0f3;padding-top:11px;line-height:1.5}.risk-card li:first-child{border-top:0;padding-top:0}.risk-card li>strong{color:#203d59}.risk-card li p{margin:5px 0;color:#3f546b}.risk-detail strong,.risk-mitigation strong{display:inline-block;min-width:76px;color:#23435f}.risk-card li p.risk-mitigation{border-left:3px solid #b9945e;background:#fcf9f2;padding:8px 11px;margin-top:10px}.risk-empty{font-size:.85rem;color:#697a8a}.risk-recommendations{border-top:1px solid #e2e9ef;padding-top:16px}@media(max-width:720px){.risk-grid{grid-template-columns:1fr}.risk-view{padding:18px}}
+.risk-editorial{--risk-navy:#17375e;--risk-muted:#667789;--risk-line:#dce5ee;--risk-gold:#a98551;display:grid;gap:clamp(28px,3.5vw,48px);width:100%;max-width:1240px;min-width:0;margin:0 auto;color:#34485d}
+.risk-header{padding:2px 0 22px;border-bottom:1px solid var(--risk-line)}
+.risk-eyebrow{display:flex;align-items:center;gap:9px;margin:0 0 10px;color:#8a6a37;font-size:.64rem;font-weight:750;letter-spacing:.12em}
+.risk-eyebrow span{width:22px;height:1px;background:#b08a4c}
+.risk-heading-row{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
+.risk-heading-row h2{margin:0;color:var(--risk-navy);font:600 clamp(1.7rem,2.3vw,2.15rem)/1.24 Georgia,'Times New Roman',serif}
+.risk-subtitle{max-width:780px;margin:9px 0 0;color:var(--risk-muted);font-size:.92rem;line-height:1.7}
+.overall-risk{display:grid;gap:4px;flex:none;min-width:150px;padding:10px 14px;border:1px solid #e2e8ed;border-radius:8px;background:#fbfcfd}
+.overall-risk>span{color:#788696;font-size:.68rem;font-weight:650}
+.overall-risk strong{font:600 1rem Georgia,'Times New Roman',serif}
+.severity-badge strong,.overall-risk strong{color:var(--risk-navy)}
+.severity-critical{color:#87544f!important}.overall-risk.severity-critical,.severity-badge.severity-critical{border-color:#eadbd8;background:#fbf6f5}
+.severity-high{color:#896744!important}.overall-risk.severity-high,.severity-badge.severity-high{border-color:#eadfcf;background:#fcf9f3}
+.severity-medium{color:#80683d!important}.overall-risk.severity-medium,.severity-badge.severity-medium{border-color:#e9dfcc;background:#fcfaf5}
+.severity-low{color:#587161!important}.overall-risk.severity-low,.severity-badge.severity-low{border-color:#dce7dd;background:#f7faf7}
+.severity-neutral{color:#60748a!important}
+.risk-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));border-top:1px solid #e3e9ee;border-bottom:1px solid #e3e9ee}
+.summary-metric{display:grid;align-content:center;gap:6px;min-width:0;padding:14px 16px 14px 0}
+.summary-metric+.summary-metric{padding-left:16px;border-left:1px solid #e3e9ee}
+.summary-metric>span{color:#788696;font-size:.67rem;font-weight:650;line-height:1.4}
+.summary-metric>strong{color:var(--risk-navy);font:600 1.08rem Georgia,'Times New Roman',serif}
+.summary-metric.summary-overall>strong{font-size:.92rem}
+.risk-conclusion{margin:-20px 0 0;padding:14px 17px;border-left:2px solid #b69a6a;background:#faf8f2;color:#4d6071;font-size:.88rem;line-height:1.7}
+.risk-priority{padding:22px clamp(16px,2.2vw,26px);border:1px solid #e6e1d7;border-left:3px solid #b08a4c;border-radius:9px;background:#fdfcf9}
+.risk-section-heading{margin:0 0 16px}
+.risk-kicker{margin:0 0 7px;color:#8a6a37;font-size:.61rem;font-weight:750;letter-spacing:.1em}
+.risk-section-heading h3{margin:0;color:var(--risk-navy);font:600 1.34rem/1.32 Georgia,'Times New Roman',serif}
+.risk-section-heading>p:last-child:not(.risk-kicker){max-width:800px;margin:7px 0 0;color:var(--risk-muted);font-size:.84rem;line-height:1.65}
+.priority-list,.risk-list,.recommendation-list{margin:0;padding:0;list-style:none}
+.priority-row,.risk-row,.recommendation-list>li{display:grid;grid-template-columns:38px minmax(0,1fr);gap:14px;min-width:0;padding:17px 0;border-top:1px solid #e7ecf0}
+.priority-row:first-child,.risk-list>li:first-child,.recommendation-list>li:first-child{border-top:0;padding-top:2px}
+.risk-number{padding-top:2px;color:#a17c43;font:600 .88rem Georgia,'Times New Roman',serif;letter-spacing:.03em}
+.risk-copy{min-width:0;max-width:960px}
+.risk-row-heading{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.risk-row-heading h4{margin:0;color:#263d55;font:600 1.02rem/1.45 Georgia,'Times New Roman',serif;overflow-wrap:break-word}
+.severity-badge{flex:none;padding:3px 8px;border:1px solid #e2e8ed;border-radius:999px;background:#fafbfd;font-size:.66rem;font-weight:650;white-space:nowrap}
+.risk-description,.risk-copy>p{margin:7px 0 0;color:#405469;font-size:.88rem;line-height:1.72;word-break:normal;overflow-wrap:break-word}
+.risk-detail,.risk-mitigation{display:grid;grid-template-columns:95px minmax(0,1fr);gap:8px;margin-top:12px!important}
+.risk-detail strong,.risk-mitigation strong{color:#718094;font-size:.69rem;font-weight:750;letter-spacing:.06em;text-transform:uppercase}
+.risk-detail span,.risk-mitigation span{color:#405469;font-size:.83rem;line-height:1.65}
+.risk-mitigation{padding-top:9px;border-top:1px solid #ece8df}
+.risk-cross-reference{color:#708092!important;font-size:.78rem!important}
+.risk-cross-reference a{color:#315c83;font-weight:650;text-decoration:underline;text-decoration-color:#b9cbd9;text-underline-offset:3px}
+.risk-cross-reference a:hover{color:#17375e}
+.risk-cross-reference a:focus-visible{outline:2px solid var(--risk-gold);outline-offset:2px}
+.risk-list{border-top:1px solid #e4eaf0}
+.risk-list .risk-row{border-color:#e7ecf0}
+.risk-plan{padding-top:22px;border-top:1px solid var(--risk-line)}
+.mitigation-group+.mitigation-group{margin-top:21px}
+.mitigation-group>h4{margin:0 0 6px;color:#52697f;font-size:.72rem;font-weight:750;letter-spacing:.07em;text-transform:uppercase}
+.recommendation-list>li{padding:11px 0}
+.recommendation-list .risk-copy p{margin:0;color:#405469;font-size:.87rem;line-height:1.7}
+.risk-empty{margin:0;padding:14px 16px;border-left:2px solid #d4c29e;background:#faf9f5;color:#637286;font-size:.86rem;line-height:1.65}
+@media(max-width:1439px){.risk-summary{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.risk-priority{padding-inline:18px}}
+@media(max-width:760px){.risk-editorial{gap:26px}.risk-heading-row{align-items:flex-start;flex-direction:column;gap:13px}.overall-risk{min-width:0}.risk-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-metric:nth-child(odd){padding-left:0;border-left:0}.summary-metric:nth-child(n+3){border-top:1px solid #e3e9ee}.priority-row,.risk-row,.recommendation-list>li{grid-template-columns:30px minmax(0,1fr);gap:10px}.risk-detail,.risk-mitigation{grid-template-columns:minmax(0,1fr);gap:3px}}
+@media(max-width:440px){.risk-summary{grid-template-columns:1fr}.summary-metric,.summary-metric+.summary-metric,.summary-metric:nth-child(odd){padding:10px 0 0;border:0;border-top:1px solid #e3e9ee}.summary-metric:first-child{padding-top:0;border-top:0}.risk-row-heading{align-items:flex-start;flex-direction:column;gap:6px}}
 </style>
