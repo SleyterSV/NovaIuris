@@ -9,7 +9,7 @@ import { normalizeSource } from '../src/utils/sourceContract.js'
 import {
   ARGUMENT_SECTION_LABELS, canAttachDocumentsToCase, evidenceAvailability,
   factAllegationOrigin, presentableText, researchNotice, relatedFactTexts, verifiedArgumentSources,
-  groupedJurisprudence, jurisprudenceMarkdown, argumentNeedsVerification,
+  groupedJurisprudence, jurisprudenceMarkdown, argumentNeedsVerification, argumentCitationForSource,
   sourceHumanLabel, sourceUnitLabel
 } from '../src/utils/novacasePresentation.js'
 
@@ -51,6 +51,30 @@ test('argument IDs stay internal and the document CTA is case scoped', () => {
   assert.equal(canAttachDocumentsToCase('CASE-B','CASE-A',true),false)
   assert.equal(canAttachDocumentsToCase('CASE-A','CASE-A',false),false)
   assert.equal(normalizeSource({...source,chunk_id:'other'}),null)
+  assert.equal(verifiedArgumentSources({source_ids:[source.document_id]},[source],'CASE-A').length,0,
+    'a document-only reference must not expand to every legal unit in that document')
+})
+
+test('argument source rows reuse canonical citation numbers per legal unit and private source', () => {
+  const foundation13={...source,source_id:'SRC-bbbbbbbbbbbbbbbbbbbbbbbb',unit_id:'33333333-3333-4333-8333-333333333333',
+    chunk_id:'33333333-3333-4333-8333-333333333333',unit_number:'13',page_start:6}
+  const privateDocument={source_id:'SRC-private-case-page-1',source_scope:'private_case',case_id:'CASE-A',
+    title:'Memorando de no renovación',display_title:'Memorando de no renovación',page_start:1}
+  const citationPool=[source,foundation13,privateDocument]
+  const citations=[
+    {citation_id:'CIT-FOUNDATION-5',source_id:source.source_id,label:'[4]'},
+    {citation_id:'CIT-FOUNDATION-13',source_id:foundation13.source_id,label:'[7]'},
+    {citation_id:'CIT-PRIVATE-1',source_id:privateDocument.source_id,label:'[1]'}
+  ]
+  assert.equal(argumentCitationForSource(source,citations,citationPool,'CASE-A').label,'[4]')
+  assert.equal(argumentCitationForSource(foundation13,citations,citationPool,'CASE-A').label,'[7]')
+  assert.equal(argumentCitationForSource(privateDocument,citations,citationPool,'CASE-A').label,'[1]')
+  const publicAlias={...foundation13,source_id:'SRC-cccccccccccccccccccccccc'}
+  assert.equal(argumentCitationForSource(publicAlias,citations,[...citationPool,publicAlias],'CASE-A').label,'[7]',
+    'a public source alias resolves only through the exact document and unit pair')
+  const differentUnit={...foundation13,source_id:'SRC-dddddddddddddddddddddddd',unit_id:'44444444-4444-4444-8444-444444444444',chunk_id:'44444444-4444-4444-8444-444444444444'}
+  assert.equal(argumentCitationForSource(differentUnit,citations,[...citationPool,differentUnit],'CASE-A'),null,
+    'a different unit in the same judgment must not inherit the citation')
 })
 
 test('NovaCase components render Spanish labels, honest scope and verified V2 locator', async () => {
@@ -107,6 +131,31 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.doesNotMatch(editorialStyles,/\.novacase-page \.argument-number\s*\{[^}]*position:\s*absolute/)
     assert.match(editorialStyles,/\.novacase-page \.argument-card \.argument-number\s*\{[^}]*position:\s*absolute/)
 
+    const foundation13={...source,source_id:'SRC-bbbbbbbbbbbbbbbbbbbbbbbb',unit_id:'33333333-3333-4333-8333-333333333333',
+      chunk_id:'33333333-3333-4333-8333-333333333333',unit_number:'13',page_start:6}
+    const privateDocument={source_id:'SRC-private-case-page-1',source_scope:'private_case',case_id:'CASE-A',
+      title:'Memorando de no renovación',display_title:'Memorando de no renovación',page_start:1}
+    const numberedArguments=await render('novacase/ArgumentsView',{
+      arguments:{main_arguments:[{title:'Regla del fundamento 5',argument:'Primera consideración.',source_ids:[source.source_id]},
+        {title:'Regla del fundamento 13',argument:'Segunda consideración.',source_ids:[foundation13.source_id]}],
+        secondary_arguments:[{title:'Aplicación del fundamento 13',argument:'La misma unidad vuelve a sustentar el análisis.',source_ids:[foundation13.source_id]}],
+        procedural_arguments:[{title:'Comunicación privada',argument:'El memorando comunicó la decisión.',source_ids:[privateDocument.source_id]}]},
+      sources:[source,foundation13,privateDocument],caseId:'CASE-A',citations:[
+        {citation_id:'CIT-FOUNDATION-5',source_id:source.source_id,label:'[4]'},
+        {citation_id:'CIT-FOUNDATION-13',source_id:foundation13.source_id,label:'[7]'},
+        {citation_id:'CIT-PRIVATE-1',source_id:privateDocument.source_id,label:'[1]'}
+      ]
+    })
+    assert.match(numberedArguments,/\[4\].*STC Exp\. 00001-2024-PA\/TC.*Fundamento 7/s)
+    assert.equal((numberedArguments.match(/source-reference-label[^>]*>\[7\]/g)||[]).length,2,
+      'the same canonical unit must reuse its existing citation label across arguments')
+    assert.match(numberedArguments,/source-reference-label[^>]*>\[1\]/)
+    assert.equal((numberedArguments.match(/class="argument-source-list"/g)||[]).length,
+      (numberedArguments.match(/source-reference-label[^>]*>\[\d+\]/g)||[]).length,
+      'every linked source row in the citation contract must have a citation badge')
+    assert.match(argumentComponentSource,/@click="selectSource\(source\)"/)
+    assert.match(argumentComponentSource,/emit\('select-source', safe\)/)
+
     const counterEditorial=await render('novacase/CounterArgumentsView',{
       counterArguments:{procedural:[{id:'OBJECTION-1',title:'Vencimiento contractual',
         text:'La entidad alegaría que el vínculo concluyó al vencer el plazo.',risk:'HIGH',strength:'LOW',source_ids:[source.source_id]}],
@@ -119,6 +168,7 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.match(counterEditorial,/Respuesta jurídica/)
     assert.match(counterEditorial,/El vencimiento no excluye el control/)
     assert.match(counterEditorial,/aria-label="Ver fuente 1"/)
+    assert.match(counterEditorial,/source-label[^>]*>\[1\]/)
     assert.doesNotMatch(counterEditorial,/>Riesgo<|>Solidez<|>HIGH<|>LOW<|source_id|unit_id|public_legal|private_case/i)
     const emptyCounter=await render('novacase/CounterArgumentsView',{counterArguments:{procedural:['','   ']},responses:[]})
     assert.doesNotMatch(emptyCounter,/<li[^>]*>\s*<span[^>]*>0[1-9]<\/span>/)

@@ -75,7 +75,7 @@
 <script setup>
 import { computed } from 'vue'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
-import { presentableText, relatedFactTexts, verifiedArgumentSources, argumentNeedsVerification, sourceHumanLabel } from '@/utils/novacasePresentation.js'
+import { presentableText, relatedFactTexts, verifiedArgumentSources, argumentNeedsVerification, sourceHumanLabel, argumentCitationForSource } from '@/utils/novacasePresentation.js'
 import { normalizeSource, normalizeSources } from '@/utils/sourceContract.js'
 
 const props = defineProps({
@@ -99,7 +99,7 @@ function textOf(value) {
 function isTechnicalReference(value) { return typeof value === 'string' && (/^(?:SRC|FACT|ISSUE)-[a-f0-9]{12,}$/i.test(value.trim()) || /^[0-9a-f-]{36}$/i.test(value.trim())) }
 function recordsOf(value) { return (Array.isArray(value) ? value : value == null || value === '' ? [] : [value]).filter(item => item != null && item !== '') }
 function sourceList(entry) { return verifiedArgumentSources(entry, safeSources.value, props.caseId, props.citations) }
-function citationLabel(source) { return props.citations.find(item => item.source_id === source.source_id)?.label || '' }
+function citationLabel(source) { return argumentCitationForSource(source, props.citations, safeSources.value, props.caseId)?.label || '' }
 function selectSource(source) { const safe = normalizeSource(source, props.caseId); if (safe) emit('select-source', safe) }
 function openCitation(citation) { const source = safeSources.value.find(item => item.source_id === citation?.source_id); if (source) selectSource(source) }
 function formatNumber(value) { return String(value).padStart(2, '0') }

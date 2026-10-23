@@ -1,4 +1,4 @@
-import { normalizeSource, normalizeSources } from './sourceContract.js'
+import { normalizeSource, normalizeSources, resolveCitations } from './sourceContract.js'
 
 export const ARGUMENT_SECTION_LABELS = Object.freeze({
   main_arguments: 'Argumentos principales',
@@ -98,6 +98,21 @@ export function relatedFactTexts(argument, facts = []) {
   return facts.filter(fact => ids.has(fact.fact_id)).map(fact => fact.text).filter(Boolean)
 }
 
+export function argumentCitationForSource(source, citations = [], sources = [], caseId = null) {
+  const canonical = normalizeSource(source, caseId)
+  if (!canonical) return null
+  const resolved = resolveCitations(citations, sources, caseId)
+  const numbered = resolved.citations.filter(citation => /^\[\d+\]$/.test(citation.label || ''))
+  const exact = numbered.find(citation => citation.source_id === canonical.source_id)
+  if (exact) return exact
+  if (canonical.source_scope !== 'public_legal') return null
+  return numbered.find(citation => {
+    const citedSource = resolved.sourceById.get(citation.source_id)
+    return citedSource?.source_scope === 'public_legal' &&
+      citedSource.document_id === canonical.document_id && citedSource.unit_id === canonical.unit_id
+  }) || null
+}
+
 export function verifiedArgumentSources(argument, sources = [], caseId = null, citations = []) {
   const ids = new Set([...(Array.isArray(argument?.source_ids) ? argument.source_ids : []),
     ...(Array.isArray(argument?.jurisprudence) ? argument.jurisprudence : []),
@@ -108,7 +123,7 @@ export function verifiedArgumentSources(argument, sources = [], caseId = null, c
     if (citation?.label && text.includes(citation.label)) ids.add(citation.source_id)
   }
   return sources.filter(source => ids.has(source.source_id) || ids.has(source.unit_id) ||
-    ids.has(source.chunk_id) || ids.has(source.document_id))
+    ids.has(source.chunk_id))
     .map(source => normalizeSource(source, caseId))
     .filter(source => source && ['public_legal', 'private_case'].includes(source.source_scope))
 }

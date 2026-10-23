@@ -20,9 +20,9 @@
             <h4 v-if="item.title">{{ item.title }}</h4>
             <div class="counter-objection"><h5>Contraargumento</h5><MarkdownRenderer :content="item.body" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" /></div>
             <div v-if="item.response" class="counter-response"><h5>Respuesta jurídica</h5><MarkdownRenderer :content="item.response.body" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" />
-              <SourceActions v-if="item.response.sources.length" :items="item.response.sources" :citations="citations" @select="selectSource" />
+              <SourceActions v-if="item.response.sources.length" :items="item.response.sources" :citations="citations" :sources="sourcePool" :case-id="caseId" @select="selectSource" />
             </div>
-            <SourceActions v-if="item.sources.length" :items="item.sources" :citations="citations" @select="selectSource" />
+            <SourceActions v-if="item.sources.length" :items="item.sources" :citations="citations" :sources="sourcePool" :case-id="caseId" @select="selectSource" />
           </div>
         </li>
       </ol>
@@ -33,7 +33,7 @@
       <ol class="response-list"><li v-for="(item,index) in unmatchedResponses" :key="item.key" class="response-entry">
         <span class="counter-number" aria-hidden="true">{{ formatNumber(index + 1) }}</span>
         <div><h4 v-if="item.title">{{ item.title }}</h4><MarkdownRenderer :content="item.body" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" />
-          <SourceActions v-if="item.sources.length" :items="item.sources" :citations="citations" @select="selectSource" />
+          <SourceActions v-if="item.sources.length" :items="item.sources" :citations="citations" :sources="sourcePool" :case-id="caseId" @select="selectSource" />
         </div>
       </li></ol>
     </section>
@@ -46,7 +46,7 @@
 <script setup>
 import { computed, defineComponent, h } from 'vue'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
-import { presentableText, verifiedArgumentSources, sourceHumanLabel } from '@/utils/novacasePresentation.js'
+import { presentableText, verifiedArgumentSources, sourceHumanLabel, argumentCitationForSource } from '@/utils/novacasePresentation.js'
 import { normalizeSource, normalizeSources } from '@/utils/sourceContract.js'
 
 const props = defineProps({
@@ -107,11 +107,11 @@ function openCitation(citation) { const source=sourcePool.value.find(item=>item.
 function formatNumber(value) { return String(value).padStart(2,'0') }
 
 const SourceActions = defineComponent({
-  props:{items:{type:Array,default:()=>[]},citations:{type:Array,default:()=>[]}},
+  props:{items:{type:Array,default:()=>[]},citations:{type:Array,default:()=>[]},sources:{type:Array,default:()=>[]},caseId:{type:String,default:null}},
   emits:['select'],
   setup(sourceProps,{emit:sourceEmit}) {
     return () => h('ul',{class:'counter-sources'},sourceProps.items.map(source=>{
-      const label=sourceProps.citations.find(item=>item.source_id===source.source_id)?.label
+      const label=argumentCitationForSource(source,sourceProps.citations,sourceProps.sources,sourceProps.caseId)?.label
       return h('li',{key:source.source_id},[
         h('span',{class:'source-label'},label||sourceHumanLabel(source)),
         h('span',{class:'source-detail'},label?sourceHumanLabel(source):''),
