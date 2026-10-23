@@ -351,6 +351,7 @@
                     <template #sources>
                         <CaseSourcesView
                             :sources="[...(canonicalResult?.research?.sources || []), ...(canonicalResult?.sources_used || [])]"
+                            :citations="canonicalResult?.citations || []"
                             :case-id="canonicalResult?.case_id"
                             @select-source="selectedSource = $event"
                         />

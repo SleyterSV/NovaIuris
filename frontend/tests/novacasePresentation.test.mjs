@@ -533,9 +533,9 @@ test('Case sources tab renders private files and groups public units without emp
   try {
     const component=(await server.ssrLoadModule('/src/components/novacase/CaseSourcesView.vue')).default
     const privateOne={source_id:'SRC-private-one',source_scope:'private_case',case_id:'CASE-A',
-      document_id:'private-document-one',title:'01_Contrato_CAS_Mariana_Torres.pdf'}
+      document_id:'private-document-one',title:'01_Contrato_CAS_Mariana_Torres.pdf',page_start:1}
     const privateTwo={source_id:'SRC-private-two',source_scope:'private_case',case_id:'CASE-A',
-      document_id:'private-document-two',title:'02_Memorando_No_Renovacion_Mariana_Torres.pdf'}
+      document_id:'private-document-two',title:'02_Memorando_No_Renovacion_Mariana_Torres.pdf',page_start:1}
     const second={...source,source_id:'SRC-bbbbbbbbbbbbbbbbbbbbbbbb',
       unit_id:'33333333-3333-4333-8333-333333333333',chunk_id:'33333333-3333-4333-8333-333333333333',
       unit_number:null,metadata:{unit_type:'foundation',unit_number:null},section:'Antecedentes',page_start:3}
@@ -543,19 +543,36 @@ test('Case sources tab renders private files and groups public units without emp
       document_id:'44444444-4444-4444-8444-444444444444',
       unit_id:'55555555-5555-4555-8555-555555555555',chunk_id:'55555555-5555-4555-8555-555555555555',
       title:'STC Exp. 04852-2023-PA/TC',display_title:'STC Exp. 04852-2023-PA/TC',unit_number:'4'}
+    const sameUnitAlias={...source,source_id:'SRC-dddddddddddddddddddddddd'}
+    const citations=[privateOne,privateTwo,source,second,third].map((item,index)=>({
+      citation_id:`CIT-SOURCES-${index+1}`,source_id:item.source_id,citation_number:index+1,label:`[${index+1}]`
+    }))
     const html=await renderToString(createSSRApp({render:()=>h(component,{
-      sources:[privateOne,privateTwo,source,second,third,source],caseId:'CASE-A'})}))
+      sources:[privateOne,privateTwo,source,second,third,sameUnitAlias,source],citations,caseId:'CASE-A'})}))
     assert.match(html,/Fuentes del caso/)
-    assert.match(html,/01_Contrato_CAS_Mariana_Torres\.pdf/)
-    assert.match(html,/02_Memorando_No_Renovacion_Mariana_Torres\.pdf/)
+    assert.match(html,/Contrato CAS Mariana Torres/)
+    assert.match(html,/Memorando No Renovacion Mariana Torres/)
+    assert.match(html,/>3 <span[^>]*>unidades verificadas<\/span>/)
+    assert.match(html,/1 página utilizada/)
     assert.match(html,/Fuentes jurídicas verificadas/)
-    assert.equal((html.match(/STC Exp\. 00001-2024-PA\/TC/g)||[]).length,1)
+    const visibleHtml=html.replace(/<[^>]*>/g,' ')
+    assert.equal((visibleHtml.match(/STC Exp\. 00001-2024-PA\/TC/g)||[]).length,1)
     assert.match(html,/STC Exp\. 04852-2023-PA\/TC/)
     assert.match(html,/Fundamento 7/)
     assert.match(html,/Fundamento: Antecedentes/)
-    assert.match(html,/Ver fuente/)
+    assert.match(html,/aria-label="Abrir STC Exp\. 00001-2024-PA\/TC, Fundamento 7, pág\. 2"/)
+    assert.match(html,/unit-citation[^>]*>\[3\]/)
+    assert.match(html,/unit-citation[^>]*>\[4\]/)
+    assert.match(html,/unit-citation[^>]*>\[5\]/)
+    assert.match(html,/Abrir/)
     assert.doesNotMatch(html,/<li[^>]*>\s*<\/li>/)
+    assert.doesNotMatch(html,/private_case|public_legal|source_type|SRC-|source_id|document_id|unit_id|case_id/i)
     assert.ok(!html.includes(source.unit_id) && !html.includes(second.unit_id) && !html.includes(privateOne.source_id))
+    const parent=await readFile(new URL('../src/views/NovaCaseView.vue',import.meta.url),'utf8')
+    assert.match(parent,/<CaseSourcesView[\s\S]*?:citations="canonicalResult\?\.citations \|\| \[\]"[\s\S]*?@select-source="selectedSource = \$event"/)
+    const modal=await readFile(new URL('../src/components/common/SourceModal.vue',import.meta.url),'utf8')
+    assert.match(modal,/loadLegalUnitSource\(source\.chunk_id, source\.document_id/)
+    assert.match(modal,/unit\.unit_id !== source\.chunk_id \|\| unit\.document_id !== source\.document_id/)
   } finally { await server.close() }
 })
 
