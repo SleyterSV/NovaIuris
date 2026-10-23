@@ -10,10 +10,20 @@
     </header>
 
     <section v-if="executiveItems.length" class="strategy-overview" aria-label="Síntesis estratégica">
-      <article v-for="item in executiveItems" :key="item.label" class="overview-item">
-        <span>{{ item.label }}</span>
-        <MarkdownRenderer :content="item.value" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" />
+      <article v-if="strategySummary.main" class="overview-item strategy-main-card">
+        <span>{{ strategySummary.main.label }}</span>
+        <MarkdownRenderer :content="strategySummary.main.value" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" />
       </article>
+      <div class="strategy-sidecards">
+        <article v-if="strategySummary.objective" class="overview-item strategy-context-card objective-card">
+          <span>{{ strategySummary.objective.label }}</span>
+          <MarkdownRenderer :content="strategySummary.objective.value" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" />
+        </article>
+        <article v-if="strategySummary.condition" class="overview-item strategy-context-card key-condition-card">
+          <span>{{ strategySummary.condition.label }}</span>
+          <MarkdownRenderer :content="strategySummary.condition.value" :citations="citations" :sources="safeSources" :case-id="caseId" @select-citation="openCitation" />
+        </article>
+      </div>
     </section>
 
     <section v-if="objective" class="strategy-section objective-section" aria-labelledby="objective-title">
@@ -177,6 +187,11 @@ const executiveItems = computed(() => [
   {label:'Vía principal propuesta',value:mainLine.value},
   {label:'Condición clave',value:pendingItems.value[0]?.body}
 ].filter(item=>item.value))
+const strategySummary = computed(() => ({
+  main: executiveItems.value.find(item=>item.label==='Vía principal propuesta'),
+  objective: executiveItems.value.find(item=>item.label==='Objetivo'),
+  condition: executiveItems.value.find(item=>item.label==='Condición clave')
+}))
 const explicitConclusion = computed(()=>firstText(finalPlan.value,['strategic_conclusion','conclusion','summary']) || firstText(props.strategy,['strategic_conclusion','conclusion']))
 const diagnosis = computed(()=>explicitConclusion.value || (objective.value && mainLine.value
   ? `La línea propuesta se orienta al objetivo jurídico identificado. ${pendingItems.value.length ? 'Su preparación queda sujeta a completar la información pendiente identificada.' : ''}`.trim()
@@ -199,10 +214,14 @@ const hasStrategyData = computed(()=>Boolean(objective.value || mainLine.value |
 .strategy-subtitle,.section-heading>p:last-child{max-width:840px;margin:8px 0 0;color:#69798a;font-size:.91rem;line-height:1.68}
 .strategy-status{display:inline-flex;align-items:center;gap:8px;flex:none;padding:7px 11px;border:1px solid #dce7df;border-radius:999px;background:#f8fbf8;color:#55745d;font-size:.7rem;font-weight:650}
 .strategy-status span{width:6px;height:6px;border-radius:50%;background:#72917a}
-.strategy-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-block:1px solid #e2e8ef}
-.overview-item{min-width:0;padding:15px 20px 15px 0}.overview-item+.overview-item{padding-left:20px;border-left:1px solid #e2e8ef}
+.strategy-overview{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);align-items:stretch;gap:18px}
+.overview-item{min-width:0;padding:17px 19px;border:1px solid #e2e8ef;border-radius:8px;background:#fff}
+.strategy-main-card{padding:22px 25px;border-left:3px solid #b08a4c;background:#fcfbf8}
+.strategy-sidecards{display:grid;grid-template-rows:auto auto;align-content:start;gap:14px;min-width:0}
+.strategy-context-card{padding:15px 17px;background:#fff}
 .overview-item>span,.field-label{display:block;margin:0 0 7px;color:#8a6a37;font-size:.64rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
 .overview-item :deep(.markdown-body),.strategy-editorial :deep(.markdown-body){min-width:0;width:100%;color:#3d4e60;font-size:.91rem;line-height:1.75;word-break:normal;overflow-wrap:break-word}
+.strategy-main-card :deep(.markdown-body){max-width:850px;font-size:.97rem;line-height:1.8}
 .strategy-editorial :deep(.markdown-body p){margin:0 0 10px}.strategy-editorial :deep(.markdown-body p:last-child){margin-bottom:0}
 .strategy-section{min-width:0}.section-heading{margin-bottom:18px}.section-heading h3,.strategy-conclusion h3{font-size:1.34rem;line-height:1.35}.section-heading>p:last-child{font-size:.84rem}
 .objective-copy,.main-line{max-width:960px}.objective-copy{padding-left:17px;border-left:2px solid #b69a6a}.main-line{margin-bottom:24px;padding:18px 20px;border:1px solid #e4e9ed;border-left:3px solid #b08a4c;border-radius:8px;background:#fcfbf8}
@@ -214,6 +233,6 @@ const hasStrategyData = computed(()=>Boolean(objective.value || mainLine.value |
 .action-group+.action-group{margin-top:24px}.action-group>h4{color:#8a6a37;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase}.action-group .editorial-row{padding-block:12px}
 .risk-section .editorial-row{padding-block:15px}.strategy-conclusion{padding:22px clamp(18px,2.5vw,30px);border:1px solid #e6e1d7;border-left:3px solid #b08a4c;border-radius:8px;background:#fdfcf9}.strategy-conclusion h3{margin-bottom:17px}.strategy-conclusion ul{margin:0 0 15px}.conclusion-alternative{margin-top:14px;padding-top:12px;border-top:1px solid #e7e2d8}.strategy-disclaimer{margin:-22px 0 0;color:#758394;font-size:.75rem;line-height:1.6}.strategy-empty{margin:0;padding:14px 16px;border-left:2px solid #d4c29e;background:#faf9f5;color:#637286;font-size:.86rem;line-height:1.65}
 .strategy-editorial :deep(.citation-inline),.strategy-editorial :deep(.citation-link){display:inline;position:relative;top:-.07em;margin:0 .13em;padding:.08em .36em;border:1px solid #d7e2ec;border-radius:4px;background:#f1f5f8;color:#1b496f;font-family:inherit;font-size:.76em;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer}.strategy-editorial :deep(.citation-link:hover){background:#e3edf5;border-color:#b9cddb}.strategy-editorial :deep(.citation-link:focus-visible){outline:2px solid #315c97;outline-offset:2px}
-@media(max-width:900px){.strategy-overview{grid-template-columns:1fr}.overview-item,.overview-item+.overview-item{padding:13px 0;border-left:0}.overview-item+.overview-item{border-top:1px solid #e2e8ef}}
+@media(max-width:1359px){.strategy-overview{grid-template-columns:minmax(0,1fr)}.strategy-sidecards{grid-template-rows:auto auto}}
 @media(max-width:680px){.strategy-editorial{gap:32px}.strategy-header{align-items:flex-start;flex-direction:column;gap:13px}.foundation-row,.editorial-row{grid-template-columns:30px minmax(0,1fr);gap:9px;padding:16px 0}.source-list li{grid-template-columns:minmax(0,1fr)}.source-open{justify-self:start}.main-line{padding:15px}.strategy-conclusion{padding:18px}}
 </style>

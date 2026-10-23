@@ -443,6 +443,9 @@ test('NovaCase strategy renders one editorial plan and resolves only canonical s
       issues:[{issue_id:issueId,text:'¿La motivación del acto fue suficiente?'}],sources:[source],citations,caseId:'CASE-A',analyzed:true
     })}))
     assert.match(html,/strategy-title/)
+    assert.match(html,/strategy-main-card/)
+    assert.match(html,/objective-card/)
+    assert.match(html,/key-condition-card/)
     assert.match(html,/objective-title/)
     assert.match(html,/main-strategy-title/)
     assert.match(html,/pending-title/)
@@ -461,6 +464,10 @@ test('NovaCase strategy renders one editorial plan and resolves only canonical s
     const view=await readFile(new URL('../src/views/NovaCaseView.vue',import.meta.url),'utf8')
     assert.doesNotMatch(view,/<MarkdownRenderer\s+:content="canonicalResult\.final_strategy"/)
     assert.match(view,/:final-strategy="canonicalResult\?\.final_strategy/)
+    const componentSource=await readFile(new URL('../src/components/novacase/StrategyView.vue',import.meta.url),'utf8')
+    assert.match(componentSource,/grid-template-columns:minmax\(0,2fr\) minmax\(280px,1fr\)/)
+    assert.doesNotMatch(componentSource,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/)
+    assert.match(componentSource,/@media\(max-width:1359px\)\{\.strategy-overview\{grid-template-columns:minmax\(0,1fr\)\}/)
   } finally { await server.close() }
 })
 
