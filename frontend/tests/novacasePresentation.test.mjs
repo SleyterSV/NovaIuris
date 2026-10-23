@@ -268,8 +268,8 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
         {key:'supported',facts:[factualRecord]},{key:'alleged',facts:[allegedRecord]},{key:'pending',facts:[]}
       ],issues:[{issue_id:issueId,title:'Permanencia de las funciones',text:'¿Las labores desempeñadas fueron permanentes?'}],
       evidenceLinks:[{evidence_id:'EVIDENCE-1',issue_id:issueId,fact_ids:[factId],source_ids:[privateEvidenceSource.source_id,privateEvidenceSourcePage2.source_id],
-        what_it_supports:'El contrato identifica las funciones administrativas y logísticas.',
-        limitations:'No acredita por sí solo la permanencia efectiva de las labores.'}]
+        what_it_supports:'El contrato identifica las funciones administrativas y logísticas.\n\nTambién consigna la jornada y supervisión institucional.',
+        limitations:'No acredita por sí solo la permanencia efectiva de las labores.\n\nFalta corroboración con las adendas posteriores.'}]
     })
     assert.match(professionalEvidence,/Análisis probatorio/)
     assert.match(professionalEvidence,/Evaluación probatoria/)
@@ -285,6 +285,19 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.match(professionalEvidence,/Contrato CAS · pág\. 1/)
     assert.match(professionalEvidence,/Documento contractual · 2 páginas utilizadas/)
     assert.doesNotMatch(professionalEvidence,/01_Contrato_CAS|01\s+<span class="row-number"|•\s*\[1\]/)
+    const supportNoteStart=professionalEvidence.indexOf('class="document-note"')
+    const supportBodyStart=professionalEvidence.indexOf('class="document-note-content"',supportNoteStart)
+    const supportFirst=professionalEvidence.indexOf('El contrato identifica las funciones administrativas y logísticas.',supportBodyStart)
+    const supportSecond=professionalEvidence.indexOf('También consigna la jornada y supervisión institucional.',supportBodyStart)
+    const limitationsLabel=professionalEvidence.indexOf('Limitaciones</strong>',supportSecond)
+    const limitationsBody=professionalEvidence.indexOf('class="document-note-content"',limitationsLabel)
+    const limitationsFirst=professionalEvidence.indexOf('No acredita por sí solo la permanencia efectiva de las labores.',limitationsBody)
+    const limitationsSecond=professionalEvidence.indexOf('Falta corroboración con las adendas posteriores.',limitationsBody)
+    assert.ok(supportNoteStart < supportBodyStart && supportBodyStart < supportFirst && supportFirst < supportSecond && supportSecond < limitationsLabel)
+    assert.ok(limitationsLabel < limitationsBody && limitationsBody < limitationsFirst && limitationsFirst < limitationsSecond)
+    assert.equal((professionalEvidence.slice(supportBodyStart,limitationsLabel).match(/<p[ >]/g) || []).length,2)
+    assert.equal((professionalEvidence.slice(limitationsBody,professionalEvidence.indexOf('document-pages',limitationsBody)).match(/<p[ >]/g) || []).length,2)
+    for (const citation of ['[1]','[2]','[3]']) assert.ok(professionalEvidence.includes(citation))
     assert.match(professionalEvidence,/Fundamento 7/)
     assert.match(professionalEvidence,/Ver documento/)
     assert.doesNotMatch(professionalEvidence,/SRC-[a-f0-9]{12,}|source_id|document_id|unit_id|private_case|public_legal|Motor de análisis|ficticio|entorno QA|Consultar fuente documental/i)
@@ -296,6 +309,11 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.match(evidenceViewSource,/\.document-list,[^}]*list-style:none/s)
     assert.match(evidenceViewSource,/\.source-action\{display:inline-flex/)
     assert.match(evidenceViewSource,/\.evidence-context dl\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/)
+    assert.match(evidenceViewSource,/<div v-if="group\.supports\.length" class="document-note">\s*<strong>Acredita<\/strong>\s*<div class="document-note-content"><MarkdownRenderer v-for=/)
+    assert.match(evidenceViewSource,/<div v-if="group\.limitations\.length" class="document-note limitation-note">\s*<strong>Limitaciones<\/strong>\s*<div class="document-note-content"><MarkdownRenderer v-for=/)
+    assert.match(evidenceViewSource,/grid-template-columns:minmax\(90px,105px\) minmax\(0,1fr\)/)
+    assert.match(evidenceViewSource,/\.document-note-content\{min-width:0;word-break:normal;overflow-wrap:break-word\}/)
+    assert.match(evidenceViewSource,/@media\(max-width:680px\)\{[\s\S]*?\.document-note\{grid-template-columns:minmax\(0,1fr\)/)
     const privateSource={source_id:'SRC-private-analysis',source_scope:'private_case',case_id:'CASE-A'}
     const analysisHtml=await render('novacase/AnalysisView',{
       analysis:{rama_derecho:'Laboral',tipo_proceso:'Proceso laboral',pretension_principal:'Reposición',

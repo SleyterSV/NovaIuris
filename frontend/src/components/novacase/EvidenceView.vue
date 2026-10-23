@@ -36,8 +36,14 @@
             <div class="document-content">
               <h4>{{ group.title }}</h4>
               <p class="document-meta">{{ documentTypeLabel(group) }} · {{ group.sources.length }} {{ group.sources.length === 1 ? 'página utilizada' : 'páginas utilizadas' }}</p>
-              <p v-if="group.supports.length" class="document-note"><strong>Acredita:</strong> <span v-for="(item, supportIndex) in group.supports" :key="`support-${supportIndex}`"><MarkdownRenderer :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></span></p>
-              <p v-if="group.limitations.length" class="document-note limitation-note"><strong>Limitaciones:</strong> <span v-for="(item, limitationIndex) in group.limitations" :key="`limit-${limitationIndex}`"><MarkdownRenderer :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></span></p>
+              <div v-if="group.supports.length" class="document-note">
+                <strong>Acredita</strong>
+                <div class="document-note-content"><MarkdownRenderer v-for="(item, supportIndex) in group.supports" :key="`support-${supportIndex}`" :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></div>
+              </div>
+              <div v-if="group.limitations.length" class="document-note limitation-note">
+                <strong>Limitaciones</strong>
+                <div class="document-note-content"><MarkdownRenderer v-for="(item, limitationIndex) in group.limitations" :key="`limit-${limitationIndex}`" :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></div>
+              </div>
               <ul class="document-pages">
                 <li v-for="source in group.sources" :key="source.source_id">
                   <button type="button" class="source-action" :aria-label="`Ver documento${pageLabel(source) ? `, ${pageLabel(source)}` : ''}`" @click="selectSource(source)">
@@ -179,7 +185,10 @@ const emit = defineEmits(['add-documents', 'select-source'])
 
 function safeText(value) {
   if (typeof value !== 'string') return ''
-  return presentableText(value).replace(/Documento rotulado como\s+["'“]?ficticio["'”]?\s+en el entorno\s+QA\.?/gi, '').replace(/\(\s*\)|\[\s*\]/g, '').replace(/\s{2,}/g, ' ').trim()
+  return presentableText(value)
+    .replace(/(?:Documento\s+)?(?:rotulado|identificado|marcado)\s+como\s+["'“]?ficticio["'”]?\s+(?:en\s+)?(?:el\s+)?entorno\s+QA\.?/gi, '')
+    .replace(/\(\s*\)|\[\s*\]/g, '')
+    .replace(/[ \t]{2,}/g, ' ').replace(/[ \t]*\n[ \t]*/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 function recordsList(value) {
   const items = Array.isArray(value) ? value : value == null || value === '' ? [] : [value]
@@ -348,9 +357,11 @@ const issueEvidence = computed(() => props.evidenceLinks.map((link, index) => {
 .document-content,.fact-list>li>div,.issue-evidence-list article{min-width:0}
 .document-content>h4,.legal-source-heading h4,.issue-evidence-list article>h4{margin:0;color:#263d55;font:600 1.05rem/1.45 Georgia,'Times New Roman',serif;overflow-wrap:break-word}
 .document-meta{margin:5px 0 14px;color:#778594;font-size:.73rem;line-height:1.5}
-.document-note{display:grid;grid-template-columns:minmax(86px,110px) minmax(0,1fr);gap:8px;margin:10px 0;color:#405469;font-size:.86rem;line-height:1.68}
+.document-note{display:grid;grid-template-columns:minmax(90px,105px) minmax(0,1fr);gap:8px;margin:10px 0;color:#405469;font-size:.86rem;line-height:1.68;word-break:normal;overflow-wrap:break-word}
 .document-note strong{color:#637589;font-size:.72rem;font-weight:750;letter-spacing:.06em;text-transform:uppercase}
-.document-note>span{min-width:0}
+.document-note-content{min-width:0;word-break:normal;overflow-wrap:break-word}
+.document-note-content :deep(.markdown-body){min-width:0;word-break:normal;overflow-wrap:break-word}
+.document-note-content :deep(.markdown-container + .markdown-container){margin-top:8px}
 .document-note :deep(.markdown-body),.fact-list :deep(.markdown-body),.issue-evidence-list :deep(.markdown-body),.conclusion-section :deep(.markdown-body){color:#405469;font-size:.9rem;line-height:1.75}
 .document-note :deep(p),.fact-list :deep(p),.issue-evidence-list :deep(p),.conclusion-section :deep(p){margin:0 0 8px}
 .document-note :deep(p:last-child),.fact-list :deep(p:last-child),.issue-evidence-list :deep(p:last-child),.conclusion-section :deep(p:last-child){margin-bottom:0}
@@ -404,6 +415,6 @@ const issueEvidence = computed(() => props.evidenceLinks.map((link, index) => {
 .evidence-editorial :deep(.citation-inline:hover),.evidence-editorial :deep(.citation-link:hover){background:#e3edf5;border-color:#b9cddb}
 .evidence-editorial :deep(.citation-inline:focus-visible),.evidence-editorial :deep(.citation-link:focus-visible){outline:2px solid #315c97;outline-offset:2px}
 @media(max-width:1080px){.evidence-context dl{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:13px}.evidence-context dl>div:nth-child(4){padding-left:0;border-left:0}.evidence-overview-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
-@media(max-width:680px){.evidence-editorial{gap:22px}.evidence-title-row{flex-direction:column;gap:12px}.evidence-context dl{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:12px}.evidence-context dl>div:nth-child(odd){padding-left:0;border-left:0}.evidence-context dl>div:nth-child(4){padding-left:16px;border-left:1px solid #e6e9ed}.document-row,.fact-list>li,.issue-evidence-list>li{grid-template-columns:28px minmax(0,1fr);gap:9px}.legal-source-heading{align-items:flex-start;flex-direction:column;gap:3px}.other-evidence-list li{grid-template-columns:1fr;gap:4px}}
+@media(max-width:680px){.evidence-editorial{gap:22px}.evidence-title-row{flex-direction:column;gap:12px}.evidence-context dl{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:12px}.evidence-context dl>div:nth-child(odd){padding-left:0;border-left:0}.evidence-context dl>div:nth-child(4){padding-left:16px;border-left:1px solid #e6e9ed}.document-row,.fact-list>li,.issue-evidence-list>li{grid-template-columns:28px minmax(0,1fr);gap:9px}.document-note{grid-template-columns:minmax(0,1fr);gap:3px}.legal-source-heading{align-items:flex-start;flex-direction:column;gap:3px}.other-evidence-list li{grid-template-columns:1fr;gap:4px}}
 @media(max-width:420px){.evidence-context{padding:13px}.evidence-context dl{grid-template-columns:1fr}.evidence-context dl>div,.evidence-context dl>div:nth-child(4){padding:8px 0 0;border:0;border-top:1px solid #e6e9ed}.evidence-context dl>div:first-child{padding-top:0;border-top:0}.source-action{white-space:normal}}
 </style>
