@@ -1,4 +1,4 @@
-import { normalizeSource, normalizeSources, resolveCitations } from './sourceContract.js'
+import { citationLabel, normalizeSource, normalizeSources, resolveCitations } from './sourceContract.js'
 
 export const ARGUMENT_SECTION_LABELS = Object.freeze({
   main_arguments: 'Argumentos principales',
@@ -102,15 +102,21 @@ export function argumentCitationForSource(source, citations = [], sources = [], 
   const canonical = normalizeSource(source, caseId)
   if (!canonical) return null
   const resolved = resolveCitations(citations, sources, caseId)
-  const numbered = resolved.citations.filter(citation => /^\[\d+\]$/.test(citation.label || ''))
+  const numbered = resolved.citations.filter(citation => citationLabel(citation))
   const exact = numbered.find(citation => citation.source_id === canonical.source_id)
   if (exact) return exact
-  if (canonical.source_scope !== 'public_legal') return null
-  return numbered.find(citation => {
+  if (canonical.source_scope === 'public_legal') {
+    const unitMatch = numbered.find(citation => {
     const citedSource = resolved.sourceById.get(citation.source_id)
     return citedSource?.source_scope === 'public_legal' &&
       citedSource.document_id === canonical.document_id && citedSource.unit_id === canonical.unit_id
-  }) || null
+    })
+    if (unitMatch) return unitMatch
+  }
+  // Some authorized source records carry their citation number directly.
+  // It is part of the shared citation contract, not a presentation index.
+  const sourceLabel = citationLabel(canonical)
+  return sourceLabel ? { ...canonical, label: sourceLabel } : null
 }
 
 export function verifiedArgumentSources(argument, sources = [], caseId = null, citations = []) {

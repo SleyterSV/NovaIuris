@@ -5,7 +5,7 @@ import { createServer } from 'vite'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { normalizeCaseResult } from '../src/utils/caseContract.js'
-import { normalizeSource } from '../src/utils/sourceContract.js'
+import { normalizeSource, resolveCitations } from '../src/utils/sourceContract.js'
 import {
   ARGUMENT_SECTION_LABELS, canAttachDocumentsToCase, evidenceAvailability,
   factAllegationOrigin, presentableText, researchNotice, relatedFactTexts, verifiedArgumentSources,
@@ -75,6 +75,52 @@ test('argument source rows reuse canonical citation numbers per legal unit and p
   const differentUnit={...foundation13,source_id:'SRC-dddddddddddddddddddddddd',unit_id:'44444444-4444-4444-8444-444444444444',chunk_id:'44444444-4444-4444-8444-444444444444'}
   assert.equal(argumentCitationForSource(differentUnit,citations,[...citationPool,differentUnit],'CASE-A'),null,
     'a different unit in the same judgment must not inherit the citation')
+})
+
+test('argument citation registry resolves runtime citation numbers by canonical V2 unit identity', async () => {
+  const foundation11={...source,unit_number:'11',citation_number:11}
+  const foundation13={...source,source_id:'SRC-bbbbbbbbbbbbbbbbbbbbbbbb',unit_id:'33333333-3333-4333-8333-333333333333',
+    chunk_id:'33333333-3333-4333-8333-333333333333',unit_number:'13',page_start:6,citation_number:13}
+  const privateDocument={source_id:'SRC-private-case-page-1',source_scope:'private_case',case_id:'CASE-A',
+    title:'Memorando de no renovación',display_title:'Memorando de no renovación',page_start:1,citation_number:3}
+  const sourcePool=[foundation11,foundation13,privateDocument]
+  const citations=[
+    {citation_id:'CIT-11',source_id:foundation11.source_id,source_scope:'public_legal',provenance_version:'v2',
+      document_id:foundation11.document_id,unit_id:foundation11.unit_id,citation_number:11},
+    {citation_id:'CIT-13-ALIAS',source_id:'SRC-cccccccccccccccccccccccc',source_scope:'public_legal',provenance_version:'v2',
+      document_id:foundation13.document_id,unit_id:foundation13.unit_id,citation_number:13},
+    {citation_id:'CIT-PRIVATE',source_id:privateDocument.source_id,citation_number:3}
+  ]
+
+  const registry=resolveCitations(citations,sourcePool,'CASE-A')
+  assert.deepEqual(registry.citations.map(item=>item.source_id),sourcePool.map(item=>item.source_id),
+    'public citation aliases resolve to the authorized source identity for that exact unit')
+  assert.equal(argumentCitationForSource(foundation11,citations,sourcePool,'CASE-A').label,'[11]')
+  assert.equal(argumentCitationForSource(foundation13,citations,sourcePool,'CASE-A').label,'[13]')
+  assert.equal(argumentCitationForSource({...foundation13},citations,sourcePool,'CASE-A').label,'[13]',
+    'the same unit reuses its registry number')
+  assert.equal(argumentCitationForSource(privateDocument,citations,sourcePool,'CASE-A').label,'[3]')
+
+  const server=await createServer({server:{middlewareMode:true,hmr:false,port:0},appType:'custom',logLevel:'error',optimizeDeps:{noDiscovery:true,include:[]}})
+  try {
+    const component=(await server.ssrLoadModule('/src/components/novacase/ArgumentsView.vue')).default
+    const html=await renderToString(createSSRApp({render:()=>h(component,{
+      arguments:{main_arguments:[
+        {title:'Fundamento 11',text:'Primera consideración.',source_ids:[foundation11.source_id]},
+        {title:'Fundamento 13',text:'Segunda consideración.',source_ids:[foundation13.source_id]},
+        {title:'Reiteración del fundamento 13',text:'La misma unidad se reitera.',source_ids:[foundation13.source_id]},
+        {title:'Documento del caso',text:'Comunicación privada.',source_ids:[privateDocument.source_id]}
+      ]},sources:sourcePool,citations,caseId:'CASE-A'
+    })}))
+    assert.match(html,/source-reference-label[^>]*>\[11\]/)
+    assert.equal((html.match(/source-reference-label[^>]*>\[13\]/g)||[]).length,2)
+    assert.match(html,/source-reference-label[^>]*>\[3\]/)
+    const canonicalRows=(html.match(/class="argument-source-list"/g)||[]).length
+    const numberedRows=(html.match(/source-reference-label[^>]*>\[\d+\]/g)||[]).length
+    assert.equal(numberedRows,canonicalRows,'no citation-backed canonical source row is left unnumbered')
+    assert.equal(numberedRows,4)
+    assert.match(html,/aria-label="Ver fuente 13"/)
+  } finally { await server.close() }
 })
 
 test('NovaCase components render Spanish labels, honest scope and verified V2 locator', async () => {
