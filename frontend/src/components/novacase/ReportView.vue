@@ -39,7 +39,7 @@
 
     <article v-if="report" class="report-paper">
       <MarkdownRenderer :content="displayReport" :citations="usedCitations" :sources="usedSources"
-        :case-id="caseId" @select-citation="openCitation" />
+        :case-id="caseId" citation-numbers-only @select-citation="openCitation" />
       <section v-if="referenceGroups.length" class="report-references" aria-labelledby="references-title">
         <h3 id="references-title">Fuentes utilizadas</h3>
         <p>Documentos del caso y fuentes jurídicas citadas en el informe.</p>
@@ -47,7 +47,7 @@
           <h4>{{ group.label }}</h4>
           <ol>
             <li v-for="entry in group.items" :key="entry.source.source_id">
-              <span class="reference-number">{{ entry.label }}</span>
+              <span class="reference-number">{{ entry.label.slice(1, -1) }}</span>
               <button type="button" class="reference-action" @click="selectedSource = entry.source">
                 <strong>{{ entry.source.display_title || entry.source.title }}</strong>
                 <small v-if="entry.detail">{{ entry.detail }}</small>
@@ -190,9 +190,9 @@ async function saveFile(format) {
 .report-references{margin-top:35px;padding-top:25px;border-top:1px solid #dce5ee}.report-references h3{margin:0;color:#17324f;font:600 1.25rem Georgia,serif}.report-references>p{margin:6px 0 20px;color:#65758a;font-size:.86rem}.reference-group{margin-top:18px}.reference-group h4{margin:0 0 8px;color:#92713c;font:700 .7rem system-ui,sans-serif;letter-spacing:.09em}.reference-group ol{list-style:none;margin:0;padding:0}.reference-group li{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid #e8edf2}.reference-number{min-width:27px;color:#244a6a;font-weight:700;font-size:.83rem}.reference-action{display:grid;gap:4px;padding:0;border:0;background:none;text-align:left;color:#26384b;cursor:pointer}.reference-action:hover strong{text-decoration:underline}.reference-action strong{font-size:.88rem;font-weight:650}.reference-action small{font-size:.75rem;color:#718096}.empty-report{min-height:220px;display:grid;align-content:center;justify-items:center;text-align:center;color:#64748b}.empty-report h3{margin:0;color:#193653;font:600 1.2rem Georgia,serif}.empty-report p{max-width:540px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:700px){.report-header{flex-direction:column}.toolbar{justify-content:flex-start}.report-view{padding:17px}}@media print{.report-view{border:0;padding:0}.report-header{border:0}.toolbar,.action-message{display:none!important}.report-paper{max-width:none}.report-references{break-before:auto}}
 /* Screen-only finish: preserve the existing printed report and export content. */
 @media screen {
-  .report-paper :deep(.citation-inline){position:static;vertical-align:baseline;margin:0 .16em;padding:.1em .42em;border:1px solid #d6e4ef;border-radius:6px;background:#eef5fa;color:#285b82;font-size:.76em;font-weight:650;line-height:1.1;letter-spacing:0;box-shadow:0 1px 2px #17375e06;text-decoration:none}
-  .report-paper :deep(.citation-inline:hover){background:#e3eff8;border-color:#b2cde1;color:#173f65}
-  .report-paper :deep(.citation-inline:focus-visible){outline:2px solid #497ca3;outline-offset:3px;background:#e3eff8}
+  .report-paper :deep(.citation-inline){display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;position:static;vertical-align:baseline;height:21px;min-width:21px;margin:0 .16em;padding:0 5px;border:1px solid #142f4d;border-radius:6px;background:#142f4d;color:#fff;font-size:.76em;font-weight:650;line-height:1;letter-spacing:0;text-decoration:none;transition:background .16s,border-color .16s}
+  .report-paper :deep(.citation-inline:hover){background:#244a6a;border-color:#244a6a;color:#fff}
+  .report-paper :deep(.citation-inline:focus-visible){outline:2px solid #497ca3;outline-offset:3px}
   .report-references{margin-top:40px;padding-top:28px;border-top-color:#dbe5ee}
   .report-references h3{font-size:1.3rem;line-height:1.35}
   .report-references>p{margin:9px 0 24px;color:#68798b;font-size:.88rem;line-height:1.65}
@@ -202,7 +202,7 @@ async function saveFile(format) {
   .reference-group h4::before{content:'';flex:none;width:5px;height:16px;border-radius:3px;background:#d9c39e}
   .reference-group li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:14px;align-items:start;padding:15px 10px;border-top:1px solid #e5ecf2}
   .reference-group li:last-child{border-bottom:1px solid #e5ecf2}
-  .reference-number{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:0;margin-top:2px;padding:4px 5px;border:1px solid #d6e4ef;border-radius:7px;background:#eef5fa;color:#285b82;font-size:.76rem;font-weight:700;line-height:1.35}
+  .reference-number{display:inline-flex;align-items:center;justify-content:center;justify-self:start;box-sizing:border-box;height:21px;min-width:21px;margin-top:2px;padding:0 5px;border:1px solid #142f4d;border-radius:6px;background:#142f4d;color:#fff;font-size:.76rem;font-weight:700;line-height:1}
   .reference-action{grid-template-columns:minmax(0,1fr) auto;column-gap:18px;row-gap:5px;width:100%;min-width:0;padding:2px 4px;border-radius:6px;font-family:inherit;line-height:1.55}
   .reference-action strong{grid-column:1;min-width:0;color:#253f59;font-size:.91rem;font-weight:650;overflow-wrap:break-word;word-break:normal}
   .reference-action small{grid-column:1;min-width:0;color:#718195;font-size:.78rem;line-height:1.6;overflow-wrap:break-word}

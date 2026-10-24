@@ -42,7 +42,8 @@ const props = defineProps({
 
     citations: { type: Array, default: () => [] },
     sources: { type: Array, default: () => [] },
-    caseId: { type: String, default: null }
+    caseId: { type: String, default: null },
+    citationNumbersOnly: { type: Boolean, default: false }
 
 })
 const emit = defineEmits(["select-citation"])
@@ -183,7 +184,8 @@ md.renderer.rules.text = (tokens, idx) => {
         if (!citation) output += md.utils.escapeHtml(match[0])
         else {
             const citationId = md.utils.escapeHtml(citation.citation_id)
-            output += `<button type="button" class="citation-inline" data-citation-id="${citationId}" aria-label="Ver fuente ${match[0].slice(1, -1)}">${match[0]}</button>`
+            const label = props.citationNumbersOnly ? match[0].slice(1, -1) : match[0]
+            output += `<button type="button" class="citation-inline" data-citation-id="${citationId}" aria-label="Ver fuente ${match[0].slice(1, -1)}">${label}</button>`
         }
         cursor = match.index + match[0].length
     }
