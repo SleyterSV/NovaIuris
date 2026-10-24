@@ -188,6 +188,34 @@ async function saveFile(format) {
 .report-header{display:flex;justify-content:space-between;gap:20px;padding-bottom:20px;border-bottom:1px solid #dce5ee}.report-heading{width:100%;max-width:900px;margin:auto}.eyebrow{margin:0 0 9px;color:#92713c;font-size:.68rem;font-weight:750;letter-spacing:.1em}.report-header h2{margin:0;color:#17324f;font:600 clamp(1.45rem,3vw,2rem)/1.3 Georgia,serif;overflow-wrap:break-word}.intro{margin:9px 0;color:#65758a;font-size:.9rem}.report-meta{display:flex;flex-wrap:wrap;gap:6px 17px;margin-top:15px;color:#6b7888;font-size:.75rem}
 .toolbar{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;max-width:900px;margin:16px auto 0}.action{display:inline-flex;align-items:center;gap:7px;border:1px solid #cfdae4;border-radius:7px;background:#fff;padding:9px 12px;color:#244a6a;font:600 .78rem/1.2 system-ui,sans-serif;cursor:pointer;transition:background .16s,border-color .16s}.action:hover{background:#f1f5f8;border-color:#aebfd0}.action.primary{border-color:#17375e;background:#17375e;color:#fff}.action.primary:hover{background:#244a72}.action:focus-visible,.reference-action:focus-visible{outline:2px solid #b68a3a;outline-offset:2px}.action:disabled{cursor:not-allowed;opacity:.55}.action-message{max-width:900px;margin:10px auto 0;padding:8px 12px;border-left:2px solid #b68a3a;background:#fbf8f0;color:#634f2b;font-size:.82rem}.report-paper{width:100%;max-width:900px;margin:24px auto 0;font-size:.98rem;line-height:1.72}.report-paper :deep(.markdown-body h1){display:none}.report-paper :deep(.markdown-body h2){font-family:Georgia,serif;font-weight:600}.report-paper :deep(.citation-inline){display:inline;position:relative;top:-.07em;margin:0 .13em;padding:.08em .36em;border:1px solid #d7e2ec;border-radius:4px;background:#f1f5f8;color:#1b496f;font-family:inherit;font-size:.76em;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer}.report-paper :deep(.citation-inline:hover){background:#e3edf5;border-color:#b9cddb}.report-paper :deep(.citation-inline:focus-visible){outline:2px solid #315c97;outline-offset:2px}
 .report-references{margin-top:35px;padding-top:25px;border-top:1px solid #dce5ee}.report-references h3{margin:0;color:#17324f;font:600 1.25rem Georgia,serif}.report-references>p{margin:6px 0 20px;color:#65758a;font-size:.86rem}.reference-group{margin-top:18px}.reference-group h4{margin:0 0 8px;color:#92713c;font:700 .7rem system-ui,sans-serif;letter-spacing:.09em}.reference-group ol{list-style:none;margin:0;padding:0}.reference-group li{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid #e8edf2}.reference-number{min-width:27px;color:#244a6a;font-weight:700;font-size:.83rem}.reference-action{display:grid;gap:4px;padding:0;border:0;background:none;text-align:left;color:#26384b;cursor:pointer}.reference-action:hover strong{text-decoration:underline}.reference-action strong{font-size:.88rem;font-weight:650}.reference-action small{font-size:.75rem;color:#718096}.empty-report{min-height:220px;display:grid;align-content:center;justify-items:center;text-align:center;color:#64748b}.empty-report h3{margin:0;color:#193653;font:600 1.2rem Georgia,serif}.empty-report p{max-width:540px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:700px){.report-header{flex-direction:column}.toolbar{justify-content:flex-start}.report-view{padding:17px}}@media print{.report-view{border:0;padding:0}.report-header{border:0}.toolbar,.action-message{display:none!important}.report-paper{max-width:none}.report-references{break-before:auto}}
+/* Screen-only finish: preserve the existing printed report and export content. */
+@media screen {
+  .report-paper :deep(.citation-inline){position:static;vertical-align:baseline;margin:0 .16em;padding:.1em .42em;border:1px solid #d6e4ef;border-radius:6px;background:#eef5fa;color:#285b82;font-size:.76em;font-weight:650;line-height:1.1;letter-spacing:0;box-shadow:0 1px 2px #17375e06;text-decoration:none}
+  .report-paper :deep(.citation-inline:hover){background:#e3eff8;border-color:#b2cde1;color:#173f65}
+  .report-paper :deep(.citation-inline:focus-visible){outline:2px solid #497ca3;outline-offset:3px;background:#e3eff8}
+  .report-references{margin-top:40px;padding-top:28px;border-top-color:#dbe5ee}
+  .report-references h3{font-size:1.3rem;line-height:1.35}
+  .report-references>p{margin:9px 0 24px;color:#68798b;font-size:.88rem;line-height:1.65}
+  .reference-group{margin-top:24px}
+  .reference-group+.reference-group{margin-top:30px}
+  .reference-group h4{display:flex;align-items:center;gap:10px;margin:0 0 12px;color:#8a6d41;font-size:.7rem;line-height:1.5;letter-spacing:.08em}
+  .reference-group h4::before{content:'';flex:none;width:5px;height:16px;border-radius:3px;background:#d9c39e}
+  .reference-group li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:14px;align-items:start;padding:15px 10px;border-top:1px solid #e5ecf2}
+  .reference-group li:last-child{border-bottom:1px solid #e5ecf2}
+  .reference-number{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:0;margin-top:2px;padding:4px 5px;border:1px solid #d6e4ef;border-radius:7px;background:#eef5fa;color:#285b82;font-size:.76rem;font-weight:700;line-height:1.35}
+  .reference-action{grid-template-columns:minmax(0,1fr) auto;column-gap:18px;row-gap:5px;width:100%;min-width:0;padding:2px 4px;border-radius:6px;font-family:inherit;line-height:1.55}
+  .reference-action strong{grid-column:1;min-width:0;color:#253f59;font-size:.91rem;font-weight:650;overflow-wrap:break-word;word-break:normal}
+  .reference-action small{grid-column:1;min-width:0;color:#718195;font-size:.78rem;line-height:1.6;overflow-wrap:break-word}
+  .reference-action::after{content:'Ver fuente ↗';grid-column:2;grid-row:1 / span 2;align-self:center;padding:4px 7px;border-radius:5px;color:#386b91;background:#f3f7fa;font-size:.74rem;font-weight:600;white-space:nowrap}
+  .reference-action:hover strong{text-decoration:none;color:#285b82}
+  .reference-action:hover::after{background:#e6f0f7;color:#173f65}
+  .reference-action:focus-visible{outline:2px solid #497ca3;outline-offset:3px}
+}
+@media screen and (max-width:600px){
+  .reference-group li{grid-template-columns:32px minmax(0,1fr);gap:10px;padding:14px 0}
+  .reference-action{grid-template-columns:minmax(0,1fr)}
+  .reference-action::after{grid-column:1;grid-row:auto;justify-self:start;margin-top:3px}
+}
 </style>
 
 <style>
