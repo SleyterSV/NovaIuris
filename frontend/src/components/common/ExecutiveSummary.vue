@@ -106,28 +106,35 @@ const mainFinding = computed(() => firstReadable(props.summary.hallazgo_principa
 </script>
 
 <style scoped>
-.executive-summary{display:grid;gap:26px;min-width:0;max-width:1240px;color:#26384b}
-.summary-header{display:flex;align-items:flex-start;justify-content:space-between;gap:22px;padding-bottom:20px;border-bottom:1px solid #dce5ee}
+.executive-summary{display:grid;gap:30px;min-width:0;width:100%;max-width:1240px;color:#26384b}
+.summary-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:25px;border-bottom:1px solid #dce5ee}
 .eyebrow{margin:0 0 8px;color:#94754b;font-size:.69rem;font-weight:750;letter-spacing:.12em}
 .summary-header h2{margin:0;color:#17375e;font:600 clamp(1.7rem,2.7vw,2.15rem)/1.23 Georgia,serif}
-.summary-subtitle{max-width:68ch;margin:9px 0 0;color:#61748a;font-size:.9rem;line-height:1.6}
-.summary-badge{flex:none;padding:7px 12px;border:1px solid #ccded3;border-radius:999px;background:#f2f8f4;color:#315b47;font-size:.74rem;font-weight:700}
-.summary-lead{max-width:86ch;margin:0;color:#293f55;font-size:1.02rem;line-height:1.74;white-space:pre-line}
-.summary-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0}
-.summary-card{display:grid;grid-template-columns:34px minmax(0,1fr);column-gap:11px;align-content:start;min-width:0;min-height:105px;padding:17px 18px;border:1px solid #dfe6ec;border-radius:10px;background:#fafbfd}
-.card-icon{grid-row:1 / span 2;display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:#edf2f6;color:#476987}
-.card-icon svg{width:18px;height:18px}
-.summary-card dt{align-self:end;color:#68798b;font-size:.69rem;font-weight:750;letter-spacing:.045em;text-transform:uppercase;line-height:1.35}
-.summary-card dd{min-width:0;margin:7px 0 0;color:#17375e;font-size:1rem;font-weight:700;line-height:1.42;overflow-wrap:break-word;word-break:normal;hyphens:none}
-.summary-card--documents dd,.summary-card--sources dd{font:600 1.25rem/1.2 Georgia,serif}
-.summary-insights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
-.summary-insight{min-width:0;padding:20px 22px;border:1px solid #dfe6ec;border-radius:10px}
-.summary-insight h3{margin:0 0 12px;color:#17375e;font:600 1.12rem/1.3 Georgia,serif}
-.summary-insight p,.summary-insight li{color:#344c62;font-size:.92rem;line-height:1.65;overflow-wrap:break-word}
-.summary-insight p{margin:0;white-space:pre-line}.summary-insight ul{display:grid;gap:7px;margin:0;padding-left:20px}
-.summary-insight--facts{grid-column:1/-1;background:#f4f8fb;border-color:#dce7ef}
-.summary-insight--issue{background:#fbf8f1;border-color:#e8ddc8}
-.summary-insight--finding{background:#f3f8f5;border-color:#dce9df}
+.summary-subtitle{max-width:68ch;margin:12px 0 0;color:#61748a;font-size:.94rem;line-height:1.7}
+.summary-badge{flex:none;margin-top:3px;padding:8px 13px;border:1px solid #ccded3;border-radius:999px;background:#f2f8f4;color:#315b47;font-size:.74rem;font-weight:700;line-height:1.4}
+.summary-lead{max-width:78ch;margin:0;color:#293f55;font-size:1.03rem;line-height:1.85;white-space:pre-line}
+.summary-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:0}
+.summary-card{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:14px;align-content:start;min-width:0;min-height:112px;padding:20px;border:1px solid #dfe6ec;border-radius:12px;background:#fff;box-shadow:0 3px 12px #17375e05}
+.card-icon{grid-row:1 / span 2;display:grid;place-items:center;box-sizing:border-box;width:40px;height:40px;border:1px solid var(--icon-border);border-radius:11px;background:var(--icon-tint);color:var(--icon-color)}
+.card-icon svg{width:21px;height:21px}
+.summary-card--branch{--icon-color:#346da3;--icon-tint:#edf5fc;--icon-border:#d9e9f6}
+.summary-card--process{--icon-color:#9b742e;--icon-tint:#fcf6e9;--icon-border:#efe2c5}
+.summary-card--risk{--icon-color:#b05c55;--icon-tint:#fcf0ed;--icon-border:#f0dcd7}
+.summary-card--evidence{--icon-color:#7d62a4;--icon-tint:#f3effa;--icon-border:#e5dcf2}
+.summary-card--documents{--icon-color:#3b8067;--icon-tint:#edf7f1;--icon-border:#d9eade}
+.summary-card--sources{--icon-color:#467b9c;--icon-tint:#edf7fa;--icon-border:#d7eaf1}
+.summary-card dt{align-self:end;color:#61748a;font-size:.7rem;font-weight:750;letter-spacing:.035em;text-transform:uppercase;line-height:1.5}
+.summary-card dd{min-width:0;margin:8px 0 0;color:#17375e;font-size:1.04rem;font-weight:650;line-height:1.5;overflow-wrap:break-word;word-break:normal;hyphens:none}
+.summary-card--documents dd,.summary-card--sources dd{font:600 1.4rem/1.25 Georgia,serif}
+.summary-insights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:20px}
+.summary-insight{min-width:0;padding:24px 26px;border:1px solid #dfe6ec;border-radius:12px;box-shadow:0 3px 12px #17375e04}
+.summary-insight h3{margin:0 0 16px;color:#17375e;font:600 1.2rem/1.35 Georgia,serif}
+.summary-insight p,.summary-insight li{color:#344c62;font-size:.96rem;line-height:1.8;overflow-wrap:break-word;word-break:normal}
+.summary-insight p{margin:0;white-space:pre-line}.summary-insight ul{display:grid;gap:13px;max-width:90ch;margin:0;padding-left:20px}.summary-insight li{padding-left:5px}.summary-insight li::marker{color:#6589ab;font-size:.8em}
+.summary-insight--facts{grid-column:1/-1;background:#f6f9fc;border-color:#dce7ef}
+.summary-insight--issue{background:#fdf9f0;border-color:#e8ddc8;border-top:3px solid #d8b77b}.summary-insight--issue h3{color:#80602c}
+.summary-insight--finding{background:#f1f8f5;border-color:#d4e7dd;border-top:3px solid #82b6a0}.summary-insight--finding h3{color:#2d6a54}
 @media(max-width:980px){.summary-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:620px){.summary-header{flex-direction:column}.summary-facts,.summary-insights{grid-template-columns:minmax(0,1fr)}.summary-insight--facts{grid-column:auto}.summary-card{min-height:0}.executive-summary{gap:20px}}
+@media(max-width:760px){.summary-header{flex-wrap:wrap}.summary-insights{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:620px){.summary-header{flex-direction:column;gap:16px;padding-bottom:20px}.summary-facts,.summary-insights{grid-template-columns:minmax(0,1fr)}.summary-insight--facts{grid-column:auto}.summary-card{min-height:0;padding:18px}.summary-insight{padding:21px 20px}.executive-summary{gap:24px}}
 </style>
