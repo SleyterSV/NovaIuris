@@ -56,6 +56,12 @@ const levelLabel = value => {
   }
   return labels[raw.toLocaleLowerCase('es')] || raw || 'No identificado'
 }
+const consolidatedRisk = computed(() => {
+  const match = readable(props.summary.riesgo).match(/^(?:(?:nivel(?: general)?(?: de riesgo)?|riesgo)\s*:?\s*)?(baj[oa]|low|medi[oa]|medium|alt[oa]|high)\b/i)
+  if (!match) return 'No identificado'
+  const level = match[1].toLocaleLowerCase('es')
+  return /^(baj|low)/.test(level) ? 'Bajo' : /^(med)/.test(level) ? 'Medio' : 'Alto'
+})
 const reportParagraph = pattern => {
   const sections = Array.isArray(props.reportDocument.sections) ? props.reportDocument.sections : []
   const section = sections.find(item => pattern.test(item?.title || '') && typeof item?.content === 'string')
@@ -70,7 +76,7 @@ const particulars = computed(() => [
     icon: 'M4 20h16M7 20V9l5-5 5 5v11M5 10h14M9 14h6' },
   { key: 'process', label: 'Tipo de proceso', value: firstReadable(props.summary.proceso, props.summary.tipo_proceso) || 'No identificado',
     icon: 'M7 3h8l4 4v14H5V3h2Zm8 0v5h4M8 12h8M8 16h8' },
-  { key: 'risk', label: 'Nivel de riesgo', value: levelLabel(props.summary.riesgo),
+  { key: 'risk', label: 'Nivel de riesgo', value: consolidatedRisk.value,
     icon: 'M12 3 2.5 20h19L12 3Zm0 6v5m0 3h.01' },
   { key: 'evidence', label: 'Nivel de evidencia', value: levelLabel(props.summary.evidencia),
     icon: 'M4 4h16v16H4zM8 9h8M8 13h8M8 17h5' },

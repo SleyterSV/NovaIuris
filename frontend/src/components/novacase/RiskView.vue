@@ -8,9 +8,6 @@
             <h2 id="risk-title">Evaluación de riesgos</h2>
             <p class="risk-subtitle">Identificación de contingencias jurídicas, procesales y probatorias que pueden afectar la viabilidad del caso.</p>
           </div>
-          <span v-if="overallLevel" class="overall-risk" :class="levelClass(overallLevel)">
-            <span>Nivel general</span><strong>{{ overallLevel }}</strong>
-          </span>
         </div>
       </div>
     </header>
@@ -214,9 +211,9 @@ const hasRiskData = computed(() => Boolean(overallLevel.value || criticalRisks.v
 .risk-header{padding:2px 0 22px;border-bottom:1px solid var(--risk-line)}
 .risk-eyebrow{display:flex;align-items:center;gap:9px;margin:0 0 10px;color:#8a6a37;font-size:.64rem;font-weight:750;letter-spacing:.12em}
 .risk-eyebrow span{width:22px;height:1px;background:#b08a4c}
-.risk-heading-row{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
+.risk-heading-row{display:block;max-width:820px;min-width:0}
 .risk-heading-row h2{margin:0;color:var(--risk-navy);font:600 clamp(1.7rem,2.3vw,2.15rem)/1.24 Georgia,'Times New Roman',serif}
-.risk-subtitle{max-width:780px;margin:9px 0 0;color:var(--risk-muted);font-size:.92rem;line-height:1.7}
+.risk-subtitle{max-width:70ch;margin:12px 0 0;color:var(--risk-muted);font-size:.92rem;line-height:1.7}
 .overall-risk{display:grid;gap:4px;flex:none;min-width:150px;padding:10px 14px;border:1px solid #e2e8ed;border-radius:8px;background:#fbfcfd}
 .overall-risk>span{color:#788696;font-size:.68rem;font-weight:650}
 .overall-risk strong{font:600 1rem Georgia,'Times New Roman',serif}
@@ -226,12 +223,12 @@ const hasRiskData = computed(() => Boolean(overallLevel.value || criticalRisks.v
 .severity-medium{color:#80683d!important}.overall-risk.severity-medium,.severity-badge.severity-medium{border-color:#e9dfcc;background:#fcfaf5}
 .severity-low{color:#587161!important}.overall-risk.severity-low,.severity-badge.severity-low{border-color:#dce7dd;background:#f7faf7}
 .severity-neutral{color:#60748a!important}
-.risk-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));border-top:1px solid #e3e9ee;border-bottom:1px solid #e3e9ee}
-.summary-metric{display:grid;align-content:center;gap:6px;min-width:0;padding:14px 16px 14px 0}
-.summary-metric+.summary-metric{padding-left:16px;border-left:1px solid #e3e9ee}
+.risk-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.summary-metric{display:grid;align-content:start;gap:8px;min-width:0;padding:16px;border:1px solid #e3e9ee;border-radius:10px;background:#fbfcfd}
+.summary-metric.summary-overall{grid-column:1/-1;padding:clamp(18px,2.5vw,26px);border-color:#dce5ee;background:#f4f7fa}
 .summary-metric>span{color:#788696;font-size:.67rem;font-weight:650;line-height:1.4}
 .summary-metric>strong{color:var(--risk-navy);font:600 1.08rem Georgia,'Times New Roman',serif}
-.summary-metric.summary-overall>strong{font-size:.92rem}
+.summary-metric.summary-overall>strong{max-width:95ch;font-family:inherit;font-size:.94rem;font-weight:500;line-height:1.75;overflow-wrap:anywhere}
 .risk-conclusion{margin:-20px 0 0;padding:14px 17px;border-left:2px solid #b69a6a;background:#faf8f2;color:#4d6071;font-size:.88rem;line-height:1.7}
 .risk-priority{padding:22px clamp(16px,2.2vw,26px);border:1px solid #e6e1d7;border-left:3px solid #b08a4c;border-radius:9px;background:#fdfcf9}
 .risk-section-heading{margin:0 0 16px}
@@ -263,7 +260,7 @@ const hasRiskData = computed(() => Boolean(overallLevel.value || criticalRisks.v
 .recommendation-list>li{padding:11px 0}
 .recommendation-list .risk-copy p{margin:0;color:#405469;font-size:.87rem;line-height:1.7}
 .risk-empty{margin:0;padding:14px 16px;border-left:2px solid #d4c29e;background:#faf9f5;color:#637286;font-size:.86rem;line-height:1.65}
-@media(max-width:1439px){.risk-summary{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.risk-priority{padding-inline:18px}}
-@media(max-width:760px){.risk-editorial{gap:26px}.risk-heading-row{align-items:flex-start;flex-direction:column;gap:13px}.overall-risk{min-width:0}.risk-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-metric:nth-child(odd){padding-left:0;border-left:0}.summary-metric:nth-child(n+3){border-top:1px solid #e3e9ee}.priority-row,.risk-row,.recommendation-list>li{grid-template-columns:30px minmax(0,1fr);gap:10px}.risk-detail,.risk-mitigation{grid-template-columns:minmax(0,1fr);gap:3px}}
-@media(max-width:440px){.risk-summary{grid-template-columns:1fr}.summary-metric,.summary-metric+.summary-metric,.summary-metric:nth-child(odd){padding:10px 0 0;border:0;border-top:1px solid #e3e9ee}.summary-metric:first-child{padding-top:0;border-top:0}.risk-row-heading{align-items:flex-start;flex-direction:column;gap:6px}}
+@media(max-width:1439px){.risk-priority{padding-inline:18px}}
+@media(max-width:760px){.risk-editorial{gap:26px}.risk-heading-row{align-items:flex-start;flex-direction:column;gap:13px}.overall-risk{min-width:0}.risk-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.priority-row,.risk-row,.recommendation-list>li{grid-template-columns:30px minmax(0,1fr);gap:10px}.risk-detail,.risk-mitigation{grid-template-columns:minmax(0,1fr);gap:3px}}
+@media(max-width:440px){.risk-summary{grid-template-columns:1fr}.risk-row-heading{align-items:flex-start;flex-direction:column;gap:6px}}
 </style>
