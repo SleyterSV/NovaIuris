@@ -154,12 +154,7 @@
 
                 <template #evidence>
 
-                    <CourtAnalysis
-                        :content="evidenceContent"
-                        :loading="isLoading && !hasResult"
-                        :status="evidenceStatus"
-                        :status-type="evidenceStatusType"
-                    />
+                    <CourtEvidence :result="result || {}" :simulation="simulationData" :loading="isLoading && !hasResult" />
 
                 </template>
 
@@ -341,6 +336,9 @@ import CourtAnalysis
 
 import CourtArguments
     from "../components/novacourt/CourtArguments.vue"
+
+import CourtEvidence
+    from "../components/novacourt/CourtEvidence.vue"
 
 import CourtReport
     from "../components/novacourt/CourtReport.vue"
