@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFile } from 'node:fs/promises'
-import { prepareCaseExport, downloadCasePdf, downloadCaseDocx } from '../src/services/caseExport.js'
+import { prepareCaseExport, downloadCasePdf, downloadCaseDocx, downloadCourtPdf, downloadCourtDocx } from '../src/services/caseExport.js'
 import { reportForReading, reportUsedSources } from '../src/utils/caseReportPresentation.js'
 
 test('Case export sends only server-owned identifiers', async () => {
@@ -65,6 +65,42 @@ test('DOCX uses the same scoped identity and validates the file response', async
   assert.deepEqual(JSON.parse(calls[0].options.body),
     {case_id:'CASE-A',task_id:'TASK-A',tool:'case'})
   await assert.rejects(()=>downloadCaseDocx('','TASK-A'),/incompleta/)
+})
+
+test('NovaCourt PDF and DOCX send only persisted task identity', async () => {
+  const calls = []
+  for (const [download, format, mime, bytes] of [
+    [downloadCourtPdf, 'pdf', 'application/pdf', '%PDF-1.7'],
+    [downloadCourtDocx, 'docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'PK-office']
+  ]) {
+    const file = new Blob([bytes], { type:mime })
+    const result = await download('CASE-COURT', 'TASK-COURT', async (url, options) => {
+      calls.push({ url, options })
+      return { ok:true, headers:new Headers({ 'Content-Type':mime }), blob:async () => file }
+    })
+    assert.equal(result, file)
+    assert.match(calls.at(-1).url, new RegExp(`/export/court/${format}$`))
+    assert.deepEqual(JSON.parse(calls.at(-1).options.body),
+      { case_id:'CASE-COURT', task_id:'TASK-COURT', tool:'court' })
+    assert.doesNotMatch(calls.at(-1).options.body, /report|result|html|markdown|content/i)
+  }
+})
+
+test('NovaCourt report exposes copy, print and real file actions without client report payload', async () => {
+  const report = await readFile(new URL('../src/components/novacourt/CourtReport.vue', import.meta.url), 'utf8')
+  const view = await readFile(new URL('../src/views/NovaCourtView.vue', import.meta.url), 'utf8')
+  assert.match(report, /Copiar informe/)
+  assert.match(report, /@click="printReport"/)
+  assert.match(report, /Descargar PDF/)
+  assert.match(report, /Descargar DOCX/)
+  assert.match(report, /Generando PDF/)
+  assert.match(report, /Generando DOCX/)
+  assert.match(report, /No fue posible generar el PDF/)
+  assert.match(report, /No fue posible generar el DOCX/)
+  assert.doesNotMatch(report, /PDF · próximamente|DOCX · próximamente/)
+  assert.match(view, /:task-id="taskId"/)
+  assert.match(report, /downloadCourtPdf\(props\.caseId, props\.taskId\)/)
+  assert.match(report, /navigator\.clipboard\.writeText\(cleanReportText\(reportText\)\)/)
 })
 
 test('report presentation removes only duplicate source section and keeps canonical citations', () => {

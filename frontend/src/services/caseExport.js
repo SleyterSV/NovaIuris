@@ -8,12 +8,14 @@ export function prepareCaseExport(caseId, taskId, request = requestJson) {
     body: JSON.stringify({ case_id: caseId, task_id: taskId, tool: 'case' }) })
 }
 
-export async function downloadCaseFile(format, caseId, taskId, fetchImpl = fetch) {
+export async function downloadCaseFile(format, caseId, taskId, fetchImpl = fetch, tool = 'case') {
   if (!['pdf', 'docx'].includes(format)) throw new Error('Formato de exportación no disponible.')
+  if (!['case', 'court'].includes(tool)) throw new Error('Herramienta de exportación no disponible.')
   if (!caseId || !taskId) throw new Error('Identidad de tarea incompleta.')
-  const response = await fetchImpl(`${API_URL}/export/${format}`, {
+  const route = tool === 'court' ? `court/${format}` : format
+  const response = await fetchImpl(`${API_URL}/export/${route}`, {
     method:'POST', headers:{ 'Content-Type':'application/json', ...authHeaders() },
-    body:JSON.stringify({ case_id:caseId, task_id:taskId, tool:'case' })
+    body:JSON.stringify({ case_id:caseId, task_id:taskId, tool })
   })
   if (!response.ok) {
     let body = {}
@@ -33,3 +35,7 @@ export const downloadCasePdf = (caseId, taskId, fetchImpl) =>
   downloadCaseFile('pdf', caseId, taskId, fetchImpl)
 export const downloadCaseDocx = (caseId, taskId, fetchImpl) =>
   downloadCaseFile('docx', caseId, taskId, fetchImpl)
+export const downloadCourtPdf = (caseId, taskId, fetchImpl) =>
+  downloadCaseFile('pdf', caseId, taskId, fetchImpl, 'court')
+export const downloadCourtDocx = (caseId, taskId, fetchImpl) =>
+  downloadCaseFile('docx', caseId, taskId, fetchImpl, 'court')

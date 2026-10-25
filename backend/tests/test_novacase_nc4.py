@@ -2,6 +2,7 @@
 import io
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 from pypdf import PdfReader
@@ -62,6 +63,75 @@ class NovaCaseNC4Tests(unittest.TestCase):
         return self.client.post('/api/export/prepare', json={
             'case_id': case_id, 'task_id': task_id or self.task_id, 'tool': 'case', **extra},
             headers={'X-Test-Owner': owner})
+
+    def test_novacourt_exports_use_persisted_scoped_result_and_share_canonical_content(self):
+        task_id = self.tasks.create_task('legal_analysis',
+            {'owner_id':'owner-a', 'case_id':'CASE-A', 'tool':'court', 'document_ids':[]})
+        private = {'source_id':'SRC-private-doc', 'source_scope':'private_case', 'case_id':'CASE-A',
+                   'display_title':'Contrato CAS aportado', 'page_start':1}
+        legal = {'source_id':'SRC-public-unit', 'source_scope':'public_legal',
+                 'display_title':'STC Exp. 02047-2025-PA/TC', 'court':'Tribunal Constitucional',
+                 'unit_type':'foundation', 'unit_number':'11', 'page_start':5, 'page_end':6}
+        canonical = {**self.result, 'simulation':{'status':'ready'},
+            'court_report_document':{'document_type':'court_simulation', 'case_id':'CASE-A',
+                'case_title':'Municipalidad Distrital de Santa Esperanza',
+                'sections':[{'title':'Posición de la parte demandante', 'content':'## Tesis principal\nLa no renovación se cuestiona. [1]'},
+                            {'title':'Decisión simulada', 'content':'La conclusión depende de acreditar los hechos. [4]'}],
+                'citations':[{'citation_id':'CIT-1','label':'[1]','source_id':private['source_id']},
+                             {'citation_id':'CIT-4','label':'[4]','source_id':legal['source_id']}],
+                'sources':[private, legal]}}
+        self.tasks.update_task(task_id, status=TaskStatus.PROCESSING)
+        self.tasks.complete_task(task_id, canonical)
+
+        for fmt, mime in (('pdf','application/pdf'),
+                          ('docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document')):
+            with self.subTest(format=fmt):
+                payload = {'case_id':'CASE-A','task_id':task_id,'tool':'court'}
+                response = self.client.post(f'/api/export/court/{fmt}', json=payload, headers={'X-Test-Owner':'owner-a'})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.mimetype, mime)
+                self.assertIn('MYKE_NovaCourt_Municipalidad_Distrital_de_Santa_Esperanza',
+                              response.headers['Content-Disposition'])
+                self.assertGreater(len(response.data), 1000)
+                if fmt == 'pdf':
+                    self.assertTrue(response.data.startswith(b'%PDF'))
+                    reader = PdfReader(io.BytesIO(response.data))
+                    text = '\n'.join(page.extract_text() or '' for page in reader.pages)
+                    self.assertAlmostEqual(float(reader.pages[0].mediabox.width), 595.3, delta=1)
+                    self.assertIn('Generado por MYKE · NovaCourt', text)
+                else:
+                    self.assertTrue(zipfile.is_zipfile(io.BytesIO(response.data)))
+                    self.assertTrue(response.data.startswith(b'PK'))
+                    document = Document(io.BytesIO(response.data))
+                    self.assertAlmostEqual(document.sections[0].page_width.cm, 21, delta=.1)
+                    self.assertAlmostEqual(document.sections[0].left_margin.cm, 2.5, delta=.1)
+                    text = '\n'.join(p.text for p in document.paragraphs)
+                    text += '\n' + '\n'.join(p.text for p in document.sections[0].footer.paragraphs)
+                self.assertIn('La no renovación se cuestiona. [1]', text)
+                self.assertIn('La conclusión depende de acreditar los hechos. [4]', text)
+                self.assertIn('Contrato CAS aportado', text)
+                self.assertIn('STC Exp. 02047-2025-PA/TC', text)
+                self.assertNotIn('CASE-A', text)
+                self.assertNotIn('SRC-private-doc', text)
+                forged = self.client.post(f'/api/export/court/{fmt}', json={**payload,'report':'TEXTO MANIPULADO'},
+                                          headers={'X-Test-Owner':'owner-a'})
+                self.assertEqual(forged.status_code, 400)
+                self.assertNotIn('TEXTO MANIPULADO', forged.get_data(as_text=True))
+                self.assertEqual(self.client.post(f'/api/export/court/{fmt}', json=payload,
+                    headers={'X-Test-Owner':'owner-b'}).status_code, 404)
+                self.assertEqual(self.client.post(f'/api/export/court/{fmt}', json={**payload,'case_id':'CASE-B'},
+                    headers={'X-Test-Owner':'owner-a'}).status_code, 404)
+                self.assertEqual(self.client.post(f'/api/export/court/{fmt}', json={**payload,'task_id':self.task_id},
+                    headers={'X-Test-Owner':'owner-a'}).status_code, 404)
+
+        pending = self.tasks.create_task('legal_analysis',
+            {'owner_id':'owner-a','case_id':'CASE-A','tool':'court','document_ids':[]})
+        self.assertEqual(self.client.post('/api/export/court/pdf', json={'case_id':'CASE-A','task_id':pending,'tool':'court'},
+            headers={'X-Test-Owner':'owner-a'}).status_code, 409)
+        self.app.extensions['task_repository'] = TaskRepository(self.app.config['TASK_DB_PATH'])
+        persisted = self.client.post('/api/export/court/pdf', json={'case_id':'CASE-A','task_id':task_id,'tool':'court'},
+                                     headers={'X-Test-Owner':'owner-a'})
+        self.assertEqual(persisted.status_code, 200)
 
     def test_scoped_pdf_uses_persisted_report_and_single_footer_mark(self):
         payload = {'case_id':'CASE-A', 'task_id':self.task_id, 'tool':'case'}

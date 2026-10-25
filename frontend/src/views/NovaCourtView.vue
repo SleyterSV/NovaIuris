@@ -203,6 +203,8 @@
                         :citations="simulationData.citations"
                         :sources="simulationData.sources"
                         :case-id="result?.case_id"
+                        :task-id="taskId"
+                        :case-title="result?.court_report_document?.case_title || result?.case_title || result?.metadata?.case_title || ''"
                         :loading="isLoading && !hasResult"
                         :status="reportStatus"
                         :status-type="reportStatusType"
@@ -386,6 +388,7 @@ const result =
     novaCourt.result
 
 const taskStatus = novaCourt.taskStatus
+const taskId = novaCourt.taskId
 
 const analyzeCase =
     novaCourt.analyzeCase

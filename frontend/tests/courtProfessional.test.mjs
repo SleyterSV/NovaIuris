@@ -99,9 +99,14 @@ test('Court panels show adaptive roles, simulated decision, grounded sources and
     const report = (await server.ssrLoadModule('/src/components/novacourt/CourtReport.vue')).default
     const reportHtml = await renderToString(createSSRApp({render:()=>h(report,{content:'## Decisión simulada\n\nTexto [1]',
       sources:[source],citations:[citation],caseId:'CASE-A'})}))
-    assert.match(reportHtml,/Copiar simulación/)
-    assert.match(reportHtml,/PDF.*próximamente/)
+    assert.match(reportHtml,/Copiar informe/)
+    assert.match(reportHtml,/Descargar PDF/)
+    assert.match(reportHtml,/Descargar DOCX/)
     assert.match(reportHtml,/Contrato/)
+    assert.match(reportHtml,/citation-inline[^>]*data-numeric[^>]*>1</)
+    assert.match(reportHtml,/DOCUMENTOS DEL CASO/)
+    assert.match(reportHtml,/Ver documento/)
+    assert.doesNotMatch(reportHtml.replace(/<[^>]*>/g,' '),/\[1\]/)
     assert.doesNotMatch(reportHtml,/SRC-CASE001/)
   } finally { await server.close() }
 })
