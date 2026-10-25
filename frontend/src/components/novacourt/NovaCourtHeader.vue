@@ -38,6 +38,7 @@
         ====================================================== -->
 
         <div class="header-content">
+            <nav class="court-breadcrumb" aria-label="Ubicación"><span>MYKE</span><span aria-hidden="true">/</span><span>NovaCourt</span><span aria-hidden="true">/</span><strong>Simulación judicial</strong></nav>
 
 
             <!-- =================================================
@@ -1772,4 +1773,6 @@
 
 }
 
+.court-breadcrumb{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:20px;color:#718299;font:650 .69rem/1.3 system-ui,sans-serif}.court-breadcrumb strong{color:#17375e;font-weight:700}.court-breadcrumb span[aria-hidden]{color:#b08a4c}
+@media(max-width:576px){.court-breadcrumb{margin-bottom:14px;font-size:.64rem}}
 </style>

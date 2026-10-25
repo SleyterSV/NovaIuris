@@ -7,9 +7,6 @@
         ====================================================== -->
 
         <NovaCourtHeader v-if="!embedded" />
-        <PipelineProgress v-if="isLoading" :progress="novaCourt.progress.value" :current="novaCourt.currentStage.value" :stages="novaCourt.stages.value" />
-        <button v-if="isLoading" type="button" @click="novaCourt.cancel">Cancelar tarea</button>
-        <p v-for="warning in novaCourt.warnings.value" :key="warning.stage" role="status">{{ warning.message }}</p>
 
 
         <!-- =====================================================
@@ -38,44 +35,30 @@
         ====================================================== -->
 
         <section
-            v-if="isLoading || errorMessage"
+            v-if="isLoading || errorMessage || hasResult"
             class="novacourt-feedback"
             aria-live="polite"
         >
 
             <!-- PROCESANDO -->
 
-            <div
-                v-if="isLoading"
-                class="feedback-card feedback-processing"
-            >
-
-                <div class="feedback-indicator">
-
-                    <span class="feedback-dot"></span>
-
-                </div>
-
-
-                <div class="feedback-content">
-
-                    <span class="feedback-label">
-                        {{ taskStatus === 'restoring' ? 'RECUPERANDO TAREA' : 'PROCESAMIENTO JUDICIAL' }}
-                    </span>
-
-                    <strong>
-                        {{ taskStatus === 'restoring' ? 'Recuperando la simulación existente' : 'NovaCourt está analizando el caso' }}
-                    </strong>
-
-                    <p>
-                        El sistema está organizando los hechos,
-                        identificando los elementos jurídicos relevantes
-                        y estructurando los posibles escenarios judiciales.
+            <PipelineProgress v-if="isLoading || hasResult"
+                :progress="novaCourt.progress.value"
+                :current="novaCourt.currentStage.value"
+                :stages="novaCourt.stages.value"
+                :restoring="taskStatus === 'restoring'"
+                :complete="!isLoading && hasResult">
+                <template #action>
+                    <button v-if="isLoading" class="cancel-simulation" type="button" @click="novaCourt.cancel">
+                        <span aria-hidden="true">×</span> Cancelar simulación
+                    </button>
+                </template>
+                <template #warnings>
+                    <p v-for="warning in novaCourt.warnings.value" :key="warning.stage" class="court-warning" role="status">
+                        <span class="warning-icon" aria-hidden="true">!</span>{{ warning.message }}
                     </p>
-
-                </div>
-
-            </div>
+                </template>
+            </PipelineProgress>
 
 
             <!-- ERROR -->
@@ -1675,4 +1658,9 @@ const reportStatusType = computed(() => {
 
 }
 
+.cancel-simulation{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:5px 11px;border:1px solid #b8c6d4;border-radius:8px;background:#fff;color:#31506d;font:650 .73rem/1.2 system-ui,sans-serif;cursor:pointer;transition:background .16s,border-color .16s}
+.cancel-simulation span{font-size:1.1rem;line-height:1}.cancel-simulation:hover{background:#f1f5f8;border-color:#829bb1}.cancel-simulation:focus-visible{outline:2px solid #b08a4c;outline-offset:3px}
+.court-warning{display:flex;align-items:flex-start;gap:10px;margin:0;padding:10px 13px;border:1px solid #eadfc9;border-radius:8px;background:#fcfaf5;color:#66573f;font-size:.8rem;line-height:1.5}.warning-icon{display:grid;place-items:center;flex:none;width:18px;height:18px;border-radius:50%;background:#eee1c9;color:#86683a;font-size:.7rem;font-weight:800}
+.novacourt-feedback+.novacourt-results{margin-top:12px}
+@media(max-width:576px){.court-warning{font-size:.76rem}}
 </style>
