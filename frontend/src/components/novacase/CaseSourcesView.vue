@@ -34,7 +34,7 @@
             <p class="document-origin">Documento aportado al expediente</p>
             <ul v-if="group.sources.length" class="unit-list private-unit-list">
               <li v-for="source in group.sources" :key="source.source_id">
-                <span class="unit-citation" v-if="citationFor(source)">{{ citationFor(source) }}</span>
+                <button class="unit-citation novacase-citation-badge" v-if="citationFor(source)" type="button" :aria-label="`Ver fuente ${citationFor(source).slice(1, -1)}`" @click="selectSource(source)">{{ citationFor(source).slice(1, -1) }}</button>
                 <span class="unit-location">{{ pageLabel(source) || 'Documento' }}</span>
                 <button type="button" class="source-action" :aria-label="`Abrir ${group.title}, ${pageLabel(source) || 'documento'}`" @click="selectSource(source)">Abrir <span aria-hidden="true">↗</span></button>
               </li>
@@ -64,7 +64,7 @@
             <p class="document-kind">{{ group.kind }}</p>
             <ul class="unit-list legal-unit-list" aria-label="Unidades consultadas">
               <li v-for="source in group.sources" :key="unitIdentity(source)">
-                <span class="unit-citation" v-if="citationFor(source)">{{ citationFor(source) }}</span>
+                <button class="unit-citation novacase-citation-badge" v-if="citationFor(source)" type="button" :aria-label="`Ver fuente ${citationFor(source).slice(1, -1)}`" @click="selectSource(source)">{{ citationFor(source).slice(1, -1) }}</button>
                 <span class="legal-unit-name">{{ unitLabel(source) }}</span>
                 <span class="unit-page">{{ pageLabel(source) }}</span>
                 <button type="button" class="source-action" :aria-label="`Abrir ${group.title}, ${unitLabel(source)}${pageLabel(source) ? `, ${pageLabel(source)}` : ''}`" @click="selectSource(source)">Abrir <span aria-hidden="true">↗</span></button>
@@ -81,6 +81,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import '@/styles/novacaseCitations.css'
 import { argumentCitationForSource, sourceUnitLabel } from '@/utils/novacasePresentation.js'
 import { normalizeSources } from '@/utils/sourceContract.js'
 
@@ -199,7 +200,7 @@ function selectSource(source) { emit('select-source', source) }
 .document-content h4,.legal-document-header h4{margin:0;color:#263d55;font:600 1.08rem/1.45 Georgia,'Times New Roman',serif;overflow-wrap:break-word;word-break:normal}
 .document-meta{display:flex;flex-wrap:wrap;gap:5px 13px;margin:5px 0 0;color:var(--source-muted);font-size:.8rem;line-height:1.5}.document-origin{margin:8px 0 0;color:#788696;font-size:.75rem}
 .unit-list{margin-top:12px;border-top:1px solid #edf0f3}.unit-list li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px 13px;min-width:0;padding:8px 0;border-bottom:1px solid #edf0f3}
-.unit-citation{display:inline-flex;align-items:center;justify-content:center;min-width:25px;padding:2px 5px;border:1px solid #d7e2ec;border-radius:4px;background:#f1f5f8;color:#1b496f;font-size:.72rem;font-weight:700;line-height:1.2}
+
 .unit-location,.legal-unit-name{min-width:0;color:#43566a;font-size:.83rem;line-height:1.45}.legal-unit-name{font-weight:600}.unit-page{color:#778594;font-size:.76rem;white-space:nowrap}
 .source-action{justify-self:end;padding:4px 6px;border:0;border-radius:4px;background:transparent;color:var(--source-blue);font:600 .78rem/1.4 Inter,system-ui,sans-serif;white-space:nowrap;cursor:pointer}.source-action:hover{background:#edf3f7;color:#17375e}.source-action:focus-visible{outline:2px solid #b08a4c;outline-offset:2px}
 .legal-document-row{padding-block:23px}.legal-document-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.court-name{margin:3px 0 0;color:var(--source-muted);font-size:.82rem}.unit-count{flex:none;padding:4px 8px;border:1px solid #e3e8ed;border-radius:999px;background:#fafbfd;color:#647587;font-size:.69rem;line-height:1.4}.document-kind{margin:8px 0 0;color:#987744;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}.legal-unit-list{margin-top:12px}.legal-unit-list li{grid-template-columns:auto minmax(0,1fr) minmax(64px,auto) auto}

@@ -24,6 +24,43 @@ const source = {
   official_url:'https://tc.gob.pe/source.pdf', excerpt:'Texto canónico completo.'
 }
 
+test('numeric citation badges preserve canonical click targets and compact screen styling', async () => {
+  const server=await createServer({server:{middlewareMode:true,hmr:false,port:0},appType:'custom',logLevel:'error',optimizeDeps:{noDiscovery:true,include:[]}})
+  try {
+    const component=(await server.ssrLoadModule('/src/components/common/MarkdownRenderer.vue')).default
+    const second={...source,source_id:'SRC-bbbbbbbbbbbbbbbbbbbbbbbb',
+      unit_id:'33333333-3333-4333-8333-333333333333',chunk_id:'33333333-3333-4333-8333-333333333333'}
+    const privateSource={source_id:'private-one',source_scope:'private_case',case_id:'CASE-A',title:'Contrato'}
+    const citations=[
+      {...source,citation_id:'CIT-one',source_id:'source-alias',label:'[4]'},
+      {...second,citation_id:'CIT-two',label:'[5]'},
+      {citation_id:'CIT-private',source_id:privateSource.source_id,label:'[6]'}
+    ]
+    const props={content:'Criterio [4], reiterado [4], otra unidad [5], contrato [6].',
+      citations,sources:[source,second,privateSource],caseId:'CASE-A',citationNumbersOnly:true}
+    const selected=[]
+    let bindings
+    const probe={...component,setup(values,context){
+      bindings=component.setup(values,{...context,emit:(_event,citation)=>selected.push(citation.source_id)})
+      return bindings
+    }}
+    const html=await renderToString(createSSRApp({render:()=>h(probe,props)}))
+    assert.equal((html.match(/data-citation-id="CIT-one"/g)||[]).length,2)
+    for (const n of [4,5,6]) assert.match(html,new RegExp('data-numeric[^>]*>'+n+'<'))
+    assert.doesNotMatch(html.replace(/<[^>]*>/g,''),/\[\d+\]|SRC-|private-one/)
+    for (const id of ['CIT-one','CIT-two','CIT-private']) {
+      bindings.handleCitationClick({target:{closest:()=>({dataset:{citationId:id}})}})
+    }
+    assert.deepEqual(selected,[source.source_id,second.source_id,privateSource.source_id])
+    assert.deepEqual(citations.map(c=>c.label),['[4]','[5]','[6]'])
+    const css=await readFile(new URL('../src/styles/novacaseCitations.css',import.meta.url),'utf8')
+    for (const rule of ['width:max-content','flex:0 0 auto','justify-self:start','height:22px',
+      'background:#142f4d','color:#fff',':focus-visible']) assert.ok(css.includes(rule),rule)
+    const report=await readFile(new URL('../src/components/novacase/ReportView.vue',import.meta.url),'utf8')
+    assert.match(report,/@media print \{\.report-paper :deep\(\.citation-inline\)/)
+  } finally { await server.close() }
+})
+
 test('research outcomes, private documents and public units remain distinct', () => {
   assert.match(researchNotice('VERIFIED_SOURCES',1).text,/completada con 1 fuente V2 verificada/)
   assert.match(researchNotice('NO_RESULTS').text,/sin fuentes verificadas/)
@@ -112,11 +149,11 @@ test('argument citation registry resolves runtime citation numbers by canonical 
         {title:'Documento del caso',text:'Comunicación privada.',source_ids:[privateDocument.source_id]}
       ]},sources:sourcePool,citations,caseId:'CASE-A'
     })}))
-    assert.match(html,/source-reference-label[^>]*>\[11\]/)
-    assert.equal((html.match(/source-reference-label[^>]*>\[13\]/g)||[]).length,2)
-    assert.match(html,/source-reference-label[^>]*>\[3\]/)
+    assert.match(html,/source-reference-label[^>]*>11</)
+    assert.equal((html.match(/source-reference-label[^>]*>13</g)||[]).length,2)
+    assert.match(html,/source-reference-label[^>]*>3</)
     const canonicalRows=(html.match(/class="argument-source-list"/g)||[]).length
-    const numberedRows=(html.match(/source-reference-label[^>]*>\[\d+\]/g)||[]).length
+    const numberedRows=(html.match(/source-reference-label[^>]*>\d+</g)||[]).length
     assert.equal(numberedRows,canonicalRows,'no citation-backed canonical source row is left unnumbered')
     assert.equal(numberedRows,4)
     assert.match(html,/aria-label="Ver fuente 13"/)
@@ -192,12 +229,12 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
         {citation_id:'CIT-PRIVATE-1',source_id:privateDocument.source_id,label:'[1]'}
       ]
     })
-    assert.match(numberedArguments,/\[4\].*STC Exp\. 00001-2024-PA\/TC.*Fundamento 7/s)
-    assert.equal((numberedArguments.match(/source-reference-label[^>]*>\[7\]/g)||[]).length,2,
+    assert.match(numberedArguments,/>4<.*STC Exp\. 00001-2024-PA\/TC.*Fundamento 7/s)
+    assert.equal((numberedArguments.match(/source-reference-label[^>]*>7</g)||[]).length,2,
       'the same canonical unit must reuse its existing citation label across arguments')
-    assert.match(numberedArguments,/source-reference-label[^>]*>\[1\]/)
+    assert.match(numberedArguments,/source-reference-label[^>]*>1</)
     assert.equal((numberedArguments.match(/class="argument-source-list"/g)||[]).length,
-      (numberedArguments.match(/source-reference-label[^>]*>\[\d+\]/g)||[]).length,
+      (numberedArguments.match(/source-reference-label[^>]*>\d+</g)||[]).length,
       'every linked source row in the citation contract must have a citation badge')
     assert.match(argumentComponentSource,/@click="selectSource\(source\)"/)
     assert.match(argumentComponentSource,/emit\('select-source', safe\)/)
@@ -214,7 +251,7 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.match(counterEditorial,/Respuesta jurídica/)
     assert.match(counterEditorial,/El vencimiento no excluye el control/)
     assert.match(counterEditorial,/aria-label="Ver fuente 1"/)
-    assert.match(counterEditorial,/source-label[^>]*>\[1\]/)
+    assert.match(counterEditorial,/source-label[^>]*>1</)
     assert.doesNotMatch(counterEditorial,/>Riesgo<|>Solidez<|>HIGH<|>LOW<|source_id|unit_id|public_legal|private_case/i)
     const emptyCounter=await render('novacase/CounterArgumentsView',{counterArguments:{procedural:['','   ']},responses:[]})
     assert.doesNotMatch(emptyCounter,/<li[^>]*>\s*<span[^>]*>0[1-9]<\/span>/)
@@ -297,7 +334,7 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.ok(limitationsLabel < limitationsBody && limitationsBody < limitationsFirst && limitationsFirst < limitationsSecond)
     assert.equal((professionalEvidence.slice(supportBodyStart,limitationsLabel).match(/<p[ >]/g) || []).length,2)
     assert.equal((professionalEvidence.slice(limitationsBody,professionalEvidence.indexOf('document-pages',limitationsBody)).match(/<p[ >]/g) || []).length,2)
-    for (const citation of ['[1]','[2]','[3]']) assert.ok(professionalEvidence.includes(citation))
+    for (const number of ['1','2','3']) assert.match(professionalEvidence,new RegExp('novacase-citation-badge[^>]*>'+number+'<'))
     assert.match(professionalEvidence,/Fundamento 7/)
     assert.match(professionalEvidence,/Ver documento/)
     assert.doesNotMatch(professionalEvidence,/SRC-[a-f0-9]{12,}|source_id|document_id|unit_id|private_case|public_legal|Motor de análisis|ficticio|entorno QA|Consultar fuente documental/i)
@@ -309,8 +346,8 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
     assert.match(evidenceViewSource,/\.document-list,[^}]*list-style:none/s)
     assert.match(evidenceViewSource,/\.source-action\{display:inline-flex/)
     assert.match(evidenceViewSource,/\.evidence-context dl\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/)
-    assert.match(evidenceViewSource,/<div v-if="group\.supports\.length" class="document-note">\s*<strong>Acredita<\/strong>\s*<div class="document-note-content"><MarkdownRenderer v-for=/)
-    assert.match(evidenceViewSource,/<div v-if="group\.limitations\.length" class="document-note limitation-note">\s*<strong>Limitaciones<\/strong>\s*<div class="document-note-content"><MarkdownRenderer v-for=/)
+    assert.match(evidenceViewSource,/<div v-if="group\.supports\.length" class="document-note">\s*<strong>Acredita<\/strong>\s*<div class="document-note-content"><MarkdownRenderer citation-numbers-only v-for=/)
+    assert.match(evidenceViewSource,/<div v-if="group\.limitations\.length" class="document-note limitation-note">\s*<strong>Limitaciones<\/strong>\s*<div class="document-note-content"><MarkdownRenderer citation-numbers-only v-for=/)
     assert.match(evidenceViewSource,/grid-template-columns:minmax\(90px,105px\) minmax\(0,1fr\)/)
     assert.match(evidenceViewSource,/\.document-note-content\{min-width:0;word-break:normal;overflow-wrap:break-word\}/)
     assert.match(evidenceViewSource,/@media\(max-width:680px\)\{[\s\S]*?\.document-note\{grid-template-columns:minmax\(0,1fr\)/)
@@ -455,12 +492,8 @@ test('NovaCase strategy renders one editorial plan and resolves only canonical s
     assert.match(html,/risks-title/)
     assert.match(html,/Fundamentos de la estrategia/)
     assert.match(html,/conclusion-title/)
-    assert.match(html,/source-label[^>]*>\[1\]/)
+    assert.match(html,/source-label[^>]*>1</)
     assert.match(html,/Ver fuente 1/)
-    assert.match(html,/class="citation-inline"[^>]*data-citation-id="CIT-1"[^>]*>1<\/button>/)
-    assert.match(html,/class="reference-number"[^>]*>1<\/span>/)
-    assert.ok(!html.includes('[1]'))
-    assert.equal(citation.label,'[1]')
     const visible=html.replace(/<[^>]*>/g, ' ')
     assert.equal((visible.match(/Recabar adendas de renovaci.n/g)||[]).length,1,"repeated recommendations are consolidated")
     assert.doesNotMatch(visible,/Missing information|Opposing positions|Principal line|Priority evidence|Recommended actions|Risks to mitigate|Supporting arguments|Issue id|Source ids|Supporting fact ids|Legal basis|Strength|Title/i)
@@ -488,6 +521,10 @@ test('Informe shows one cited source list, safe actions and no QA scope box', as
     assert.equal((html.match(/<h3[^>]*>Fuentes utilizadas<\/h3>/g)||[]).length,1)
     assert.match(html,/Ver fuente 1/)
     assert.match(html,/<p>Municipalidad Distrital de Santa Esperanza<\/p>/)
+    assert.match(html,/class="citation-inline"[^>]*data-citation-id="CIT-1"[^>]*>1<\/button>/)
+    assert.match(html,/class="reference-number"[^>]*>1<\/span>/)
+    assert.ok(!html.includes('[1]'))
+    assert.equal(citation.label,'[1]')
     assert.match(html,/Documento de análisis preparado para revisión profesional/)
     assert.match(html,/Descargar PDF/)
     assert.match(html,/Descargar DOCX/)
@@ -566,9 +603,9 @@ test('Case sources tab renders private files and groups public units without emp
     assert.match(html,/Fundamento 7/)
     assert.match(html,/Fundamento: Antecedentes/)
     assert.match(html,/aria-label="Abrir STC Exp\. 00001-2024-PA\/TC, Fundamento 7, pág\. 2"/)
-    assert.match(html,/unit-citation[^>]*>\[3\]/)
-    assert.match(html,/unit-citation[^>]*>\[4\]/)
-    assert.match(html,/unit-citation[^>]*>\[5\]/)
+    assert.match(html,/unit-citation[^>]*>3</)
+    assert.match(html,/unit-citation[^>]*>4</)
+    assert.match(html,/unit-citation[^>]*>5</)
     assert.match(html,/Abrir/)
     assert.doesNotMatch(html,/<li[^>]*>\s*<\/li>/)
     assert.doesNotMatch(html,/private_case|public_legal|source_type|SRC-|source_id|document_id|unit_id|case_id/i)

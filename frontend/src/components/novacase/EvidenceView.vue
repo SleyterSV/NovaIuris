@@ -29,7 +29,7 @@
           <h3 id="documents-title">Documentos del caso</h3>
         </header>
         <p v-if="documentGroups.length === 0 && !documentNarrative" class="section-empty">No se identificaron documentos incorporados al caso.</p>
-        <div v-if="documentGroups.length === 0 && documentNarrative" class="document-narrative"><MarkdownRenderer :content="documentNarrative" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></div>
+        <div v-if="documentGroups.length === 0 && documentNarrative" class="document-narrative"><MarkdownRenderer citation-numbers-only :content="documentNarrative" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></div>
         <ol v-if="documentGroups.length" class="document-list">
           <li v-for="(group, index) in documentGroups" :key="group.key" class="document-row">
             <span class="row-number" aria-hidden="true">{{ number(index + 1) }}</span>
@@ -38,16 +38,16 @@
               <p class="document-meta">{{ documentTypeLabel(group) }} · {{ group.sources.length }} {{ group.sources.length === 1 ? 'página utilizada' : 'páginas utilizadas' }}</p>
               <div v-if="group.supports.length" class="document-note">
                 <strong>Acredita</strong>
-                <div class="document-note-content"><MarkdownRenderer v-for="(item, supportIndex) in group.supports" :key="`support-${supportIndex}`" :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></div>
+                <div class="document-note-content"><MarkdownRenderer citation-numbers-only v-for="(item, supportIndex) in group.supports" :key="`support-${supportIndex}`" :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></div>
               </div>
               <div v-if="group.limitations.length" class="document-note limitation-note">
                 <strong>Limitaciones</strong>
-                <div class="document-note-content"><MarkdownRenderer v-for="(item, limitationIndex) in group.limitations" :key="`limit-${limitationIndex}`" :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></div>
+                <div class="document-note-content"><MarkdownRenderer citation-numbers-only v-for="(item, limitationIndex) in group.limitations" :key="`limit-${limitationIndex}`" :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></div>
               </div>
               <ul class="document-pages">
                 <li v-for="source in group.sources" :key="source.source_id">
                   <button type="button" class="source-action" :aria-label="`Ver documento${pageLabel(source) ? `, ${pageLabel(source)}` : ''}`" @click="selectSource(source)">
-                    <span v-if="citationFor(source)" class="citation-badge">{{ citationFor(source).label }}</span>
+                    <span v-if="citationFor(source)" class="novacase-citation-badge">{{ citationFor(source).label.slice(1, -1) }}</span>
                     <span>{{ pageActionLabel(source) }}</span><span aria-hidden="true">↗</span>
                   </button>
                 </li>
@@ -69,7 +69,7 @@
         <ul v-if="hasOtherEvidence" class="other-evidence-list">
           <li v-for="item in otherEvidence" :key="item.key">
             <span>{{ item.label }}</span>
-            <MarkdownRenderer v-if="item.content" :content="item.content" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" />
+            <MarkdownRenderer citation-numbers-only v-if="item.content" :content="item.content" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" />
             <strong v-else>No identificado</strong>
           </li>
         </ul>
@@ -86,10 +86,10 @@
       <ol class="fact-list">
         <li v-for="(fact, index) in supportedFacts" :key="fact.fact_id || `supported-${index}`">
           <span class="row-number" aria-hidden="true">{{ number(index + 1) }}</span>
-          <div><MarkdownRenderer :content="safeText(fact.text)" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" />
+          <div><MarkdownRenderer citation-numbers-only :content="safeText(fact.text)" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" />
             <div v-if="factSourceList(fact).length" class="fact-sources"><span>Fuente:</span>
               <button v-for="source in factSourceList(fact)" :key="source.source_id" type="button" class="source-action" :aria-label="`Ver fuente${citationFor(source) ? ` ${citationFor(source).label.slice(1,-1)}` : ''}: ${humanSourceLabel(source)}`" @click="selectSource(source)">
-                <span v-if="citationFor(source)" class="citation-badge">{{ citationFor(source).label }}</span>{{ humanSourceLabel(source) }} <span aria-hidden="true">↗</span>
+                <span v-if="citationFor(source)" class="novacase-citation-badge">{{ citationFor(source).label.slice(1, -1) }}</span>{{ humanSourceLabel(source) }} <span aria-hidden="true">↗</span>
               </button>
             </div>
           </div>
@@ -106,7 +106,7 @@
       <ol class="fact-list">
         <li v-for="(fact, index) in pendingFacts" :key="fact.fact_id || `pending-${index}`">
           <span class="row-number" aria-hidden="true">{{ number(index + 1) }}</span>
-          <div><MarkdownRenderer :content="safeText(fact.text)" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" />
+          <div><MarkdownRenderer citation-numbers-only :content="safeText(fact.text)" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" />
             <span class="pending-label">Pendiente de corroboración</span>
           </div>
         </li>
@@ -125,7 +125,7 @@
           <p v-if="group.units.length" class="legal-locators"><span>Unidades relevantes</span>{{ group.units.join(' · ') }}</p>
           <ul class="unit-actions"><li v-for="source in group.sources" :key="source.source_id">
             <button type="button" class="source-action" :aria-label="`Ver fuente: ${sourceUnitActionLabel(source)}`" @click="selectSource(source)">
-              <span v-if="citationFor(source)" class="citation-badge">{{ citationFor(source).label }}</span>{{ sourceUnitActionLabel(source) }}<span aria-hidden="true">↗</span>
+              <span v-if="citationFor(source)" class="novacase-citation-badge">{{ citationFor(source).label.slice(1, -1) }}</span>{{ sourceUnitActionLabel(source) }}<span aria-hidden="true">↗</span>
             </button>
           </li></ul>
         </li>
@@ -135,9 +135,9 @@
     <section v-if="conclusionText || strengths.length || limitations.length" class="evidence-section conclusion-section" aria-labelledby="evidence-conclusion-title">
       <header class="section-heading"><p class="section-kicker">SÍNTESIS EJECUTIVA</p><h3 id="evidence-conclusion-title">Conclusión probatoria</h3></header>
       <p v-if="evidenceLevel" class="conclusion-level"><span>Nivel de evidencia</span><strong>{{ evidenceLevel }}</strong></p>
-      <MarkdownRenderer v-if="conclusionText" :content="conclusionText" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" />
-      <div v-if="strengths.length" class="conclusion-points"><h4>Fortalezas</h4><ul><li v-for="(item,index) in strengths" :key="`strength-${index}`"><MarkdownRenderer :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></li></ul></div>
-      <div v-if="limitations.length" class="conclusion-points"><h4>Limitaciones</h4><ul><li v-for="(item,index) in limitations" :key="`limitation-${index}`"><MarkdownRenderer :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></li></ul></div>
+      <MarkdownRenderer citation-numbers-only v-if="conclusionText" :content="conclusionText" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" />
+      <div v-if="strengths.length" class="conclusion-points"><h4>Fortalezas</h4><ul><li v-for="(item,index) in strengths" :key="`strength-${index}`"><MarkdownRenderer citation-numbers-only :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></li></ul></div>
+      <div v-if="limitations.length" class="conclusion-points"><h4>Limitaciones</h4><ul><li v-for="(item,index) in limitations" :key="`limitation-${index}`"><MarkdownRenderer citation-numbers-only :content="item" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></li></ul></div>
     </section>
 
     <section v-if="issueEvidence.length" class="evidence-section issue-evidence" aria-labelledby="issue-evidence-title">
@@ -147,13 +147,13 @@
           <span class="row-number" aria-hidden="true">{{ number(index + 1) }}</span>
           <article>
             <h4>{{ item.title }}</h4>
-            <section v-if="item.issue"><h5>Cuestión jurídica</h5><MarkdownRenderer :content="item.issue" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></section>
-            <section v-if="item.description"><h5>Evidencia disponible</h5><MarkdownRenderer :content="item.description" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></section>
-            <section v-if="item.probativeValue"><h5>Valor probatorio</h5><MarkdownRenderer :content="item.probativeValue" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></section>
-            <section v-if="item.limitations"><h5>Limitaciones</h5><MarkdownRenderer :content="item.limitations" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></section>
+            <section v-if="item.issue"><h5>Cuestión jurídica</h5><MarkdownRenderer citation-numbers-only :content="item.issue" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></section>
+            <section v-if="item.description"><h5>Evidencia disponible</h5><MarkdownRenderer citation-numbers-only :content="item.description" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></section>
+            <section v-if="item.probativeValue"><h5>Valor probatorio</h5><MarkdownRenderer citation-numbers-only :content="item.probativeValue" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></section>
+            <section v-if="item.limitations"><h5>Limitaciones</h5><MarkdownRenderer citation-numbers-only :content="item.limitations" :citations="citations" :sources="normalizedSources" :case-id="caseId" @select-citation="openCitation" /></section>
             <div v-if="item.sources.length" class="linked-sources"><h5>Fuentes</h5>
               <button v-for="source in item.sources" :key="source.source_id" type="button" class="source-action" :aria-label="`Ver fuente${citationFor(source) ? ` ${citationFor(source).label.slice(1,-1)}` : ''}: ${humanSourceLabel(source)}`" @click="selectSource(source)">
-                <span v-if="citationFor(source)" class="citation-badge">{{ citationFor(source).label }}</span>{{ humanSourceLabel(source) }}<span aria-hidden="true">↗</span>
+                <span v-if="citationFor(source)" class="novacase-citation-badge">{{ citationFor(source).label.slice(1, -1) }}</span>{{ humanSourceLabel(source) }}<span aria-hidden="true">↗</span>
               </button>
             </div>
           </article>
@@ -411,9 +411,6 @@ const issueEvidence = computed(() => props.evidenceLinks.map((link, index) => {
 .linked-sources{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px 14px;margin-top:12px;padding-top:9px;border-top:1px solid #e8edf2}
 .linked-sources h5{margin:0;color:#778594;font-size:.69rem;font-weight:750;letter-spacing:.07em;text-transform:uppercase}
 .linked-sources .source-action{margin-right:4px}
-.evidence-editorial :deep(.citation-inline),.evidence-editorial :deep(.citation-link){display:inline;position:relative;top:-.07em;margin:0 .13em;padding:.08em .36em;border:1px solid #d7e2ec;border-radius:4px;background:#f1f5f8;color:#1b496f;font:700 .76em/1.2 system-ui,sans-serif;white-space:nowrap;cursor:pointer}
-.evidence-editorial :deep(.citation-inline:hover),.evidence-editorial :deep(.citation-link:hover){background:#e3edf5;border-color:#b9cddb}
-.evidence-editorial :deep(.citation-inline:focus-visible),.evidence-editorial :deep(.citation-link:focus-visible){outline:2px solid #315c97;outline-offset:2px}
 @media(max-width:1080px){.evidence-context dl{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:13px}.evidence-context dl>div:nth-child(4){padding-left:0;border-left:0}.evidence-overview-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
 @media(max-width:680px){.evidence-editorial{gap:22px}.evidence-title-row{flex-direction:column;gap:12px}.evidence-context dl{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:12px}.evidence-context dl>div:nth-child(odd){padding-left:0;border-left:0}.evidence-context dl>div:nth-child(4){padding-left:16px;border-left:1px solid #e6e9ed}.document-row,.fact-list>li,.issue-evidence-list>li{grid-template-columns:28px minmax(0,1fr);gap:9px}.document-note{grid-template-columns:minmax(0,1fr);gap:3px}.legal-source-heading{align-items:flex-start;flex-direction:column;gap:3px}.other-evidence-list li{grid-template-columns:1fr;gap:4px}}
 @media(max-width:420px){.evidence-context{padding:13px}.evidence-context dl{grid-template-columns:1fr}.evidence-context dl>div,.evidence-context dl>div:nth-child(4){padding:8px 0 0;border:0;border-top:1px solid #e6e9ed}.evidence-context dl>div:first-child{padding-top:0;border-top:0}.source-action{white-space:normal}}

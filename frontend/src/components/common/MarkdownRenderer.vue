@@ -24,6 +24,7 @@ import MarkdownIt from "markdown-it"
 
 import hljs from "highlight.js"
 import { resolveCitations } from "@/utils/sourceContract.js"
+import '@/styles/novacaseCitations.css'
 
 
 /* ============================================================
@@ -181,11 +182,13 @@ md.renderer.rules.text = (tokens, idx) => {
     for (const match of text.matchAll(pattern)) {
         output += md.utils.escapeHtml(text.slice(cursor, match.index))
         const citation = citationByLabel.value.get(match[0])
-        if (!citation) output += md.utils.escapeHtml(match[0])
+        if (!citation) output += props.citationNumbersOnly
+            ? `<span class="novacase-citation-badge" aria-label="Fuente ${match[0].slice(1, -1)} no disponible">${match[0].slice(1, -1)}</span>`
+            : md.utils.escapeHtml(match[0])
         else {
             const citationId = md.utils.escapeHtml(citation.citation_id)
             const label = props.citationNumbersOnly ? match[0].slice(1, -1) : match[0]
-            output += `<button type="button" class="citation-inline" data-citation-id="${citationId}" aria-label="Ver fuente ${match[0].slice(1, -1)}">${label}</button>`
+            output += `<button type="button" class="citation-inline"${props.citationNumbersOnly ? ' data-numeric' : ''} data-citation-id="${citationId}" aria-label="Ver fuente ${match[0].slice(1, -1)}">${label}</button>`
         }
         cursor = match.index + match[0].length
     }
