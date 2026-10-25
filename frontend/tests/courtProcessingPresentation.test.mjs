@@ -15,12 +15,16 @@ test('Court processing keeps one stable card with real progress and Spanish stag
       { id:'research', label:'Investigación', status:'skipped' },
       { id:'evidence', label:'Evidencia', status:'failed' }
     ]
-    const render = props => renderToString(createSSRApp({ render:() => h(component, props) }))
+    const render = props => renderToString(createSSRApp({ render:() => h(component, props, {
+      warnings:() => h('p','Aviso de investigación'), action:() => h('button','Cancelar simulación')
+    }) }))
     const active = await render({ progress:80, current:'Se revisan los hechos.', stages })
     const finished = await render({ progress:100, stages, complete:true })
     assert.match(active,/NovaCourt está analizando el caso/)
     assert.match(active,/aria-valuenow="80"/)
     assert.match(active,/80 % completado/)
+    assert.match(active,/Aviso de investigación/)
+    assert.match(active,/Cancelar simulación/)
     assert.equal((active.match(/class="stage-mark"/g)||[]).length,9)
     for (const text of ['Recepción','Hechos','Investigación','Evidencia','Riesgos',
       'Contraargumentos','Estrategia','Verificación de citas','Simulación argumentativa',
@@ -31,8 +35,11 @@ test('Court processing keeps one stable card with real progress and Spanish stag
     assert.match(finished,/aria-valuenow="100"/)
     assert.equal((finished.match(/class="stage-mark"/g)||[]).length,0)
     assert.doesNotMatch(finished,/ETAPAS DEL ANÁLISIS|No requerido|Completado<\/span>/)
+    assert.doesNotMatch(finished,/Aviso de investigación|Cancelar simulación|100 % completado|pipeline-warnings|pipeline-action/)
     const css = await readFile(new URL('../src/components/novacourt/PipelineProgress.vue',import.meta.url),'utf8')
     assert.match(css,/min-height:430px/)
+    assert.match(css,/\.pipeline\.is-complete\{min-height:0;padding:24px/)
+    assert.match(css,/\.pipeline\.is-complete \.pipeline-aside\{min-height:0;padding-top:0\}/)
     assert.match(css,/\.pipeline ol\{display:flex;[^}]*overflow-x:auto;overflow-y:hidden/)
     assert.match(css,/\.pipeline li\{[^}]*flex:1 0 128px/)
     const view = await readFile(new URL('../src/views/NovaCourtView.vue',import.meta.url),'utf8')
