@@ -230,6 +230,22 @@ test('NovaCase components render Spanish labels, honest scope and verified V2 lo
       ]
     })
     assert.match(numberedArguments,/>4<.*STC Exp\. 00001-2024-PA\/TC.*Fundamento 7/s)
+    assert.match(numberedArguments,/Primera consideración\. <button[^>]*data-citation-id="CIT-FOUNDATION-5"[^>]*>4<\/button>/)
+    assert.match(numberedArguments,/Segunda consideración\. <button[^>]*data-citation-id="CIT-FOUNDATION-13"[^>]*>7<\/button>/)
+    assert.match(numberedArguments,/La misma unidad vuelve a sustentar el análisis\. <button[^>]*data-citation-id="CIT-FOUNDATION-13"[^>]*>7<\/button>/)
+    assert.match(numberedArguments,/El memorando comunicó la decisión\. <button[^>]*data-citation-id="CIT-PRIVATE-1"[^>]*>1<\/button>/)
+    assert.match(numberedArguments,/class="source-main"[^>]*><button[^>]*>4<\/button><span class="source-human-detail"/)
+    const ambiguous=await render('novacase/ArgumentsView',{
+      arguments:{main_arguments:[{text:'La sentencia requiere un examen conjunto.',
+        source_ids:[source.source_id,foundation13.source_id]}]},
+      sources:[source,foundation13],citations:[
+        {citation_id:'CIT-FOUNDATION-5',source_id:source.source_id,label:'[4]'},
+        {citation_id:'CIT-FOUNDATION-13',source_id:foundation13.source_id,label:'[7]'}
+      ],caseId:'CASE-A'
+    })
+    assert.match(ambiguous,/La sentencia requiere un examen conjunto\./)
+    assert.doesNotMatch(ambiguous,/data-citation-id=/,
+      'multiple linked units must not create an inferred inline citation')
     assert.equal((numberedArguments.match(/source-reference-label[^>]*>7</g)||[]).length,2,
       'the same canonical unit must reuse its existing citation label across arguments')
     assert.match(numberedArguments,/source-reference-label[^>]*>1</)

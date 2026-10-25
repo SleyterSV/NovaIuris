@@ -15,11 +15,11 @@
           <span class="argument-number" aria-hidden="true">{{ formatNumber(index + 1) }}</span>
           <div class="argument-content">
             <h4 v-if="entry.title">{{ entry.title }}</h4>
-            <MarkdownRenderer citation-numbers-only v-if="entry.body" class="argument-prose" :content="entry.body" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" />
+            <MarkdownRenderer citation-numbers-only v-if="entry.body" class="argument-prose" :content="citedBody(entry)" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" />
 
             <section v-if="entry.foundation.length" class="argument-subsection">
               <h5>Fundamento jurídico</h5>
-              <MarkdownRenderer citation-numbers-only :content="entry.foundation" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" />
+              <MarkdownRenderer citation-numbers-only :content="citedFoundation(entry)" :citations="citations" :sources="sources" :case-id="caseId" @select-citation="openCitation" />
             </section>
 
             <section v-if="entry.facts.length" class="argument-subsection argument-facts">
@@ -30,8 +30,10 @@
             <div v-if="entry.sources.length" class="argument-source-block">
               <h5>Fuentes</h5>
               <ul class="argument-source-list"><li v-for="source in entry.sources" :key="source.source_id">
-                <button v-if="citationLabel(source)" type="button" class="source-reference-label novacase-citation-badge" :aria-label="`Ver fuente ${citationLabel(source).slice(1, -1)}`" @click="selectSource(source)">{{ citationLabel(source).slice(1, -1) }}</button><span v-else class="source-reference-label">{{ sourceHumanLabel(source) }}</span>
-                <span v-if="citationLabel(source)" class="source-human-detail">{{ sourceHumanLabel(source) }}</span>
+                <div class="source-main">
+                  <button v-if="citationLabel(source)" type="button" class="source-reference-label novacase-citation-badge" :aria-label="`Ver fuente ${citationLabel(source).slice(1, -1)}`" @click="selectSource(source)">{{ citationLabel(source).slice(1, -1) }}</button>
+                  <span class="source-human-detail"><strong>{{ source.display_title || source.title }}</strong><small v-if="sourceHumanLabel({ ...source, display_title: '', title: '' })">{{ sourceHumanLabel({ ...source, display_title: '', title: '' }) }}</small></span>
+                </div>
                 <button type="button" class="source-open" :aria-label="`Ver fuente ${citationLabel(source)?.replace(/[\[\]]/g, '') || sourceHumanLabel(source)}`" @click="selectSource(source)">Ver fuente <span aria-hidden="true">↗</span></button>
               </li></ul>
             </div>
@@ -76,7 +78,7 @@
 import { computed } from 'vue'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 import { presentableText, relatedFactTexts, verifiedArgumentSources, argumentNeedsVerification, sourceHumanLabel, argumentCitationForSource } from '@/utils/novacasePresentation.js'
-import { normalizeSource, normalizeSources } from '@/utils/sourceContract.js'
+import { normalizeSource, normalizeSources, resolveCitations } from '@/utils/sourceContract.js'
 
 const props = defineProps({
   arguments: { type: Object, default: () => ({}) }, facts: { type: Array, default: () => [] },
@@ -90,6 +92,7 @@ const labels = {
   normative_arguments: 'Argumentos normativos'
 }
 const safeSources = computed(() => normalizeSources(props.sources, props.caseId))
+const canonicalCitations = computed(() => resolveCitations(props.citations, safeSources.value, props.caseId).citations)
 function textOf(value) {
   if (Array.isArray(value)) return value.map(textOf).filter(Boolean).join('\n\n')
   if (typeof value === 'string') return presentableText(value).trim()
@@ -100,6 +103,21 @@ function isTechnicalReference(value) { return typeof value === 'string' && (/^(?
 function recordsOf(value) { return (Array.isArray(value) ? value : value == null || value === '' ? [] : [value]).filter(item => item != null && item !== '') }
 function sourceList(entry) { return verifiedArgumentSources(entry, safeSources.value, props.caseId, props.citations) }
 function citationLabel(source) { return argumentCitationForSource(source, props.citations, safeSources.value, props.caseId)?.label || '' }
+function missingCitation(entry) {
+  if (entry.sources.length !== 1) return ''
+  const source = entry.sources[0]
+  const citation = canonicalCitations.value.find(item => item.source_id === source.source_id)
+  if (!citation?.label || !/^\[\d+\]$/.test(citation.label)) return ''
+  return [entry.body, ...entry.foundation].some(text => text.includes(citation.label)) ? '' : citation.label
+}
+function citedBody(entry) {
+  const label = entry.body ? missingCitation(entry) : ''
+  return entry.body + (label ? ` ${label}` : '')
+}
+function citedFoundation(entry) {
+  const label = !entry.body && missingCitation(entry)
+  return label ? [...entry.foundation.slice(0, -1), `${entry.foundation.at(-1)} ${label}`] : entry.foundation
+}
 function selectSource(source) { const safe = normalizeSource(source, props.caseId); if (safe) emit('select-source', safe) }
 function openCitation(citation) { const source = safeSources.value.find(item => item.source_id === citation?.source_id); if (source) selectSource(source) }
 function formatNumber(value) { return String(value).padStart(2, '0') }
@@ -162,5 +180,10 @@ const observations = computed(() => recordsOf(props.arguments?.general_observati
 
 <style scoped>
 .arguments-editorial{width:100%;min-width:0;max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:32px;color:#304357}.arguments-header{padding-bottom:23px;border-bottom:1px solid #e2e8ef}.arguments-eyebrow,.group-eyebrow{display:flex;align-items:center;gap:8px;margin:0 0 9px;color:#8a6a37;font-size:.62rem;font-weight:750;letter-spacing:.13em}.arguments-eyebrow span{width:20px;height:1px;background:#b08a4c}.arguments-header h2,.group-heading h3{margin:0;color:#17375e;font-family:Georgia,'Times New Roman',serif;font-weight:600}.arguments-header h2{font-size:clamp(1.7rem,2.5vw,2.15rem);line-height:1.25}.arguments-header>p:last-child,.group-heading>p:last-child{max-width:800px;margin:8px 0 0;color:#69798a;font-size:.91rem;line-height:1.65}.arguments-empty{margin:0;color:#64758a;line-height:1.6}.argument-section{min-width:0}.group-heading{margin-bottom:16px}.group-eyebrow{margin-bottom:6px;font-size:.57rem}.group-heading h3{font-size:1.28rem;line-height:1.4}.group-heading>p:last-child{font-size:.83rem}.argument-list{margin:0;padding:0;list-style:none;border-top:1px solid #e4eaf0}.argument-entry{display:grid;grid-template-columns:40px minmax(0,1fr);gap:13px;padding:22px 0;border-bottom:1px solid #e4eaf0}.argument-number{padding-top:4px;color:#a17c43;font-family:Georgia,serif;font-size:.92rem;font-weight:600}.argument-content{min-width:0;max-width:960px}.argument-content>h4{max-width:900px;margin:0 0 13px;color:#203a55;font-family:Georgia,'Times New Roman',serif;font-size:1.12rem;font-weight:600;line-height:1.45;overflow-wrap:break-word;hyphens:none}.argument-prose :deep(.markdown-body),.argument-subsection :deep(.markdown-body),.counterargument-copy :deep(.markdown-body),.response-copy :deep(.markdown-body),.unmatched-response :deep(.markdown-body),.observation-list :deep(.markdown-body){min-width:0;width:100%;font-size:.94rem;line-height:1.78;color:#3d4e60;word-break:normal;overflow-wrap:break-word}.argument-prose :deep(p),.argument-subsection :deep(p),.counterargument-copy :deep(p),.response-copy :deep(p),.unmatched-response :deep(p),.observation-list :deep(p){margin:0 0 10px}.argument-prose :deep(p:last-child),.argument-subsection :deep(p:last-child),.counterargument-copy :deep(p:last-child),.response-copy :deep(p:last-child),.unmatched-response :deep(p:last-child),.observation-list :deep(p:last-child){margin-bottom:0}.argument-subsection{margin-top:19px}.argument-subsection h5,.argument-source-block h5,.counterargument-copy h5,.response-copy h5,.unmatched-response h5{margin:0 0 8px;color:#7d6845;font-size:.71rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.argument-facts ul{display:grid;gap:7px;margin:0;padding:0;list-style:none}.argument-facts li{display:grid;grid-template-columns:16px minmax(0,1fr);gap:8px;align-items:start}.argument-facts li>span{padding-top:2px;color:#718e78;font-size:.83rem}.argument-facts li :deep(.markdown-body){font-size:.88rem;line-height:1.65}.argument-source-block{margin-top:19px}.argument-source-list{margin:0;padding:0;border-top:1px solid #edf0f3;list-style:none}.argument-source-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:3px 14px;padding:9px 0;border-bottom:1px solid #edf0f3}.source-reference-label:not(.novacase-citation-badge){min-width:0;color:#315c83;font-size:.83rem;font-weight:650;overflow-wrap:anywhere}.source-human-detail{grid-column:1;color:#7a8794;font-size:.75rem;line-height:1.5}.source-open{justify-self:end;padding:3px 5px;border:0;border-radius:4px;background:transparent;color:#315c83;font-family:inherit;font-size:.76rem;font-weight:600;line-height:1.5;white-space:nowrap;cursor:pointer}.source-open:hover{background:#edf3f7;color:#17375e}.source-open:focus-visible{outline:2px solid #b08a4c;outline-offset:2px}.verification-note{margin:15px 0 0;padding-left:11px;border-left:2px solid #b08a4c;color:#806b49;font-size:.8rem;line-height:1.55}.counterargument-section{padding-top:4px}.counterargument-entry{padding-block:20px}.counterargument-copy{padding:12px 14px;border-left:2px solid #c5b38e;background:#fbfaf7}.response-copy{margin-top:13px;padding:12px 14px;border-left:2px solid #9ab0c2;background:#f6f8fa}.response-copy h5{color:#31536f}.response-source-list{display:flex;flex-wrap:wrap;gap:5px 10px;margin-top:9px}.response-source-list .source-open{justify-self:auto}.unmatched-responses{margin-top:22px;padding-top:17px;border-top:1px solid #e5eaf0}.unmatched-responses>h4{margin:0 0 11px;color:#263e56;font-family:Georgia,serif;font-size:1rem;font-weight:600}.unmatched-response{padding:13px 0;border-bottom:1px solid #e8edf2}.unmatched-response h5{margin-bottom:6px;color:#31536f}.observation-list{display:grid;gap:0;margin:0;padding:0;border-top:1px solid #e4eaf0;list-style:none}.observation-list>li{padding:12px 0;border-bottom:1px solid #e4eaf0}
+.argument-source-list .source-main{display:flex;align-items:flex-start;gap:10px;min-width:0}
+.argument-source-list .source-main .novacase-citation-badge{flex:0 0 auto;width:max-content;min-width:22px;justify-self:start;align-self:flex-start;margin:0}
+.argument-source-list .source-human-detail{display:grid;gap:2px;min-width:0;color:#708094;font-size:.75rem;line-height:1.5;overflow-wrap:anywhere}
+.argument-source-list .source-human-detail strong{color:#263f59;font-size:.86rem;font-weight:650}
+.argument-source-list .source-human-detail small{color:#708094;font-size:.75rem}
 @media(max-width:680px){.arguments-editorial{gap:26px}.argument-entry{grid-template-columns:30px minmax(0,1fr);gap:8px;padding:18px 0}.argument-content>h4{font-size:1.02rem}.argument-source-list li{grid-template-columns:minmax(0,1fr)}.source-human-detail{grid-column:1}.source-open{justify-self:start}.counterargument-copy,.response-copy{padding:10px 11px}}
 </style>
