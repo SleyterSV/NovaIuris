@@ -134,11 +134,15 @@
 
                 <template #arguments>
 
-                    <CourtAnalysis
+                    <CourtArguments
                         :content="analysisContent"
+                        :argument-data="result?.arguments || {}"
+                        :facts="result?.facts || []"
+                        :result="result || {}"
+                        :simulation="simulationData"
+                        :case-id="result?.case_id"
                         :loading="isLoading && !hasResult"
                         :status="analysisStatus"
-                        :status-type="analysisStatusType"
                     />
 
                 </template>
@@ -334,6 +338,9 @@ import CourtSummary
 
 import CourtAnalysis
     from "../components/novacourt/CourtAnalysis.vue"
+
+import CourtArguments
+    from "../components/novacourt/CourtArguments.vue"
 
 import CourtReport
     from "../components/novacourt/CourtReport.vue"
