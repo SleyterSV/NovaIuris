@@ -1,5 +1,6 @@
 <template>
-<section class="court-simulation">
+<CourtPositions v-if="mode !== 'decision'" :simulation="simulation" :case-id="caseId" />
+<section v-else class="court-simulation">
   <h2>{{ mode === 'decision' ? 'Decisión simulada' : 'Simulación jurídica' }}</h2>
   <p v-if="simulation.status !== 'ready'" role="status">{{ simulation.message || 'Simulación no disponible. El análisis del caso permanece disponible.' }}</p>
   <template v-else>
@@ -21,6 +22,7 @@ import { computed, ref } from 'vue'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 import SourcesList from '@/components/common/SourcesList.vue'
 import SourceModal from '@/components/common/SourceModal.vue'
+import CourtPositions from '@/components/novacourt/CourtPositions.vue'
 const props = defineProps({ simulation: {type:Object, default:() => ({status:'not_requested'})},
   caseId: {type:String, default:null}, mode: {type:String, default:'positions'} })
 const selectedSource = ref(null)
