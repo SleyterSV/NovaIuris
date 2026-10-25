@@ -1,51 +1,14 @@
 <template>
 <CourtPositions v-if="mode !== 'decision'" :simulation="simulation" :case-id="caseId" />
 <section v-else class="court-simulation">
-  <h2>{{ mode === 'decision' ? 'Decisión simulada' : 'Simulación jurídica' }}</h2>
-  <p v-if="simulation.status !== 'ready'" role="status">{{ simulation.message || 'Simulación no disponible. El análisis del caso permanece disponible.' }}</p>
-  <template v-else>
-    <p v-if="mode === 'decision' && !participants.length" role="status">Decisión simulada no disponible.</p>
-    <p><strong>SIMULACIÓN JURÍDICA</strong> · No constituye una resolución judicial real.</p>
-    <section v-for="participant in participants" :key="participant.title">
-      <h3 v-if="mode !== 'decision'">{{ participant.title }}</h3>
-      <MarkdownRenderer :content="participant.content" :citations="participant.citations"
-        :sources="visibleSources" :case-id="caseId" @select-citation="openCitation" />
-    </section>
-    <SourcesList :sources="visibleSources" :citations="visibleCitations"
-      :case-id="caseId" @select="selectedSource = $event" @select-citation="openCitation" />
-    <SourceModal :source="selectedSource" :case-id="caseId" @close="selectedSource = null" />
-  </template>
+  <CourtDecision :simulation="simulation" :case-id="caseId" />
 </section>
 </template>
 <script setup>
-import { computed, ref } from 'vue'
-import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
-import SourcesList from '@/components/common/SourcesList.vue'
-import SourceModal from '@/components/common/SourceModal.vue'
 import CourtPositions from '@/components/novacourt/CourtPositions.vue'
+import CourtDecision from '@/components/novacourt/CourtDecision.vue'
 const props = defineProps({ simulation: {type:Object, default:() => ({status:'not_requested'})},
   caseId: {type:String, default:null}, mode: {type:String, default:'positions'} })
-const selectedSource = ref(null)
-const openCitation = citation => { selectedSource.value = visibleSources.value.find(source => source.source_id === citation.source_id) || null }
-const visibleCitations = computed(() => {
-  const sections = props.mode === 'decision' ? [props.simulation.judge] : [props.simulation.prosecutor, props.simulation.defense]
-  const sectionCitations = sections.flatMap(section => Array.isArray(section?.citations) ? section.citations : [])
-  const candidates = sections.some(section => Array.isArray(section?.citations))
-    ? sectionCitations : (props.simulation.citations || [])
-  return [...new Map(candidates.map(citation => [citation.citation_id, citation])).values()]
-})
-const visibleSources = computed(() => {
-  const ids = new Set(visibleCitations.value.map(citation => citation.source_id))
-  return (props.simulation.sources || []).filter(source => ids.has(source.source_id))
-})
-const participants = computed(() => [
-  { title:props.simulation.prosecutor?.role_label || 'Parte promotora', content:props.simulation.prosecutor?.content,
-    citations:props.simulation.prosecutor?.citations || visibleCitations.value },
-  { title:props.simulation.defense?.role_label || 'Parte contraria', content:props.simulation.defense?.content,
-    citations:props.simulation.defense?.citations || visibleCitations.value },
-  { title:'Decisión simulada', content:props.simulation.judicial_analysis?.content || props.simulation.judge?.content,
-    citations:props.simulation.judge?.citations || visibleCitations.value }
-].filter((participant, index) => participant.content && (props.mode === 'decision' ? index === 2 : index < 2)))
 </script>
 <style scoped>
 
@@ -81,12 +44,9 @@ const participants = computed(() => [
 
     margin: 0;
 
-    padding:
-        42px
-        48px
-        48px;
+    padding: 0;
 
-    background: #FFFFFF;
+    background: transparent;
 
 }
 
