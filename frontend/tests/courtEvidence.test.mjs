@@ -86,7 +86,7 @@ test('NovaCourt evidence presents real evidence in Spanish and preserves canonic
     assert.doesNotMatch(componentSource, /\.novacase-citation-badge\s*\{[^}]*width:\s*100%/s)
     const viewSource = await readFile(new URL('../src/views/NovaCourtView.vue', import.meta.url), 'utf8')
     assert.match(viewSource, /<template #evidence>\s*<CourtEvidence/)
-    assert.match(viewSource, /<template #risks>[\s\S]*?<CourtAnalysis/)
+    assert.match(viewSource, /<template #risks>\s*<CourtRisks/)
   } finally {
     await server.close()
   }

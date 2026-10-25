@@ -165,12 +165,7 @@
 
                 <template #risks>
 
-                    <CourtAnalysis
-                        :content="riskContent"
-                        :loading="isLoading && !hasResult"
-                        :status="riskStatus"
-                        :status-type="riskStatusType"
-                    />
+                    <CourtRisks :risk="riskData" :loading="isLoading && !hasResult" />
 
                 </template>
 
@@ -339,6 +334,9 @@ import CourtArguments
 
 import CourtEvidence
     from "../components/novacourt/CourtEvidence.vue"
+
+import CourtRisks
+    from "../components/novacourt/CourtRisks.vue"
 
 import CourtReport
     from "../components/novacourt/CourtReport.vue"
@@ -666,18 +664,9 @@ const evidenceContent = computed(() => {
    RIESGOS
 ========================================================= */
 
-const riskContent = computed(() => {
-
-    const data =
-        result.value || {}
-
-    return normalizeRenderableContent(
-        data.risks ||
-        data.risk_analysis ||
-        data.legal_risks ||
-        ""
-    )
-
+const riskData = computed(() => {
+    const data = result.value || {}
+    return data.risks || data.risk_analysis || data.legal_risks || {}
 })
 
 
@@ -762,40 +751,6 @@ const evidenceStatusType = computed(() => {
     }
 
     if (evidenceContent.value) {
-        return "completed"
-    }
-
-    return "processing"
-
-})
-
-
-/* =========================================================
-   ESTADO — RIESGOS
-========================================================= */
-
-const riskStatus = computed(() => {
-
-    if (isLoading.value) {
-        return "Evaluando riesgos jurídicos"
-    }
-
-    if (riskContent.value) {
-        return "Evaluación disponible"
-    }
-
-    return ""
-
-})
-
-
-const riskStatusType = computed(() => {
-
-    if (isLoading.value) {
-        return "processing"
-    }
-
-    if (riskContent.value) {
         return "completed"
     }
 
