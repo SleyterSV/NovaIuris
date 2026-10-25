@@ -54,5 +54,25 @@ test('Court processing keeps one stable card with real progress and Spanish stag
     assert.match(tabs,/overflow-x: auto/)
     assert.match(tabs,/flex: 0 0 auto/)
     assert.match(tabs,/overflow-y:hidden;scrollbar-width:thin/)
+
+    const summary = (await server.ssrLoadModule('/src/components/novacourt/CourtSummary.vue')).default
+    const summaryHtml = await renderToString(createSSRApp({ render:() => h(summary, {
+      summary:{ proceso:'Proceso contencioso administrativo', resumen:'La controversia se centra en la validez del acto administrativo.' },
+      issueCount:7, simulationStatus:'ready', graphStatus:'ready'
+    }) }))
+    assert.match(summaryHtml,/RESUMEN JUDICIAL/)
+    assert.match(summaryHtml,/Panorama del caso/)
+    assert.equal((summaryHtml.match(/class="[^"]*summary-card--/g)||[]).length,4)
+    for (const value of ['Proceso contencioso administrativo','7','Disponible','PANORAMA JURÍDICO',
+      'La controversia se centra en la validez del acto administrativo.']) assert.ok(summaryHtml.includes(value),value)
+    assert.doesNotMatch(summaryHtml,/source_id|document_id|task_id|completed|pending/)
+    const summaryCss = await readFile(new URL('../src/components/novacourt/CourtSummary.vue',import.meta.url),'utf8')
+    assert.match(summaryCss,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/)
+    assert.match(summaryCss,/@media\(max-width:960px\).*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/)
+    assert.match(summaryCss,/@media\(max-width:620px\).*grid-template-columns:minmax\(0,1fr\)/)
+    const summaryWithoutOverview = await renderToString(createSSRApp({ render:() => h(summary, {
+      summary:{ proceso:'Proceso civil' }, issueCount:0, simulationStatus:'pending', graphStatus:'pending'
+    }) }))
+    assert.doesNotMatch(summaryWithoutOverview,/legal-overview|PANORAMA JURÍDICO/)
   } finally { await server.close() }
 })

@@ -1,113 +1,29 @@
 <template>
+  <section class="court-summary">
+    <header class="summary-header">
+      <div class="summary-header-content">
+        <span class="section-eyebrow">RESUMEN JUDICIAL</span>
+        <h2>Panorama del caso</h2>
+        <p>Síntesis estructurada del escenario judicial y de los principales factores identificados durante la simulación.</p>
+      </div>
+    </header>
 
-    <section class="court-summary">
+    <dl class="summary-information" aria-label="Indicadores del análisis judicial">
+      <div v-for="item in summaryItems" :key="item.label" class="summary-card" :class="`summary-card--${item.tone}`">
+        <span class="summary-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path :d="item.icon" /></svg>
+        </span>
+        <dt>{{ item.label }}</dt>
+        <dd>{{ item.value }}</dd>
+      </div>
+    </dl>
 
-        <!-- =========================================
-             CABECERA
-        ========================================== -->
-
-        <header class="summary-header">
-
-            <div class="summary-header-line"></div>
-
-            <div class="summary-header-content">
-
-                <span class="section-eyebrow">
-                    RESUMEN JUDICIAL
-                </span>
-
-                <h2>
-                    Panorama del caso
-                </h2>
-
-                <div class="title-accent"></div>
-
-                <p>
-                    Síntesis estructurada del escenario judicial
-                    y de los principales factores identificados
-                    durante la simulación.
-                </p>
-
-            </div>
-
-        </header>
-
-
-        <!-- =========================================
-             INFORMACIÓN DEL CASO
-        ========================================== -->
-
-        <div class="summary-information">
-
-            <div
-                v-for="(item, index) in summaryItems"
-                :key="item.label"
-                class="summary-item"
-            >
-
-                <!-- NUMERACIÓN -->
-
-                <div class="summary-item-number">
-
-                    {{ String(index + 1).padStart(2, "0") }}
-
-                </div>
-
-
-                <!-- CONTENIDO -->
-
-                <div class="summary-item-content">
-
-                    <span class="summary-label">
-
-                        {{ item.label }}
-
-                    </span>
-
-                    <strong
-                        class="summary-value"
-                        :class="{
-                            'value-positive':
-                                item.type === 'positive',
-
-                            'value-warning':
-                                item.type === 'warning',
-
-                            'value-neutral':
-                                item.type === 'neutral'
-                        }"
-                    >
-
-                        {{ item.value }}
-
-                    </strong>
-
-                </div>
-
-
-                <!-- INDICADOR -->
-
-                <div
-                    class="summary-item-indicator"
-                    :class="{
-                        'indicator-positive':
-                            item.type === 'positive',
-
-                        'indicator-warning':
-                            item.type === 'warning',
-
-                        'indicator-neutral':
-                            item.type === 'neutral'
-                    }"
-                    aria-hidden="true"
-                ></div>
-
-            </div>
-
-        </div>
-
+    <section v-if="panoramaText" class="legal-overview" aria-labelledby="legal-overview-title">
+      <span class="section-eyebrow">PANORAMA JURÍDICO</span>
+      <h3 id="legal-overview-title">Síntesis del caso</h3>
+      <p>{{ panoramaText }}</p>
     </section>
-
+  </section>
 </template>
 
 
@@ -144,757 +60,66 @@ const props = defineProps({
 ========================================= */
 
 const summaryItems = computed(() => [
-
     {
-
         label: "Tipo de proceso",
-
-        value:
-            props.summary.proceso
-            ||
-            "No identificado con la información disponible.",
-
-        type: "neutral"
-
+        value: props.summary.proceso || "No identificado con la información disponible.",
+        tone: "process",
+        icon: "M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"
     },
-
-
     {
-
-        label: "Problemas jurídicos identificados",
-
-        value:
-            String(props.issueCount),
-
-        type: "neutral"
-
+        label: "Problemas jurídicos",
+        value: String(props.issueCount),
+        tone: "issues",
+        icon: "M12 3 4 7v5c0 5 3.4 8 8 9 4.6-1 8-4 8-9V7zm-3 9 2 2 4-4"
     },
-
-
     {
-
         label: "Simulación jurídica",
-
-        value:
-            props.simulationStatus === 'ready' ? 'Disponible' : 'No disponible',
-
-        type: "warning"
-
+        value: props.simulationStatus === 'ready' ? 'Disponible' : 'No disponible',
+        tone: props.simulationStatus === 'ready' ? 'available' : 'simulation',
+        icon: "M4 18V6m0 12h16M7 15l4-4 3 2 5-6"
     },
-    { label: 'Grafo jurídico', value: props.graphStatus === 'ready' ? 'Disponible' : 'No disponible', type: 'neutral' }
-
+    {
+        label: 'Grafo jurídico',
+        value: props.graphStatus === 'ready' ? 'Disponible' : 'No disponible',
+        tone: 'graph',
+        icon: 'M7 7 17 6M7 8l4 8m2 0 4-9M6 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4m12-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4m-6 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4'
+    }
 ])
+
+const panoramaText = computed(() => {
+    const value = props.summary
+    if (typeof value === 'string') return value.trim()
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return ''
+    const text = value.resumen || value.resumen_ejecutivo || value.overview || value.summary
+    return typeof text === 'string' ? text.trim() : ''
+})
 
 </script>
 
 
 <style scoped>
-
-/* =====================================================
-   COURT SUMMARY
-
-   IDENTIDAD:
-   JURÍDICA · INSTITUCIONAL · EDITORIAL · SOBRIA
-
-   SISTEMA VISUAL:
-   AZUL MARINO  → #17375E
-   AZUL         → #315C97
-   DORADO       → #B08A4C
-   FONDO        → #FFFFFF
-
-   PRINCIPIO:
-   NO CARD.
-   NO SOMBRAS.
-   NO EXCESOS DECORATIVOS.
-
-   DEBE SENTIRSE COMO UNA SECCIÓN
-   DE UN INFORME JURÍDICO PROFESIONAL.
-===================================================== */
-
-
-/* =====================================================
-   CONTENEDOR PRINCIPAL
-===================================================== */
-
-.court-summary {
-
-    width: 100%;
-
-    margin: 0;
-
-    padding: 0;
-
-    background: #FFFFFF;
-
-}
-
-
-/* =====================================================
-   CABECERA
-===================================================== */
-
-.summary-header {
-
-    position: relative;
-
-    display: flex;
-
-    align-items: stretch;
-
-    width: 100%;
-
-    padding:
-
-        0
-
-        0
-
-        30px;
-
-    border-bottom:
-        1px solid
-        #D9E0E8;
-
-}
-
-
-/* =====================================================
-   LÍNEA DE IDENTIDAD
-
-   Azul principal.
-   El dorado queda reservado para
-   pequeños detalles del sistema.
-===================================================== */
-
-.summary-header-line {
-
-    width: 3px;
-
-    min-height: 116px;
-
-    flex-shrink: 0;
-
-    margin-right: 24px;
-
-    background:
-
-        linear-gradient(
-            180deg,
-            #17375E 0%,
-            #315C97 100%
-        );
-
-}
-
-
-/* =====================================================
-   CONTENIDO CABECERA
-===================================================== */
-
-.summary-header-content {
-
-    flex: 1;
-
-    min-width: 0;
-
-    max-width: 880px;
-
-}
-
-
-/* =====================================================
-   EYEBROW
-===================================================== */
-
-.section-eyebrow {
-
-    display: block;
-
-    margin-bottom: 13px;
-
-    color: #315C97;
-
-    font-size: .67rem;
-
-    font-weight: 800;
-
-    letter-spacing: 1.55px;
-
-    line-height: 1.2;
-
-}
-
-
-/* =====================================================
-   TÍTULO
-===================================================== */
-
-.summary-header h2 {
-
-    margin: 0;
-
-    color: #17375E;
-
-    font-family:
-        Georgia,
-        "Times New Roman",
-        serif;
-
-    font-size: 1.85rem;
-
-    font-weight: 500;
-
-    line-height: 1.28;
-
-    letter-spacing: -.25px;
-
-}
-
-
-/* =====================================================
-   ACENTO DEL TÍTULO
-===================================================== */
-
-.title-accent {
-
-    width: 44px;
-
-    height: 2px;
-
-    margin:
-        17px
-        0
-        17px;
-
-    background: #315C97;
-
-}
-
-
-/* =====================================================
-   DESCRIPCIÓN
-===================================================== */
-
-.summary-header p {
-
-    max-width: 790px;
-
-    margin: 0;
-
-    color: #5E6D7E;
-
-    font-size: .94rem;
-
-    font-weight: 400;
-
-    line-height: 1.82;
-
-    letter-spacing: .005em;
-
-}
-
-
-/* =====================================================
-   INFORMACIÓN
-===================================================== */
-
-.summary-information {
-
-    width: 100%;
-
-    margin-top: 4px;
-
-}
-
-
-/* =====================================================
-   FILA DE INFORMACIÓN
-
-   Se mantiene como estructura editorial,
-   no como colección de cards.
-===================================================== */
-
-.summary-item {
-
-    position: relative;
-
-    display: grid;
-
-    grid-template-columns:
-
-        58px
-
-        minmax(0, 1fr)
-
-        20px;
-
-    align-items: center;
-
-    gap: 20px;
-
-    width: 100%;
-
-    min-height: 104px;
-
-    padding:
-
-        22px
-
-        4px;
-
-    border-bottom:
-        1px solid
-        #E1E6EC;
-
-    transition:
-        background .22s ease,
-        padding-left .22s ease;
-
-}
-
-
-/* =====================================================
-   ÚLTIMO ELEMENTO
-===================================================== */
-
-.summary-item:last-child {
-
-    border-bottom: none;
-
-}
-
-
-/* =====================================================
-   HOVER
-
-   Muy discreto para mantener
-   apariencia institucional.
-===================================================== */
-
-.summary-item:hover {
-
-    padding-left: 10px;
-
-    background:
-
-        linear-gradient(
-            90deg,
-            rgba(23, 55, 94, .035) 0%,
-            rgba(23, 55, 94, 0) 75%
-        );
-
-}
-
-
-/* =====================================================
-   NUMERACIÓN
-===================================================== */
-
-.summary-item-number {
-
-    align-self: start;
-
-    padding-top: 2px;
-
-    color: #B08A4C;
-
-    font-family:
-        Georgia,
-        "Times New Roman",
-        serif;
-
-    font-size: .79rem;
-
-    font-weight: 600;
-
-    letter-spacing: .12em;
-
-    line-height: 1.4;
-
-}
-
-
-/* =====================================================
-   CONTENIDO
-===================================================== */
-
-.summary-item-content {
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 7px;
-
-    min-width: 0;
-
-}
-
-
-/* =====================================================
-   ETIQUETA
-===================================================== */
-
-.summary-label {
-
-    display: block;
-
-    color: #7A8795;
-
-    font-size: .65rem;
-
-    font-weight: 800;
-
-    letter-spacing: 1.35px;
-
-    line-height: 1.3;
-
-    text-transform: uppercase;
-
-}
-
-
-/* =====================================================
-   VALOR
-===================================================== */
-
-.summary-value {
-
-    display: block;
-
-    color: #17375E;
-
-    font-family:
-        Georgia,
-        "Times New Roman",
-        serif;
-
-    font-size: 1.06rem;
-
-    font-weight: 500;
-
-    line-height: 1.45;
-
-    word-break: break-word;
-
-}
-
-
-/* =====================================================
-   VALORES ESPECIALES
-===================================================== */
-
-.value-positive {
-
-    color: #315C97;
-
-}
-
-
-.value-warning {
-
-    color: #8B7047;
-
-}
-
-
-.value-neutral {
-
-    color: #17375E;
-
-}
-
-
-/* =====================================================
-   INDICADOR LATERAL
-===================================================== */
-
-.summary-item-indicator {
-
-    width: 7px;
-
-    height: 7px;
-
-    justify-self: end;
-
-    border-radius: 50%;
-
-    opacity: .9;
-
-}
-
-
-/* =====================================================
-   INDICADORES
-===================================================== */
-
-.indicator-positive {
-
-    background: #315C97;
-
-}
-
-
-.indicator-warning {
-
-    background: #B08A4C;
-
-}
-
-
-.indicator-neutral {
-
-    background: #9BA8B5;
-
-}
-
-
-/* =====================================================
-   FOCUS / ACCESIBILIDAD
-===================================================== */
-
-.summary-item:focus-within {
-
-    outline:
-        1px solid
-        rgba(
-            49,
-            92,
-            151,
-            .18
-        );
-
-    outline-offset: -1px;
-
-}
-
-
-/* =====================================================
-   RESPONSIVE - TABLET
-===================================================== */
-
-@media (max-width: 768px) {
-
-    .summary-header {
-
-        padding-bottom: 26px;
-
-    }
-
-
-    .summary-header-line {
-
-        width: 3px;
-
-        min-height: 108px;
-
-        margin-right: 20px;
-
-    }
-
-
-    .summary-header h2 {
-
-        font-size: 1.65rem;
-
-    }
-
-
-    .summary-header p {
-
-        font-size: .92rem;
-
-        line-height: 1.78;
-
-    }
-
-
-    .summary-item {
-
-        grid-template-columns:
-
-            48px
-
-            minmax(0, 1fr)
-
-            16px;
-
-        gap: 16px;
-
-        min-height: 96px;
-
-        padding:
-
-            20px
-
-            3px;
-
-    }
-
-
-    .summary-item-number {
-
-        font-size: .76rem;
-
-    }
-
-
-    .summary-value {
-
-        font-size: 1rem;
-
-    }
-
-}
-
-
-/* =====================================================
-   RESPONSIVE - MOBILE
-===================================================== */
-
-@media (max-width: 576px) {
-
-    .summary-header {
-
-        padding-bottom: 24px;
-
-    }
-
-
-    .summary-header-line {
-
-        width: 2px;
-
-        min-height: 126px;
-
-        margin-right: 16px;
-
-    }
-
-
-    .section-eyebrow {
-
-        margin-bottom: 11px;
-
-        font-size: .62rem;
-
-        letter-spacing: 1.25px;
-
-    }
-
-
-    .summary-header h2 {
-
-        font-size: 1.42rem;
-
-        line-height: 1.3;
-
-    }
-
-
-    .title-accent {
-
-        width: 38px;
-
-        height: 2px;
-
-        margin:
-            15px
-            0;
-
-    }
-
-
-    .summary-header p {
-
-        font-size: .88rem;
-
-        line-height: 1.72;
-
-    }
-
-
-    .summary-information {
-
-        margin-top: 2px;
-
-    }
-
-
-    .summary-item {
-
-        grid-template-columns:
-
-            34px
-
-            minmax(0, 1fr)
-
-            8px;
-
-        gap: 13px;
-
-        min-height: 88px;
-
-        padding:
-
-            18px
-
-            0;
-
-    }
-
-
-    .summary-item:hover {
-
-        padding-left: 5px;
-
-    }
-
-
-    .summary-item-number {
-
-        padding-top: 1px;
-
-        font-size: .69rem;
-
-        letter-spacing: .08em;
-
-    }
-
-
-    .summary-item-content {
-
-        gap: 6px;
-
-    }
-
-
-    .summary-label {
-
-        font-size: .59rem;
-
-        letter-spacing: 1.1px;
-
-    }
-
-
-    .summary-value {
-
-        font-size: .96rem;
-
-        line-height: 1.42;
-
-    }
-
-
-    .summary-item-indicator {
-
-        width: 6px;
-
-        height: 6px;
-
-    }
-
-}
-
+.court-summary{display:grid;gap:24px;min-width:0;width:100%;color:#26384b}
+.summary-header{position:relative;padding:0 0 20px 17px;border-bottom:1px solid #dce5ee}
+.summary-header::before{position:absolute;top:2px;bottom:20px;left:0;width:3px;border-radius:3px;background:linear-gradient(180deg,#b08a4c,#d9c59e);content:''}
+.summary-header-content{max-width:790px;min-width:0}
+.section-eyebrow{display:block;margin:0 0 8px;color:#987544;font-size:.68rem;font-weight:750;letter-spacing:.12em;line-height:1.3}
+.summary-header h2{margin:0;color:#17375e;font:600 clamp(1.7rem,2.7vw,2.15rem)/1.23 Georgia,'Times New Roman',serif}
+.summary-header p{max-width:68ch;margin:10px 0 0;color:#61748a;font-size:.92rem;line-height:1.65}
+.summary-information{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0;padding:0}
+.summary-card{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:13px;align-content:start;min-width:0;padding:17px 16px;border:1px solid #dfe6ec;border-radius:12px;background:#fff;box-shadow:0 3px 12px #17375e05}
+.summary-card-icon{grid-row:1 / span 2;display:grid;place-items:center;box-sizing:border-box;width:40px;height:40px;border:1px solid var(--icon-border);border-radius:11px;background:var(--icon-tint);color:var(--icon-color)}
+.summary-card-icon svg{width:21px;height:21px}
+.summary-card dt{align-self:end;color:#61748a;font-size:.66rem;font-weight:750;letter-spacing:.035em;line-height:1.45;text-transform:uppercase}
+.summary-card dd{min-width:0;margin:7px 0 0;color:#17375e;font:600 1.02rem/1.45 Georgia,'Times New Roman',serif;overflow-wrap:break-word;word-break:normal;hyphens:none}
+.summary-card--process{--icon-color:#9b742e;--icon-tint:#fcf6e9;--icon-border:#efe2c5}
+.summary-card--issues{--icon-color:#346da3;--icon-tint:#edf5fc;--icon-border:#d9e9f6}
+.summary-card--simulation{--icon-color:#7d62a4;--icon-tint:#f3effa;--icon-border:#e5dcf2}
+.summary-card--available{--icon-color:#3b8067;--icon-tint:#edf7f1;--icon-border:#d9eade}
+.summary-card--graph{--icon-color:#467b9c;--icon-tint:#edf7fa;--icon-border:#d7eaf1}
+.summary-card--issues dd{font-size:1.45rem;line-height:1.15}
+.legal-overview{padding-top:18px;border-top:1px solid #e5eaf0}
+.legal-overview h3{margin:5px 0 8px;color:#17375e;font:600 1.15rem/1.35 Georgia,'Times New Roman',serif}
+.legal-overview p{max-width:78ch;margin:0;color:#4f6378;font-size:.91rem;line-height:1.7;white-space:pre-line;overflow-wrap:anywhere}
+@media(max-width:960px){.summary-information{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.court-summary{gap:20px}.summary-header{padding:0 0 17px 14px}.summary-header p{font-size:.88rem}.summary-information{grid-template-columns:minmax(0,1fr);gap:10px}.summary-card{padding:15px}.legal-overview{padding-top:15px}}
 </style>
