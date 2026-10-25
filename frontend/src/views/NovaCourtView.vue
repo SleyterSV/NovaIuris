@@ -847,16 +847,15 @@ const reportStatusType = computed(() => {
 
 .novacourt-view{
 
-    width:100%;
+    box-sizing:border-box;
 
-    max-width:1440px;
+    width:min(1240px,calc(100% - 44px));
+
+    min-width:0;
 
     margin:0 auto;
 
-    padding:
-        32px
-        28px
-        56px;
+    padding:30px 0 50px;
 
     color:#17375E;
 
@@ -1471,10 +1470,7 @@ const reportStatusType = computed(() => {
 
     .novacourt-view{
 
-        padding:
-            24px
-            20px
-            44px;
+        padding:24px 0 44px;
 
     }
 
@@ -1540,10 +1536,9 @@ const reportStatusType = computed(() => {
 
     .novacourt-view{
 
-        padding:
-            16px
-            14px
-            36px;
+        width:calc(100% - 28px);
+
+        padding:16px 0 36px;
 
     }
 
