@@ -118,13 +118,31 @@ const participants = computed(() => participantSpecs.map(spec => {
 }).filter(party => party.sections.thesis.length || Object.values(party.sections).some(value => Array.isArray(value) && value.length)))
 const comparisonRows = computed(() => {
   const left = participants.value[0], right = participants.value[1]
-  if (!left || !right || !left.sections.thesis.length || !right.sections.thesis.length) return []
-  const topicRows = comparisonDefinitions.map(definition => {
-    const claimant = [...left.sections.grounds, ...left.sections.other.map(parseGround)].find(item => definition.pattern.test(item.title))
-    const defendant = [...right.sections.grounds, ...right.sections.other.map(parseGround)].find(item => definition.pattern.test(item.title))
-    return claimant && defendant ? { key: definition.key, label: definition.label, claimant: claimant.content, defendant: defendant.content } : null
-  }).filter(Boolean)
-  return [{ key: 'main-thesis', label: 'Tesis principal', claimant: left.sections.thesis[0], defendant: right.sections.thesis[0] }, ...topicRows]
+  if (!left || !right) return []
+  const row = (key, label, claimant, defendant) => {
+    const leftText = briefComparison(claimant), rightText = briefComparison(defendant)
+    return leftText && rightText ? { key, label, claimant: leftText, defendant: rightText } : null
+  }
+  const allItems = party => [
+    ...party.sections.grounds,
+    ...party.sections.other.map(parseGround)
+  ].filter(item => item.title && item.content)
+  const topicRow = definition => {
+    const claimant = allItems(left).find(item => definition.pattern.test(item.title))
+    const defendant = allItems(right).find(item => definition.pattern.test(item.title))
+    return row(definition.key, definition.label, claimant?.content, defendant?.content)
+  }
+  const legalGround = party => party.sections.grounds.find(item => briefComparison(item.content))?.content
+  const evidence = party => party.sections.evidence.find(briefComparison)
+  const vulnerability = party => party.sections.vulnerabilities.find(briefComparison)
+  return [
+    row('main-thesis', 'Tesis principal', left.sections.thesis[0], right.sections.thesis[0]),
+    topicRow(comparisonDefinitions[0]),
+    topicRow(comparisonDefinitions[1]),
+    row('legal-ground', 'Fundamento jurídico principal', legalGround(left), legalGround(right)),
+    row('main-evidence', 'Evidencia o respaldo principal', evidence(left), evidence(right)),
+    row('main-vulnerability', 'Principal vulnerabilidad', vulnerability(left), vulnerability(right))
+  ].filter(Boolean).slice(0, 6)
 })
 const controversies = computed(() => records(simulation.value.controversies || simulation.value.central_controversies || simulation.value.disputed_issues).map(textOf).filter(Boolean))
 const sourceGroups = computed(() => ({
@@ -132,12 +150,8 @@ const sourceGroups = computed(() => ({
   public: sources.value.filter(source => source.source_scope === 'public_legal')
 }))
 const comparisonDefinitions = [
-  { key: 'cas-nature', label: 'Naturaleza del vínculo CAS', pattern: /cas|naturaleza|vínculo/i },
-  { key: 'nonrenewal', label: 'Motivación de la no renovación', pattern: /motivaci[oó]n|no renovaci[oó]n/i },
-  { key: 'functions', label: 'Permanencia de funciones', pattern: /permanencia|funciones/i },
-  { key: 'continuity', label: 'Continuidad del servicio', pattern: /continuidad|servicio/i },
-  { key: 'procedure', label: 'Vía procesal', pattern: /v[ií]a procesal|agotamiento/i },
-  { key: 'evidence', label: 'Debilidad probatoria', pattern: /prueba|evidencia|probatori/i }
+  { key: 'cas-nature', label: 'Naturaleza del vínculo / controversia central', pattern: /naturaleza|controversia central|v[ií]nculo/i },
+  { key: 'nonrenewal', label: 'Motivación de la no renovación', pattern: /motivaci[oó]n.*no renovaci[oó]n|no renovaci[oó]n.*motivaci[oó]n/i }
 ]
 function records(value) { return Array.isArray(value) ? value : value == null || value === '' ? [] : [value] }
 function clean(value) { return typeof value === 'string' ? presentableText(value).replace(/\b(?:SRC|FACT|ISSUE)-[A-Z0-9_-]+\b/gi, '').replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '').trim() : '' }
@@ -153,12 +167,12 @@ function parseGround(value) {
   return lines.length > 1 ? { title: lines[0].replace(/^\s*#+\s*|\*\*/g, '').replace(/\*\*/g, '').replace(/:$/, ''), content: lines.slice(1).join('\n') } : { title: '', content: text }
 }
 const sectionDefinitions = [
-  { key: 'thesis', pattern: /^(?:tesis(?: principal)?|pretensi[oó]n|posici[oó]n principal|argumento principal|principal thesis|main argument)$/i },
+  { key: 'thesis', pattern: /^(?:tesis(?: principal)?(?: de la parte (?:demandante|demandada))?|teor[ií]a de la defensa(?: de la parte demandada)?|pretensi[oó]n|posici[oó]n principal|argumento principal|principal thesis|main argument)$/i },
   { key: 'facts', pattern: /^(?:hechos(?: relevantes| que sustentan(?: esta posici[oó]n)?)?|facts(?: supporting.*)?|antecedentes f[aá]cticos)$/i },
-  { key: 'evidence', pattern: /^(?:evidencia disponible|prueba(?: disponible)?|evidence(?: available)?|evidencia aportada)$/i },
-  { key: 'grounds', pattern: /^(?:fundamentos? jur[ií]dicos?|fundamento legal|legal grounds?|legal basis|argumentos? jur[ií]dicos?)$/i },
+  { key: 'evidence', pattern: /^(?:evidencia disponible|evidencia o respaldo principal|prueba(?: disponible)?|evidence(?: available)?|evidencia aportada)$/i },
+  { key: 'grounds', pattern: /^(?:fundamentos? jur[ií]dicos?(?: principal)?|fundamento legal|legal grounds?|legal basis|argumentos? jur[ií]dicos?)$/i },
   { key: 'recommended', pattern: /^(?:prueba recomendada|evidencia recomendada|evidencia que fortalecer[ií]a(?: esta posici[oó]n)?|recommended evidence|evidence to strengthen)$/i },
-  { key: 'vulnerabilities', pattern: /^(?:limitaciones|vulnerabilidades?(?: de la posici[oó]n)?|weaknesses|limitations)$/i },
+  { key: 'vulnerabilities', pattern: /^(?:limitaciones|principal vulnerabilidad|vulnerabilidades?(?: de la posici[oó]n)?|weaknesses|limitations)$/i },
   { key: 'conclusion', pattern: /^(?:conclusi[oó]n(?: de la posici[oó]n)?|s[ií]ntesis|conclusion)$/i },
   { key: 'sources', pattern: /^(?:fuentes(?: utilizadas)?|sources(?: used)?)$/i }
 ]
@@ -168,16 +182,21 @@ function parsePosition(content) {
   if (!allText) return output
   let current = null, preamble = []
   for (const line of allText.split(/\r?\n/)) {
-    const markdownHeading = line.match(/^\s*#{1,5}\s+(.+?)\s*$/)
+    const markdownHeading = line.match(/^\s*(#{1,5})\s+(.+?)\s*$/)
     const boldLabel = line.match(/^\s*\*\*([^*]+)\*\*\s*:?[ \t]*(.*)$/)
     const plainLabel = line.match(/^\s*([A-Za-zÁÉÍÓÚÜÑáéíóúüñ][^:\n]{2,55}):\s*(.*)$/)
-    const heading = markdownHeading ? [line, markdownHeading[1], ''] : (boldLabel || plainLabel)
-    const label = heading?.[1]?.replace(/\*\*/g, '').trim()
+    const heading = markdownHeading ? [line, markdownHeading[2], ''] : (boldLabel || plainLabel)
+    const label = heading?.[1]?.replace(/\*\*/g, '').replace(/[:：]\s*$/, '').trim()
     const section = label && sectionDefinitions.find(item => item.pattern.test(label))
     if (section?.key === 'sources') { current = null; continue }
     if (section) {
       current = section.key
       if (heading[2]?.trim()) output[current].push(heading[2].trim())
+      continue
+    }
+    if (markdownHeading && (markdownHeading[1].length <= 2 || !current)) {
+      current = 'other'
+      output.other.push(line)
       continue
     }
     if (current) output[current].push(line)
@@ -186,7 +205,7 @@ function parsePosition(content) {
   if (!output.thesis.length && preamble.join('\n').trim()) output.thesis.push(preamble.join('\n').trim())
   for (const key of Object.keys(output)) {
     const joined = output[key].map(text => text.trim()).filter(Boolean).join('\n')
-    const blocks = key === 'grounds'
+    const blocks = ['grounds', 'other'].includes(key)
       ? joined.split(/\n(?=\s*(?:#{2,5}\s+|\*\*[^*]+\*\*))/)
       : joined.split(/\n\s*\n|\n(?=\s*(?:[-*•]|\d+[.)])\s+)/)
     output[key] = blocks.map(text => text.replace(/^\s*(?:[-*•]|\d+[.)])\s+/gm, '').trim()).filter(Boolean)
@@ -199,6 +218,17 @@ function preview(value) {
   if (text.length <= 210) return text
   const cut = text.slice(0, 207).replace(/\s+\S*$/, '')
   return `${cut}…`
+}
+function briefComparison(value) {
+  const text = textOf(value)
+    .replace(/^\s*(?:tesis(?: principal)? de la parte demandante|tesis(?: principal)? de la parte demandada|teor[ií]a de la defensa de la parte demandada|teor[ií]a de la defensa|tesis principal|fundamento jur[ií]dico principal|evidencia o respaldo principal|principal vulnerabilidad)\s*[:：-]?\s*/i, '')
+    .replace(/^\s*#{1,5}\s*[^\n]+\n?/gm, '')
+    .replace(/^\s*\*\*[^*]+\*\*\s*[:：]?\s*$/gm, '')
+    .replace(/^\s*(?:[-*•]|\d+[.)])\s+/gm, '')
+    .trim()
+  if (!text || /^(?:tesis(?: de la parte demandante| de la parte demandada)?|teor[ií]a de la defensa(?: de la parte demandada)?|fundamento jur[ií]dico principal|evidencia o respaldo principal|principal vulnerabilidad)\s*[:：]?$/i.test(text)) return ''
+  if (text.length <= 280) return text
+  return `${text.slice(0, 277).replace(/\s+\S*$/, '')}…`
 }
 function number(value) { return String(value).padStart(2, '0') }
 function citationFor(source) { return argumentCitationForSource(source, citations.value, sources.value, props.caseId) }
