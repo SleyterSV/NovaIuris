@@ -59,6 +59,22 @@ export function useNovaCourt() {
     taskId.value = null; taskStatus.value = 'idle'
     currentStage.value = ''; stages.value = []; warnings.value = []
   }
+  function restoreHistoricalResult(snapshot, historicalTaskId = null) {
+    generation++
+    controller?.abort('historical-restore')
+    controller = null
+    isAnalyzing.value = false
+    error.value = ''
+    result.value = snapshot && typeof snapshot === 'object' ? snapshot : null
+    taskId.value = historicalTaskId
+    taskStatus.value = result.value ? 'completed' : 'not_found'
+    progress.value = result.value ? 100 : 0
+    currentStage.value = ''
+    stages.value = []
+    warnings.value = []
+    caseText.value = String(result.value?.case || '')
+    return result.value
+  }
   return { caseText, isAnalyzing, error, progress, currentStage, stages, warnings, result, taskId, taskStatus,
-    analyzeCase, cancel, resetAnalysis, clearError:() => { error.value = '' } }
+    analyzeCase, cancel, resetAnalysis, restoreHistoricalResult, clearError:() => { error.value = '' } }
 }

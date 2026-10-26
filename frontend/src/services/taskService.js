@@ -9,6 +9,20 @@ export async function requestJson(path, options = {}) {
   if (!response.ok || data.success === false) throw publicApiError(response, data)
   return data
 }
+export async function loadHistoricalRun(runId, caseId, tool) {
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  if (!uuid.test(String(runId || '')) || !uuid.test(String(caseId || '')) || !['case', 'court'].includes(tool))
+    throw new Error('No fue posible recuperar la ejecución solicitada.')
+  const data = await requestJson(`/runs/${encodeURIComponent(runId)}/result`)
+  const expected = tool === 'court' ? 'court_result' : 'case_result'
+  const artifact = data.artifacts?.find(item => item.artifact_type === expected)
+  if (data.run?.id !== runId || data.run?.case_id !== caseId || data.run?.tool !== tool || !artifact?.content)
+    throw new Error('No fue posible recuperar la ejecución solicitada.')
+  let result = artifact.content
+  const graph = data.artifacts?.find(item => item.artifact_type === 'graph_snapshot')
+  if (tool === 'court' && graph?.content) result = { ...result, graph:graph.content }
+  return { run:data.run, result, artifacts:data.artifacts }
+}
 function pause(signal, milliseconds) {
   return new Promise((resolve, reject) => {
     const abort = () => { clearTimeout(timer); reject(new DOMException('Cancelado', 'AbortError')) }

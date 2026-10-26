@@ -2,7 +2,7 @@
 
 ## Estado
 
-Esta entrega incorpora una base inicial de Auth, workspaces, casos, ejecuciones y snapshots. **No se declara cerrada**: la migracion, RLS y Storage aun necesitan validacion real en Postgres/Supabase local. El almacenamiento privado de documentos de Fase 1 sigue usando SQLite y no esta conectado al nuevo bucket.
+Esta entrega incorpora una base inicial de Auth, workspaces, casos, ejecuciones y snapshots. **No se declara cerrada**: la migration, grants, RLS y Storage requieren validacion real en Postgres/Supabase. La integracion de documentos con Storage privado ya esta conectada en el backend cuando `ApplicationRepository` esta configurado; produccion falla cerrada si no esta disponible.
 
 ## Arquitectura implementada
 
@@ -63,7 +63,7 @@ Hay indices para membership, workspace/fecha, case/fecha, task, artifacts por ru
 - Casos permiten lectura/creacion/actualizacion de miembros, sin borrado directo.
 - Runs, artifacts y metadata de documentos son de lectura para miembros; escrituras quedan reservadas al servidor.
 - La migration define el bucket privado `case-documents`, 50 MiB, MIME permitidos, lectura por metadata y membership, e insercion solo bajo el path del workspace/case autorizado. Los usuarios no reciben update/delete de objetos.
-- `supabase/tests/auth_workspace_rls.sql` incluye bootstrap y aserciones de aislamiento de lectura A/B. **No se ejecuto**: Docker Desktop no tenia disponible su pipe/daemon.
+- `supabase/tests/auth_workspace_rls.sql` incluye bootstrap, lecturas propias, intentos directos por ID y aserciones A/B sobre cases, runs, artifacts, metadata y objetos Storage. **No se ejecuto**: Docker Desktop no tenia disponible su pipe/daemon.
 
 ## Backend, casos e historial
 
@@ -72,12 +72,12 @@ Hay indices para membership, workspace/fecha, case/fecha, task, artifacts por ru
 - El repositorio aplica filtros por usuario/workspace con service key. Produccion requiere `APP_SUPABASE_SERVICE_ROLE_KEY`.
 - `TaskManager` mantiene el task journal actual. El callback persiste estados a `analysis_runs` y artifacts finalizados a `case_artifacts` cuando el repositorio remoto esta disponible.
 - NovaCase y NovaCourt comparten `case_id`; Court enlaza `parent_run_id` cuando encuentra el run padre.
-- La UI Mis casos lista, abre, renombra y archiva casos y muestra runs NovaCase/NovaCourt. Abrir una tarea vuelve al task existente y no inicia el proveedor. Aun no hay un visor UI independiente de artifacts.
-- El historial completo en PostgreSQL y su recuperacion dependen de instalar y validar la migration y configurar la integracion de servidor.
+- La UI Mis casos lista, abre, renombra y archiva casos y muestra runs NovaCase/NovaCourt. Para una ejecucion completada, el enlace usa `run_id` y `GET /api/runs/{id}/result`; NovaCase/NovaCourt presentan el artifact existente, sin iniciar un task ni invocar proveedores. Runs activos siguen usando la restauracion del journal operacional.
+- La escritura y lectura de `analysis_runs`/`case_artifacts` estan implementadas via repositorio de servidor, pero su operacion contra Supabase real depende de configurar credenciales y aplicar la migration.
 
 ## Documentos
 
-Los uploads actuales siguen en `/api/cases/{case_id}/documents` y el corpus SQLite de Fase 1, que scopea acceso por case. La migration crea el bucket y `case_documents`, pero la ruta actual no copia binarios al bucket ni crea metadata ahi. Por ello no se declara Storage privado durable ni aislamiento real del bucket en esta entrega.
+Los uploads siguen usando el endpoint compatible `/api/cases/{case_id}/documents`. Con `ApplicationRepository`, el backend valida el case, genera el `document_id` y el path, almacena el original y metadata principal en el bucket privado `case-documents` y sirve descargas tras autorizacion. En produccion, si no hay repositorio configurado, upload responde 503. SQLite conserva el manifiesto de extraccion, texto normalizado, chunks y vectores usados por la busqueda documental existente; ya no es autoridad del binario ni del ownership/metadata principal. En desarrollo sin repositorio puede mantenerse el modo legacy local.
 
 ## Configuracion y entorno
 
@@ -89,22 +89,17 @@ Los uploads actuales siguen en `/api/cases/{case_id}/documents` y el corpus SQLi
 
 ## Validacion ejecutada
 
-- Tests dirigidos backend: `10/10 PASS`.
-- Suite backend: `384/384 PASS`.
-- `python -m compileall -q app tests`: PASS.
-- Suite frontend: `109/109 PASS`.
-- `npm run build`: PASS (Vite aviso que algunos chunks superan 500 kB).
-- `git diff --check`: PASS.
-- `supabase status` fallo porque no estaba disponible el daemon Docker Desktop (`//./pipe/dockerDesktopLinuxEngine`). Por eso `supabase test db`, la aplicacion de migration local y pgTAP no se ejecutaron.
+- Los conteos de la ejecucion base se conservan en el reporte de Fase 2.1. La validacion actualizada de Fase 2.1B esta en `docs/PHASE_2_1B_REAL_VALIDATION.md`.
+- CLI observado: Supabase `2.53.6`; `supabase status`, `docker version` confirmaron que el CLI existe pero Docker Desktop no expone `//./pipe/dockerDesktopLinuxEngine`. No se aplico ni reseteo una base local.
 
 ## Limitaciones conocidas
 
 1. La migration, RLS, grants y Storage no fueron comprobados en Postgres local/remoto; no se declara aislamiento A/B de base de datos como PASS.
 2. La entrega real de confirmacion/reset de correo requiere Supabase local/Inbucket o SMTP configurado.
-3. Los binarios y metadata de documentos aun no se guardan en el nuevo Storage privado.
-4. Los snapshots y el historial nuevos requieren validacion contra Supabase real. La UI continua restaurando tasks por el journal SQLite actual.
-5. No se verifico con dos sesiones reales el acceso a objetos Storage, cambios directos de IDs, ni reinicio del runtime con datos remotos.
-6. Los proveedores externos reales no se invocaron.
+3. Las migraciones, grants, RLS/Storage policies y callbacks de persistencia no se probaron contra Postgres/Supabase real; por ello aislamiento y persistencia externa siguen sin validacion operacional.
+4. Signup, confirmacion y password reset no se probaron mediante Auth/Inbucket real. SMTP externo no fue utilizado.
+5. Reabrir artifacts completados ya tiene ruta UI/API; la base remota ausente impide probar persistencia luego de logout/login/reinicio.
+6. SQLite sigue siendo indice de extraccion/chunks para el corpus documental; el original y metadata principal se guardan en Storage/Supabase solo con repositorio configurado.
 
 ## Limites de Fase 2.1
 
@@ -116,7 +111,7 @@ No se implementan pagos, planes, cuotas, colas, workers distribuidos, escalado, 
 - El workspace se resuelve por propietario/membership. No autorizar mediante metadata editable.
 - `cases.id` es el `case_id` comun. No crear otro ID de expediente.
 - `analysis_runs` conecta `task_id`, `tool`, `case_id` y `parent_run_id`; artifacts son snapshots server-owned versionados.
-- El endpoint existente de documentos es el punto de conexion para subir el binario al bucket privado y escribir metadata, manteniendo el contrato de `case_id` y corpus/chunks.
+- El endpoint de documentos valida scope y conecta original/metadata al bucket privado; SQLite se limita a los datos derivados que consume el pipeline existente.
 - Endpoints de tasks, documentos, resultados y exports deben validar usuario y scope antes de operaciones con credenciales privilegiadas.
 - No alterar `case_id`, `task_id`, `document_id`, `source_id`, IDs del grafo, contratos de resultados, rutas API ni estados de tasks para agregar user/workspace.
-- Historial UI debe recuperar snapshots sin ejecutar de nuevo NovaSearch, NovaCase, NovaCourt o Graph.
+- Historial completado se recupera por `run_id` desde artifacts del servidor sin volver a ejecutar NovaSearch, NovaCase, NovaCourt o Graph.

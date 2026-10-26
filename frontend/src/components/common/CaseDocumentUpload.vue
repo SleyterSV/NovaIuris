@@ -20,6 +20,7 @@
           <span v-if="item.phase === 'failed'" class="upload-error">{{ item.error }}</span>
         </div>
         <span class="file-state" :class="item.phase">{{ labelFor(item.phase) }}</span>
+        <button v-if="item.existing && item.document" type="button" :disabled="downloadingKey === item.key" @click="download(item)">{{ downloadingKey === item.key ? 'Descargando…' : 'Descargar' }}</button>
         <button type="button" :disabled="disabled || ['uploading','indexing'].includes(item.phase)" :aria-label="`Quitar ${item.file.name} de la selección`" @click="remove(item)">Quitar</button>
       </li>
     </ul>
@@ -28,7 +29,7 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { listCaseDocuments, uploadCaseDocuments } from '@/services/documentService.js'
+import { downloadCaseDocument, listCaseDocuments, uploadCaseDocuments } from '@/services/documentService.js'
 
 const props = defineProps({
   caseId: { type:String, required:true },
@@ -45,6 +46,7 @@ const stageMessage = ref('')
 const uploadProgress = ref(0)
 const completedDocuments = ref(null)
 const totalDocuments = ref(0)
+const downloadingKey = ref(null)
 let sequence = 0
 let activeController = null
 
@@ -168,6 +170,15 @@ async function choose(event) {
     if (stage.value !== 'completed') stageMessage.value = ''
     emitIds()
   }
+}
+
+async function download(item) {
+  if (downloadingKey.value) return
+  downloadingKey.value = item.key
+  error.value = ''
+  try { await downloadCaseDocument(props.caseId, item.document) }
+  catch (failure) { error.value = failure.message || 'No fue posible descargar el documento.' }
+  finally { downloadingKey.value = null }
 }
 
 function remove(item) {

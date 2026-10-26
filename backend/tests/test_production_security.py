@@ -205,22 +205,82 @@ class ProductionSecurityTests(unittest.TestCase):
 
     def test_real_document_task_and_chunk_are_owner_scoped(self):
         path = '/api/cases/CASE-A/documents'
-        response = self.client.post(path, headers=self.headers('a-token'),
+        class LegacyDevelopmentConfig(self.config):
+            APP_ENV = 'development'
+            TESTING = False
+            APPLICATION_REPOSITORY = None
+            APP_SUPABASE_SERVICE_ROLE_KEY = None
+        client = create_app(LegacyDevelopmentConfig).test_client()
+        response = client.post(path, headers=self.headers('a-token'),
             data={'file': (io.BytesIO(b'Synthetic evidence for a private legal case.'), 'synthetic.txt')},
             content_type='multipart/form-data')
         self.assertEqual(response.status_code, 202)
         task_path = f"/api/cases/CASE-A/document-tasks/{response.json['task_id']}"
-        self.assertEqual(self.client.get(task_path, headers=self.headers('b-token')).status_code, 404)
+        self.assertEqual(client.get(task_path, headers=self.headers('b-token')).status_code, 404)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
-            task = self.client.get(task_path, headers=self.headers('a-token')).json
+            task = client.get(task_path, headers=self.headers('a-token')).json
             if task['status'] in {'completed', 'failed'}:
                 break
             time.sleep(0.01)
         self.assertEqual(task['status'], 'completed')
         document_id = task['documents'][0]['document']['document_id']
-        self.assertEqual(self.client.get(f'{path}/{document_id}', headers=self.headers('b-token')).status_code, 404)
-        self.assertEqual(self.client.get(f'{path}/{document_id}', headers=self.headers('a-token')).status_code, 200)
+        self.assertEqual(client.get(f'{path}/{document_id}', headers=self.headers('b-token')).status_code, 404)
+        self.assertEqual(client.get(f'{path}/{document_id}', headers=self.headers('a-token')).status_code, 200)
+
+    def test_configured_private_storage_is_document_upload_and_download_authority(self):
+        class PrivateRepository:
+            def __init__(self): self.documents = {}; self.objects = {}
+            def get_case(self, user_id, case_id):
+                return {'id':case_id, 'workspace_id':'workspace-a'} if user_id == 'user-a' and case_id == 'CASE-A' else None
+            def store_case_document(self, user_id, case_id, document_id, filename, mime_type, size, sha, content):
+                row = {'id':document_id, 'workspace_id':'workspace-a', 'case_id':case_id,
+                    'uploaded_by':user_id, 'storage_bucket':'case-documents',
+                    'storage_path':f'workspaces/workspace-a/cases/{case_id}/{document_id}/{filename}',
+                    'original_filename':filename, 'mime_type':mime_type, 'size_bytes':size,
+                    'sha256':sha, 'processing_status':'processing'}
+                self.documents[document_id] = row; self.objects[document_id] = content.read()
+                return row
+            def get_case_document(self, user_id, case_id, document_id):
+                row = self.documents.get(document_id)
+                return row if row and row['case_id'] == case_id and row['uploaded_by'] == user_id else None
+            def update_case_document_status(self, user_id, case_id, document_id, status, replaces_document_id=None):
+                row = self.get_case_document(user_id, case_id, document_id)
+                if row: row['processing_status'] = status
+                return row
+            def download_case_document(self, user_id, case_id, document_id):
+                row = self.get_case_document(user_id, case_id, document_id)
+                return (row, self.objects[document_id]) if row else None
+            def delete_case_document(self, user_id, case_id, document_id):
+                row = self.get_case_document(user_id, case_id, document_id)
+                if not row: return False
+                self.documents.pop(document_id); self.objects.pop(document_id, None); return True
+            def record_task(self, task): pass
+        repository = PrivateRepository()
+        class PrivateDocumentConfig(self.config):
+            APPLICATION_REPOSITORY = repository
+        app = create_app(PrivateDocumentConfig)
+        with app.app_context():
+            case_ownership().owned('CASE-A', 'user-a', create=True)
+        client = app.test_client()
+        response = client.post('/api/cases/CASE-A/documents', headers=self.headers('a-token'),
+            data={'file':(io.BytesIO(b'Private original with enough readable text.'), 'evidence.txt')},
+            content_type='multipart/form-data')
+        self.assertEqual(response.status_code, 202)
+        task_path = f"/api/cases/CASE-A/document-tasks/{response.json['task_id']}"
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            task = client.get(task_path, headers=self.headers('a-token')).json
+            if task['status'] in {'completed', 'failed'}: break
+            time.sleep(0.01)
+        self.assertEqual(task['status'], 'completed')
+        document_id = task['documents'][0]['document']['document_id']
+        self.assertTrue(repository.documents[document_id]['storage_path'].startswith('workspaces/workspace-a/cases/CASE-A/'))
+        download = client.get(f'/api/cases/CASE-A/documents/{document_id}/file', headers=self.headers('a-token'))
+        self.assertEqual(download.status_code, 200)
+        self.assertEqual(download.data, b'Private original with enough readable text.')
+        self.assertEqual(client.get(f'/api/cases/CASE-A/documents/{document_id}/file',
+            headers=self.headers('b-token')).status_code, 404)
 
 
 if __name__ == '__main__':

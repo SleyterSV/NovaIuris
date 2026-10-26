@@ -47,6 +47,7 @@ class DocumentTaskManager:
         self._lock = Lock()
         self._tasks = {}
         self.repository = repository
+        self.document_result_callback = None
         if repository:
             self._tasks = {task['task_id']: task for task in repository.load_after_restart()}
         cleanup_abandoned_staging(max_age_seconds=staging_max_age_seconds)
@@ -60,7 +61,7 @@ class DocumentTaskManager:
         for entry in files:
             path, filename = entry[:2]
             preparation_error = entry[2] if len(entry) > 2 else None
-            document_id = str(uuid4())
+            document_id = str(entry[3]) if len(entry) > 3 and entry[3] else str(uuid4())
             normalized_files.append((path, filename, preparation_error, document_id))
             task_documents.append({"document_id":document_id, "case_id":case_id,
                                    "filename":filename, "status":"uploaded"})
@@ -131,6 +132,10 @@ class DocumentTaskManager:
                         task["updated_at"] = time()
                         if self.repository:
                             self.repository.save(task)
+                if self.document_result_callback:
+                    storage_status = 'ready' if outcome.get('status') in {'ready', 'ocr_required'} else 'failed'
+                    self.document_result_callback(task.get('owner_id'), case_id, document_id,
+                                                  storage_status, replaces_document_id)
             self._update(task_id, status="completed", stage="completed",
                          result={"case_id":case_id}, error=None)
         except Exception:

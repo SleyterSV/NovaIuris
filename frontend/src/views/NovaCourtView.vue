@@ -544,6 +544,19 @@ async function restoreExistingTask(request) {
 
 watch(() => props.request, request => {
     if (!request) return
+    if (request.historicalResult?.result) {
+        const snapshot = request.historicalResult.result
+        activeCaseId.value = request.caseId
+        continuingCase.value = true
+        requestedDocumentIds = [...(snapshot.document_ids || [])]
+        selectedDocumentIds.value = [...requestedDocumentIds]
+        originalCaseText = String(snapshot.case || '')
+        reuseTaskId.value = null
+        activeTab.value = 'overview'
+        novaCourt.restoreHistoricalResult(snapshot, request.historicalResult.run?.task_id)
+        emit('task-state', { tool:'court', running:false, taskId:request.historicalResult.run?.task_id, status:'completed' })
+        return
+    }
     if (request.existingTaskId) {
         restoreExistingTask(request)
         return

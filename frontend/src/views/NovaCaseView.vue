@@ -607,7 +607,8 @@ function finishProgress(result) {
 
 async function handleAnalyze(payload) {
     if (loading.value) return
-    emit('task-state', { tool:'case', running:true })
+    const historical = payload.historicalResult
+    emit('task-state', { tool:'case', running:!historical })
     const caseText = payload.caseText
     lastCaseText.value = caseText
     const caseId = payload.caseId
@@ -656,7 +657,7 @@ async function handleAnalyze(payload) {
            EJECUTAR ANÁLISIS
         ================================================== */
 
-        const response = normalizeCaseResult(await analyzeCase(caseText, { caseId, documentIds,
+        const response = normalizeCaseResult(historical ? historical.result : await analyzeCase(caseText, { caseId, documentIds,
             existingTaskId:payload.existingTaskId,
             onTask: task => {
                 completedTaskId.value = task.task_id
@@ -672,8 +673,10 @@ async function handleAnalyze(payload) {
             )
 
         }
+        completedTaskId.value = historical?.run?.task_id || completedTaskId.value
         caseTaskCompleted.value = true
         emit('case-completed', { result:response, taskId:completedTaskId.value, caseText })
+        if (historical) emit('task-state', { tool:'case', running:false, taskId:completedTaskId.value, status:'completed' })
 
 
         /* =================================================
@@ -904,7 +907,8 @@ const keywordCount = computed(() => {
 
 watch(() => props.request, request => {
     if (request) handleAnalyze({ caseText:request.text, caseId:request.caseId,
-        documentIds:request.documentIds, existingTaskId:request.existingTaskId })
+        documentIds:request.documentIds, existingTaskId:request.existingTaskId,
+        historicalResult:request.historicalResult })
 }, { immediate:true })
 </script>
 

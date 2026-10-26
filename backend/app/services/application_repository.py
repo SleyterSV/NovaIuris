@@ -6,6 +6,8 @@ RLS policies. Client supplied owner IDs are never accepted here.
 """
 from supabase import create_client
 from datetime import timezone
+from pathlib import PurePosixPath
+import re
 
 
 class ApplicationRepository:
@@ -82,11 +84,117 @@ class ApplicationRepository:
         workspace_ids = self.workspace_ids(user_id)
         if not workspace_ids:
             return None
-        runs = self._data(self.client.table('analysis_runs').select('id,workspace_id,case_id,status').eq('id', run_id).in_('workspace_id', workspace_ids).limit(1).execute())
+        runs = self._data(self.client.table('analysis_runs').select(
+            'id,workspace_id,case_id,tool,task_id,status,parent_run_id,started_at,completed_at,created_at,metadata'
+        ).eq('id', run_id).in_('workspace_id', workspace_ids).limit(1).execute())
         if not runs or runs[0]['status'] not in {'completed', 'partial'}:
             return None
         artifacts = self._data(self.client.table('case_artifacts').select('artifact_type,schema_version,content,content_text,created_at').eq('run_id', run_id).eq('workspace_id', runs[0]['workspace_id']).order('created_at').execute())
         return {'run': runs[0], 'artifacts': artifacts} if artifacts else None
+
+    @staticmethod
+    def _safe_storage_filename(filename):
+        name = PurePosixPath(str(filename or '').replace('\\', '/')).name
+        name = re.sub(r'[^\w .()\[\]-]', '_', name, flags=re.UNICODE).strip(' .')[:180]
+        if not name or name in {'.', '..'}:
+            raise ValueError('INVALID_DOCUMENT_FILENAME')
+        return name
+
+    def _authorized_case(self, user_id, case_id):
+        case = self.get_case(user_id, case_id)
+        if not case:
+            return None
+        return case
+
+    def store_case_document(self, user_id, case_id, document_id, filename, mime_type,
+                            size_bytes, sha256, content):
+        """Store originals privately; never accept a path or workspace from the browser."""
+        case = self._authorized_case(user_id, case_id)
+        if not case:
+            raise LookupError('CASE_NOT_FOUND')
+        from uuid import UUID
+        document_id = str(UUID(str(document_id)))
+        safe_name = self._safe_storage_filename(filename)
+        allowed_types = {
+            '.pdf': 'application/pdf',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.txt': 'text/plain',
+        }
+        extension = PurePosixPath(safe_name).suffix.lower()
+        if allowed_types.get(extension) != mime_type:
+            raise ValueError('INVALID_DOCUMENT_TYPE')
+        if not isinstance(size_bytes, int) or size_bytes <= 0:
+            raise ValueError('INVALID_DOCUMENT_SIZE')
+        if not isinstance(sha256, str) or not re.fullmatch(r'[a-f0-9]{64}', sha256):
+            raise ValueError('INVALID_DOCUMENT_HASH')
+        path = f"workspaces/{case['workspace_id']}/cases/{case_id}/{document_id}/{safe_name}"
+        storage = self.client.storage.from_('case-documents')
+        uploaded = False
+        try:
+            storage.upload(path, content, {'content-type': mime_type, 'upsert': 'false'})
+            uploaded = True
+            rows = self._data(self.client.table('case_documents').insert({
+                'id': document_id, 'workspace_id': case['workspace_id'], 'case_id': case_id,
+                'uploaded_by': user_id, 'storage_bucket': 'case-documents', 'storage_path': path,
+                'original_filename': safe_name, 'mime_type': mime_type, 'size_bytes': int(size_bytes),
+                'sha256': sha256, 'processing_status': 'processing'
+            }).select('id,workspace_id,case_id,uploaded_by,storage_bucket,storage_path,original_filename,mime_type,size_bytes,sha256,processing_status,created_at,updated_at').execute())
+            if not rows:
+                raise RuntimeError('DOCUMENT_METADATA_CREATE_FAILED')
+            return rows[0]
+        except Exception:
+            if uploaded:
+                try:
+                    storage.remove([path])
+                except Exception:
+                    pass
+            raise
+
+    def list_case_documents(self, user_id, case_id):
+        case = self._authorized_case(user_id, case_id)
+        if not case:
+            return None
+        return self._data(self.client.table('case_documents').select(
+            'id,workspace_id,case_id,uploaded_by,storage_bucket,storage_path,original_filename,mime_type,size_bytes,sha256,processing_status,created_at,updated_at'
+        ).eq('workspace_id', case['workspace_id']).eq('case_id', case_id).order('created_at').execute())
+
+    def get_case_document(self, user_id, case_id, document_id):
+        case = self._authorized_case(user_id, case_id)
+        if not case:
+            return None
+        rows = self._data(self.client.table('case_documents').select(
+            'id,workspace_id,case_id,uploaded_by,storage_bucket,storage_path,original_filename,mime_type,size_bytes,sha256,processing_status,created_at,updated_at'
+        ).eq('id', document_id).eq('workspace_id', case['workspace_id']).eq('case_id', case_id).limit(1).execute())
+        return rows[0] if rows else None
+
+    def update_case_document_status(self, user_id, case_id, document_id, status, replaces_document_id=None):
+        if status not in {'uploaded', 'processing', 'ready', 'failed'}:
+            raise ValueError('INVALID_DOCUMENT_STATUS')
+        document = self.get_case_document(user_id, case_id, document_id)
+        if not document:
+            return None
+        rows = self._data(self.client.table('case_documents').update({'processing_status': status})
+            .eq('id', document_id).eq('case_id', case_id).eq('workspace_id', document['workspace_id'])
+            .select('id,processing_status').execute())
+        if rows and status == 'ready' and replaces_document_id and replaces_document_id != document_id:
+            self.delete_case_document(user_id, case_id, replaces_document_id)
+        return rows[0] if rows else None
+
+    def download_case_document(self, user_id, case_id, document_id):
+        document = self.get_case_document(user_id, case_id, document_id)
+        if not document:
+            return None
+        content = self.client.storage.from_(document['storage_bucket']).download(document['storage_path'])
+        return document, content
+
+    def delete_case_document(self, user_id, case_id, document_id):
+        document = self.get_case_document(user_id, case_id, document_id)
+        if not document:
+            return False
+        self.client.storage.from_(document['storage_bucket']).remove([document['storage_path']])
+        self.client.table('case_documents').delete().eq('id', document_id).eq(
+            'workspace_id', document['workspace_id']).eq('case_id', case_id).execute()
+        return True
 
     def record_task(self, task):
         """Persist a server-owned task snapshot; never accepts browser result data."""

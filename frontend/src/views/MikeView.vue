@@ -8,7 +8,7 @@ import { defaultSearchFilters, legalAreas } from '@/utils/searchFilters.js'
 import { createWorkspace, createTurn, normalizeTool, caseReuseContext, applySearchCaseHandoff, courtTaskIdentity, taskIdentityQuery } from '@/utils/mikeWorkspace.js'
 import { canAttachDocumentsToCase } from '@/utils/novacasePresentation.js'
 import { authRequired, authState, signIn, signOut, signUp, requestPasswordReset, updatePassword, startAuth } from '@/config/supabaseSession.js'
-import { requestJson } from '@/services/taskService.js'
+import { loadHistoricalRun, requestJson } from '@/services/taskService.js'
 import { appendTranscript, useVoiceInput } from '@/composables/useVoiceInput.js'
 import { createToolHoverController } from '@/utils/toolHover.js'
 import { createComposerPopovers } from '@/utils/composerPopovers.js'
@@ -158,8 +158,22 @@ onMounted(async () => {
   document.addEventListener('keydown', onPopoverKeydown)
   await startAuth()
   if (authState.user) loadOwnedCases()
-  const caseId = route.query.case_id, taskId = route.query.task_id
-  if (!['case', 'court'].includes(route.query.tool) || typeof caseId !== 'string' || typeof taskId !== 'string') return
+  const caseId = route.query.case_id, taskId = route.query.task_id, runId = route.query.run_id
+  if (!['case', 'court'].includes(route.query.tool) || typeof caseId !== 'string') return
+  if (typeof runId === 'string') {
+    try {
+      const historical = await loadHistoricalRun(runId, caseId, route.query.tool)
+      const { run, result } = historical
+      workspace.value.caseId = caseId
+      workspace.value.casePersisted = true
+      workspace.value.activeTool = route.query.tool
+      const text = String(result.case || result.final_result?.case || 'Resultado histórico del caso.')
+      addOperation(route.query.tool, text, { caseId, documentIds:result.document_ids || [],
+        historicalResult:{ run, result, artifacts:historical.artifacts }, status:'completed' })
+    } catch { error.value = 'No fue posible recuperar la ejecución solicitada.' }
+    return
+  }
+  if (typeof taskId !== 'string') return
   if (route.query.tool === 'court' && !courtTaskIdentity(route.query)) {
     error.value = 'No fue posible recuperar la tarea solicitada.'
     return
@@ -259,15 +273,16 @@ function addOperation(kind, text, context = {}) {
   const request = { id:crypto.randomUUID(), text, caseId:context.caseId || workspace.value.caseId,
     documentIds:[...(context.documentIds || selectedDocuments.value)],
     ...(context.existingTaskId ? { existingTaskId:context.existingTaskId } : {}),
-    ...(context.reuse ? { reuse:context.reuse } : {}) }
+    ...(context.reuse ? { reuse:context.reuse } : {}),
+    ...(context.historicalResult ? { historicalResult:context.historicalResult } : {}) }
   workspace.value.turns.push(createTurn('user',kind,text,{ caseId:request.caseId, documentIds:request.documentIds }))
   const assistant = createTurn('assistant',kind,'',{ caseId:request.caseId, documentIds:request.documentIds,
-    resultRef:request.id, status:'running' })
+    resultRef:request.id, status:context.status || 'running' })
   assistant.request = request
   workspace.value.turns.push(assistant)
   workspace.value.title = text.slice(0,64)
   workspace.value.documentIds = [...request.documentIds]
-  running.value = { ...running.value, [kind]:true }
+  running.value = { ...running.value, [kind]:context.status !== 'completed' }
   nextTick(() => document.querySelector('.turn:last-child')?.scrollIntoView({ behavior:'smooth', block:'start' }))
 }
 async function submit() {
@@ -389,7 +404,7 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
           </button>
         </div>
       </nav>
-      <section class="history" aria-label="Mis casos"><h2>Mis casos</h2><p v-if="casesLoading">Cargando casos…</p><p v-else-if="!ownedCases.length">Aún no tienes casos guardados.</p><div v-for="item in ownedCases.slice(0,12)" :key="item.id || item.case_id" class="saved-case-wrap"><div class="saved-case"><button class="saved-case-open" type="button" @click="openOwnedCase(item)"><strong>{{ item.title || 'Caso jurídico' }}</strong><small>{{ item.status === 'archived' ? 'Archivado' : 'Activo' }} · {{ item.updated_at ? new Date(item.updated_at).toLocaleDateString('es-PE') : 'Sin actividad' }}</small></button><button type="button" :aria-label="`Renombrar ${item.title || 'caso'}`" @click="renameOwnedCase(item)">✎</button><button type="button" :aria-label="item.status === 'archived' ? 'Reactivar caso' : 'Archivar caso'" @click="archiveOwnedCase(item)">{{ item.status === 'archived' ? '↻' : '▱' }}</button></div><div v-if="expandedCaseId === (item.id || item.case_id)" class="saved-case-runs"><p v-if="runsLoading">Cargando historial…</p><p v-else-if="!caseRuns.length">Aún no hay ejecuciones guardadas.</p><a v-for="run in caseRuns.filter(entry => entry.task_id && ['case','court'].includes(entry.tool))" :key="run.id" :href="`/?tool=${run.tool}&case_id=${encodeURIComponent(item.id || item.case_id)}&task_id=${encodeURIComponent(run.task_id)}`"><strong>{{ run.tool === 'court' ? 'NovaCourt' : 'NovaCase' }}</strong><small>{{ runStatusLabel(run.status) }} · {{ new Date(run.created_at).toLocaleDateString('es-PE') }}</small></a></div></div></section>
+      <section class="history" aria-label="Mis casos"><h2>Mis casos</h2><p v-if="casesLoading">Cargando casos…</p><p v-else-if="!ownedCases.length">Aún no tienes casos guardados.</p><div v-for="item in ownedCases.slice(0,12)" :key="item.id || item.case_id" class="saved-case-wrap"><div class="saved-case"><button class="saved-case-open" type="button" @click="openOwnedCase(item)"><strong>{{ item.title || 'Caso jurídico' }}</strong><small>{{ item.status === 'archived' ? 'Archivado' : 'Activo' }} · {{ item.updated_at ? new Date(item.updated_at).toLocaleDateString('es-PE') : 'Sin actividad' }}</small></button><button type="button" :aria-label="`Renombrar ${item.title || 'caso'}`" @click="renameOwnedCase(item)">✎</button><button type="button" :aria-label="item.status === 'archived' ? 'Reactivar caso' : 'Archivar caso'" @click="archiveOwnedCase(item)">{{ item.status === 'archived' ? '↻' : '▱' }}</button></div><div v-if="expandedCaseId === (item.id || item.case_id)" class="saved-case-runs"><p v-if="runsLoading">Cargando historial…</p><p v-else-if="!caseRuns.length">Aún no hay ejecuciones guardadas.</p><a v-for="run in caseRuns.filter(entry => ['case','court'].includes(entry.tool) && ['completed','partial'].includes(entry.status))" :key="run.id" :href="`/?tool=${run.tool}&case_id=${encodeURIComponent(item.id || item.case_id)}&run_id=${encodeURIComponent(run.id)}`"><strong>{{ run.tool === 'court' ? 'NovaCourt' : 'NovaCase' }}</strong><small>{{ runStatusLabel(run.status) }} · {{ new Date(run.created_at).toLocaleDateString('es-PE') }}</small></a></div></div></section>
       <div class="sidebar-profile"><span class="avatar">{{ initials || 'M' }}</span><span><strong>{{ userName }}</strong><small>MYKE Legal Intelligence</small></span></div>
     </aside>
     <button v-if="mobileMenu" class="mobile-overlay" type="button" aria-label="Cerrar menú" @click="mobileMenu = false"></button>

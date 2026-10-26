@@ -63,3 +63,28 @@ export async function listCaseDocuments(caseId) {
   if (data.case_id !== caseId) throw new Error('El corpus recibido no corresponde al caso solicitado.')
   return data.documents || []
 }
+
+export async function downloadCaseDocument(caseId, document) {
+  const documentId = typeof document === 'string' ? document : document?.document_id
+  if (!caseId || !documentId) throw new Error('No se identificó el documento del caso.')
+  const response = await fetch(`${API_BASE_URL}/api/cases/${encodeURIComponent(caseId)}/documents/${encodeURIComponent(documentId)}/file`, {
+    headers:authHeaders(), cache:'no-store'
+  })
+  if (!response.ok) {
+    let data = {}
+    try { data = await response.json() } catch { /* sanitized fallback below */ }
+    throw publicApiError(response, data)
+  }
+  const blob = await response.blob()
+  if (!blob.size) throw new Error('El documento no está disponible.')
+  const filename = typeof document === 'object' && document.filename ? document.filename : 'documento'
+  const url = URL.createObjectURL(blob)
+  const anchor = globalThis.document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.hidden = true
+  globalThis.document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}

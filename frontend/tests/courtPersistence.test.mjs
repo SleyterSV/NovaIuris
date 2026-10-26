@@ -1,12 +1,44 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFile } from 'node:fs/promises'
-import { runAnalysisTask } from '../src/services/taskService.js'
+import { loadHistoricalRun, runAnalysisTask } from '../src/services/taskService.js'
 import { courtTaskIdentity, taskIdentityQuery } from '../src/utils/mikeWorkspace.js'
 
 const completed = { success:true, task_id:'TASK-A', case_id:'CASE-A', tool:'court',
   status:'completed', final_result:{ success:true, case_id:'CASE-A', court_status:'completed',
     simulation:{status:'ready'}, graph:{status:'ready'} } }
+
+test('historical Court run reopens the persisted artifact without starting a task or provider flow', async () => {
+  const original = globalThis.fetch, calls = []
+  const caseId = '10000000-0000-4000-8000-000000000001'
+  const runId = '20000000-0000-4000-8000-000000000002'
+  const persisted = { success:true, run:{id:runId,case_id:caseId,tool:'court',task_id:'TASK-OLD'}, artifacts:[
+    {artifact_type:'court_result',content:{case_id:caseId,court_status:'completed'}},
+    {artifact_type:'graph_snapshot',content:{status:'ready',nodes:[{id:'n1'}],edges:[]}}] }
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({url:String(url),method:options.method || 'GET'})
+    return Response.json(persisted)
+  }
+  try {
+    const result = await loadHistoricalRun(runId, caseId, 'court')
+    assert.equal(result.result.graph.nodes.length, 1)
+    assert.equal(calls.length, 1)
+    assert.match(calls[0].url, /\/runs\/.+\/result$/)
+    assert.equal(calls[0].method, 'GET')
+    assert.equal(calls.some(call => /analyze|tasks|novacourt/i.test(call.url)), false)
+  } finally { globalThis.fetch = original }
+})
+
+test('historical run rejects an artifact from a different case or tool', async () => {
+  const original = globalThis.fetch
+  globalThis.fetch = async () => Response.json({success:true,
+    run:{id:'20000000-0000-4000-8000-000000000002',case_id:'30000000-0000-4000-8000-000000000003',tool:'court'},
+    artifacts:[{artifact_type:'court_result',content:{secret:'no'}}]})
+  try {
+    await assert.rejects(loadHistoricalRun('20000000-0000-4000-8000-000000000002',
+      '10000000-0000-4000-8000-000000000001','court'))
+  } finally { globalThis.fetch = original }
+})
 
 test('Court publishes HTTP 202 identity before its first status request', async () => {
   const original = globalThis.fetch, events = []

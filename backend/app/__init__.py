@@ -106,6 +106,9 @@ def create_app(config_class=Config):
         task_manager = app.extensions.get('task_manager')
         if task_manager:
             task_manager.persistence_callback = application_repository.record_task
+        document_task_manager = app.extensions.get('document_task_manager')
+        if document_task_manager and hasattr(application_repository, 'update_case_document_status'):
+            document_task_manager.document_result_callback = application_repository.update_case_document_status
 
     # 设置JSON编码：确保中文直接显示（而不是 \uXXXX 格式）
     # Flask >= 2.3 使用 app.json.ensure_ascii，旧版本使用 JSON_AS_ASCII 配置
