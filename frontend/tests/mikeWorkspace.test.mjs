@@ -3,7 +3,7 @@ import test from 'node:test'
 import { readFile } from 'node:fs/promises'
 import { createWorkspace, createTurn, normalizeTool, caseReuseContext } from '../src/utils/mikeWorkspace.js'
 import { authHeaders } from '../src/config/authSession.js'
-import { authState, startAuth, signOut, stopAuth } from '../src/config/supabaseSession.js'
+import { authState, startAuth, signIn, signOut, signUp, requestPasswordReset, updatePassword, stopAuth } from '../src/config/supabaseSession.js'
 import { createServer } from 'vite'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
@@ -49,6 +49,34 @@ test('auth startup, token update, and logout clear Bearer state', async () => {
   await signOut()
   assert.deepEqual(authHeaders(),{})
   assert.equal(authState.user,null)
+  stopAuth()
+})
+
+test('auth account, email confirmation, recovery and password update use Supabase Auth', async () => {
+  stopAuth()
+  const calls = []
+  const fake = { auth:{
+    onAuthStateChange(callback) { this.notify = callback; return { data:{ subscription:{ unsubscribe() {} } } } },
+    async getSession() { return { data:{ session:null }, error:null } },
+    async signUp(input) { calls.push(['signUp', input]); return { data:{ session:null }, error:null } },
+    async signInWithPassword(input) { calls.push(['signIn', input]); return { error:null } },
+    async resetPasswordForEmail(email, options) { calls.push(['reset', email, options]); return { error:null } },
+    async updateUser(input) { calls.push(['update', input]); return { error:null } },
+    async signOut() { return { error:null } }
+  } }
+  await startAuth(fake)
+  assert.deepEqual(await signUp('Persona', 'a@example.test', 'Password1!'), { confirmationRequired:true })
+  assert.deepEqual(await signIn('a@example.test', 'Password1!'), '')
+  assert.equal(await requestPasswordReset('a@example.test'), '')
+  fake.auth.notify('PASSWORD_RECOVERY', { access_token:'recovery', user:{ id:'a' } })
+  assert.equal(authState.recovery, true)
+  assert.equal(await updatePassword('NewPassword1!'), '')
+  assert.equal(authState.recovery, false)
+  assert.deepEqual(calls.map(call => call[0]), ['signUp','signIn','reset','update'])
+  assert.equal(calls[0][1].options.data.full_name, 'Persona')
+  assert.equal(calls[2][1], 'a@example.test')
+  assert.deepEqual(calls[3][1], { password:'NewPassword1!' })
+  await signOut()
   stopAuth()
 })
 

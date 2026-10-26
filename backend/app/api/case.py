@@ -14,10 +14,123 @@ from ..services.case_service import CaseService
 
 case_bp = Blueprint('case', __name__)
 
+def application_repository():
+    return current_app.extensions.get('application_repository')
+
+
+@case_bp.route('/me', methods=['GET'])
+def current_profile():
+    repository = application_repository()
+    if not repository:
+        return api_error('PERSISTENCE_UNAVAILABLE', 'El espacio de usuario no está disponible.', g.request_id, 503)
+    user_id = authenticated_user_id()
+    profile = repository.profile(user_id)
+    workspace = repository.personal_workspace(user_id)
+    if not profile or not workspace:
+        return api_error('PROFILE_NOT_READY', 'No fue posible preparar el espacio personal.', g.request_id, 503)
+    return jsonify(success=True, profile=profile, workspace=workspace)
+
 
 @case_bp.route('/cases', methods=['GET'])
 def owned_cases():
+    repository = application_repository()
+    if repository:
+        return jsonify(success=True, cases=repository.list_cases(authenticated_user_id()))
+    if not (current_app.config.get('APP_ENV') == 'test' or
+            (current_app.config.get('APP_ENV') == 'development' and current_app.config.get('LOCAL_DEV_AUTH_ENABLED'))):
+        return api_error('PERSISTENCE_UNAVAILABLE', 'El historial de casos no está disponible.', g.request_id, 503)
     return jsonify(success=True, cases=case_ownership().list_owned(authenticated_user_id()))
+
+
+@case_bp.route('/cases', methods=['POST'])
+def create_owned_case():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) - {'title', 'description'}:
+        return api_error('INVALID_CASE', 'Indica un título válido para el caso.', g.request_id, 400)
+    title, description = data.get('title'), data.get('description')
+    if not isinstance(title, str) or not 1 <= len(title.strip()) <= 240:
+        return api_error('INVALID_CASE', 'El título debe contener entre 1 y 240 caracteres.', g.request_id, 400)
+    if description is not None and (not isinstance(description, str) or len(description) > 4000):
+        return api_error('INVALID_CASE', 'La descripción no es válida.', g.request_id, 400)
+    repository = application_repository()
+    if not repository:
+        if current_app.config.get('APP_ENV') == 'development' and current_app.config.get('LOCAL_DEV_AUTH_ENABLED'):
+            case = case_ownership().create_case(authenticated_user_id(), title)
+            return jsonify(success=True, case=case), 201
+        return api_error('PERSISTENCE_UNAVAILABLE', 'La creación de casos no está disponible.', g.request_id, 503)
+    try:
+        case = repository.create_case(authenticated_user_id(), title, description)
+        case_ownership().owned(case['id'], authenticated_user_id(), create=True)
+    except Exception as exc:
+        current_app.logger.error('event=case_create_failed request_id=%s error_type=%s', g.request_id, type(exc).__name__)
+        return api_error('CASE_CREATE_FAILED', 'No fue posible crear el caso.', g.request_id, 503)
+    return jsonify(success=True, case=case), 201
+
+
+@case_bp.route('/cases/<case_id>', methods=['PATCH'])
+def update_owned_case(case_id):
+    try:
+        UUID(case_id)
+    except (TypeError, ValueError):
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not data or set(data) - {'title', 'status'}:
+        return api_error('INVALID_CASE', 'La actualización del caso no es válida.', g.request_id, 400)
+    patch = {}
+    if 'title' in data:
+        if not isinstance(data['title'], str) or not 1 <= len(data['title'].strip()) <= 240:
+            return api_error('INVALID_CASE', 'El título debe contener entre 1 y 240 caracteres.', g.request_id, 400)
+        patch['title'] = data['title'].strip()
+    if 'status' in data:
+        if data['status'] not in {'active', 'archived'}:
+            return api_error('INVALID_CASE', 'El estado del caso no es válido.', g.request_id, 400)
+        patch['status'] = data['status']
+        if data['status'] == 'archived':
+            from datetime import datetime, timezone
+            patch['archived_at'] = datetime.now(timezone.utc).isoformat()
+        else:
+            patch['archived_at'] = None
+    repository = application_repository()
+    if not repository:
+        if current_app.config.get('APP_ENV') == 'development' and current_app.config.get('LOCAL_DEV_AUTH_ENABLED'):
+            case = case_ownership().update_case(authenticated_user_id(), case_id, patch)
+        else:
+            return api_error('PERSISTENCE_UNAVAILABLE', 'La actualización de casos no está disponible.', g.request_id, 503)
+    else:
+        case = repository.update_case(authenticated_user_id(), case_id, patch)
+    if not case:
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
+    return jsonify(success=True, case=case)
+
+
+@case_bp.route('/cases/<case_id>/runs', methods=['GET'])
+def case_runs(case_id):
+    try:
+        UUID(case_id)
+    except (TypeError, ValueError):
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
+    repository = application_repository()
+    if not repository:
+        return api_error('PERSISTENCE_UNAVAILABLE', 'El historial no está disponible.', g.request_id, 503)
+    runs = repository.list_runs(authenticated_user_id(), case_id)
+    if runs is None:
+        return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
+    return jsonify(success=True, runs=runs)
+
+
+@case_bp.route('/runs/<run_id>/result', methods=['GET'])
+def run_result(run_id):
+    try:
+        UUID(run_id)
+    except (TypeError, ValueError):
+        return api_error('RUN_NOT_FOUND', 'No se encontró la ejecución.', g.request_id, 404)
+    repository = application_repository()
+    if not repository:
+        return api_error('PERSISTENCE_UNAVAILABLE', 'El historial no está disponible.', g.request_id, 503)
+    result = repository.historical_result(authenticated_user_id(), run_id)
+    if not result:
+        return api_error('RUN_NOT_FOUND', 'No se encontró la ejecución.', g.request_id, 404)
+    return jsonify(success=True, **result)
 
 
 @case_bp.route('/case/handoff', methods=['POST'])
@@ -41,6 +154,18 @@ def start_public_source_handoff():
         case_id = str(uuid5(NAMESPACE_URL, f'novacase-handoff:{owner_id}:{handoff_request_id}'))
     if mode == 'existing' and not case_ownership().owned(case_id, owner_id, create=False):
         return api_error('CASE_NOT_FOUND', 'No se encontró el caso.', g.request_id, 404)
+    app_repository = application_repository()
+    if app_repository:
+        try:
+            if mode == 'new':
+                app_repository.create_case(owner_id, text[:120], case_id=case_id)
+            elif not app_repository.get_case(owner_id, case_id):
+                return api_error('CASE_NOT_FOUND', 'No se encontrÃ³ el caso.', g.request_id, 404)
+        except Exception as exc:
+            current_app.logger.error('event=handoff_case_persist_failed request_id=%s error_type=%s', g.request_id, type(exc).__name__)
+            return api_error('CASE_CREATE_FAILED', 'No fue posible preparar el caso.', g.request_id, 503)
+    elif current_app.config.get('APP_ENV') == 'production':
+        return api_error('PERSISTENCE_UNAVAILABLE', 'La creaciÃ³n de casos no estÃ¡ disponible.', g.request_id, 503)
     try:
         # Validate published V2 identity before scheduling any work. Analysis resolves it again.
         resolve_handoff_references(LegalRepositoryV2(), references)

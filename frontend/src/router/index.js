@@ -8,6 +8,7 @@ import {
 // =====================================================
 
 import MikeView from "../views/MikeView.vue";
+import { authRequired, authState, startAuth } from '../config/supabaseSession.js'
 
 
 // =====================================================
@@ -120,9 +121,8 @@ const routes = [
     name: "Simulation",
     component: () => import("../views/SimulationView.vue"),
     props: true,
-
     meta: {
-      title: "Simulación Jurídica | Nova Iuris"
+      title: "Simulación Jurídica | Nova Iuris", requiresAuth:true
     }
   },
 
@@ -136,9 +136,8 @@ const routes = [
     name: "SimulationRun",
     component: () => import("../views/SimulationRunView.vue"),
     props: true,
-
     meta: {
-      title: "Ejecutando Simulación | Nova Iuris"
+      title: "Ejecutando Simulación | Nova Iuris", requiresAuth:true
     }
   },
 
@@ -152,9 +151,8 @@ const routes = [
     name: "Report",
     component: () => import("../views/ReportView.vue"),
     props: true,
-
     meta: {
-      title: "Reporte Jurídico | Nova Iuris"
+      title: "Reporte Jurídico | Nova Iuris", requiresAuth:true
     }
   },
 
@@ -168,9 +166,8 @@ const routes = [
     name: "Interaction",
     component: () => import("../views/InteractionView.vue"),
     props: true,
-
     meta: {
-      title: "Análisis Jurídico | Nova Iuris"
+      title: "Análisis Jurídico | Nova Iuris", requiresAuth:true
     }
   },
 
@@ -211,6 +208,12 @@ const router = createRouter({
   }
 
 });
+
+router.beforeEach(async (to) => {
+  if (!to.matched.some(route => route.meta.requiresAuth) || !authRequired) return true
+  await startAuth()
+  return authState.user ? true : { path:'/', query:{ auth:'login', redirect:to.fullPath } }
+})
 
 
 // =====================================================

@@ -26,11 +26,13 @@ class Config:
     SUPABASE_URL = os.environ.get('SUPABASE_URL')
     SUPABASE_PUBLISHABLE_KEY = os.environ.get('SUPABASE_PUBLISHABLE_KEY')
     SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+    APP_SUPABASE_SERVICE_ROLE_KEY = os.environ.get('APP_SUPABASE_SERVICE_ROLE_KEY')
     LEGAL_KNOWLEDGE_VERSION = os.environ.get('LEGAL_KNOWLEDGE_VERSION', 'v1').lower()
     MYKE_LEGAL_DATABASE_URL = os.environ.get('MYKE_LEGAL_DATABASE_URL')
     OPENAI_EMBEDDING_MODEL = os.environ.get('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small')
     EMBEDDING_API_KEY = os.environ.get('OPENAI_API_KEY')
     AUTH_TIMEOUT_SECONDS = int(os.environ.get('AUTH_TIMEOUT_SECONDS', '5'))
+    LOCAL_DEV_AUTH_ENABLED = os.environ.get('LOCAL_DEV_AUTH_ENABLED', 'false').lower() == 'true'
     PROVIDER_MAX_RETRIES = int(os.environ.get('PROVIDER_MAX_RETRIES', '2'))
     LLM_TIMEOUT_SECONDS = int(os.environ.get('LLM_TIMEOUT_SECONDS', '60'))
     ACTIVE_TASKS_PER_USER = int(os.environ.get('ACTIVE_TASKS_PER_USER', '3'))

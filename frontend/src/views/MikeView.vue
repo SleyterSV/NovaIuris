@@ -7,7 +7,7 @@ import NovaSearchFilters from '@/components/novasearch/NovaSearchFilters.vue'
 import { defaultSearchFilters, legalAreas } from '@/utils/searchFilters.js'
 import { createWorkspace, createTurn, normalizeTool, caseReuseContext, applySearchCaseHandoff, courtTaskIdentity, taskIdentityQuery } from '@/utils/mikeWorkspace.js'
 import { canAttachDocumentsToCase } from '@/utils/novacasePresentation.js'
-import { authRequired, authState, signIn, signOut, startAuth } from '@/config/supabaseSession.js'
+import { authRequired, authState, signIn, signOut, signUp, requestPasswordReset, updatePassword, startAuth } from '@/config/supabaseSession.js'
 import { requestJson } from '@/services/taskService.js'
 import { appendTranscript, useVoiceInput } from '@/composables/useVoiceInput.js'
 import { createToolHoverController } from '@/utils/toolHover.js'
@@ -50,7 +50,11 @@ workspace.value.activeTool = normalizeTool(route.query.tool)
 const draft = ref(typeof route.query.q === 'string' ? route.query.q.slice(0,10000) : '')
 const composer = ref(null), uploader = ref(null), mobileMenu = ref(false)
 const selectedDocuments = ref([]), error = ref(''), loginError = ref('')
-const email = ref(''), password = ref(''), loginBusy = ref(false)
+const ownedCases = ref([]), casesLoading = ref(false), accountProfile = ref(null)
+const expandedCaseId = ref(null), caseRuns = ref([]), runsLoading = ref(false)
+let loadedOwnerId = null
+const email = ref(''), password = ref(''), confirmPassword = ref(''), displayName = ref(''), loginBusy = ref(false)
+const authMode = ref('login'), authNotice = ref('')
 const menuOpen = ref(false), detailTool = ref(null)
 const popovers = createComposerPopovers()
 const { selectorOpen, filtersOpen: searchFiltersOpen } = popovers
@@ -69,7 +73,7 @@ const activeMeta = computed(() => tools[activeTool.value] || null)
 const placeholder = computed(() => ({ search:'¿Qué necesitas investigar?', case:'Describe el caso o adjunta documentos', court:'Describe el caso o reutiliza un análisis existente' })[activeTool.value] || 'Escribe tu consulta jurídica aquí…')
 const canSend = computed(() => !running.value[activeTool.value || 'search'] &&
   (draft.value.trim().length > 0 || (activeTool.value !== 'search' && selectedDocuments.value.length > 0)))
-const userName = computed(() => authState.user?.user_metadata?.full_name || authState.user?.user_metadata?.name || authState.user?.email || 'Mi cuenta')
+const userName = computed(() => accountProfile.value?.display_name || authState.user?.user_metadata?.full_name || authState.user?.user_metadata?.name || authState.user?.email || 'Mi cuenta')
 const initials = computed(() => userName.value.split(/[\s@]+/).filter(Boolean).slice(0,2).map(part => part[0].toUpperCase()).join(''))
 const microphoneAvailable = computed(() => typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined')
 const voice = useVoiceInput(text => {
@@ -126,7 +130,15 @@ function onPopoverKeydown(event) {
 }
 
 watch(() => route.query.tool, value => { workspace.value.activeTool = normalizeTool(value) })
-watch(() => authState.user, (user, previous) => { if (previous && !user) newConversation() })
+watch(() => authState.user, (user, previous) => {
+  const previousId = previous?.id || null, nextId = user?.id || null
+  if (previousId && previousId !== nextId) {
+    newConversation(); ownedCases.value = []; accountProfile.value = null
+    expandedCaseId.value = null; caseRuns.value = []
+    loadedOwnerId = null
+  }
+  if (user && previousId !== nextId) loadOwnedCases()
+})
 watch(hoverCard, element => hover.setCard(element), { flush:'post' })
 watch(infoTool, value => {
   if (typeof window === 'undefined') return
@@ -145,6 +157,7 @@ onMounted(async () => {
   document.addEventListener('pointerdown', onPopoverPointer)
   document.addEventListener('keydown', onPopoverKeydown)
   await startAuth()
+  if (authState.user) loadOwnedCases()
   const caseId = route.query.case_id, taskId = route.query.task_id
   if (!['case', 'court'].includes(route.query.tool) || typeof caseId !== 'string' || typeof taskId !== 'string') return
   if (route.query.tool === 'court' && !courtTaskIdentity(route.query)) {
@@ -162,6 +175,7 @@ onMounted(async () => {
       return
     }
     workspace.value.caseId = caseId
+    workspace.value.casePersisted = true
     workspace.value.activeTool = tool
     workspace.value.documentIds = [...(task.metadata?.document_ids || [])]
     addOperation(tool, task.final_result?.case || task.partial_result?.case ||
@@ -195,6 +209,52 @@ function newConversation() {
   detailTool.value = null
   selectTool(null, false)
 }
+async function loadOwnedCases() {
+  if (!authState.user) return
+  if (loadedOwnerId === authState.user.id && (casesLoading.value || accountProfile.value)) return
+  loadedOwnerId = authState.user.id
+  casesLoading.value = true
+  try {
+    const [account, cases] = await Promise.allSettled([requestJson('/me'), requestJson('/cases')])
+    accountProfile.value = account.status === 'fulfilled' ? account.value.profile || null : null
+    ownedCases.value = cases.status === 'fulfilled' ? cases.value.cases || [] : []
+  }
+  finally { casesLoading.value = false }
+}
+async function openOwnedCase(item) {
+  newConversation()
+  workspace.value.caseId = item.id || item.case_id
+  workspace.value.casePersisted = true
+  workspace.value.title = item.title || 'Caso jurídico'
+  workspace.value.activeTool = 'case'
+  selectedDocuments.value = []
+  selectTool('case', false)
+  expandedCaseId.value = workspace.value.caseId
+  runsLoading.value = true
+  try { caseRuns.value = (await requestJson(`/cases/${encodeURIComponent(expandedCaseId.value)}/runs`)).runs || [] }
+  catch { caseRuns.value = [] }
+  finally { runsLoading.value = false }
+}
+function runStatusLabel(status) {
+  return ({ queued:'En espera', pending:'En espera', processing:'En curso', completed:'Completado', partial:'Parcial', failed:'No completado', cancelled:'Cancelado', timeout:'Tiempo agotado', interrupted:'Interrumpido' })[status] || 'Estado no disponible'
+}
+async function renameOwnedCase(item) {
+  const caseId = item.id || item.case_id
+  const current = item.title || 'Caso jurídico'
+  const title = typeof window !== 'undefined' ? window.prompt('Nuevo título del caso', current) : null
+  if (!title?.trim() || title.trim() === current) return
+  try {
+    const updated = await requestJson(`/cases/${encodeURIComponent(caseId)}`, { method:'PATCH', body:JSON.stringify({ title:title.trim() }) })
+    ownedCases.value = ownedCases.value.map(row => (row.id || row.case_id) === caseId ? updated.case : row)
+  } catch { error.value = 'No fue posible cambiar el título del caso.' }
+}
+async function archiveOwnedCase(item) {
+  const caseId = item.id || item.case_id
+  try {
+    const updated = await requestJson(`/cases/${encodeURIComponent(caseId)}`, { method:'PATCH', body:JSON.stringify({ status:item.status === 'archived' ? 'active' : 'archived' }) })
+    ownedCases.value = ownedCases.value.map(row => (row.id || row.case_id) === caseId ? updated.case : row)
+  } catch { error.value = 'No fue posible actualizar el estado del caso.' }
+}
 function addOperation(kind, text, context = {}) {
   const request = { id:crypto.randomUUID(), text, caseId:context.caseId || workspace.value.caseId,
     documentIds:[...(context.documentIds || selectedDocuments.value)],
@@ -210,13 +270,15 @@ function addOperation(kind, text, context = {}) {
   running.value = { ...running.value, [kind]:true }
   nextTick(() => document.querySelector('.turn:last-child')?.scrollIntoView({ behavior:'smooth', block:'start' }))
 }
-function submit() {
+async function submit() {
   if (!canSend.value) return
   const kind = activeTool.value || 'search'
   if (!activeTool.value) selectTool(kind, false)
   const text = draft.value.trim()
   if (kind === 'search' && text.length < 5) { error.value = 'Describe con mayor detalle la consulta jurídica.'; return }
   error.value = ''
+  if (kind !== 'search' && !await ensurePersistedCase(text || 'Caso sin título')) return
+
   addOperation(kind, text || 'Analiza los documentos jurídicos aportados para este caso.')
   draft.value = ''
 }
@@ -252,12 +314,26 @@ function onSearchHandoff(started) {
 function reuseCase(context) {
   if (!context || context.caseId !== workspace.value.caseId || running.value.court) return
   workspace.value.caseReuse = context
+  workspace.value.casePersisted = true
   workspace.value.documentIds = [...context.documentIds]
   selectedDocuments.value = [...context.documentIds]
   selectTool('court',false)
   addOperation('court',context.caseText,{ caseId:context.caseId, documentIds:context.documentIds, reuse:context })
 }
-function chooseFiles() { uploader.value?.$el?.querySelector('input[type="file"]')?.click() }
+async function ensurePersistedCase(title = 'Caso sin título') {
+  if (workspace.value.casePersisted) return true
+  try {
+    const created = await requestJson('/cases', { method:'POST', body:JSON.stringify({ title:title.slice(0,240) }) })
+    workspace.value.caseId = created.case.id
+    workspace.value.casePersisted = true
+    ownedCases.value = [created.case, ...ownedCases.value]
+    return true
+  } catch (err) { error.value = err?.message || 'No fue posible crear el caso.'; return false }
+}
+async function chooseFiles() {
+  if ((activeTool.value === 'case' || activeTool.value === 'court') && !await ensurePersistedCase(draft.value.trim() || 'Caso sin título')) return
+  uploader.value?.$el?.querySelector('input[type="file"]')?.click()
+}
 async function addCaseDocuments(turn, payload) {
   if (!canAttachDocumentsToCase(payload?.caseId, workspace.value.caseId,
     workspace.value.turns.includes(turn))) return
@@ -269,8 +345,23 @@ async function addCaseDocuments(turn, payload) {
 async function login() {
   if (loginBusy.value) return
   loginBusy.value = true
-  loginError.value = await signIn(email.value,password.value)
-  password.value = ''
+  loginError.value = ''
+  authNotice.value = ''
+  if (authState.recovery) {
+    loginError.value = await updatePassword(password.value)
+    if (!loginError.value) { password.value = ''; authNotice.value = 'La contraseña se actualizó. Ya puedes continuar.' }
+  } else if (authMode.value === 'signup') {
+    if (password.value !== confirmPassword.value) loginError.value = 'Las contraseñas no coinciden.'
+    else {
+      const result = await signUp(displayName.value, email.value, password.value)
+      loginError.value = result.error || ''
+      authNotice.value = result.confirmationRequired ? 'Revisa tu correo para confirmar tu cuenta.' : ''
+    }
+  } else if (authMode.value === 'reset') {
+    loginError.value = await requestPasswordReset(email.value)
+    if (!loginError.value) authNotice.value = 'Si el correo corresponde a una cuenta, recibirás instrucciones para recuperar el acceso.'
+  } else loginError.value = await signIn(email.value,password.value)
+  if (authMode.value !== 'reset') password.value = ''
   loginBusy.value = false
 }
 async function logout() {
@@ -283,8 +374,8 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
 
 <template>
   <div v-if="authState.loading" class="auth-screen" role="status"><div class="auth-card"><strong class="auth-brand">MYKE</strong><p>Comprobando sesión…</p></div></div>
-  <div v-else-if="authRequired && !authState.user" class="auth-screen">
-    <form class="auth-card" @submit.prevent="login"><strong class="auth-brand">MYKE</strong><small>LEGAL INTELLIGENCE</small><h1>Tu espacio jurídico</h1><p>Inicia sesión para continuar tu trabajo privado.</p><p v-if="authState.error" role="alert">{{ authState.error }}</p><template v-else><label>Correo electrónico<input v-model="email" type="email" required autocomplete="username"></label><label>Contraseña<input v-model="password" type="password" required autocomplete="current-password"></label><p v-if="loginError" role="alert">{{ loginError }}</p><button type="submit" :disabled="loginBusy">{{ loginBusy ? 'Ingresando…' : 'Ingresar' }}</button></template></form>
+  <div v-else-if="authState.recovery || (authRequired && !authState.user)" class="auth-screen">
+    <form class="auth-card" @submit.prevent="login"><strong class="auth-brand">MYKE</strong><small>LEGAL INTELLIGENCE</small><h1>{{ authState.recovery ? 'Restablecer contraseña' : authMode === 'signup' ? 'Crear cuenta' : authMode === 'reset' ? 'Recuperar acceso' : 'Tu espacio jurídico' }}</h1><p>{{ authState.recovery ? 'Elige una contraseña nueva para tu cuenta.' : authMode === 'signup' ? 'Crea tu espacio privado de trabajo jurídico.' : authMode === 'reset' ? 'Te enviaremos instrucciones al correo asociado a tu cuenta.' : 'Inicia sesión para continuar tu trabajo privado.' }}</p><p v-if="authState.error" role="alert">{{ authState.error }}</p><template v-else><label v-if="authMode === 'signup' && !authState.recovery">Nombre<input v-model="displayName" type="text" required maxlength="120" autocomplete="name"></label><label v-if="!authState.recovery">Correo electrónico<input v-model="email" type="email" required autocomplete="email"></label><label v-if="authMode !== 'reset' || authState.recovery">{{ authState.recovery ? 'Nueva contraseña' : 'Contraseña' }}<input v-model="password" type="password" required minlength="8" :autocomplete="authState.recovery ? 'new-password' : 'current-password'"></label><label v-if="authMode === 'signup' && !authState.recovery">Confirmar contraseña<input v-model="confirmPassword" type="password" required minlength="8" autocomplete="new-password"></label><p v-if="loginError" role="alert">{{ loginError }}</p><p v-if="authNotice" role="status">{{ authNotice }}</p><button type="submit" :disabled="loginBusy">{{ loginBusy ? 'Procesando…' : authState.recovery ? 'Actualizar contraseña' : authMode === 'signup' ? 'Crear cuenta' : authMode === 'reset' ? 'Enviar instrucciones' : 'Iniciar sesión' }}</button><nav v-if="!authState.recovery" class="auth-links" aria-label="Opciones de acceso"><button type="button" @click="authMode = authMode === 'signup' ? 'login' : 'signup'; loginError = ''; authNotice = ''">{{ authMode === 'signup' ? 'Ya tengo una cuenta' : 'Crear cuenta' }}</button><button v-if="authMode !== 'signup'" type="button" @click="authMode = authMode === 'reset' ? 'login' : 'reset'; loginError = ''; authNotice = ''">{{ authMode === 'reset' ? 'Volver a iniciar sesión' : 'Olvidé mi contraseña' }}</button></nav></template></form>
   </div>
   <div v-else class="mike-app">
     <aside class="sidebar" :class="{ open:mobileMenu }" aria-label="Navegación de MYKE">
@@ -298,7 +389,7 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
           </button>
         </div>
       </nav>
-      <section class="history"><h2>Chats recientes</h2><p>Sin conversaciones recientes</p></section>
+      <section class="history" aria-label="Mis casos"><h2>Mis casos</h2><p v-if="casesLoading">Cargando casos…</p><p v-else-if="!ownedCases.length">Aún no tienes casos guardados.</p><div v-for="item in ownedCases.slice(0,12)" :key="item.id || item.case_id" class="saved-case-wrap"><div class="saved-case"><button class="saved-case-open" type="button" @click="openOwnedCase(item)"><strong>{{ item.title || 'Caso jurídico' }}</strong><small>{{ item.status === 'archived' ? 'Archivado' : 'Activo' }} · {{ item.updated_at ? new Date(item.updated_at).toLocaleDateString('es-PE') : 'Sin actividad' }}</small></button><button type="button" :aria-label="`Renombrar ${item.title || 'caso'}`" @click="renameOwnedCase(item)">✎</button><button type="button" :aria-label="item.status === 'archived' ? 'Reactivar caso' : 'Archivar caso'" @click="archiveOwnedCase(item)">{{ item.status === 'archived' ? '↻' : '▱' }}</button></div><div v-if="expandedCaseId === (item.id || item.case_id)" class="saved-case-runs"><p v-if="runsLoading">Cargando historial…</p><p v-else-if="!caseRuns.length">Aún no hay ejecuciones guardadas.</p><a v-for="run in caseRuns.filter(entry => entry.task_id && ['case','court'].includes(entry.tool))" :key="run.id" :href="`/?tool=${run.tool}&case_id=${encodeURIComponent(item.id || item.case_id)}&task_id=${encodeURIComponent(run.task_id)}`"><strong>{{ run.tool === 'court' ? 'NovaCourt' : 'NovaCase' }}</strong><small>{{ runStatusLabel(run.status) }} · {{ new Date(run.created_at).toLocaleDateString('es-PE') }}</small></a></div></div></section>
       <div class="sidebar-profile"><span class="avatar">{{ initials || 'M' }}</span><span><strong>{{ userName }}</strong><small>MYKE Legal Intelligence</small></span></div>
     </aside>
     <button v-if="mobileMenu" class="mobile-overlay" type="button" aria-label="Cerrar menú" @click="mobileMenu = false"></button>
@@ -381,4 +472,18 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
 .composer-filter-panel.below{bottom:auto;top:calc(100% + 8px)}
 .composer-filter-panel.align-right{left:auto;right:0}
 @media(max-width:560px){.composer-filter-panel{left:auto;right:0}}
+.auth-links{display:flex;justify-content:space-between;gap:12px;margin-top:14px}
+.auth-links button{border:0;background:none;color:#355c7b;font:600 12px Inter,system-ui,sans-serif;text-decoration:underline;cursor:pointer;padding:6px 0}
+.auth-links button:focus-visible{outline:2px solid #b68a3a;outline-offset:2px;border-radius:3px}
+.saved-case{display:grid;grid-template-columns:minmax(0,1fr) 28px 28px;align-items:center;gap:3px;margin:6px 0}
+.saved-case-open{display:grid;min-width:0;gap:4px;text-align:left;padding:8px;border:1px solid #ffffff16;border-radius:7px;background:#ffffff08;color:#f7f5ef;cursor:pointer}
+.saved-case-open strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:600}
+.saved-case-open small{color:#c0c7cc;font-size:9px}
+.saved-case-runs{display:grid;gap:4px;padding:0 2px 5px 10px}
+.saved-case-runs a{display:grid;gap:3px;padding:7px 8px;border-left:2px solid #c4a474;color:#eee9db;text-decoration:none;font-size:10px}
+.saved-case-runs a:hover{background:#ffffff0e}
+.saved-case-runs a small,.saved-case-runs p{margin:0;color:#c0c7cc;font-size:9px}
+.saved-case>button:not(.saved-case-open){height:28px;border:1px solid #ffffff20;border-radius:6px;background:#ffffff08;color:#eee9db;cursor:pointer}
+.saved-case>button:hover{background:#ffffff18}
+.saved-case button:focus-visible{outline:2px solid #d3bd93;outline-offset:2px}
 </style>

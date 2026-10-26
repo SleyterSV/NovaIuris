@@ -5,11 +5,12 @@ import { setAccessToken } from './authSession.js'
 const env = import.meta.env || {}
 const url = env.VITE_SUPABASE_URL
 const key = env.VITE_SUPABASE_PUBLISHABLE_KEY
-export const authRequired = Boolean(url && key) || Boolean(env.PROD)
 export const authConfigured = Boolean(url && key)
-export const authState = reactive({ loading:authRequired, user:null, error:'' })
+export const authRequired = Boolean(env.PROD) || authConfigured
+export const authState = reactive({ loading:authRequired, user:null, error:'', recovery:false })
 let client = null
 let subscription = null
+const redirectOrigin = () => typeof window === 'undefined' ? undefined : window.location.origin
 
 export async function startAuth(providedClient = null) {
   if (!authRequired && !providedClient) { authState.loading = false; return }
@@ -20,9 +21,10 @@ export async function startAuth(providedClient = null) {
   }
   if (subscription) return
   client = providedClient || createClient(url, key)
-  const listener = client.auth.onAuthStateChange((_event, session) => {
+  const listener = client.auth.onAuthStateChange((event, session) => {
     setAccessToken(session?.access_token || null)
     authState.user = session?.user || null
+    if (event === 'PASSWORD_RECOVERY') authState.recovery = true
     authState.loading = false
   })
   subscription = listener.data.subscription
@@ -44,6 +46,32 @@ export async function signIn(email, password) {
   return error ? 'No fue posible iniciar sesión. Revisa tus credenciales.' : ''
 }
 
+export async function signUp(displayName, email, password) {
+  if (!client) return { error:'La autenticación no está configurada.' }
+  const { data, error } = await client.auth.signUp({
+    email, password,
+    options:{ data:{ full_name:displayName.trim() }, emailRedirectTo:redirectOrigin() }
+  })
+  if (error) return { error:'No fue posible crear la cuenta. Revisa los datos e inténtalo nuevamente.' }
+  return { confirmationRequired:!data.session }
+}
+
+export async function requestPasswordReset(email) {
+  if (!client) return 'La autenticación no está configurada.'
+  const { error } = await client.auth.resetPasswordForEmail(email, {
+    redirectTo:`${redirectOrigin() || ''}/?auth_action=reset`
+  })
+  return error ? 'No fue posible iniciar la recuperación. Inténtalo nuevamente.' : ''
+}
+
+export async function updatePassword(password) {
+  if (!client) return 'La autenticación no está configurada.'
+  const { error } = await client.auth.updateUser({ password })
+  if (error) return 'No fue posible actualizar la contraseña. Inténtalo nuevamente.'
+  authState.recovery = false
+  return ''
+}
+
 export async function signOut() {
   // Clear private data immediately, even if the provider request fails.
   setAccessToken(null)
@@ -57,4 +85,5 @@ export function stopAuth() {
   client = null
   setAccessToken(null)
   authState.user = null
+  authState.recovery = false
 }

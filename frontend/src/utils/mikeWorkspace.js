@@ -18,7 +18,7 @@ export function taskIdentityQuery(tool, caseId, taskId) {
 
 export function createWorkspace(id = crypto.randomUUID()) {
   return {
-    id, title: 'Nueva conversación', activeTool: null, caseId: crypto.randomUUID(),
+    id, title: 'Nueva conversación', activeTool: null, caseId: crypto.randomUUID(), casePersisted:false,
     documentIds: [], searchTaskId: null, caseTaskId: null, courtTaskId: null,
     caseReuse: null, turns: [], createdAt: new Date().toISOString()
   }
@@ -44,6 +44,7 @@ export function caseReuseContext(result, taskId, caseText = '') {
 export function applySearchCaseHandoff(workspace, started) {
   if (!workspace || !started?.case_id || !started?.task_id || !started?.caseText || started.tool !== 'case') return null
   workspace.caseId = started.case_id
+  workspace.casePersisted = true
   workspace.activeTool = 'case'
   workspace.documentIds = []
   workspace.caseReuse = null

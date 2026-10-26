@@ -7,6 +7,7 @@ from ..utils.cancellation import CancellationToken
 
 import uuid
 import threading
+import logging
 from datetime import datetime
 from enum import Enum
 from typing import Dict, Any, Optional
@@ -70,6 +71,7 @@ class TaskManager:
         self._cancellations = {}
         self._task_lock = threading.Lock()
         self.repository = repository
+        self.persistence_callback = None
         if repository:
             repository.interrupt_active()
             for raw in repository.load_all():
@@ -112,8 +114,7 @@ class TaskManager:
         with self._task_lock:
             self._tasks[task_id] = task
             self._cancellations[task_id] = CancellationToken()
-            if self.repository:
-                self.repository.save(task)
+            self._save(task, sync=True, required=True)
         
         return task_id
 
@@ -143,9 +144,20 @@ class TaskManager:
                         created_at=now, updated_at=now, metadata=deepcopy(metadata))
             self._tasks[task_id] = task
             self._cancellations[task_id] = CancellationToken()
-            if self.repository:
-                self.repository.save(task)
+            self._save(task, sync=True, required=True)
             return task_id, True
+
+    def _save(self, task, sync=False, required=False):
+        if self.repository:
+            self.repository.save(task)
+        if sync and self.persistence_callback:
+            try:
+                self.persistence_callback(task)
+            except Exception as exc:
+                logging.getLogger('NovaIuris').error('event=history_persist_failed task_id=%s error_type=%s',
+                                                     task.task_id, type(exc).__name__)
+                if required:
+                    raise
     
     def get_task(self, task_id: str) -> Optional[Task]:
         """获取任务"""
@@ -199,8 +211,7 @@ class TaskManager:
                     task.error = deepcopy(error)
                 if progress_detail is not None:
                     task.progress_detail = deepcopy(progress_detail)
-                if self.repository:
-                    self.repository.save(task)
+                self._save(task, sync=status is not None)
     
     def complete_task(self, task_id: str, result: Dict):
         """标记任务完成"""
@@ -270,6 +281,5 @@ class TaskManager:
             task.updated_at = datetime.now()
             task.finished_at = task.updated_at
             task.message = 'Tarea cancelada; una solicitud externa en curso puede continuar.'
-            if self.repository:
-                self.repository.save(task)
+            self._save(task, sync=True)
             return True

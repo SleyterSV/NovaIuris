@@ -34,6 +34,7 @@ class ProductionSecurityTests(unittest.TestCase):
             SUPABASE_URL = 'https://example.supabase.co'
             SUPABASE_PUBLISHABLE_KEY = 'test-publishable'
             SUPABASE_KEY = 'test-backend'
+            APP_SUPABASE_SERVICE_ROLE_KEY = 'test-service-role'
             EMBEDDING_API_KEY = 'test-embedding'
             LLM_API_KEY = 'test-private'
             ZEP_API_KEY = 'test-private'
@@ -123,6 +124,43 @@ class ProductionSecurityTests(unittest.TestCase):
             TASK_PERSISTENCE_ENABLED = False
         with self.assertRaises(RuntimeError):
             create_app(NoTaskPersistence)
+        class LocalIdentityInProduction(self.config):
+            LOCAL_DEV_AUTH_ENABLED = True
+        with self.assertRaises(RuntimeError):
+            create_app(LocalIdentityInProduction)
+
+    def test_development_identity_requires_explicit_flag_and_bearer_is_validated(self):
+        class EmptyApplicationRepository:
+            def list_cases(self, user_id):
+                self.user_id = user_id
+                return []
+            def record_task(self, task):
+                return None
+
+        repository = EmptyApplicationRepository()
+        class DevelopmentConfig(self.config):
+            APP_ENV = 'development'
+            TESTING = False
+            LOCAL_DEV_AUTH_ENABLED = False
+            APPLICATION_REPOSITORY = repository
+            APP_SUPABASE_SERVICE_ROLE_KEY = None
+        app = create_app(DevelopmentConfig)
+        client = app.test_client()
+        self.assertEqual(client.get('/api/cases').status_code, 401)
+        self.assertEqual(client.get('/api/cases', headers=self.headers('a-token')).status_code, 200)
+        self.assertEqual(repository.user_id, 'user-a')
+        class ExplicitLocalDevelopment(DevelopmentConfig):
+            LOCAL_DEV_AUTH_ENABLED = True
+            APPLICATION_REPOSITORY = None
+        local_client = create_app(ExplicitLocalDevelopment).test_client()
+        self.assertEqual(local_client.get('/api/cases').status_code, 200)
+        self.assertEqual(local_client.get('/api/cases', headers=self.headers('bad-token')).status_code, 401)
+        created = local_client.post('/api/cases', json={'title':'Caso local de prueba'})
+        self.assertEqual(created.status_code, 201)
+        self.assertTrue(created.json['case']['id'])
+        self.assertEqual(local_client.get('/api/cases').json['cases'][0]['title'], 'Caso local de prueba')
+        self.assertEqual(local_client.patch(f"/api/cases/{created.json['case']['id']}",
+                                            json={'status':'archived'}).json['case']['status'], 'archived')
 
     def test_active_task_limit(self):
         manager = self.app.extensions['task_manager']

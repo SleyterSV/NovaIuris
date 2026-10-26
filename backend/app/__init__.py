@@ -33,6 +33,8 @@ def create_app(config_class=Config):
     if environment not in {'development', 'test', 'production'}:
         raise RuntimeError('APP_ENV must be development, test or production')
     if environment == 'production':
+        if app.config.get('LOCAL_DEV_AUTH_ENABLED'):
+            raise RuntimeError('Local development identity cannot be enabled in production')
         if app.config.get('LEGAL_KNOWLEDGE_VERSION') != 'v2':
             raise RuntimeError('Production NovaCase requires Legal Knowledge V2')
         if not app.config.get('MYKE_LEGAL_DATABASE_URL'):
@@ -43,7 +45,7 @@ def create_app(config_class=Config):
             raise RuntimeError('Production task persistence is required')
         required = ('SECRET_KEY', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY',
                     'SUPABASE_KEY', 'EMBEDDING_API_KEY', 'LLM_API_KEY', 'ZEP_API_KEY',
-                    'CASE_CORPUS_DB_PATH', 'TASK_DB_PATH')
+                    'CASE_CORPUS_DB_PATH', 'TASK_DB_PATH', 'APP_SUPABASE_SERVICE_ROLE_KEY')
         if any(not app.config.get(key) for key in required):
             raise RuntimeError('Production runtime configuration incomplete')
         if len(app.config['SECRET_KEY']) < 32:
@@ -94,6 +96,16 @@ def create_app(config_class=Config):
         app.extensions['document_task_manager'] = DocumentTaskManager(
             app.config['DOCUMENT_STAGING_MAX_AGE_SECONDS'],
             repository=app.extensions['document_task_repository'])
+    application_repository = app.config.get('APPLICATION_REPOSITORY')
+    if not application_repository and app.config.get('APP_SUPABASE_SERVICE_ROLE_KEY') and not app.config.get('TESTING'):
+        from .services.application_repository import ApplicationRepository
+        application_repository = ApplicationRepository(app.config['SUPABASE_URL'],
+                                                       app.config['APP_SUPABASE_SERVICE_ROLE_KEY'])
+    if application_repository:
+        app.extensions['application_repository'] = application_repository
+        task_manager = app.extensions.get('task_manager')
+        if task_manager:
+            task_manager.persistence_callback = application_repository.record_task
 
     # 设置JSON编码：确保中文直接显示（而不是 \uXXXX 格式）
     # Flask >= 2.3 使用 app.json.ensure_ascii，旧版本使用 JSON_AS_ASCII 配置
@@ -129,19 +141,25 @@ def create_app(config_class=Config):
         g.request_started = perf_counter()
         if environment == 'production' and (request.path.startswith(('/api/graph/', '/api/simulation/', '/api/report/')) or request.path == '/api/search'):
             return api_error('LEGACY_DISABLED', 'Esta ruta ya no está disponible.', g.request_id, 410)
-        if environment == 'production' and request.method == 'OPTIONS':
+        if request.path.startswith('/api/') and request.method == 'OPTIONS':
             g.authenticated_user_id = None
             return None  # Browser preflight carries no bearer token.
-        if environment == 'production' and request.path.startswith('/api/'):
+        if request.path.startswith('/api/') and environment != 'test' and not (
+                environment == 'development' and app.config.get('TESTING')):
             header = request.headers.get('Authorization', '')
             token = header[7:] if header.startswith('Bearer ') else ''
-            verifier = app.config.get('AUTH_VERIFIER') or verify_supabase_user
-            g.authenticated_user_id = verifier(token, app.config) if token else None
+            if environment == 'development' and app.config.get('LOCAL_DEV_AUTH_ENABLED') and not token:
+                g.authenticated_user_id = 'local-development-user'
+            else:
+                verifier = app.config.get('AUTH_VERIFIER') or verify_supabase_user
+                g.authenticated_user_id = verifier(token, app.config) if token else None
             if not g.authenticated_user_id:
                 return api_error('AUTH_REQUIRED', 'Se requiere una sesión válida.', g.request_id, 401)
-        else:
-            # Explicit local/test identity; request JSON and headers cannot set it.
+        elif environment == 'test' or (environment == 'development' and app.config.get('TESTING')):
+            # Deterministic identity is isolated to test-mode configurations.
             g.authenticated_user_id = 'local-development-user'
+        else:
+            g.authenticated_user_id = None
         allowed, retry_after = limiter.check(g.authenticated_user_id or request.remote_addr, request.path) if request.method == "POST" else (True, 0)
         if not allowed:
             response, status = api_error('RATE_LIMITED', 'Demasiadas solicitudes. Inténtalo más tarde.', g.request_id, 429)
