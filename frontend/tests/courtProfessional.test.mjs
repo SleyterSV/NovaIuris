@@ -97,8 +97,10 @@ test('Court panels show adaptive roles, simulated decision, grounded sources and
     assert.match(failed,/Simulación no disponible/)
     assert.doesNotMatch(failed,/Tesis|Estrategia/)
     const report = (await server.ssrLoadModule('/src/components/novacourt/CourtReport.vue')).default
-    const reportHtml = await renderToString(createSSRApp({render:()=>h(report,{content:'## Decisión simulada\n\nTexto [1]',
-      sources:[source],citations:[citation],caseId:'CASE-A'})}))
+    const citation2 = {citation_id:'CIT-def456',source_id:'SRC-CASE002',label:'[2]'}
+    const source2 = {...source,source_id:'SRC-CASE002',title:'Memorando',display_title:'Memorando'}
+    const reportHtml = await renderToString(createSSRApp({render:()=>h(report,{content:'## Tesis de la Parte Demandante:\n\nTexto (Fuente: [1], [2])\n\n## Teoría de la Defensa de la Parte Demandada:\n\nLa defensa existente.',
+      sources:[source,source2],citations:[citation,citation2],caseId:'CASE-A'})}))
     assert.match(reportHtml,/Copiar informe/)
     assert.match(reportHtml,/Descargar PDF/)
     assert.match(reportHtml,/Descargar DOCX/)
@@ -107,6 +109,11 @@ test('Court panels show adaptive roles, simulated decision, grounded sources and
     assert.match(reportHtml,/DOCUMENTOS DEL CASO/)
     assert.match(reportHtml,/Ver documento/)
     assert.doesNotMatch(reportHtml.replace(/<[^>]*>/g,' '),/\[1\]/)
+    const visibleReportText = reportHtml.replace(/<[^>]*>/g,' ')
+    assert.match(visibleReportText,/Texto\s+1\s+2/)
+    assert.equal((visibleReportText.match(/Tesis principal/g) || []).length,2)
+    assert.doesNotMatch(visibleReportText,/Tesis de la Parte Demandante|Teoría de la Defensa de la Parte Demandada/i)
+    assert.doesNotMatch(visibleReportText,/Fuente\s*:|\(|\)|\[|\]/)
     assert.doesNotMatch(reportHtml,/SRC-CASE001/)
   } finally { await server.close() }
 })

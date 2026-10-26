@@ -44,7 +44,8 @@ const props = defineProps({
     citations: { type: Array, default: () => [] },
     sources: { type: Array, default: () => [] },
     caseId: { type: String, default: null },
-    citationNumbersOnly: { type: Boolean, default: false }
+    citationNumbersOnly: { type: Boolean, default: false },
+    stripCitationSourceLabels: { type: Boolean, default: false }
 
 })
 const emit = defineEmits(["select-citation"])
@@ -202,8 +203,14 @@ md.renderer.rules.text = (tokens, idx) => {
 
 const renderedMarkdown = computed(() => {
 
+    let content = normalizeRenderableContent(props.content) || EMPTY_CONTENT
+    if (props.stripCitationSourceLabels) {
+        content = content.replace(/(?:\(\s*)?Fuente\s*:\s*((?:\[\d+\]\s*(?:[,;]\s*)?)+)(?:\s*\))?/gi,
+            (_match, references) => (references.match(/\[\d+\]/g) || []).join(' '))
+    }
+
     return md.render(
-        md.utils.unescapeAll(normalizeRenderableContent(props.content) || EMPTY_CONTENT)
+        md.utils.unescapeAll(content)
     )
 
 })

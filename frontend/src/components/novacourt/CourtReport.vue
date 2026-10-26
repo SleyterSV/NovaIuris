@@ -127,11 +127,12 @@
             <article class="report-document">
 
                 <MarkdownRenderer
-                    :content="content"
+                    :content="displayContent"
                     :citations="usedCitations"
                     :sources="usedSources"
                     :case-id="caseId"
                     citation-numbers-only
+                    strip-citation-source-labels
                     @select-citation="openCitation"
                 />
                 <section v-if="referenceGroups.length" class="report-references" aria-labelledby="report-references-title">
@@ -268,6 +269,9 @@ const exportBusy = ref('')
 const actionMessage = ref('')
 const actionBusy = computed(() => Boolean(exportBusy.value))
 const displayCaseTitle = computed(() => cleanDisplay(props.caseTitle))
+const displayContent = computed(() => String(props.content || '')
+    .replace(/(^|\n)(#{1,6}\s*)Tesis de la Parte Demandante:?\s*(?=\n|$)/gi, '$1$2Tesis principal')
+    .replace(/(^|\n)(#{1,6}\s*)Teor[ií]a de la Defensa de la Parte Demandada:?\s*(?=\n|$)/gi, '$1$2Tesis principal'))
 const normalizedSources = computed(() => normalizeSources(props.sources, props.caseId))
 const resolvedCitations = computed(() => resolveCitations(props.citations, normalizedSources.value, props.caseId).citations)
 const usedCitations = computed(() => resolvedCitations.value.filter(item => item.label && props.content.includes(item.label)))
@@ -309,7 +313,7 @@ async function copyReport() {
         ).join('\n')}`).join('\n\n')
         const reportText = ['INFORME DE SIMULACIÓN JURÍDICA', displayCaseTitle.value,
             'Simulación jurídica. No constituye una resolución judicial real ni sustituye la evaluación profesional.',
-            props.content, 'FUENTES UTILIZADAS', copiedSections].filter(Boolean).join('\n\n')
+            displayContent.value, 'FUENTES UTILIZADAS', copiedSections].filter(Boolean).join('\n\n')
         await navigator.clipboard.writeText(cleanReportText(reportText))
         copied.value = true
         clearTimeout(copyReset)
