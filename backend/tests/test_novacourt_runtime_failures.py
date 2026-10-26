@@ -214,6 +214,20 @@ class RuntimeFailureTests(unittest.TestCase):
         result = await_task(pipeline, task_id)["final_result"]
         self.assertEqual((result["graph"]["status"], result["court_report_document"]["sections"]), ("ready", []))
 
+    def test_report_assembly_failure_preserves_structured_court_result(self):
+        pipeline, task_id = self._pipeline()
+        with patch("app.services.novacourt_pipeline_service.build_court_report_document",
+                   side_effect=RuntimeError("provider secret detail")):
+            task = await_task(pipeline, task_id)
+        result = task["final_result"]
+        self.assertEqual(task["status"], "completed")
+        self.assertEqual(result["facts"][0]["fact_id"], "FACT-1")
+        self.assertEqual((result["graph"]["status"], result["simulation"]["status"]), ("ready", "ready"))
+        self.assertEqual(result["metadata"]["court_report_status"], "failed")
+        self.assertEqual(result["court_report_document"]["sections"], [])
+        self.assertIn("REPORT_FAILED", {item["code"] for item in result["warnings"]})
+        self.assertNotIn("secret", str(result["warnings"]))
+
     def test_both_fail_preserves_case(self):
         pipeline, task_id = self._pipeline(graph_status="failed", simulation_status="failed")
         result = await_task(pipeline, task_id)["final_result"]

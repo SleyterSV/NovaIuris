@@ -1,4 +1,5 @@
 """Process-local jobs; every new task has an explicit, isolated case identity."""
+import logging
 import threading
 import re
 import hashlib
@@ -16,6 +17,8 @@ from ..utils.novacourt_graph import graph_result, add_judicial_projection
 from ..utils.novacourt_simulation import simulation_result
 from ..services.source_contracts import resolve_citations
 from ..services.novacourt_context import prepare_court_context
+
+logger = logging.getLogger(__name__)
 
 CASE_STAGES = (("intake", "Recepción"), ("documents", "Corpus documental del caso"), ("facts", "Hechos"),
     ("strategy", "Estrategia inicial"), ("research", "Investigación"),
@@ -57,6 +60,20 @@ def humanize_court_references(content, facts, sources):
     value = re.sub(r"\[((?:(?:FACT|SRC)-[A-Za-z0-9_-]+\s*,?\s*)+)\]",
                    lambda match: "; ".join(replace(item) for item in _COURT_REFERENCE.finditer(match.group(1))), value)
     return _COURT_REFERENCE.sub(replace, value)
+
+
+def build_court_report_document(simulation, case_id):
+    """Build the display/export projection without changing the canonical simulation."""
+    sections = [
+        {"id": section, "title": simulation.get(section, {}).get("role_label", title),
+         "content": simulation.get(section, {}).get("content", ""),
+         "citation_ids": [item["citation_id"] for item in simulation.get(section, {}).get("citations", [])]}
+        for section, title in (("prosecutor", "Posición promotora"), ("defense", "Posición contraria"),
+                               ("judge", "Decisión simulada"))
+        if simulation.get(section, {}).get("content")]
+    return {"document_type": "court_simulation", "case_id": case_id,
+            "title": "Simulación jurídica argumentativa", "sections": sections,
+            "citations": simulation.get("citations", []), "sources": simulation.get("sources", [])}
 
 class NovaCourtPipelineService:
     def __init__(self, case_service, graph_service, simulation_service, task_manager=None, legal_repository=None):
@@ -322,15 +339,17 @@ class NovaCourtPipelineService:
                         result["graph"] = add_judicial_projection(result["graph"], simulation)
                 result["court_status"] = "completed" if all(result[field]["status"] == "ready" for field in ("graph", "simulation")) else "partial"
                 report_started = perf_counter()
-                result["court_report_document"] = {"document_type": "court_simulation", "case_id": case_id,
-                    "title": "Simulación jurídica argumentativa", "sections": [
-                        {"id": section, "title": simulation.get(section, {}).get("role_label", title),
-                         "content": simulation.get(section, {}).get("content", ""),
-                         "citation_ids": [item["citation_id"] for item in simulation.get(section, {}).get("citations", [])]}
-                        for section, title in (("prosecutor", "Posición promotora"), ("defense", "Posición contraria"),
-                                               ("judge", "Decisión simulada")) if simulation.get(section, {}).get("content")],
-                    "citations": simulation.get("citations", []), "sources": simulation.get("sources", [])}
-                court_report_status = "ready" if result["court_report_document"]["sections"] and simulation["status"] == "ready" else "partial"
+                try:
+                    result["court_report_document"] = build_court_report_document(simulation, case_id)
+                    court_report_status = ("ready" if result["court_report_document"]["sections"]
+                                           and simulation["status"] == "ready" else "partial")
+                except Exception as error:
+                    logger.warning("NovaCourt report assembly failed error_type=%s", type(error).__name__)
+                    result["court_report_document"] = {"document_type": "court_simulation", "case_id": case_id,
+                        "title": "Simulación jurídica argumentativa", "sections": [], "citations": [], "sources": []}
+                    court_report_status = "failed"
+                    warnings.append({"stage": "report", "code": "REPORT_FAILED",
+                                     "message": "El resultado del análisis está disponible, pero no se pudo preparar el informe."})
                 result.setdefault("metadata", {}).update({"case_reused": bool(reused_result), "graph_status": result["graph"]["status"],
                     "simulation_status": simulation["status"], "sources_count": len(simulation.get("sources", [])),
                     "citations_count": len(simulation.get("citations", [])), "court_timings_ms": timings,
