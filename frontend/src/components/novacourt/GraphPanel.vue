@@ -79,7 +79,7 @@
                     </span>
 
                     <strong>
-                        {{ normalizedNodes.length }}
+                        {{ allNodes.length }}
                     </strong>
 
                     <span class="stat-label">
@@ -99,7 +99,7 @@
                     </span>
 
                     <strong>
-                        {{ normalizedLinks.length }}
+                        {{ (graphData?.edges || []).length }}
                     </strong>
 
                     <span class="stat-label">
@@ -111,21 +111,6 @@
             </div>
 
         </header>
-
-
-        <!-- =====================================================
-             LEYENDA
-        ====================================================== -->
-
-        <details v-if="hasGraphData" class="graph-legend">
-            <summary>Clasificación jurídica y posiciones</summary>
-            <div class="legend-items">
-                <div v-for="item in legendItems" :key="item.key" class="legend-item">
-                    <span class="legend-dot" :style="{ background: item.color }" aria-hidden="true"></span>
-                    <span>{{ item.label }}</span>
-                </div>
-            </div>
-        </details>
 
 
         <!-- =====================================================
@@ -250,10 +235,16 @@
              GRAFO
         ====================================================== -->
 
-        <div
-            v-else
-            class="graph-workspace"
-        >
+            <div v-else ref="graphWorkspace" class="graph-workspace">
+            <details v-if="hasGraphData" class="graph-legend">
+                <summary>Leyenda</summary>
+                <div class="legend-items">
+                    <div v-for="item in legendItems" :key="item.key" class="legend-item">
+                        <span class="legend-dot" :style="{ background: item.color }" aria-hidden="true"></span>
+                        <span>{{ item.label }}</span>
+                    </div>
+                </div>
+            </details>
             <p v-if="graphData?.status === 'building'" role="status" class="graph-notice">
                 Grafo parcial. Procesamiento de fuentes en curso.
             </p>
@@ -265,29 +256,32 @@
                     <button v-for="filter in quickFilters" :key="filter.key" type="button"
                         :aria-pressed="activeGroup === filter.key" @click="activeGroup = filter.key">{{ filter.label }}</button>
                 </div>
-                <label>Buscar nodos <input v-model="query" type="search" placeholder="Título, contenido o fuente" /></label>
+                <label>Buscar elementos <input v-model="query" type="search" placeholder="Buscar por título, contenido o fuente" /></label>
                 <div v-if="query && searchResults.length" class="graph-search-results" role="listbox" aria-label="Resultados del grafo">
                     <button v-for="node in searchResults" :key="node.id" type="button" role="option"
-                        @click="focusNode(node)">{{ graphLabel(node) }}: {{ truncateText(node.title || node.name, 72) }}</button>
+                        @click="focusNode(node)">{{ graphLabel(node) }}: {{ truncateText(displayNodeTitle(node), 72) }}</button>
                 </div>
                 <label>Complejidad <select v-model="complexity">
                     <option value="essential">Vista esencial</option>
                     <option value="complete">Vista completa</option>
                 </select></label>
-                <fieldset><legend>Tipos visibles</legend>
-                    <label v-for="type in visibleTypes" :key="type">
-                        <input type="checkbox" :checked="!selectedTypes.includes(type)"
-                            @change="toggleType(type)" />
-                        {{ getNodeCategoryLabel({ entity_type: type }) }}
-                    </label>
-                </fieldset>
+                <details ref="typesFilter" class="graph-type-filter" @keydown.esc.prevent="closeTypeFilter">
+                    <summary>Tipos visibles <span aria-hidden="true">⌄</span></summary>
+                    <div class="graph-type-options">
+                        <label v-for="type in visibleTypes" :key="type">
+                            <input type="checkbox" :checked="!selectedTypes.includes(type)"
+                                @change="toggleType(type)" />
+                            {{ getNodeCategoryLabel({ entity_type: type }) }}
+                        </label>
+                    </div>
+                </details>
             </div>
             <p v-if="!normalizedNodes.length" role="status">No hay nodos para los filtros actuales.</p>
             <details class="graph-text-list">
-                <summary>Lista accesible de nodos ({{ normalizedNodes.length }})</summary>
-                <ul><li v-for="node in normalizedNodes" :key="node.id">
+                <summary>Lista accesible de elementos ({{ accessibleNodes.length }})</summary>
+                <ul><li v-for="node in accessibleNodes" :key="node.id">
                     <button type="button" @click="focusNode(node)">
-                        {{ getNodeCategoryLabel(node) }}: {{ node.title || node.name }}
+                        {{ getNodeCategoryLabel(node) }}: {{ displayNodeTitle(node) }}
                     </button>
                 </li></ul>
             </details>
@@ -354,11 +348,11 @@
                         type="button"
                         class="toolbar-button"
                         :class="{
-                            'is-disabled': !selectedNode
+                            'is-disabled': !hasClearableGraphState
                         }"
                         title="Cerrar selección"
-                        :disabled="!selectedNode"
-                        @click="clearSelection"
+                        :disabled="!hasClearableGraphState"
+                        @click="clearGraphState"
                     >
 
                         <span class="toolbar-icon">
@@ -405,6 +399,14 @@
                         ref="svgElement"
                         class="graph-svg"
                     ></svg>
+                    <div v-if="hoveredNode" class="graph-node-tooltip" role="tooltip"
+                        :style="{ left: `${hoverPosition.x}px`, top: `${hoverPosition.y}px` }">
+                        <span>{{ getNodeCategoryLabel(hoveredNode) }}</span>
+                        <strong>{{ displayNodeTitle(hoveredNode) }}</strong>
+                        <p v-if="hoveredNode.summary || hoveredNode.description || hoveredNode.excerpt">
+                            {{ truncateText(displayGraphText(hoveredNode.summary || hoveredNode.description || hoveredNode.excerpt), 150) }}
+                        </p>
+                    </div>
 
                 </div>
 
@@ -444,14 +446,7 @@
                             </span>
 
 
-                            <h3>
-
-                                {{
-                                    selectedNode.title || selectedNode.name ||
-                                    "Elemento sin nombre"
-                                }}
-
-                            </h3>
+                            <h3>{{ displayNodeTitle(selectedNode) }}</h3>
 
                         </div>
 
@@ -484,7 +479,7 @@
                         </span>
 
                         <p>
-                            {{ selectedNode.summary }}
+                            {{ displayGraphText(selectedNode.summary) }}
                         </p>
 
                     </div>
@@ -494,7 +489,7 @@
                     </div>
                     <div v-if="selectedNode.description || selectedNode.excerpt" class="detail-section">
                         <span class="detail-label">Descripción o referencia</span>
-                        <p>{{ selectedNode.description || selectedNode.excerpt }}</p>
+                        <p>{{ displayGraphText(selectedNode.description || selectedNode.excerpt) }}</p>
                     </div>
                     <div v-if="nodeLocator(selectedNode)" class="detail-section">
                         <span class="detail-label">Localizador</span>
@@ -503,7 +498,7 @@
                     <div v-if="selectedNode.entity_type === 'DECISION'" class="detail-section" role="status">Resultado de simulación; no es una resolución judicial auténtica.</div>
                     <div v-if="selectedRelations.length" class="detail-section">
                         <span class="detail-label">Relaciones</span>
-                        <p v-for="edge in selectedRelations" :key="edge.id">{{ graphRelation(edge) }}: {{ nodeTitle(edge.source === selectedNode.id ? edge.target : edge.source) }}</p>
+                        <p v-for="edge in selectedRelations" :key="edge.id">{{ graphRelation(edge) }}: {{ displayGraphText(nodeTitle(edge.source === selectedNode.id ? edge.target : edge.source)) }}</p>
                     </div>
                     <div v-if="availableSources(selectedNode.source_ids).length" class="detail-section">
                         <span class="detail-label">Fuentes</span>
@@ -519,7 +514,7 @@
                     ================================================== -->
 
                     <div
-                        v-if="selectedNode.labels?.length"
+                        v-if="displayLabels(selectedNode).length"
                         class="detail-section"
                     >
 
@@ -531,7 +526,7 @@
                         <div class="label-list">
 
                             <span
-                                v-for="label in selectedNode.labels"
+                                v-for="label in displayLabels(selectedNode)"
                                 :key="label"
                                 class="node-label"
                             >
@@ -604,7 +599,7 @@
                 <aside v-if="selectedEdge" class="node-detail-panel">
                     <button type="button" @click="selectedEdge = null" aria-label="Cerrar relación">×</button>
                     <h3>{{ graphRelation(selectedEdge) }}</h3>
-                    <p>{{ nodeTitle(selectedEdge.source) }} → {{ nodeTitle(selectedEdge.target) }}</p>
+                    <p>{{ displayGraphText(nodeTitle(selectedEdge.source)) }} → {{ displayGraphText(nodeTitle(selectedEdge.target)) }}</p>
                     <button v-for="sourceId in availableSources(selectedEdge.source_ids)" :key="sourceId"
                         type="button" @click="openSource(sourceId)">Ver fuente: {{ sourceLabel(sourceId) }}</button>
                 </aside>
@@ -623,7 +618,7 @@
             <span class="footer-line"></span>
 
             <span>
-                INTELIGENCIA JUDICIAL · NOVA IURIS
+                MYKE · NOVACOURT · Inteligencia jurídica
             </span>
 
             <span class="footer-line"></span>
@@ -695,18 +690,24 @@ const props = defineProps({
 ============================================================ */
 
 const graphContainer = ref(null)
+const graphWorkspace = ref(null)
+const typesFilter = ref(null)
 
 const svgElement = ref(null)
 
 const selectedNode = ref(null)
 const selectedEdge = ref(null)
 const selectedSource = ref(null)
+const hoveredNode = ref(null)
+const hoverPosition = ref({ x: 12, y: 12 })
 const selectedTypes = ref([])
 const activeGroup = ref('all')
 const complexity = ref("essential")
 const query = ref("")
 const viewport = ref(d3.zoomIdentity)
 const positions = new Map()
+const hasClearableGraphState = computed(() => Boolean(selectedNode.value || selectedEdge.value || query.value.trim() ||
+    activeGroup.value !== 'all' || selectedTypes.value.length || complexity.value !== 'essential'))
 
 
 /* ============================================================
@@ -757,6 +758,8 @@ const normalizedNodes = computed(() => (props.graphData?.nodes || [])
     .filter(node => complexity.value === "complete" || node.importance === "core" ||
         ["EVIDENCE", "LAW", "JURISPRUDENCE"].includes(node.entity_type))
     .map(node => ({ ...node, id: String(node.node_id || node.uuid) })))
+const accessibleNodes = computed(() => normalizedNodes.value.filter(node =>
+    displayGraphText(node.title || node.name || '') !== 'Elemento jurídico'))
 const searchSourceNames = computed(() => new Map([...sourceById.value].map(([id, source]) => [id, source.title || ''])))
 const searchResults = computed(() => query.value.trim() ? allNodes.value.filter(node =>
     graphSearchText(node, searchSourceNames.value).includes(query.value.trim().toLocaleLowerCase())).slice(0, 12) : [])
@@ -784,7 +787,59 @@ function availableSources(sourceIds) {
 }
 function sourceLabel(sourceId) {
     const source = sourceById.value.get(sourceId)
-    return source ? `${source.title || "Fuente"}${graphLocator(source) ? ` · ${graphLocator(source)}` : ""}` : "Fuente"
+    return source ? `${displayGraphText(source.title || "Fuente")}${graphLocator(source) ? ` · ${graphLocator(source)}` : ""}` : "Fuente"
+}
+function displayGraphText(value) {
+    const clean = String(value || '').replace(/\b(?:SRC|FACT|ISSUE)-[A-Z0-9_-]+\b/gi, '')
+        .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '')
+        .replace(/\s+/g, ' ').trim()
+    return clean || 'Elemento jurídico'
+}
+function displayNodeTitle(node) {
+    return truncateText(displayGraphText(node?.title || node?.name || ''), 120)
+}
+function displayLabels(node) {
+    return (Array.isArray(node?.labels) ? node.labels : []).map(displayGraphText)
+        .filter(label => label !== 'Elemento jurídico')
+}
+function nodeRadius(node) {
+    if (node.entity_type === 'CASE') return 31
+    if (['PARTY', 'DECISION', 'JUDGE_ANALYSIS'].includes(node.entity_type)) return 27
+    if (['CLAIM', 'LEGAL_ISSUE'].includes(node.entity_type)) return 24
+    if (['LAW', 'JURISPRUDENCE'].includes(node.entity_type)) return 19
+    return 21
+}
+function semanticLinkDistance(link) {
+    const nodes = [link.source, link.target].filter(node => node && typeof node === 'object')
+    if (nodes.some(node => node.entity_type === 'CASE')) return 132
+    if (nodes.some(node => ['LAW', 'JURISPRUDENCE'].includes(node.entity_type))) return 190
+    if (nodes.some(node => ['FACT', 'EVIDENCE', 'DOCUMENT'].includes(node.entity_type))) return 174
+    return 158
+}
+function isPriorityNode(node) {
+    return ['CASE', 'PARTY', 'CLAIM', 'LEGAL_ISSUE', 'DECISION', 'JUDGE_ANALYSIS'].includes(node.entity_type)
+}
+function closeTypeFilter() {
+    if (typesFilter.value) typesFilter.value.open = false
+}
+function showNodeTooltip(event, node) {
+    if (!graphContainer.value) return
+    const bounds = graphContainer.value.getBoundingClientRect()
+    const maxLeft = Math.max(12, bounds.width - 285)
+    const maxTop = Math.max(12, bounds.height - 130)
+    const pointerX = Number.isFinite(event.clientX) ? event.clientX : bounds.left + 12
+    const pointerY = Number.isFinite(event.clientY) ? event.clientY : bounds.top + 12
+    hoveredNode.value = node
+    hoverPosition.value = {
+        x: Math.min(Math.max(12, pointerX - bounds.left + 14), maxLeft),
+        y: Math.min(Math.max(12, pointerY - bounds.top + 14), maxTop)
+    }
+}
+function closeTypeFilterOutside(event) {
+    if (typesFilter.value?.open && !typesFilter.value.contains(event.target)) closeTypeFilter()
+}
+function handleGraphEscape(event) {
+    if (event.key === 'Escape') closeTypeFilter()
 }
 function nodeTitle(nodeId) {
     const node = (props.graphData?.nodes || []).find(item =>
@@ -808,6 +863,25 @@ function nodeLocator(node) {
 }
 const selectedRelations = computed(() => selectedNode.value ? normalizedLinks.value.filter(edge =>
     edge.source === selectedNode.value.id || edge.target === selectedNode.value.id) : [])
+function isSearchMatch(node) {
+    const needle = query.value.trim().toLocaleLowerCase()
+    return Boolean(needle && graphSearchText(node, searchSourceNames.value).includes(needle))
+}
+function selectGraphNode(node, nodeSelection, linkSelection) {
+    selectedNode.value = { ...node }
+    selectedEdge.value = null
+    nodeSelection.attr("aria-pressed", item => item.id === node.id ? "true" : "false")
+    updateSelectionStyles(nodeSelection, linkSelection, node.id)
+}
+function updateHoverStyles(nodeSelection, linkSelection, hoveredId) {
+    const neighbors = new Set(hoveredId ? normalizedLinks.value
+        .filter(edge => edge.source === hoveredId || edge.target === hoveredId)
+        .map(edge => edge.source === hoveredId ? edge.target : edge.source) : [])
+    nodeSelection.classed("is-hovered", node => node.id === hoveredId)
+        .classed("is-neighbor-hover", node => neighbors.has(node.id))
+    linkSelection.classed("is-hovered", edge => hoveredId &&
+        (edge.source === hoveredId || edge.target === hoveredId))
+}
 function focusNode(node) {
     activeGroup.value = 'all'
     if (selectedTypes.value.includes(node.entity_type)) toggleType(node.entity_type)
@@ -815,6 +889,10 @@ function focusNode(node) {
         !['EVIDENCE', 'LAW', 'JURISPRUDENCE'].includes(node.entity_type)) complexity.value = 'complete'
     selectedNode.value = node
     query.value = ''
+    if (currentRoot) {
+        updateSelectionStyles(currentRoot.selectAll('.graph-node'), currentRoot.selectAll('.graph-link'), node.id)
+        currentRoot.selectAll('.graph-node').attr('aria-pressed', item => item.id === node.id ? 'true' : 'false')
+    }
     nextTick(() => {
         const point = positions.get(node.id)
         if (point && currentSvg && zoomBehavior && graphContainer.value) {
@@ -949,7 +1027,7 @@ function formatAttributeKey(key) {
 
 
 function formatAttributeValue(value) {
-    return String(value)
+    return displayGraphText(value)
 }
 
 
@@ -999,7 +1077,7 @@ function renderGraph() {
 
         container.clientHeight,
 
-        520
+        620
 
     )
 
@@ -1226,6 +1304,12 @@ function renderGraph() {
             "pointer"
 
         )
+        .attr("role", "button")
+        .attr("tabindex", 0)
+        .attr("aria-pressed", node => selectedNode.value?.id === node.id ? "true" : "false")
+        .attr("aria-label", node => `${graphLabel(node)}: ${displayNodeTitle(node)}. Seleccionar elemento`)
+        .classed("is-priority", node => isPriorityNode(node))
+        .classed("is-search-match", node => isSearchMatch(node))
 
 
     /* ========================================================
@@ -1248,7 +1332,7 @@ function renderGraph() {
 
             "r",
 
-            33
+            node => nodeRadius(node) + 12
 
         )
 
@@ -1287,7 +1371,7 @@ function renderGraph() {
 
             "r",
 
-            23
+            node => nodeRadius(node)
 
         )
 
@@ -1328,7 +1412,7 @@ function renderGraph() {
 
             "r",
 
-            29
+            node => nodeRadius(node) + 7
 
         )
 
@@ -1402,7 +1486,7 @@ function renderGraph() {
 
             "x",
 
-            36
+            node => nodeRadius(node) + 10
 
         )
 
@@ -1414,7 +1498,9 @@ function renderGraph() {
 
         )
 
-        .text(node => `${graphLabel(node)} · ${truncateText(node.title || node.name || 'Sin nombre', 30)}`)
+        .text(node => truncateText(displayNodeTitle(node), 38))
+
+    nodeSelection.append("title").text(node => `${graphLabel(node)}\n${displayNodeTitle(node)}\n${truncateText(displayGraphText(node.summary || node.description || node.excerpt || ''), 180)}`)
 
 
     /* ========================================================
@@ -1430,26 +1516,27 @@ function renderGraph() {
             (event, node) => {
 
                 event.stopPropagation()
-
-                selectedNode.value = {
-
-                    ...node
-
-                }
-
-                updateSelectionStyles(
-
-                    nodeSelection,
-
-                    linkSelection,
-
-                    node.id
-
-                )
+                selectGraphNode(node, nodeSelection, linkSelection)
 
             }
 
         )
+        .on("keydown", (event, node) => {
+            if (event.key !== "Enter" && event.key !== " ") return
+            event.preventDefault()
+            selectGraphNode(node, nodeSelection, linkSelection)
+        })
+        .on("mouseenter", (event, node) => {
+            updateHoverStyles(nodeSelection, linkSelection, node.id)
+            showNodeTooltip(event, node)
+        })
+        .on("mousemove", (event, node) => showNodeTooltip(event, node))
+        .on("mouseleave", () => {
+            updateHoverStyles(nodeSelection, linkSelection, null)
+            hoveredNode.value = null
+        })
+        .on("focus", (event, node) => showNodeTooltip(event, node))
+        .on("blur", () => { if (!selectedNode.value) hoveredNode.value = null })
 
 
     svg.on(
@@ -1556,7 +1643,7 @@ function renderGraph() {
 
                 .id(node => node.id)
 
-                .distance(135)
+                .distance(semanticLinkDistance)
 
                 .strength(.62)
 
@@ -1570,7 +1657,7 @@ function renderGraph() {
 
                 .forceManyBody()
 
-                .strength(-520)
+                .strength(-760)
 
         )
 
@@ -1588,6 +1675,10 @@ function renderGraph() {
 
         )
 
+        .force("case-anchor-x", d3.forceX(width / 2).strength(node => node.entity_type === "CASE" ? .20 : .008))
+
+        .force("case-anchor-y", d3.forceY(height / 2).strength(node => node.entity_type === "CASE" ? .20 : .008))
+
         .force(
 
             "collision",
@@ -1596,7 +1687,7 @@ function renderGraph() {
 
                 .forceCollide()
 
-                .radius(72)
+                .radius(node => nodeRadius(node) + 45)
 
         )
 
@@ -1811,13 +1902,9 @@ function truncateText(
     }
 
 
-    return `${normalized.slice(
-
-        0,
-
-        maxLength - 1
-
-    )}…`
+    const excerpt = normalized.slice(0, maxLength - 1).trimEnd()
+    const boundary = excerpt.lastIndexOf(' ')
+    return `${(boundary >= maxLength * .62 ? excerpt.slice(0, boundary) : excerpt).trimEnd()}…`
 
 }
 
@@ -1853,6 +1940,7 @@ function clearSelection() {
             false
 
         )
+        .attr("aria-pressed", "false")
 
 
     currentRoot
@@ -1875,6 +1963,15 @@ function clearSelection() {
 
         )
 
+}
+
+function clearGraphState() {
+    query.value = ''
+    activeGroup.value = 'all'
+    selectedTypes.value = []
+    complexity.value = 'essential'
+    selectedEdge.value = null
+    clearSelection()
 }
 
 
@@ -1915,7 +2012,7 @@ function zoomGraph(factor) {
 }
 function toggleFullscreen() {
     if (document.fullscreenElement) document.exitFullscreen?.()
-    else graphContainer.value?.requestFullscreen?.()
+    else graphWorkspace.value?.requestFullscreen?.()
 }
 
 
@@ -1997,6 +2094,13 @@ watch([selectedTypes, complexity, activeGroup], async () => {
     renderGraph()
 })
 
+watch(query, value => {
+    if (!currentRoot) return
+    const needle = value.trim().toLocaleLowerCase()
+    currentRoot.selectAll(".graph-node").classed("is-search-match", node =>
+        Boolean(needle && graphSearchText(node, searchSourceNames.value).includes(needle)))
+})
+
 
 watch(
 
@@ -2026,6 +2130,9 @@ onMounted(async () => {
     await nextTick()
 
     renderGraph()
+
+    window.addEventListener("pointerdown", closeTypeFilterOutside)
+    window.addEventListener("keydown", handleGraphEscape)
 
 
     if (graphContainer.value) {
@@ -2061,6 +2168,9 @@ onMounted(async () => {
 onBeforeUnmount(() => {
 
     destroyGraph()
+
+    window.removeEventListener("pointerdown", closeTypeFilterOutside)
+    window.removeEventListener("keydown", handleGraphEscape)
 
 
     if (resizeObserver) {
@@ -4591,4 +4701,90 @@ onBeforeUnmount(() => {
 .graph-text-list button, .detail-section button { border:0; background:transparent; color:#244c73; text-align:left; cursor:pointer; padding:4px; }
 .node-detail-panel { max-width:100%; }
 @media (max-width:700px) { .graph-main { display:block; } .node-detail-panel { width:100%; } }
+
+/* Acabado compacto y exploración del grafo jurídico */
+.graph-panel { padding:clamp(18px,2.4vw,30px); }
+.graph-stats .stat-item { min-width:76px; }
+.graph-stats .stat-caption { letter-spacing:.08em; }
+.graph-legend { display:block; width:max-content; max-width:100%; padding:0; margin:0 0 12px; border:0; }
+.graph-legend > summary, .graph-type-filter > summary { list-style:none; cursor:pointer; user-select:none; }
+.graph-legend > summary::-webkit-details-marker, .graph-type-filter > summary::-webkit-details-marker { display:none; }
+.graph-legend > summary { display:flex; align-items:center; gap:8px; padding:8px 11px; border:1px solid #dce4eb; border-radius:9px; background:#fff; color:#24415e; font-size:.78rem; font-weight:700; box-shadow:0 2px 7px #102b4c0b; }
+.graph-legend > summary::after { content:'⌄'; color:#9b7a4a; }
+.graph-legend[open] { position:relative; z-index:8; }
+.graph-legend .legend-items { display:flex; flex-wrap:wrap; gap:8px 14px; max-width:min(680px,calc(100vw - 48px)); padding:12px; margin-top:6px; border:1px solid #e0e7ed; border-radius:10px; background:#fffffff5; box-shadow:0 8px 24px #102b4c14; }
+.graph-legend .legend-item { gap:7px; color:#465b70; font-size:.72rem; }
+.graph-legend .legend-dot { width:8px; height:8px; border-radius:50%; box-shadow:0 0 0 3px color-mix(in srgb,currentColor 10%,transparent); }
+.graph-workspace { margin-top:14px; }
+.graph-filters { display:flex; align-items:center; gap:9px 12px; padding:0 0 12px; }
+.graph-quick-filters { width:auto; flex:1 1 100%; gap:7px; }
+.graph-quick-filters button { min-height:32px; padding:6px 12px; border-color:#d9e2ea; color:#4a6075; transition:background .16s,border-color .16s,color .16s; }
+.graph-quick-filters button:hover { background:#f0f5f8; border-color:#b8c9d6; }
+.graph-quick-filters button[aria-pressed="true"] { background:#102b4c; border-color:#102b4c; color:#fff; box-shadow:0 3px 8px #102b4c24; }
+.graph-filters label { color:#52677b; }
+.graph-filters input[type="search"] { width:min(330px,36vw); max-width:100%; min-height:36px; padding:8px 11px; border-color:#d5e0e8; border-radius:8px; }
+.graph-filters select { min-height:36px; padding:7px 30px 7px 10px; border-color:#d5e0e8; border-radius:8px; background:#fff; color:#24415e; }
+.graph-type-filter { position:relative; }
+.graph-type-filter > summary { display:flex; align-items:center; justify-content:space-between; gap:20px; min-height:36px; padding:7px 11px; border:1px solid #d5e0e8; border-radius:8px; background:#fff; color:#24415e; font-size:.8rem; }
+.graph-type-filter[open] { z-index:9; }
+.graph-type-options { position:absolute; top:calc(100% + 6px); right:0; display:grid; grid-template-columns:repeat(2,minmax(145px,1fr)); gap:4px 10px; width:min(390px,calc(100vw - 40px)); max-height:min(340px,60vh); padding:12px; overflow:auto; border:1px solid #dbe4eb; border-radius:11px; background:#fff; box-shadow:0 14px 32px #102b4c20; }
+.graph-type-options label { display:flex; align-items:center; gap:8px; min-height:32px; padding:5px 7px; border-radius:6px; color:#40586f; font-size:.77rem; cursor:pointer; }
+.graph-type-options label:hover { background:#f2f6f8; }
+.graph-type-options input { accent-color:#102b4c; }
+.graph-text-list { margin:0 0 10px; padding:0; font-size:.76rem; }
+.graph-text-list > summary { width:max-content; max-width:100%; color:#61768a; cursor:pointer; }
+.graph-text-list ul { margin:8px 0 0; padding:0 0 0 18px; }
+.graph-text-list li { margin:2px 0; }
+.graph-text-list button { border-radius:5px; }
+.graph-toolbar { position:relative; z-index:3; margin:0 0 10px; padding:7px 9px; border:1px solid #e2e8ed; border-radius:10px; background:#ffffffd9; box-shadow:0 2px 8px #102b4c0a; }
+.toolbar-caption { color:#73869a; font-size:.7rem; }
+.toolbar-actions { gap:5px; }
+.toolbar-button { min-height:33px; padding:6px 9px; border-radius:7px; font-size:.75rem; }
+.toolbar-button:focus-visible, .graph-type-filter summary:focus-visible, .graph-legend summary:focus-visible, .graph-text-list summary:focus-visible { outline:2px solid #b08a4c; outline-offset:2px; }
+.graph-main { min-height:620px; }
+.graph-canvas { height:clamp(620px,70vh,780px); min-height:620px; border:1px solid #e5ebf0; border-radius:14px; background-color:#fbfcfd; background-image:radial-gradient(#cbd6df5c .8px,transparent .8px); background-size:20px 20px; }
+.graph-svg { height:100%; }
+.canvas-watermark { opacity:.025; }
+.graph-svg :deep(.graph-link) { stroke:#aab9c7; stroke-width:1.05; stroke-opacity:.34; }
+.graph-svg :deep(.graph-link.is-active), .graph-svg :deep(.graph-link.is-hovered) { stroke:#b08a4c; stroke-width:2.1; stroke-opacity:.96; }
+.graph-svg :deep(.graph-link.is-muted) { stroke-opacity:.07; }
+.graph-svg :deep(.graph-node.is-muted) { opacity:.24; }
+.graph-svg :deep(.graph-node.is-hovered), .graph-svg :deep(.graph-node.is-neighbor-hover) { opacity:1; }
+.graph-svg :deep(.node-circle) { stroke:#fff; stroke-width:2.8; transition:stroke .16s,stroke-width .16s,filter .16s; }
+.graph-svg :deep(.graph-node.is-hovered .node-circle), .graph-svg :deep(.graph-node:focus .node-circle) { stroke:#b08a4c; stroke-width:3.5; }
+.graph-svg :deep(.node-text) { opacity:0; font-size:11px; font-weight:650; paint-order:stroke; stroke:#fbfcfd; stroke-width:4px; stroke-linejoin:round; transition:opacity .14s; }
+.graph-svg :deep(.graph-node.is-priority .node-text), .graph-svg :deep(.graph-node.is-hovered .node-text), .graph-svg :deep(.graph-node.is-selected .node-text), .graph-svg :deep(.graph-node:focus .node-text), .graph-svg :deep(.graph-node.is-search-match .node-text) { opacity:1; }
+.graph-svg :deep(.graph-node.is-neighbor-hover .node-circle) { stroke:#e2c999; stroke-width:3; }
+.graph-node-tooltip { position:absolute; z-index:4; width:min(265px,calc(100% - 24px)); max-height:126px; padding:11px 13px; overflow:hidden; border:1px solid #dbe3e9; border-radius:10px; background:#fffffff5; box-shadow:0 8px 22px #102b4c1c; pointer-events:none; }
+.graph-node-tooltip span { display:block; margin-bottom:4px; color:#a07b45; font-size:.63rem; font-weight:750; letter-spacing:.07em; text-transform:uppercase; }
+.graph-node-tooltip strong { display:block; color:#17375e; font:600 .85rem/1.35 Georgia,'Times New Roman',serif; overflow-wrap:anywhere; }
+.graph-node-tooltip p { margin:5px 0 0; color:#607286; font-size:.7rem; line-height:1.4; }
+.graph-svg :deep(.graph-node.is-search-match .node-circle) { stroke:#b08a4c; stroke-width:3.5; }
+.graph-svg :deep(.graph-node:focus) { outline:none; }
+.graph-workspace:fullscreen { width:100vw; height:100dvh; padding:16px; overflow:auto; background:#f7f9fa; }
+.graph-workspace:fullscreen .graph-main { min-height:0; }
+.graph-workspace:fullscreen .graph-canvas { height:max(480px,calc(100dvh - 255px)); min-height:480px; }
+.graph-workspace:fullscreen .node-detail-panel { top:12px; right:12px; bottom:12px; }
+.graph-stats .stat-label { font-size:.7rem; }
+@media (max-width:900px) {
+  .graph-filters { flex-wrap:wrap; }
+  .graph-quick-filters { flex:1 1 100%; }
+  .graph-main, .graph-canvas { min-height:560px; }
+  .graph-canvas { height:64vh; }
+}
+@media (max-width:700px) {
+  .graph-panel { padding:17px; }
+  .graph-filters { align-items:stretch; }
+  .graph-filters label { justify-content:space-between; width:100%; }
+  .graph-filters input[type="search"] { width:68%; }
+  .graph-quick-filters { flex-wrap:nowrap; overflow-x:auto; padding:2px 2px 7px; scrollbar-width:thin; }
+  .graph-quick-filters button { flex:0 0 auto; }
+  .graph-type-filter { align-self:flex-start; }
+  .graph-type-options { left:0; right:auto; grid-template-columns:1fr; width:min(300px,calc(100vw - 42px)); }
+  .graph-main, .graph-canvas { min-height:500px; }
+  .graph-canvas { height:62vh; }
+  .graph-svg :deep(.node-text) { font-size:10px; }
+  .graph-workspace:fullscreen { padding:10px; }
+  .graph-workspace:fullscreen .graph-canvas { height:calc(100dvh - 320px); }
+}
 </style>
