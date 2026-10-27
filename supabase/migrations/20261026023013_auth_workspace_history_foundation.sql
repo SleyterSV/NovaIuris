@@ -1,4 +1,4 @@
--- Auth-linked personal workspace and durable case/history foundation.
+﻿-- Auth-linked personal workspace and durable case/history foundation.
 -- Authorization decisions never use user-editable user_metadata.
 
 create table if not exists public.profiles (
@@ -115,7 +115,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  workspace_id uuid;
+  v_workspace_id uuid;
   display_name text;
 begin
   display_name := left(nullif(trim(coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name', '')), ''), 120);
@@ -125,10 +125,10 @@ begin
   insert into public.workspaces(name, workspace_type, owner_user_id)
     values (left(coalesce(display_name, split_part(coalesce(new.email, 'Mi espacio'), '@', 1)), 112) || ' - MYKE', 'personal', new.id)
     on conflict (owner_user_id) where workspace_type = 'personal' do nothing;
-  select id into workspace_id from public.workspaces
+  select id into v_workspace_id from public.workspaces
     where owner_user_id = new.id and workspace_type = 'personal';
   insert into public.workspace_members(workspace_id, user_id, role)
-    values (workspace_id, new.id, 'owner')
+    values (v_workspace_id, new.id, 'owner')
     on conflict (workspace_id, user_id) do nothing;
   return new;
 end;
@@ -225,4 +225,4 @@ create policy case_documents_insert_member on storage.objects for insert to auth
     select 1 from public.cases c join public.workspace_members wm on wm.workspace_id = c.workspace_id
     where c.id::text = (storage.foldername(name))[4] and c.workspace_id::text = (storage.foldername(name))[2]
       and wm.user_id = (select auth.uid()) and (storage.foldername(name))[1] = 'workspaces'
-      and (storage.foldername(name))[3] = 'cases')));
+      and (storage.foldername(name))[3] = 'cases'));
