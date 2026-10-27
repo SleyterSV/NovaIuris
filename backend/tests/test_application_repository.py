@@ -8,7 +8,11 @@ class FakeQuery:
     def __init__(self, client, table):
         self.client, self.table_name = client, table
         self.filters, self.operation, self.payload = [], 'select', None
-    def select(self, fields): self.fields = fields; return self
+    def select(self, fields):
+        if self.operation != 'select':
+            raise AttributeError('select() is unavailable after a PostgREST mutation')
+        self.fields = fields
+        return self
     def eq(self, key, value): self.filters.append(('eq', key, value)); return self
     def in_(self, key, values): self.filters.append(('in', key, values)); return self
     def limit(self, value): self.limit_value = value; return self
@@ -50,6 +54,9 @@ class FakeClient:
         self.queries = []
         self.objects, self.uploads = {}, []
         self.rows = {
+            'workspaces': [
+                {'id':'workspace-a','owner_user_id':'user-a','workspace_type':'personal'},
+                {'id':'workspace-b','owner_user_id':'user-b','workspace_type':'personal'}],
             'workspace_members': [
                 {'user_id':'user-a','workspace_id':'workspace-a'},
                 {'user_id':'user-b','workspace_id':'workspace-b'}],
@@ -81,6 +88,15 @@ class ApplicationRepositoryScopeTests(unittest.TestCase):
         self.assertIsNone(self.repo.get_case('user-a','case-b'))
         case_query = [q for q in self.client.queries if q[0] == 'cases'][-1]
         self.assertIn(('in','workspace_id',['workspace-a']), case_query[1])
+
+    def test_create_case_uses_python_postgrest_mutation_response(self):
+        created = self.repo.create_case('user-a', '  Caso nuevo  ', 'Descripción')
+        self.assertEqual(created['title'], 'Caso nuevo')
+        self.assertEqual(created['workspace_id'], 'workspace-a')
+        self.assertEqual(created['created_by'], 'user-a')
+        self.assertTrue(created['id'])
+        query = [q for q in self.client.queries if q[0] == 'cases'][-1]
+        self.assertEqual(query[2], 'insert')
 
     def test_user_a_cannot_read_user_b_historical_result(self):
         self.assertIsNone(self.repo.historical_result('user-a','run-b'))

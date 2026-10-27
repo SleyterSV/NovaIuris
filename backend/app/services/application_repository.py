@@ -8,6 +8,7 @@ from supabase import create_client
 from datetime import timezone
 from pathlib import PurePosixPath
 import re
+from uuid import uuid4
 
 
 class ApplicationRepository:
@@ -45,17 +46,16 @@ class ApplicationRepository:
             existing = self.get_case(user_id, case_id)
             if existing:
                 return existing
+        case_id = str(case_id or uuid4())
         rows = self._data(self.client.table('workspaces').select('id').eq('owner_user_id', user_id).eq('workspace_type', 'personal').limit(1).execute())
         if not rows:
             raise LookupError('PERSONAL_WORKSPACE_NOT_FOUND')
         workspace_id = rows[0]['id']
         payload = {
-            'workspace_id': workspace_id, 'created_by': user_id,
+            'id': case_id, 'workspace_id': workspace_id, 'created_by': user_id,
             'title': title.strip(), 'description': description
         }
-        if case_id:
-            payload['id'] = case_id
-        result = self._data(self.client.table('cases').insert(payload).select('id,workspace_id,title,description,status,created_at,updated_at,archived_at').execute())
+        result = self._data(self.client.table('cases').insert(payload).execute())
         if not result:
             raise RuntimeError('CASE_CREATE_FAILED')
         return result[0]
@@ -71,7 +71,7 @@ class ApplicationRepository:
         case = self.get_case(user_id, case_id)
         if not case:
             return None
-        rows = self._data(self.client.table('cases').update(patch).eq('id', case_id).eq('workspace_id', case['workspace_id']).select('id,workspace_id,title,description,status,created_at,updated_at,archived_at').execute())
+        rows = self._data(self.client.table('cases').update(patch).eq('id', case_id).eq('workspace_id', case['workspace_id']).execute())
         return rows[0] if rows else None
 
     def list_runs(self, user_id, case_id):
@@ -138,7 +138,7 @@ class ApplicationRepository:
                 'uploaded_by': user_id, 'storage_bucket': 'case-documents', 'storage_path': path,
                 'original_filename': safe_name, 'mime_type': mime_type, 'size_bytes': int(size_bytes),
                 'sha256': sha256, 'processing_status': 'processing'
-            }).select('id,workspace_id,case_id,uploaded_by,storage_bucket,storage_path,original_filename,mime_type,size_bytes,sha256,processing_status,created_at,updated_at').execute())
+            }).execute())
             if not rows:
                 raise RuntimeError('DOCUMENT_METADATA_CREATE_FAILED')
             return rows[0]
@@ -175,7 +175,7 @@ class ApplicationRepository:
             return None
         rows = self._data(self.client.table('case_documents').update({'processing_status': status})
             .eq('id', document_id).eq('case_id', case_id).eq('workspace_id', document['workspace_id'])
-            .select('id,processing_status').execute())
+            .execute())
         if rows and status == 'ready' and replaces_document_id and replaces_document_id != document_id:
             self.delete_case_document(user_id, case_id, replaces_document_id)
         return rows[0] if rows else None
@@ -233,7 +233,7 @@ class ApplicationRepository:
             'metadata': {'task_type': task.task_type},
             'error_code': ((task.error or {}).get('code') if isinstance(task.error, dict) else
                            ('TASK_FAILED' if status == 'failed' else None))
-        }, on_conflict='task_id').select('id').execute())
+        }, on_conflict='task_id').execute())
         if status not in {'completed', 'partial'} or not run_rows or not isinstance(task.result, dict):
             return
         run_id = run_rows[0]['id']

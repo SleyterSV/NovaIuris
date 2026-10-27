@@ -46,7 +46,12 @@ insert into public.case_artifacts(workspace_id, case_id, run_id, artifact_type, 
 select workspace_id, case_id, id, 'case_result', 'novacase.v1', '{"fixture":true}'::jsonb
 from public.analysis_runs where id = '80000000-0000-0000-0000-000000000008';
 insert into storage.objects(bucket_id, name)
-select 'case-documents', storage_path from public.case_documents;
+select 'case-documents', storage_path
+from public.case_documents
+where id in (
+  '30000000-0000-0000-0000-000000000003',
+  '60000000-0000-0000-0000-000000000006'
+);
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000001', true);
