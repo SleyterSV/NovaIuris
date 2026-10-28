@@ -108,8 +108,8 @@ Regression fix commit: `0dd0d39 fix: pin pypdf for reproducible corpus identitie
 
 ## Production Safety
 
-Remote Supabase modified: NO  
-Production modified: NO  
+Remote Supabase modified: NO
+Production modified: NO
 Git push performed: NO
 
 ## Next Phase Readiness
