@@ -1,27 +1,30 @@
 <template>
   <section class="document-upload" aria-label="Documentos de este expediente">
     <div class="upload-heading">
-      <div><strong>Documentos del expediente</strong><p>PDF, DOCX y TXT · aislados por case_id</p></div>
-      <label class="choose-files" :class="{disabled: disabled || batchBusy}">Añadir archivos
+      <div><strong>{{ libraryMode ? 'Archivos del caso' : 'Documentos del expediente' }}</strong><p>PDF, DOCX y TXT · privados para este caso</p></div>
+      <label class="choose-files" :class="{disabled: disabled || batchBusy}">Subir documento
         <input type="file" multiple accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" :disabled="disabled || batchBusy || !caseId" @change="choose">
       </label>
     </div>
-    <p v-if="error" class="upload-error" role="alert">{{ error }}</p>
+    <div v-if="error" class="upload-error" role="alert"><span>{{ error }}</span><button v-if="documentListFailed" type="button" :disabled="loadingDocuments" @click="loadExistingDocuments">{{ loadingDocuments ? 'Cargando…' : 'Reintentar' }}</button></div>
     <div v-if="batchBusy" class="batch-progress" aria-live="polite">
       <span>{{ stageMessage }}</span>
       <progress v-if="stage === 'uploading'" max="100" :value="uploadProgress" aria-label="Progreso real del envío" />
       <span v-else-if="completedDocuments !== null">{{ completedDocuments }} de {{ totalDocuments }} documentos completados</span>
     </div>
+    <p v-if="libraryMode && loadingDocuments" class="library-state" role="status">Cargando documentos…</p>
+    <p v-else-if="libraryMode && !items.length && !error" class="library-state">Aún no has agregado documentos.</p>
     <ul v-if="items.length" class="file-list">
       <li v-for="item in items" :key="item.key">
-        <label v-if="isUsable(item)" class="selection"><input v-model="item.selected" type="checkbox" @change="emitIds"><span>Usar</span></label>
+        <label v-if="!libraryMode && isUsable(item)" class="selection"><input v-model="item.selected" type="checkbox" @change="emitIds"><span>Usar</span></label>
         <div class="file-meta">
-          <strong>{{ item.file.name }}</strong><small>{{ formatSize(item.file.size) }} · {{ item.message }}</small>
+          <strong>{{ item.file.name }}</strong><small>{{ formatType(item.document || item.file) }} · {{ formatSize(item.file.size) }} · {{ item.message }}</small>
+          <small v-if="libraryMode && item.document?.created_at">Agregado {{ formatDate(item.document.created_at) }}</small>
           <span v-if="item.phase === 'failed'" class="upload-error">{{ item.error }}</span>
         </div>
         <span class="file-state" :class="item.phase">{{ labelFor(item.phase) }}</span>
-        <button v-if="item.existing && item.document" type="button" :disabled="downloadingKey === item.key" @click="download(item)">{{ downloadingKey === item.key ? 'Descargando…' : 'Descargar' }}</button>
-        <button type="button" :disabled="disabled || ['uploading','indexing'].includes(item.phase)" :aria-label="`Quitar ${item.file.name} de la selección`" @click="remove(item)">Quitar</button>
+        <button v-if="item.existing && item.document && item.document.download_available !== false" type="button" :aria-label="`Descargar ${item.file.name}`" :disabled="downloadingKey === item.key" @click="download(item)">{{ downloadingKey === item.key ? 'Descargando…' : 'Descargar' }}</button>
+        <button v-if="!libraryMode" type="button" :disabled="disabled || ['uploading','indexing'].includes(item.phase)" :aria-label="`Quitar ${item.file.name} de la selección`" @click="remove(item)">Quitar</button>
       </li>
     </ul>
   </section>
@@ -30,16 +33,38 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { downloadCaseDocument, listCaseDocuments, uploadCaseDocuments } from '@/services/documentService.js'
+import { caseDocumentStatus, documentLibraryState, formatCaseActivityDate, formatDocumentSize, formatDocumentType, isPersistedCaseDocument } from '@/utils/caseActivityPresentation.js'
 
 const props = defineProps({
   caseId: { type:String, required:true },
   disabled: { type:Boolean, default:false },
   initialDocumentIds: { type:Array, default:() => [] },
-  loadExisting: { type:Boolean, default:false }
+  loadExisting: { type:Boolean, default:false },
+  libraryMode: { type:Boolean, default:false },
+  initialDocuments: { type:Array, default:() => [] }
 })
-const emit = defineEmits(['update:documentIds'])
-const items = ref([])
+const emit = defineEmits(['update:documentIds','documents-updated'])
+function itemForDocument(document) {
+  const state = documentLibraryState(document)
+  const phase = state === 'ready'
+    ? (document.ocr_required ? 'ready_with_warnings' : 'ready')
+    : state === 'processing' || state === 'uploaded' ? 'indexing'
+      : state === 'failed' ? 'failed' : document.status === 'ready' ? 'ready' : 'ocr_required'
+  const availableForAnalysis = phase === 'ready' || phase === 'ready_with_warnings'
+  return { key:`existing:${document.document_id}`, file:{name:document.filename || document.original_filename || 'Documento del caso', size:document.size_bytes},
+    document, phase, selected:availableForAnalysis && props.initialDocumentIds.includes(document.document_id),
+    existing:true, message:props.libraryMode ? caseDocumentStatus(state) : availableForAnalysis
+      ? `${document.chunk_count ?? 0} fragmentos disponibles${document.ocr_required ? '; OCR pendiente en algunas páginas' : ''}`
+      : state === 'processing' || state === 'uploaded' ? 'El archivo está guardado y su procesamiento continúa.'
+        : state === 'failed' ? 'No fue posible procesar el archivo.' : 'OCR requerido; no se usará en el análisis' }
+}
+function visibleDocuments(documents) {
+  return props.libraryMode ? documents.filter(isPersistedCaseDocument) : documents
+}
+const items = ref(visibleDocuments(props.initialDocuments).map(itemForDocument))
 const error = ref('')
+const loadingDocuments = ref(false)
+const documentListFailed = ref(false)
 const batchBusy = ref(false)
 const stage = ref('')
 const stageMessage = ref('')
@@ -67,17 +92,16 @@ watch(() => props.caseId, () => {
 
 function isUsable(item) { return ['ready', 'ready_with_warnings'].includes(item.phase) }
 function labelFor(phase) {
-  return ({ready:'Listo', ready_with_warnings:'Listo con advertencias', ocr_required:'OCR requerido',
-    failed:'Error', unknown:'Estado no confirmado', uploading:'Envío', indexing:'Procesando'})[phase] || 'Pendiente'
+  return ({ready:'Disponible', ready_with_warnings:'Disponible · OCR pendiente', ocr_required:'OCR requerido',
+    failed:'Error', unknown:'Estado no confirmado', uploading:'Subiendo', indexing:'Procesando'})[phase] || 'Pendiente'
 }
 function emitIds() {
   emit('update:documentIds', [...new Set(items.value.filter(item => isUsable(item) && item.selected)
     .map(item => item.document?.document_id).filter(Boolean))])
 }
-function formatSize(size) {
-  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`
-}
+function formatSize(size) { return formatDocumentSize(size) }
+function formatType(document) { return formatDocumentType(document) }
+function formatDate(value) { return formatCaseActivityDate(value) }
 function presentOutcome(item, outcome) {
   if (outcome?.status === 'failed') {
     item.phase = 'failed'; item.error = outcome.error?.message || 'No se pudo procesar este documento.'
@@ -101,20 +125,18 @@ function presentOutcome(item, outcome) {
 async function loadExistingDocuments() {
   if (!props.loadExisting) return
   const caseId = props.caseId
+  loadingDocuments.value = true
+  error.value = ''
+  documentListFailed.value = false
   try {
     const documents = await listCaseDocuments(caseId)
     if (caseId !== props.caseId) return
-    items.value = documents.map(document => {
-      const phase = document.status === 'ready'
-        ? (document.ocr_required ? 'ready_with_warnings' : 'ready') : 'ocr_required'
-      return { key:`existing:${document.document_id}`, file:{name:document.filename, size:document.size_bytes},
-        document, phase, selected:phase.startsWith('ready') && props.initialDocumentIds.includes(document.document_id),
-        existing:true, message:phase.startsWith('ready')
-          ? `${document.chunk_count} fragmentos disponibles${document.ocr_required ? '; OCR pendiente en algunas páginas' : ''}`
-          : 'OCR requerido; no se usará en el análisis' }
-    })
+    const durableDocuments = visibleDocuments(documents)
+    items.value = durableDocuments.map(itemForDocument)
     emitIds()
-  } catch (failure) { error.value = failure.message }
+    emit('documents-updated', durableDocuments)
+  } catch { error.value = 'No fue posible cargar los documentos del caso. Inténtalo nuevamente.'; documentListFailed.value = true }
+  finally { if (caseId === props.caseId) loadingDocuments.value = false }
 }
 
 async function choose(event) {
@@ -139,7 +161,10 @@ async function choose(event) {
       onProgress:progress => { uploadProgress.value = progress },
       onTaskProgress:task => {
         stage.value = task.stage
-        stageMessage.value = stageLabels[task.stage] || 'Procesamiento documental en curso'
+        const stageText = stageLabels[task.stage] || 'Procesamiento documental en curso'
+        stageMessage.value = task.status === 'queued'
+          ? 'Documento guardado. En espera de procesamiento.'
+          : `Documento guardado. ${stageText}`
         completedDocuments.value = task.completed_documents
         totalDocuments.value = task.total_documents
         task.documents?.forEach((outcome, index) => {
@@ -157,11 +182,12 @@ async function choose(event) {
     })
     outcomes.forEach((outcome, index) => presentOutcome(batchItems[index], outcome))
     emitIds()
+    if (props.loadExisting) await loadExistingDocuments()
   } catch (failure) {
     if (failure.name !== 'AbortError') {
-      error.value = failure.message
+      error.value = 'No fue posible completar la carga del documento. Inténtalo nuevamente.'
       batchItems.filter(item => ['uploading','indexing'].includes(item.phase)).forEach(item => {
-        item.phase = 'unknown'; item.error = failure.message; item.message = 'No se pudo confirmar el resultado de la ingesta'
+        item.phase = 'unknown'; item.error = error.value; item.message = 'No se pudo confirmar el resultado de la ingesta'
       })
     }
   } finally {
@@ -177,7 +203,7 @@ async function download(item) {
   downloadingKey.value = item.key
   error.value = ''
   try { await downloadCaseDocument(props.caseId, item.document) }
-  catch (failure) { error.value = failure.message || 'No fue posible descargar el documento.' }
+  catch { error.value = 'No fue posible descargar el documento. Inténtalo nuevamente.' }
   finally { downloadingKey.value = null }
 }
 
@@ -192,5 +218,5 @@ onBeforeUnmount(() => activeController?.abort())
 </script>
 
 <style scoped>
-.document-upload{margin:20px 0;padding:18px;border:1px solid #d9e0e8;border-radius:10px;background:#fff}.upload-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.upload-heading p{margin:5px 0;color:#647487;font-size:.9rem}.choose-files{position:relative;overflow:hidden;padding:9px 13px;border:1px solid #315c97;border-radius:7px;color:#17375e;cursor:pointer;white-space:nowrap}.choose-files input{position:absolute;inset:0;opacity:0;cursor:pointer}.choose-files.disabled{opacity:.5}.batch-progress{display:grid;gap:6px;margin-top:14px;color:#52657a;font-size:.88rem}.batch-progress progress{width:min(100%,480px);height:9px}.file-list{list-style:none;margin:16px 0 0;padding:0}.file-list li{display:flex;align-items:flex-start;gap:16px;padding:12px 0;border-top:1px solid #edf0f3}.selection{display:flex;align-items:center;gap:5px;color:#52657a;font-size:.8rem}.file-meta{display:grid;flex:1;gap:5px;min-width:0}.file-meta strong{overflow-wrap:anywhere}.file-meta small{color:#647487}.file-state{font-size:.85rem}.file-state.ready{color:#267254}.file-state.ready_with_warnings{color:#866510}.file-state.failed,.upload-error{color:#a32d32}.file-list button{border:0;background:transparent;color:#315c97;cursor:pointer}.file-list button:disabled{opacity:.45;cursor:wait}.upload-error{margin:10px 0}@media(max-width:600px){.upload-heading{align-items:flex-start;flex-direction:column}.file-list li{flex-wrap:wrap}}
+.choose-files:focus-within{outline:2px solid #b68a3a;outline-offset:3px}.upload-error button{margin-left:10px;border:0;background:transparent;color:#17324f;text-decoration:underline;font:inherit;font-weight:600;cursor:pointer}.upload-error button:focus-visible,.file-list button:focus-visible{outline:2px solid #b68a3a;outline-offset:3px}
 </style>

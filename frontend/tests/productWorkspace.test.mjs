@@ -102,16 +102,24 @@ test('case detail renders documents and historical links from persisted run data
   try {
     const html = await renderToString(createSSRApp({ render:() => h(CaseDetailView, {
       caseRecord:{ id:'case-1', title:'Caso de prueba', description:'Antecedentes disponibles' },
-      documents:[{ document_id:'doc-1', filename:'Contrato CAS.pdf', processing_status:'Completado' }],
-      runs:[{ id:'run-1', tool:'court', status:'completed', created_at:'2026-10-26T10:00:00Z' }]
+      documents:[{ document_id:'doc-1', filename:'Contrato CAS.pdf', mime_type:'application/pdf', size_bytes:2048,
+        processing_status:'ready', created_at:'2026-10-26T09:00:00Z' }],
+      runs:[{ id:'run-1', tool:'court', status:'completed', parent_run_id:'run-parent', created_at:'2026-10-26T10:00:00Z' }]
     }) }))
     assert.match(html,/Caso de prueba/)
     assert.match(html,/Contrato CAS\.pdf/)
+    assert.match(html,/role="tablist"/)
+    assert.match(html,/Historial/)
+    assert.match(html,/Documentos/)
     assert.match(html,/NovaCourt/)
+    assert.match(html,/Completado/)
+    assert.match(html,/Relacionado con un análisis NovaCase/)
+    assert.match(html,/Descargar/)
     assert.match(html,/run_id=run-1/)
     assert.match(html,/Continuar en NovaCase/)
     assert.match(html,/Renombrar/)
     assert.match(html,/Archivar/)
+    assert.doesNotMatch(html,/run-parent|storage_path|task_id=/)
     assert.doesNotMatch(html,/user_id|workspace_id|access_token/)
   } finally { await server.close() }
 })
@@ -122,12 +130,31 @@ test('archived case detail offers restoration without dropping historical data',
     const html = await renderToString(createSSRApp({ render:() => h(CaseDetailView, {
       caseRecord:{ id:'case-archived', title:'Caso archivado', status:'archived' },
       runs:[{ id:'run-kept', tool:'case', status:'completed', created_at:'2026-10-26T10:00:00Z' }],
-      documents:[{ id:'doc-kept', original_filename:'Expediente.pdf' }]
+      documents:[{ document_id:'doc-kept', original_filename:'Expediente.pdf', processing_status:'ready', size_bytes:1024 }]
     }) }))
     assert.match(html,/ARCHIVADO/)
     assert.match(html,/Restaurar/)
     assert.match(html,/NovaCase/)
     assert.match(html,/Expediente\.pdf/)
+  } finally { await server.close() }
+})
+
+test('case detail translates persisted analysis and document states and provides distinct empty states', async () => {
+  const { server, CaseDetailView } = await loadWorkspaceViews()
+  try {
+    const render = props => renderToString(createSSRApp({ render:() => h(CaseDetailView, props) }))
+    const html = await render({
+      caseRecord:{ id:'case-empty', title:'Caso sin actividad' },
+      runs:[
+        { id:'run-pending', tool:'case', status:'queued', created_at:'2026-10-26T10:00:00Z' },
+        { id:'run-error', tool:'court', status:'failed', created_at:'2026-10-26T11:00:00Z' }
+      ], documents:[]
+    })
+    assert.match(html,/Pendiente/)
+    assert.match(html,/No completado/)
+    assert.match(html,/Aún no has agregado documentos/)
+    const empty = await render({ caseRecord:{ id:'case-empty', title:'Caso sin actividad' }, runs:[], documents:[] })
+    assert.match(empty,/Aún no hay análisis en este caso/)
   } finally { await server.close() }
 })
 
