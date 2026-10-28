@@ -12,7 +12,9 @@ test('the composer shows Filters beside NovaSearch only, including before the fi
   try {
     const component = (await server.ssrLoadModule('/src/views/MikeView.vue')).default
     for (const tool of ['search', 'case', 'court', null]) {
-      const router = createRouter({ history:createMemoryHistory(), routes:[{ path:'/', component }] })
+      const router = createRouter({ history:createMemoryHistory(), routes:[
+        { path:'/', component }, { path:'/cases', component }, { path:'/cases/:caseId', component }, { path:'/account', component }
+      ] })
       await router.push(tool ? `/?tool=${tool}` : '/')
       await router.isReady()
       const app = createSSRApp({ render:() => h(component) })

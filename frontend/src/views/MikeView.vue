@@ -13,7 +13,7 @@ import { canAttachDocumentsToCase } from '@/utils/novacasePresentation.js'
 import { authRequired, authState, signIn, signOut, signUp, requestPasswordReset, resendConfirmation, updatePassword, startAuth } from '@/config/supabaseSession.js'
 import { loadHistoricalRun, requestJson } from '@/services/taskService.js'
 import { listCaseDocuments } from '@/services/documentService.js'
-import { fetchCaseActivity, fetchOwnedCases } from '@/services/workspaceService.js'
+import { createCaseMutationRunner, createOwnedCase as createOwnedCaseRequest, fetchCaseActivity, fetchOwnedCases, updateOwnedCase as updateOwnedCaseRequest } from '@/services/workspaceService.js'
 import { appendTranscript, useVoiceInput } from '@/composables/useVoiceInput.js'
 import { createToolHoverController } from '@/utils/toolHover.js'
 import { createComposerPopovers } from '@/utils/composerPopovers.js'
@@ -61,6 +61,7 @@ const caseRuns = ref([]), caseDocuments = ref([])
 let loadedOwnerId = null
 let loadingCaseId = null
 let casesLoadPromise = null
+const runCaseMutation = createCaseMutationRunner()
 const email = ref(''), password = ref(''), confirmPassword = ref(''), displayName = ref(''), loginBusy = ref(false)
 const authMode = ref('login'), authNotice = ref('')
 const menuOpen = ref(false), detailTool = ref(null)
@@ -306,6 +307,26 @@ function openOwnedCase(item) {
   const caseId = item?.id || item?.case_id
   if (caseId) router.push(`/cases/${encodeURIComponent(caseId)}`)
 }
+async function createOwnedCase(input) {
+  try { return await runCaseMutation(async () => {
+    const created = await createOwnedCaseRequest(requestJson, input)
+    ownedCases.value = [created, ...ownedCases.value.filter(item => (item.id || item.case_id) !== created.id)]
+    return created
+  }) } catch (cause) {
+    if (cause?.status === 401) { await signOut(); router.replace('/') }
+    throw cause
+  }
+}
+async function updateOwnedCase(caseId, patch) {
+  try { return await runCaseMutation(async () => {
+    const updated = await updateOwnedCaseRequest(requestJson, caseId, patch)
+    ownedCases.value = ownedCases.value.map(item => (item.id || item.case_id) === caseId ? updated : item)
+    return updated
+  }) } catch (cause) {
+    if (cause?.status === 401) { await signOut(); router.replace('/') }
+    throw cause
+  }
+}
 function continueOwnedCase(item) {
   const caseId = item?.id || item?.case_id
   if (!caseId) return
@@ -505,8 +526,8 @@ function openAccount() { menuOpen.value = false; router.push('/account') }
     <div class="main-area">
       <header class="topbar"><button class="mobile-menu" type="button" aria-label="Abrir menú" @click="mobileMenu = true">☰</button><span class="topbar-copy">{{ pageTitle }}</span><div class="top-actions"><button v-if="page === 'workspace'" class="search-shortcut" type="button" aria-label="Seleccionar Buscar" @click="selectTool('search',false)">⌕</button><div class="account"><button type="button" aria-haspopup="menu" :aria-expanded="menuOpen" :aria-label="`Menú de cuenta de ${userName}`" @click="menuOpen = !menuOpen"><span class="avatar">{{ initials || 'M' }}</span><span class="account-name">{{ userName }}</span>⌄</button><div v-if="menuOpen" class="account-menu" role="menu"><div class="account-identity"><strong>{{ userName }}</strong><small>{{ authState.user?.email }}</small></div><button type="button" role="menuitem" @click="openAccount">Mi cuenta</button><button type="button" role="menuitem" @click="openAbout">Acerca de MYKE</button><hr><button type="button" role="menuitem" @click="logout">Cerrar sesión</button></div></div></div></header>
       <main class="workspace" :class="{ conversation:workspace.turns.length, 'search-workspace': activeTool === 'search' && workspace.turns.length }">
-        <CasesView v-if="page === 'cases'" :cases="ownedCases" :loading="casesLoading" :error="casesError" @retry="loadOwnedCases" @new-analysis="newConversation" @open-case="openOwnedCase" />
-        <CaseDetailView v-else-if="page === 'case-detail'" :case-record="currentCase" :runs="caseRuns" :documents="caseDocuments" :loading="detailLoading" :error="detailError" @retry="loadCaseDetail()" @back="router.push('/cases')" @continue-case="continueOwnedCase" />
+        <CasesView v-if="page === 'cases'" :cases="ownedCases" :loading="casesLoading" :error="casesError" :on-create-case="createOwnedCase" :on-update-case="updateOwnedCase" @retry="loadOwnedCases" @open-case="openOwnedCase" />
+        <CaseDetailView v-else-if="page === 'case-detail'" :case-record="currentCase" :runs="caseRuns" :documents="caseDocuments" :loading="detailLoading" :error="detailError" :on-update-case="updateOwnedCase" @retry="loadCaseDetail()" @back="router.push('/cases')" @continue-case="continueOwnedCase" />
         <AccountView v-else-if="page === 'account'" :profile="accountProfile" :user="authState.user" :loading="casesLoading" :error="profileError" @retry="loadOwnedCases" />
         <template v-else>
         <div v-if="!workspace.turns.length" class="home"><p class="kicker">LEGAL INTELLIGENCE</p><h1>Hola, soy <span>MYKE</span></h1><p class="subtitle">Tu asistente jurídico inteligente</p><p class="intro">Investiga el derecho, analiza expedientes y explora escenarios jurídicos desde un mismo entorno.</p></div>

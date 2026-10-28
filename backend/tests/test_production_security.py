@@ -83,6 +83,69 @@ class ProductionSecurityTests(unittest.TestCase):
         self.assertEqual(attempt.status_code, 404)
         self.assertEqual(self.client.get('/api/cases/CASE-B/documents', headers=self.headers('b-token')).status_code, 404)
 
+    def test_case_mutations_use_verified_identity_and_hide_other_users_cases(self):
+        case_id = '00000000-0000-4000-8000-0000000000a1'
+        repository = Mock()
+        created_id = '00000000-0000-4000-8000-0000000000a2'
+        repository.create_case.return_value = {'id':created_id,'title':'Nuevo caso','status':'active'}
+        def update_case(user_id, requested_case_id, patch):
+            if user_id != 'user-a' or requested_case_id != case_id:
+                return None
+            return {'id':case_id,'title':patch.get('title','Caso A'),
+                    'status':patch.get('status','active'),
+                    'archived_at':patch.get('archived_at')}
+        repository.update_case.side_effect = update_case
+        self.app.extensions['application_repository'] = repository
+
+        created = self.client.post('/api/cases', headers=self.headers('a-token'),
+                                   json={'title':'Nuevo caso','description':'Contexto'})
+        self.assertEqual(created.status_code, 201)
+        repository.create_case.assert_called_once_with('user-a','Nuevo caso','Contexto')
+        forged_owner = self.client.post('/api/cases', headers=self.headers('a-token'),
+                                        json={'title':'Falso','created_by':'user-b','workspace_id':'workspace-b'})
+        self.assertEqual(forged_owner.status_code, 400)
+
+        denied = self.client.patch(f'/api/cases/{case_id}', headers=self.headers('b-token'),
+                                   json={'title':'Intento ajeno'})
+        self.assertEqual(denied.status_code, 404)
+        repository.update_case.assert_called_once_with('user-b', case_id, {'title':'Intento ajeno'})
+
+        repository.update_case.reset_mock()
+        denied_archive = self.client.patch(f'/api/cases/{case_id}', headers=self.headers('b-token'),
+                                           json={'status':'archived'})
+        self.assertEqual(denied_archive.status_code, 404)
+        repository.update_case.assert_called_once_with('user-b', case_id, {
+            'status':'archived','archived_at':unittest.mock.ANY})
+
+        repository.update_case.reset_mock()
+        denied_restore = self.client.patch(f'/api/cases/{case_id}', headers=self.headers('b-token'),
+                                           json={'status':'active'})
+        self.assertEqual(denied_restore.status_code, 404)
+        repository.update_case.assert_called_once_with('user-b', case_id, {
+            'status':'active','archived_at':None})
+
+        repository.update_case.reset_mock()
+        renamed = self.client.patch(f'/api/cases/{case_id}', headers=self.headers('a-token'),
+                                    json={'title':'Caso A renombrado'})
+        self.assertEqual(renamed.status_code, 200)
+        self.assertEqual(renamed.json['case']['title'], 'Caso A renombrado')
+        repository.update_case.assert_called_once_with('user-a', case_id, {'title':'Caso A renombrado'})
+
+        repository.update_case.reset_mock()
+        archived = self.client.patch(f'/api/cases/{case_id}', headers=self.headers('a-token'),
+                                     json={'status':'archived'})
+        self.assertEqual(archived.status_code, 200)
+        self.assertEqual(archived.json['case']['status'], 'archived')
+
+        repository.update_case.reset_mock()
+        restored = self.client.patch(f'/api/cases/{case_id}', headers=self.headers('a-token'),
+                                     json={'status':'active'})
+        self.assertEqual(restored.status_code, 200)
+        self.assertIsNone(restored.json['case']['archived_at'])
+
+        delete = self.client.delete(f'/api/cases/{case_id}', headers=self.headers('a-token'))
+        self.assertEqual(delete.status_code, 405)
+
     def test_legacy_cors_and_headers(self):
         for path in ('/api/simulation/court/simulate', '/api/graph/data/old',
                      '/api/report/generate', '/api/search'):

@@ -102,6 +102,20 @@ class ApplicationRepositoryScopeTests(unittest.TestCase):
         query = [q for q in self.client.queries if q[0] == 'cases'][-1]
         self.assertEqual(query[2], 'insert')
 
+    def test_user_b_cannot_rename_or_archive_user_a_case(self):
+        self.assertIsNone(self.repo.update_case('user-b','case-a',{'title':'Stolen'}))
+        self.assertIsNone(self.repo.update_case('user-b','case-a',{'status':'archived','archived_at':'now'}))
+        mutations = [query for query in self.client.queries if query[0] == 'cases' and query[2] == 'update']
+        self.assertEqual(mutations, [])
+
+    def test_owner_can_rename_archive_and_restore_own_case(self):
+        renamed = self.repo.update_case('user-a','case-a',{'title':'Caso actualizado'})
+        self.assertEqual(renamed['id'],'case-a')
+        archived = self.repo.update_case('user-a','case-a',{'status':'archived','archived_at':'now'})
+        self.assertEqual(archived['status'],'archived')
+        restored = self.repo.update_case('user-a','case-a',{'status':'active','archived_at':None})
+        self.assertEqual(restored['status'],'active')
+
     def test_user_a_cannot_read_user_b_historical_result(self):
         self.assertIsNone(self.repo.historical_result('user-a','run-b'))
         run_query = [q for q in self.client.queries if q[0] == 'analysis_runs'][-1]
