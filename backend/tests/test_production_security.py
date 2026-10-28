@@ -203,30 +203,27 @@ class ProductionSecurityTests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/export/prepare', headers=self.headers('a-token'),
             json={**payload, 'result': {'success': True}}).status_code, 400)
 
-    def test_real_document_task_and_chunk_are_owner_scoped(self):
+    def test_missing_durable_document_repository_fails_closed_before_queue(self):
         path = '/api/cases/CASE-A/documents'
-        class LegacyDevelopmentConfig(self.config):
+        class MissingPersistenceConfig(self.config):
             APP_ENV = 'development'
             TESTING = False
             APPLICATION_REPOSITORY = None
             APP_SUPABASE_SERVICE_ROLE_KEY = None
-        client = create_app(LegacyDevelopmentConfig).test_client()
+        app = create_app(MissingPersistenceConfig)
+        client = app.test_client()
+        with app.app_context():
+            case_ownership().owned('CASE-A', 'user-a', create=True)
+        manager = Mock()
+        manager.active_count.return_value = 0
+        app.extensions['document_task_manager'] = manager
         response = client.post(path, headers=self.headers('a-token'),
             data={'file': (io.BytesIO(b'Synthetic evidence for a private legal case.'), 'synthetic.txt')},
             content_type='multipart/form-data')
-        self.assertEqual(response.status_code, 202)
-        task_path = f"/api/cases/CASE-A/document-tasks/{response.json['task_id']}"
-        self.assertEqual(client.get(task_path, headers=self.headers('b-token')).status_code, 404)
-        deadline = time.monotonic() + 5
-        while time.monotonic() < deadline:
-            task = client.get(task_path, headers=self.headers('a-token')).json
-            if task['status'] in {'completed', 'failed'}:
-                break
-            time.sleep(0.01)
-        self.assertEqual(task['status'], 'completed')
-        document_id = task['documents'][0]['document']['document_id']
-        self.assertEqual(client.get(f'{path}/{document_id}', headers=self.headers('b-token')).status_code, 404)
-        self.assertEqual(client.get(f'{path}/{document_id}', headers=self.headers('a-token')).status_code, 200)
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json['error']['code'], 'PERSISTENCE_UNAVAILABLE')
+        manager.start.assert_not_called()
+        self.assertEqual(client.get(path, headers=self.headers('a-token')).status_code, 503)
 
     def test_configured_private_storage_is_document_upload_and_download_authority(self):
         class PrivateRepository:

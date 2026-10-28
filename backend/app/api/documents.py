@@ -56,7 +56,9 @@ def case_document_listing(case_id):
     local = corpus_repository().list_documents(case_id)
     repository = application_repository()
     if not repository:
-        return local
+        if current_app.config.get('TESTING'):
+            return local
+        raise RuntimeError('PRIVATE_DOCUMENT_PERSISTENCE_UNAVAILABLE')
     stored = repository.list_case_documents(authenticated_user_id(), case_id)
     if stored is None:
         return None
@@ -100,7 +102,7 @@ def upload_documents(case_id):
     staging_directory = tempfile.mkdtemp(prefix="nova-document-task-")
     staged = []
     repository = application_repository()
-    if current_app.config.get('APP_ENV') == 'production' and not repository:
+    if not repository and not current_app.config.get('TESTING'):
         shutil.rmtree(staging_directory, ignore_errors=True)
         return api_error('PERSISTENCE_UNAVAILABLE', 'El almacenamiento privado no está disponible.', g.request_id, 503)
     created_document_ids = []

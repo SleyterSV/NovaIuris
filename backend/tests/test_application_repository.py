@@ -23,6 +23,9 @@ class FakeQuery:
     def delete(self): self.operation = 'delete'; return self
     def execute(self):
         self.client.queries.append((self.table_name, self.filters, self.operation, self.payload))
+        if (self.table_name == 'case_documents' and self.operation == 'insert'
+                and self.client.fail_case_document_insert):
+            raise RuntimeError('metadata persistence failed')
         rows = list(self.client.rows.get(self.table_name, []))
         for op, key, value in self.filters:
             rows = [row for row in rows if (row.get(key) == value if op == 'eq' else row.get(key) in value)]
@@ -52,6 +55,7 @@ class FakeStorageBucket:
 class FakeClient:
     def __init__(self):
         self.queries = []
+        self.fail_case_document_insert = False
         self.objects, self.uploads = {}, []
         self.rows = {
             'workspaces': [
@@ -133,6 +137,16 @@ class ApplicationRepositoryScopeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'INVALID_DOCUMENT_SIZE'):
             self.repo.store_case_document('user-a', 'case-a', str(uuid4()), 'evidence.txt',
                 'text/plain', 0, 'a' * 64, BytesIO(b''))
+        self.assertFalse(self.client.objects)
+
+    def test_private_document_compensates_storage_when_metadata_insert_fails(self):
+        from io import BytesIO
+        from uuid import uuid4
+        self.client.fail_case_document_insert = True
+        with self.assertRaisesRegex(RuntimeError, 'metadata persistence failed'):
+            self.repo.store_case_document('user-a', 'case-a', str(uuid4()), 'evidence.txt',
+                'text/plain', 5, 'a' * 64, BytesIO(b'hello'))
+        self.assertEqual(len(self.client.uploads), 1)
         self.assertFalse(self.client.objects)
 
 
