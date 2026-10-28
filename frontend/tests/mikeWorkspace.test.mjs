@@ -103,13 +103,15 @@ test('MYKE home SSR renders controls without activating a tool request', async (
     logLevel:'error', optimizeDeps:{ noDiscovery:true, include:[] } })
   try {
     const component = (await server.ssrLoadModule('/src/views/MikeView.vue')).default
-    const router = createRouter({ history:createMemoryHistory(), routes:[{ path:'/', component }] })
+    const router = createRouter({ history:createMemoryHistory(), routes:[
+      { path:'/', component }, { path:'/cases', component }, { path:'/cases/:caseId', component }, { path:'/account', component }
+    ] })
     await router.push('/')
     await router.isReady()
     const app = createSSRApp({ render:() => h(component) })
     app.use(router)
     const html = await renderToString(app)
-    assert.match(html,/Nuevo chat/)
+    assert.match(html,/Nuevo análisis/)
     assert.match(html,/Hola, soy/)
     assert.match(html,/MYKE/)
     assert.match(html,/Buscar jurisprudencia/)

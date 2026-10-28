@@ -3,12 +3,17 @@ import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, react
 import { useRoute, useRouter } from 'vue-router'
 import CaseDocumentUpload from '@/components/common/CaseDocumentUpload.vue'
 import ToolDetailModal from '@/components/common/ToolDetailModal.vue'
+import CasesView from '@/components/workspace/CasesView.vue'
+import CaseDetailView from '@/components/workspace/CaseDetailView.vue'
+import AccountView from '@/components/workspace/AccountView.vue'
 import NovaSearchFilters from '@/components/novasearch/NovaSearchFilters.vue'
 import { defaultSearchFilters, legalAreas } from '@/utils/searchFilters.js'
 import { createWorkspace, createTurn, normalizeTool, caseReuseContext, applySearchCaseHandoff, courtTaskIdentity, taskIdentityQuery } from '@/utils/mikeWorkspace.js'
 import { canAttachDocumentsToCase } from '@/utils/novacasePresentation.js'
 import { authRequired, authState, signIn, signOut, signUp, requestPasswordReset, resendConfirmation, updatePassword, startAuth } from '@/config/supabaseSession.js'
 import { loadHistoricalRun, requestJson } from '@/services/taskService.js'
+import { listCaseDocuments } from '@/services/documentService.js'
+import { fetchCaseActivity, fetchOwnedCases } from '@/services/workspaceService.js'
 import { appendTranscript, useVoiceInput } from '@/composables/useVoiceInput.js'
 import { createToolHoverController } from '@/utils/toolHover.js'
 import { createComposerPopovers } from '@/utils/composerPopovers.js'
@@ -51,8 +56,11 @@ const draft = ref(typeof route.query.q === 'string' ? route.query.q.slice(0,1000
 const composer = ref(null), uploader = ref(null), mobileMenu = ref(false)
 const selectedDocuments = ref([]), error = ref(''), loginError = ref('')
 const ownedCases = ref([]), casesLoading = ref(false), accountProfile = ref(null)
-const expandedCaseId = ref(null), caseRuns = ref([]), runsLoading = ref(false)
+const casesError = ref(''), profileError = ref(''), detailLoading = ref(false), detailError = ref('')
+const caseRuns = ref([]), caseDocuments = ref([])
 let loadedOwnerId = null
+let loadingCaseId = null
+let casesLoadPromise = null
 const email = ref(''), password = ref(''), confirmPassword = ref(''), displayName = ref(''), loginBusy = ref(false)
 const authMode = ref('login'), authNotice = ref('')
 const menuOpen = ref(false), detailTool = ref(null)
@@ -70,6 +78,9 @@ const running = ref({ search:false, case:false, court:false })
 const activeTool = computed(() => workspace.value.activeTool)
 watch(activeTool, tool => { if (tool !== 'search') searchFiltersOpen.value = false })
 const activeMeta = computed(() => tools[activeTool.value] || null)
+const page = computed(() => route.path === '/cases' ? 'cases' : route.path === '/account' ? 'account' : route.params.caseId ? 'case-detail' : 'workspace')
+const pageTitle = computed(() => ({ cases:'Mis casos', 'case-detail':'Detalle del caso', account:'Mi cuenta' })[page.value] || 'EL DERECHO, POTENCIADO POR IA')
+const currentCase = computed(() => ownedCases.value.find(item => (item.id || item.case_id) === route.params.caseId) || null)
 const placeholder = computed(() => ({ search:'¿Qué necesitas investigar?', case:'Describe el caso o adjunta documentos', court:'Describe el caso o reutiliza un análisis existente' })[activeTool.value] || 'Escribe tu consulta jurídica aquí…')
 const canSend = computed(() => !running.value[activeTool.value || 'search'] &&
   (draft.value.trim().length > 0 || (activeTool.value !== 'search' && selectedDocuments.value.length > 0)))
@@ -134,10 +145,21 @@ watch(() => authState.user, (user, previous) => {
   const previousId = previous?.id || null, nextId = user?.id || null
   if (previousId && previousId !== nextId) {
     newConversation(); ownedCases.value = []; accountProfile.value = null
-    expandedCaseId.value = null; caseRuns.value = []
+    casesError.value = ''; profileError.value = ''; caseRuns.value = []; caseDocuments.value = []
     loadedOwnerId = null
   }
   if (user && previousId !== nextId) loadOwnedCases()
+  if (user && route.params.caseId) loadCaseDetail(route.params.caseId)
+})
+watch(() => route.params.caseId, caseId => {
+  caseRuns.value = []; caseDocuments.value = []; detailError.value = ''
+  if (caseId && authState.user) loadCaseDetail(caseId)
+})
+watch(() => route.query.case_id, caseId => {
+  if (route.path !== '/' || route.query.tool !== 'case' || typeof caseId !== 'string' || route.query.run_id || route.query.task_id) return
+  workspace.value.caseId = caseId
+  workspace.value.casePersisted = true
+  workspace.value.title = ownedCases.value.find(item => (item.id || item.case_id) === caseId)?.title || workspace.value.title
 })
 watch(hoverCard, element => hover.setCard(element), { flush:'post' })
 watch(infoTool, value => {
@@ -157,7 +179,10 @@ onMounted(async () => {
   document.addEventListener('pointerdown', onPopoverPointer)
   document.addEventListener('keydown', onPopoverKeydown)
   await startAuth()
-  if (authState.user) loadOwnedCases()
+  if (authState.user) {
+    await loadOwnedCases()
+    if (route.params.caseId) await loadCaseDetail(route.params.caseId)
+  }
   const caseId = route.query.case_id, taskId = route.query.task_id, runId = route.query.run_id
   if (!['case', 'court'].includes(route.query.tool) || typeof caseId !== 'string') return
   if (typeof runId === 'string') {
@@ -170,7 +195,10 @@ onMounted(async () => {
       const text = String(result.case || result.final_result?.case || 'Resultado histórico del caso.')
       addOperation(route.query.tool, text, { caseId, documentIds:result.document_ids || [],
         historicalResult:{ run, result, artifacts:historical.artifacts }, status:'completed' })
-    } catch { error.value = 'No fue posible recuperar la ejecución solicitada.' }
+    } catch (cause) {
+      error.value = 'No fue posible recuperar la ejecución solicitada.'
+      if (cause?.status === 401) { await signOut(); router.replace('/') }
+    }
     return
   }
   if (typeof taskId !== 'string') return
@@ -195,8 +223,9 @@ onMounted(async () => {
     addOperation(tool, task.final_result?.case || task.partial_result?.case ||
       (tool === 'court' ? 'Simulación judicial existente.' : 'Análisis del caso en curso.'),
       { caseId, documentIds:workspace.value.documentIds, existingTaskId:taskId })
-  } catch {
+  } catch (cause) {
     error.value = 'No fue posible recuperar la tarea solicitada.'
+    if (cause?.status === 401) { await signOut(); router.replace('/') }
   }
 })
 
@@ -225,29 +254,70 @@ function newConversation() {
 }
 async function loadOwnedCases() {
   if (!authState.user) return
-  if (loadedOwnerId === authState.user.id && (casesLoading.value || accountProfile.value)) return
+  if (loadedOwnerId === authState.user.id && casesLoading.value) return casesLoadPromise
   loadedOwnerId = authState.user.id
   casesLoading.value = true
+  casesError.value = ''
+  profileError.value = ''
+  const ownerId = authState.user.id
+  const pending = Promise.allSettled([requestJson('/me'), fetchOwnedCases(requestJson)])
+  casesLoadPromise = pending
   try {
-    const [account, cases] = await Promise.allSettled([requestJson('/me'), requestJson('/cases')])
+    const [account, cases] = await pending
+    if (authState.user?.id !== ownerId) return
     accountProfile.value = account.status === 'fulfilled' ? account.value.profile || null : null
-    ownedCases.value = cases.status === 'fulfilled' ? cases.value.cases || [] : []
+    profileError.value = account.status === 'rejected' ? 'No fue posible cargar la información del perfil.' : ''
+    if (cases.status === 'rejected') {
+      ownedCases.value = []
+      casesError.value = cases.reason?.status === 401 ? 'La sesión expiró. Inicia sesión nuevamente.' : 'No fue posible cargar tus casos. Inténtalo nuevamente.'
+      loadedOwnerId = null
+      if (cases.reason?.status === 401) { await signOut(); router.replace('/') }
+    } else ownedCases.value = cases.value
   }
-  finally { casesLoading.value = false }
+  finally {
+    if (casesLoadPromise === pending) { casesLoading.value = false; casesLoadPromise = null }
+  }
 }
-async function openOwnedCase(item) {
+async function loadCaseDetail(caseId = route.params.caseId) {
+  if (!authState.user || !caseId || (detailLoading.value && loadingCaseId === caseId)) return
+  loadingCaseId = caseId
+  detailLoading.value = true
+  detailError.value = ''
+  caseRuns.value = []; caseDocuments.value = []
+  try {
+    if (loadedOwnerId !== authState.user.id || casesError.value) await loadOwnedCases()
+    const record = ownedCases.value.find(row => (row.id || row.case_id) === caseId)
+    if (!record) throw Object.assign(new Error('CASE_NOT_FOUND'), { status:404 })
+    const { runs, documents } = await fetchCaseActivity(requestJson, listCaseDocuments, caseId)
+    if (String(route.params.caseId) !== String(caseId)) return
+    caseRuns.value = runs
+    caseDocuments.value = documents
+  } catch (cause) {
+    if (String(route.params.caseId) === String(caseId)) {
+      detailError.value = cause?.status === 401 ? 'La sesión expiró. Inicia sesión nuevamente.' :
+        cause?.status === 404 ? 'No tienes acceso a este caso o ya no está disponible.' : 'No fue posible cargar el caso y su actividad. Inténtalo nuevamente.'
+      if (cause?.status === 401) { await signOut(); router.replace('/') }
+    }
+  } finally {
+    if (loadingCaseId === caseId) { detailLoading.value = false; loadingCaseId = null }
+  }
+}
+function openOwnedCase(item) {
+  const caseId = item?.id || item?.case_id
+  if (caseId) router.push(`/cases/${encodeURIComponent(caseId)}`)
+}
+function continueOwnedCase(item) {
+  const caseId = item?.id || item?.case_id
+  if (!caseId) return
   newConversation()
-  workspace.value.caseId = item.id || item.case_id
+  workspace.value.caseId = caseId
   workspace.value.casePersisted = true
   workspace.value.title = item.title || 'Caso jurídico'
   workspace.value.activeTool = 'case'
+  draft.value = item.description || ''
   selectedDocuments.value = []
-  selectTool('case', false)
-  expandedCaseId.value = workspace.value.caseId
-  runsLoading.value = true
-  try { caseRuns.value = (await requestJson(`/cases/${encodeURIComponent(expandedCaseId.value)}/runs`)).runs || [] }
-  catch { caseRuns.value = [] }
-  finally { runsLoading.value = false }
+  mobileMenu.value = false
+  router.push({ path:'/', query:{ tool:'case', case_id:caseId } })
 }
 function runStatusLabel(status) {
   return ({ queued:'En espera', pending:'En espera', processing:'En curso', completed:'Completado', partial:'Parcial', failed:'No completado', cancelled:'Cancelado', timeout:'Tiempo agotado', interrupted:'Interrumpido' })[status] || 'Estado no disponible'
@@ -400,9 +470,12 @@ async function login() {
 async function logout() {
   menuOpen.value = false
   newConversation()
+  ownedCases.value = []; accountProfile.value = null; casesError.value = ''; profileError.value = ''
+  loadedOwnerId = null
   try { await signOut() } catch { loginError.value = 'Se cerró la sesión local. Vuelve a iniciar sesión.' }
 }
 function openAbout() { menuOpen.value = false; router.push('/about') }
+function openAccount() { menuOpen.value = false; router.push('/account') }
 </script>
 
 <template>
@@ -413,7 +486,7 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
   <div v-else class="mike-app">
     <aside class="sidebar" :class="{ open:mobileMenu }" aria-label="Navegación de MYKE">
       <button class="brand" type="button" @click="newConversation"><span class="brand-rule"></span><span><strong>MYKE</strong><small>LEGAL INTELLIGENCE</small></span></button>
-      <button class="new-chat" type="button" @click="newConversation"><span aria-hidden="true">＋</span> Nuevo chat</button>
+      <button class="new-chat" type="button" @click="newConversation"><span aria-hidden="true">＋</span> Nuevo análisis</button>
       <p class="side-label">HERRAMIENTAS</p>
       <nav class="tool-nav" aria-label="Herramientas de MYKE">
         <div v-for="(item,key) in tools" :key="key" :ref="element => { if (element) toolAnchors[key] = element }" class="tool-wrap" @pointerenter="openToolCard(key,$event)" @pointerleave="hover.scheduleClose()" @focusin="openToolCard(key,$event)" @focusout="hover.scheduleClose()" @keydown="onDiscoveryKeydown">
@@ -422,13 +495,20 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
           </button>
         </div>
       </nav>
-      <section class="history" aria-label="Mis casos"><h2>Mis casos</h2><p v-if="casesLoading">Cargando casos…</p><p v-else-if="!ownedCases.length">Aún no tienes casos guardados.</p><div v-for="item in ownedCases.slice(0,12)" :key="item.id || item.case_id" class="saved-case-wrap"><div class="saved-case"><button class="saved-case-open" type="button" @click="openOwnedCase(item)"><strong>{{ item.title || 'Caso jurídico' }}</strong><small>{{ item.status === 'archived' ? 'Archivado' : 'Activo' }} · {{ item.updated_at ? new Date(item.updated_at).toLocaleDateString('es-PE') : 'Sin actividad' }}</small></button><button type="button" :aria-label="`Renombrar ${item.title || 'caso'}`" @click="renameOwnedCase(item)">✎</button><button type="button" :aria-label="item.status === 'archived' ? 'Reactivar caso' : 'Archivar caso'" @click="archiveOwnedCase(item)">{{ item.status === 'archived' ? '↻' : '▱' }}</button></div><div v-if="expandedCaseId === (item.id || item.case_id)" class="saved-case-runs"><p v-if="runsLoading">Cargando historial…</p><p v-else-if="!caseRuns.length">Aún no hay ejecuciones guardadas.</p><a v-for="run in caseRuns.filter(entry => ['case','court'].includes(entry.tool) && ['completed','partial'].includes(entry.status))" :key="run.id" :href="`/?tool=${run.tool}&case_id=${encodeURIComponent(item.id || item.case_id)}&run_id=${encodeURIComponent(run.id)}`"><strong>{{ run.tool === 'court' ? 'NovaCourt' : 'NovaCase' }}</strong><small>{{ runStatusLabel(run.status) }} · {{ new Date(run.created_at).toLocaleDateString('es-PE') }}</small></a></div></div></section>
-      <div class="sidebar-profile"><span class="avatar">{{ initials || 'M' }}</span><span><strong>{{ userName }}</strong><small>MYKE Legal Intelligence</small></span></div>
+      <p class="side-label case-side-label">TU ESPACIO</p>
+      <nav class="workspace-nav" aria-label="Espacio personal">
+        <RouterLink to="/cases" class="workspace-nav-link" :class="{ active:page === 'cases' || page === 'case-detail' }" :aria-current="page === 'cases' || page === 'case-detail' ? 'page' : undefined" @click="mobileMenu = false"><span aria-hidden="true">▤</span><span>Mis casos</span><small>{{ ownedCases.length }}</small></RouterLink>
+      </nav>
+      <button class="sidebar-profile" type="button" @click="openAccount"><span class="avatar">{{ initials || 'M' }}</span><span><strong>{{ userName }}</strong><small>{{ authState.user?.email || 'Mi cuenta' }}</small></span></button>
     </aside>
     <button v-if="mobileMenu" class="mobile-overlay" type="button" aria-label="Cerrar menú" @click="mobileMenu = false"></button>
     <div class="main-area">
-      <header class="topbar"><button class="mobile-menu" type="button" aria-label="Abrir menú" @click="mobileMenu = true">☰</button><span class="topbar-copy">EL DERECHO, POTENCIADO POR IA</span><div class="top-actions"><button class="search-shortcut" type="button" aria-label="Seleccionar Buscar" @click="selectTool('search',false)">⌕</button><span class="notification-icon" role="img" aria-label="Notificaciones" title="Notificaciones"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></span><div class="account"><button type="button" aria-haspopup="menu" :aria-expanded="menuOpen" @click="menuOpen = !menuOpen"><span class="avatar">{{ initials || 'M' }}</span>⌄</button><div v-if="menuOpen" class="account-menu" role="menu"><div class="account-identity"><strong>{{ userName }}</strong><small>{{ authState.user?.email }}</small></div><button type="button" role="menuitem" @click="menuOpen = false; detailTool = 'account'">Mi cuenta</button><button type="button" role="menuitem" @click="openAbout">Acerca de MYKE</button><hr><button type="button" role="menuitem" @click="logout">Cerrar sesión</button></div></div></div></header>
+      <header class="topbar"><button class="mobile-menu" type="button" aria-label="Abrir menú" @click="mobileMenu = true">☰</button><span class="topbar-copy">{{ pageTitle }}</span><div class="top-actions"><button v-if="page === 'workspace'" class="search-shortcut" type="button" aria-label="Seleccionar Buscar" @click="selectTool('search',false)">⌕</button><div class="account"><button type="button" aria-haspopup="menu" :aria-expanded="menuOpen" :aria-label="`Menú de cuenta de ${userName}`" @click="menuOpen = !menuOpen"><span class="avatar">{{ initials || 'M' }}</span><span class="account-name">{{ userName }}</span>⌄</button><div v-if="menuOpen" class="account-menu" role="menu"><div class="account-identity"><strong>{{ userName }}</strong><small>{{ authState.user?.email }}</small></div><button type="button" role="menuitem" @click="openAccount">Mi cuenta</button><button type="button" role="menuitem" @click="openAbout">Acerca de MYKE</button><hr><button type="button" role="menuitem" @click="logout">Cerrar sesión</button></div></div></div></header>
       <main class="workspace" :class="{ conversation:workspace.turns.length, 'search-workspace': activeTool === 'search' && workspace.turns.length }">
+        <CasesView v-if="page === 'cases'" :cases="ownedCases" :loading="casesLoading" :error="casesError" @retry="loadOwnedCases" @new-analysis="newConversation" @open-case="openOwnedCase" />
+        <CaseDetailView v-else-if="page === 'case-detail'" :case-record="currentCase" :runs="caseRuns" :documents="caseDocuments" :loading="detailLoading" :error="detailError" @retry="loadCaseDetail()" @back="router.push('/cases')" @continue-case="continueOwnedCase" />
+        <AccountView v-else-if="page === 'account'" :profile="accountProfile" :user="authState.user" :loading="casesLoading" :error="profileError" @retry="loadOwnedCases" />
+        <template v-else>
         <div v-if="!workspace.turns.length" class="home"><p class="kicker">LEGAL INTELLIGENCE</p><h1>Hola, soy <span>MYKE</span></h1><p class="subtitle">Tu asistente jurídico inteligente</p><p class="intro">Investiga el derecho, analiza expedientes y explora escenarios jurídicos desde un mismo entorno.</p></div>
         <section v-else class="thread" :class="{ 'search-thread': activeTool === 'search', 'case-thread': activeTool === 'case', 'court-thread': activeTool === 'court' }" aria-label="Conversación">
           <article v-for="turn in workspace.turns" :key="turn.id" class="turn" :class="turn.role">
@@ -447,6 +527,7 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
           <p v-if="!workspace.turns.length" class="home-quote">“La mejor estrategia comienza con mejor información.” <small>MYKE · LEGAL INTELLIGENCE</small></p>
         </div>
         <div class="watermark" aria-hidden="true">⚖</div>
+        </template>
       </main>
     </div>
     <Teleport to="body">
@@ -519,4 +600,19 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
 .saved-case>button:not(.saved-case-open){height:28px;border:1px solid #ffffff20;border-radius:6px;background:#ffffff08;color:#eee9db;cursor:pointer}
 .saved-case>button:hover{background:#ffffff18}
 .saved-case button:focus-visible{outline:2px solid #d3bd93;outline-offset:2px}
+.case-side-label{margin-top:30px}
+.workspace-nav{display:grid;gap:5px}
+.workspace-nav-link{display:flex;align-items:center;gap:11px;padding:11px 10px;border:1px solid transparent;border-radius:7px;color:#f7f5ef;text-decoration:none;font-size:13px}
+.workspace-nav-link>span:first-child{display:grid;place-items:center;width:27px;height:27px;border:1px solid #a8946f;border-radius:6px;color:#ddc497;font-size:17px}
+.workspace-nav-link small{margin-left:auto;color:#c8d0d7;font-size:10px}
+.workspace-nav-link:hover,.workspace-nav-link.active{border-color:#9b845d;background:#233c59}
+.workspace-nav-link:focus-visible{outline:2px solid #d3bd93;outline-offset:2px}
+.sidebar-profile{width:100%;border:0;background:transparent;color:#f7f5ef;text-align:left;cursor:pointer;font:inherit}
+.sidebar-profile:hover{background:#ffffff09}
+.sidebar-profile:focus-visible{outline:2px solid #d3bd93;outline-offset:2px}
+.account-name{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.workspace:has(.cases-page),.workspace:has(.case-detail),.workspace:has(.account-page){padding:42px clamp(22px,4vw,54px);overflow:visible}
+.workspace-content{min-width:0}
+@media(max-width:780px){.workspace:has(.cases-page),.workspace:has(.case-detail),.workspace:has(.account-page){padding:30px 20px}.account-name{display:none}}
+@media(max-width:560px){.workspace:has(.cases-page),.workspace:has(.case-detail),.workspace:has(.account-page){padding:24px 15px}.case-side-label{margin-top:22px}}
 </style>

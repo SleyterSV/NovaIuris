@@ -41,6 +41,26 @@ const routes = [
     },
 
     {
+      path: "/cases",
+      name: "MyCases",
+      component: MikeView,
+      meta: { title: "MYKE | Mis casos", requiresAuth:true }
+    },
+    {
+      path: "/cases/:caseId",
+      name: "CaseDetail",
+      component: MikeView,
+      props: true,
+      meta: { title: "MYKE | Caso", requiresAuth:true }
+    },
+    {
+      path: "/account",
+      name: "Account",
+      component: MikeView,
+      meta: { title: "MYKE | Mi cuenta", requiresAuth:true }
+    },
+
+    {
       path: "/novasearch",
       name: "NovaSearch",
       redirect: to => ({ path:'/', query:{ tool:'search', ...(typeof to.query.q === 'string' ? { q:to.query.q } : {}) } }),
