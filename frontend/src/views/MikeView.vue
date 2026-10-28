@@ -7,7 +7,7 @@ import NovaSearchFilters from '@/components/novasearch/NovaSearchFilters.vue'
 import { defaultSearchFilters, legalAreas } from '@/utils/searchFilters.js'
 import { createWorkspace, createTurn, normalizeTool, caseReuseContext, applySearchCaseHandoff, courtTaskIdentity, taskIdentityQuery } from '@/utils/mikeWorkspace.js'
 import { canAttachDocumentsToCase } from '@/utils/novacasePresentation.js'
-import { authRequired, authState, signIn, signOut, signUp, requestPasswordReset, updatePassword, startAuth } from '@/config/supabaseSession.js'
+import { authRequired, authState, signIn, signOut, signUp, requestPasswordReset, resendConfirmation, updatePassword, startAuth } from '@/config/supabaseSession.js'
 import { loadHistoricalRun, requestJson } from '@/services/taskService.js'
 import { appendTranscript, useVoiceInput } from '@/composables/useVoiceInput.js'
 import { createToolHoverController } from '@/utils/toolHover.js'
@@ -362,22 +362,40 @@ async function login() {
   loginBusy.value = true
   loginError.value = ''
   authNotice.value = ''
-  if (authState.recovery) {
-    loginError.value = await updatePassword(password.value)
-    if (!loginError.value) { password.value = ''; authNotice.value = 'La contraseña se actualizó. Ya puedes continuar.' }
-  } else if (authMode.value === 'signup') {
-    if (password.value !== confirmPassword.value) loginError.value = 'Las contraseñas no coinciden.'
-    else {
-      const result = await signUp(displayName.value, email.value, password.value)
-      loginError.value = result.error || ''
-      authNotice.value = result.confirmationRequired ? 'Revisa tu correo para confirmar tu cuenta.' : ''
-    }
-  } else if (authMode.value === 'reset') {
-    loginError.value = await requestPasswordReset(email.value)
-    if (!loginError.value) authNotice.value = 'Si el correo corresponde a una cuenta, recibirás instrucciones para recuperar el acceso.'
-  } else loginError.value = await signIn(email.value,password.value)
-  if (authMode.value !== 'reset') password.value = ''
-  loginBusy.value = false
+  try {
+    if (authState.recovery) {
+      if (password.value !== confirmPassword.value) loginError.value = 'Las contraseñas no coinciden.'
+      else {
+        loginError.value = await updatePassword(password.value)
+        if (!loginError.value) {
+          password.value = ''; confirmPassword.value = ''
+          authNotice.value = 'La contraseña se actualizó. Ya puedes continuar.'
+        }
+      }
+    } else if (authMode.value === 'signup') {
+      if (password.value !== confirmPassword.value) loginError.value = 'Las contraseñas no coinciden.'
+      else {
+        const result = await signUp(displayName.value, email.value, password.value)
+        loginError.value = result.error || ''
+        if (!loginError.value && result.confirmationRequired) {
+          authMode.value = 'confirmation'
+          password.value = ''; confirmPassword.value = ''
+          authNotice.value = 'Si esa cuenta puede registrarse, recibirás un correo para confirmar la dirección.'
+        }
+      }
+    } else if (authMode.value === 'confirmation') {
+      loginError.value = await resendConfirmation(email.value)
+      if (!loginError.value) authNotice.value = 'Si esa cuenta puede recibir una confirmación, llegará un correo en breve.'
+    } else if (authMode.value === 'reset') {
+      loginError.value = await requestPasswordReset(email.value)
+      if (!loginError.value) authNotice.value = 'Si el correo corresponde a una cuenta, recibirás instrucciones para recuperar el acceso.'
+    } else loginError.value = await signIn(email.value,password.value)
+  } catch {
+    loginError.value = 'No fue posible completar la solicitud. Inténtalo nuevamente.'
+  } finally {
+    if (authMode.value !== 'reset' && authMode.value !== 'confirmation') password.value = ''
+    loginBusy.value = false
+  }
 }
 async function logout() {
   menuOpen.value = false
@@ -389,8 +407,8 @@ function openAbout() { menuOpen.value = false; router.push('/about') }
 
 <template>
   <div v-if="authState.loading" class="auth-screen" role="status"><div class="auth-card"><strong class="auth-brand">MYKE</strong><p>Comprobando sesión…</p></div></div>
-  <div v-else-if="authState.recovery || (authRequired && !authState.user)" class="auth-screen">
-    <form class="auth-card" @submit.prevent="login"><strong class="auth-brand">MYKE</strong><small>LEGAL INTELLIGENCE</small><h1>{{ authState.recovery ? 'Restablecer contraseña' : authMode === 'signup' ? 'Crear cuenta' : authMode === 'reset' ? 'Recuperar acceso' : 'Tu espacio jurídico' }}</h1><p>{{ authState.recovery ? 'Elige una contraseña nueva para tu cuenta.' : authMode === 'signup' ? 'Crea tu espacio privado de trabajo jurídico.' : authMode === 'reset' ? 'Te enviaremos instrucciones al correo asociado a tu cuenta.' : 'Inicia sesión para continuar tu trabajo privado.' }}</p><p v-if="authState.error" role="alert">{{ authState.error }}</p><template v-else><label v-if="authMode === 'signup' && !authState.recovery">Nombre<input v-model="displayName" type="text" required maxlength="120" autocomplete="name"></label><label v-if="!authState.recovery">Correo electrónico<input v-model="email" type="email" required autocomplete="email"></label><label v-if="authMode !== 'reset' || authState.recovery">{{ authState.recovery ? 'Nueva contraseña' : 'Contraseña' }}<input v-model="password" type="password" required minlength="8" :autocomplete="authState.recovery ? 'new-password' : 'current-password'"></label><label v-if="authMode === 'signup' && !authState.recovery">Confirmar contraseña<input v-model="confirmPassword" type="password" required minlength="8" autocomplete="new-password"></label><p v-if="loginError" role="alert">{{ loginError }}</p><p v-if="authNotice" role="status">{{ authNotice }}</p><button type="submit" :disabled="loginBusy">{{ loginBusy ? 'Procesando…' : authState.recovery ? 'Actualizar contraseña' : authMode === 'signup' ? 'Crear cuenta' : authMode === 'reset' ? 'Enviar instrucciones' : 'Iniciar sesión' }}</button><nav v-if="!authState.recovery" class="auth-links" aria-label="Opciones de acceso"><button type="button" @click="authMode = authMode === 'signup' ? 'login' : 'signup'; loginError = ''; authNotice = ''">{{ authMode === 'signup' ? 'Ya tengo una cuenta' : 'Crear cuenta' }}</button><button v-if="authMode !== 'signup'" type="button" @click="authMode = authMode === 'reset' ? 'login' : 'reset'; loginError = ''; authNotice = ''">{{ authMode === 'reset' ? 'Volver a iniciar sesión' : 'Olvidé mi contraseña' }}</button></nav></template></form>
+  <div v-else-if="authState.passwordUpdated || authState.recovery || (authRequired && !authState.user)" class="auth-screen">
+    <form class="auth-card" @submit.prevent="login"><strong class="auth-brand">MYKE</strong><small>LEGAL INTELLIGENCE</small><h1>{{ authState.passwordUpdated ? 'Contraseña actualizada' : authState.recovery ? 'Restablecer contraseña' : authMode === 'signup' ? 'Crear cuenta' : authMode === 'confirmation' ? 'Confirma tu correo' : authMode === 'reset' ? 'Recuperar acceso' : 'Tu espacio jurídico' }}</h1><p>{{ authState.passwordUpdated ? 'La nueva contraseña quedó guardada. Ya puedes continuar con tu sesión.' : authState.recovery ? 'Elige y confirma una contraseña nueva para tu cuenta.' : authMode === 'signup' ? 'Crea tu espacio privado de trabajo jurídico.' : authMode === 'confirmation' ? 'Confirma la dirección de correo para activar tu acceso privado.' : authMode === 'reset' ? 'Te enviaremos instrucciones al correo asociado a tu cuenta.' : 'Inicia sesión para continuar tu trabajo privado.' }}</p><template v-if="authState.passwordUpdated"><p role="status">{{ authNotice }}</p><button type="button" @click="authState.passwordUpdated = false">Continuar a MYKE</button></template><template v-else-if="!authState.error"><p v-if="authState.linkError" role="alert">{{ authState.linkError }}</p><label v-if="authMode === 'signup' && !authState.recovery">Nombre<input v-model="displayName" type="text" required maxlength="120" autocomplete="name"></label><label v-if="!authState.recovery">Correo electrónico<input v-model="email" type="email" required autocomplete="email" :readonly="authMode === 'confirmation'"></label><label v-if="(authMode !== 'reset' && authMode !== 'confirmation') || authState.recovery">{{ authState.recovery ? 'Nueva contraseña' : 'Contraseña' }}<input v-model="password" type="password" required minlength="8" :autocomplete="authState.recovery ? 'new-password' : 'current-password'"></label><label v-if="(authMode === 'signup' || authState.recovery) && !authState.error">Confirmar contraseña<input v-model="confirmPassword" type="password" required minlength="8" autocomplete="new-password"></label><p v-if="loginError" role="alert">{{ loginError }}</p><p v-if="authNotice" role="status">{{ authNotice }}</p><button type="submit" :disabled="loginBusy">{{ loginBusy ? 'Procesando…' : authState.recovery ? 'Actualizar contraseña' : authMode === 'signup' ? 'Crear cuenta' : authMode === 'confirmation' ? 'Reenviar correo' : authMode === 'reset' ? 'Enviar instrucciones' : 'Iniciar sesión' }}</button><nav v-if="!authState.recovery" class="auth-links" aria-label="Opciones de acceso"><button type="button" @click="authMode = ['signup','confirmation'].includes(authMode) ? 'login' : 'signup'; loginError = ''; authNotice = ''; authState.linkError = ''">{{ ['signup','confirmation'].includes(authMode) ? 'Volver a iniciar sesión' : 'Crear cuenta' }}</button><button v-if="!['signup','confirmation'].includes(authMode)" type="button" @click="authMode = authMode === 'reset' ? 'login' : 'reset'; loginError = ''; authNotice = ''; authState.linkError = ''">{{ authMode === 'reset' ? 'Volver a iniciar sesión' : 'Olvidé mi contraseña' }}</button></nav></template><p v-else role="alert">{{ authState.error }}</p></form>
   </div>
   <div v-else class="mike-app">
     <aside class="sidebar" :class="{ open:mobileMenu }" aria-label="Navegación de MYKE">

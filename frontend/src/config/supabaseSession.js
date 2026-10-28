@@ -7,7 +7,7 @@ const url = env.VITE_SUPABASE_URL
 const key = env.VITE_SUPABASE_PUBLISHABLE_KEY
 export const authConfigured = Boolean(url && key)
 export const authRequired = Boolean(env.PROD) || authConfigured
-export const authState = reactive({ loading:authRequired, user:null, error:'', recovery:false })
+export const authState = reactive({ loading:authRequired, user:null, error:'', linkError:'', recovery:false, passwordUpdated:false })
 let client = null
 let subscription = null
 const redirectOrigin = () => typeof window === 'undefined' ? undefined : window.location.origin
@@ -21,10 +21,19 @@ export async function startAuth(providedClient = null) {
   }
   if (subscription) return
   client = providedClient || createClient(url, key)
+  if (typeof window !== 'undefined') {
+    const callbackError = new URLSearchParams(window.location.search).get('error_code')
+    if (callbackError) {
+      authState.linkError = callbackError === 'otp_expired'
+        ? 'El enlace venció o ya fue utilizado. Solicita uno nuevo para continuar.'
+        : 'No fue posible validar el enlace. Solicita uno nuevo e inténtalo otra vez.'
+    }
+  }
   const listener = client.auth.onAuthStateChange((event, session) => {
     setAccessToken(session?.access_token || null)
     authState.user = session?.user || null
-    if (event === 'PASSWORD_RECOVERY') authState.recovery = true
+    if (event === 'PASSWORD_RECOVERY') { authState.recovery = true; authState.passwordUpdated = false; authState.linkError = '' }
+    else if (session) authState.linkError = ''
     authState.loading = false
   })
   subscription = listener.data.subscription
@@ -58,10 +67,27 @@ export async function signUp(displayName, email, password) {
 
 export async function requestPasswordReset(email) {
   if (!client) return 'La autenticación no está configurada.'
-  const { error } = await client.auth.resetPasswordForEmail(email, {
-    redirectTo:`${redirectOrigin() || ''}/?auth_action=reset`
-  })
-  return error ? 'No fue posible iniciar la recuperación. Inténtalo nuevamente.' : ''
+  try {
+    const { error } = await client.auth.resetPasswordForEmail(email, {
+      redirectTo:`${redirectOrigin() || ''}/?auth_action=reset`
+    })
+    return error ? 'No fue posible iniciar la recuperación. Inténtalo nuevamente.' : ''
+  } catch {
+    return 'No fue posible iniciar la recuperación. Inténtalo nuevamente.'
+  }
+}
+
+export async function resendConfirmation(email) {
+  if (!client) return 'La autenticación no está configurada.'
+  try {
+    const { error } = await client.auth.resend({
+      type:'signup', email,
+      options:{ emailRedirectTo:redirectOrigin() }
+    })
+    return error ? 'No fue posible reenviar el correo. Espera un momento e inténtalo nuevamente.' : ''
+  } catch {
+    return 'No fue posible reenviar el correo. Espera un momento e inténtalo nuevamente.'
+  }
 }
 
 export async function updatePassword(password) {
@@ -69,6 +95,7 @@ export async function updatePassword(password) {
   const { error } = await client.auth.updateUser({ password })
   if (error) return 'No fue posible actualizar la contraseña. Inténtalo nuevamente.'
   authState.recovery = false
+  authState.passwordUpdated = true
   return ''
 }
 
@@ -76,6 +103,7 @@ export async function signOut() {
   // Clear private data immediately, even if the provider request fails.
   setAccessToken(null)
   authState.user = null
+  authState.passwordUpdated = false
   if (client) await client.auth.signOut({ scope:'local' })
 }
 
@@ -86,4 +114,5 @@ export function stopAuth() {
   setAccessToken(null)
   authState.user = null
   authState.recovery = false
+  authState.passwordUpdated = false
 }
