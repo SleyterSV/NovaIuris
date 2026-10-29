@@ -7,6 +7,7 @@ import warnings
 import hashlib
 from time import perf_counter
 from pathlib import Path
+from urllib.request import Request, urlopen
 
 # 抑制 multiprocessing resource_tracker 的警告（来自第三方库如 transformers）
 # 需要在所有其他导入之前设置
@@ -19,9 +20,32 @@ from .utils.api_response import api_error
 from .utils.rate_limit import CostEndpointRateLimiter
 from flask_cors import CORS
 
-from .config import Config
+from .config import Config, STRICT_DEPLOYMENT_ENVIRONMENTS
 from .utils.logger import setup_logger, get_logger
 from .services.runtime_security import verify_supabase_user
+
+
+def _check_strict_runtime_dependencies(config, extensions):
+    """Check required staging/production dependencies without returning their details."""
+    repository = extensions.get('application_repository')
+    if repository is None:
+        raise RuntimeError('Application persistence is unavailable')
+    repository.health_check()
+
+    base = config['SUPABASE_URL'].rstrip('/')
+    headers = {'apikey': config['SUPABASE_PUBLISHABLE_KEY']}
+    for path in ('/auth/v1/health', '/storage/v1/status'):
+        request = Request(base + path, headers=headers if path.startswith('/auth/') else {})
+        with urlopen(request, timeout=3) as response:
+            if response.status != 200:
+                raise RuntimeError('Supabase service unavailable')
+
+    import psycopg2
+    with psycopg2.connect(config['MYKE_LEGAL_DATABASE_URL'], connect_timeout=3) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute('select 1')
+            if cursor.fetchone() != (1,):
+                raise RuntimeError('Legal database unavailable')
 
 
 def create_app(config_class=Config):
@@ -30,33 +54,33 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
     
     environment = app.config.get('APP_ENV', 'development')
-    if environment not in {'development', 'test', 'production'}:
-        raise RuntimeError('APP_ENV must be development, test or production')
-    if environment == 'production':
+    if environment not in {'development', 'test', *STRICT_DEPLOYMENT_ENVIRONMENTS}:
+        raise RuntimeError('APP_ENV must be development, test, staging or production')
+    if environment in STRICT_DEPLOYMENT_ENVIRONMENTS:
         if app.config.get('LOCAL_DEV_AUTH_ENABLED'):
-            raise RuntimeError('Local development identity cannot be enabled in production')
+            raise RuntimeError('Local development identity cannot be enabled in staging or production')
         if app.config.get('LEGAL_KNOWLEDGE_VERSION') != 'v2':
-            raise RuntimeError('Production NovaCase requires Legal Knowledge V2')
+            raise RuntimeError('Staging and production NovaCase require Legal Knowledge V2')
         if not app.config.get('MYKE_LEGAL_DATABASE_URL'):
-            raise RuntimeError('Production Legal Knowledge V2 database is not configured')
+            raise RuntimeError('Staging/production Legal Knowledge V2 database is not configured')
         if app.config.get('OPENAI_EMBEDDING_MODEL') != 'text-embedding-3-small':
-            raise RuntimeError('Production Legal Knowledge V2 embedding model mismatch')
+            raise RuntimeError('Staging/production Legal Knowledge V2 embedding model mismatch')
         if app.config.get('TASK_PERSISTENCE_ENABLED') is False:
-            raise RuntimeError('Production task persistence is required')
+            raise RuntimeError('Staging/production task persistence is required')
         required = ('SECRET_KEY', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY',
                     'SUPABASE_KEY', 'EMBEDDING_API_KEY', 'LLM_API_KEY', 'ZEP_API_KEY',
                     'CASE_CORPUS_DB_PATH', 'TASK_DB_PATH', 'APP_SUPABASE_SERVICE_ROLE_KEY')
         if any(not app.config.get(key) for key in required):
-            raise RuntimeError('Production runtime configuration incomplete')
+            raise RuntimeError('Staging/production runtime configuration incomplete')
         if len(app.config['SECRET_KEY']) < 32:
-            raise RuntimeError('Production SECRET_KEY is too short')
+            raise RuntimeError('Staging/production SECRET_KEY is too short')
         if not app.config['SUPABASE_URL'].startswith('https://'):
-            raise RuntimeError('Production Supabase URL must use HTTPS')
+            raise RuntimeError('Staging/production Supabase URL must use HTTPS')
         if app.config.get('DEBUG') or not app.config.get('RATE_LIMIT_ENABLED'):
-            raise RuntimeError('Production debug and rate limiting configuration unsafe')
+            raise RuntimeError('Staging/production debug and rate limiting configuration unsafe')
         origins = app.config.get('CORS_ALLOWED_ORIGINS') or []
         if not origins or any(origin == '*' or not origin.startswith('https://') for origin in origins):
-            raise RuntimeError('Production CORS origins must be explicit HTTPS origins')
+            raise RuntimeError('Staging/production CORS origins must be explicit HTTPS origins')
         bounds = {'CASE_RESEARCH_MAX_QUERIES': (1, 12), 'CASE_REPORT_MAX_SOURCES': (1, 50),
                   'CASE_DOCUMENT_CONTEXT_TOP_K': (1, 30), 'CASE_DOCUMENT_MAX_FILES': (1, 30),
                   'CASE_DOCUMENT_MAX_FILE_BYTES': (1, 50 * 1024 * 1024),
@@ -72,20 +96,20 @@ def create_app(config_class=Config):
                   'NOVACOURT_SIMULATION_TIMEOUT_SECONDS': (1, 1800)}
         if any(not lower <= app.config.get(key, -1) <= upper
                for key, (lower, upper) in bounds.items()):
-            raise RuntimeError('Production runtime limit outside safe range')
+            raise RuntimeError('Staging/production runtime limit outside safe range')
         if app.config['CASE_DOCUMENT_MAX_FILE_BYTES'] > app.config['CASE_DOCUMENT_MAX_CASE_BYTES'] or app.config['CASE_DOCUMENT_MAX_CASE_BYTES'] >= app.config['CASE_DOCUMENT_MAX_REQUEST_BYTES']:
-            raise RuntimeError('Production upload limits are inconsistent')
+            raise RuntimeError('Staging/production upload limits are inconsistent')
         project_root = Path(__file__).resolve().parents[2]
         for key in ('CASE_CORPUS_DB_PATH', 'TASK_DB_PATH'):
             configured = Path(app.config[key])
             target = configured.resolve()
             if not configured.is_absolute() or target.is_relative_to(project_root):
-                raise RuntimeError('Production runtime database must use an external persistent volume')
+                raise RuntimeError('Staging/production runtime database must use an external persistent volume')
     limiter = CostEndpointRateLimiter(config_class)
     app.extensions['cost_limiter'] = limiter
     persistent_tasks = app.config.get('TASK_PERSISTENCE_ENABLED')
     if persistent_tasks is None:
-        persistent_tasks = environment == 'production' or not app.config.get('TESTING', False)
+        persistent_tasks = environment in STRICT_DEPLOYMENT_ENVIRONMENTS or not app.config.get('TESTING', False)
     if persistent_tasks:
         from .models.task import TaskManager
         from .services.task_repository import TaskRepository, DocumentTaskRepository
@@ -142,7 +166,7 @@ def create_app(config_class=Config):
     def identify_request():
         g.request_id = str(uuid4())
         g.request_started = perf_counter()
-        if environment == 'production' and (request.path.startswith(('/api/graph/', '/api/simulation/', '/api/report/')) or request.path == '/api/search'):
+        if environment in STRICT_DEPLOYMENT_ENVIRONMENTS and (request.path.startswith(('/api/graph/', '/api/simulation/', '/api/report/')) or request.path == '/api/search'):
             return api_error('LEGACY_DISABLED', 'Esta ruta ya no está disponible.', g.request_id, 410)
         if request.path.startswith('/api/') and request.method == 'OPTIONS':
             g.authenticated_user_id = None
@@ -241,8 +265,15 @@ def create_app(config_class=Config):
             import sqlite3
             from .services.runtime_security import CaseOwnershipRepository
             CaseOwnershipRepository(app.config['CASE_CORPUS_DB_PATH'])
+            if environment in STRICT_DEPLOYMENT_ENVIRONMENTS:
+                _check_strict_runtime_dependencies(app.config, app.extensions)
         except (OSError, ValueError, sqlite3.Error):
             return {'status': 'unavailable'}, 503
+        except Exception as error:
+            if environment in STRICT_DEPLOYMENT_ENVIRONMENTS:
+                logger.warning('event=readiness_dependency_failed error_type=%s', type(error).__name__)
+                return {'status': 'unavailable'}, 503
+            raise
         return {'status': 'ready'}
     
     if should_log_startup:

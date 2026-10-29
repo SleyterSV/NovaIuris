@@ -19,11 +19,14 @@ if sys.platform == 'win32':
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import create_app
-from app.config import Config
+from app.config import Config, STRICT_DEPLOYMENT_ENVIRONMENTS
 
 
 def main():
-    """主函数"""
+    """Start the local development server only."""
+    if Config.APP_ENV in STRICT_DEPLOYMENT_ENVIRONMENTS:
+        print("run.py is development-only; use the configured WSGI server for staging/production.")
+        sys.exit(2)
     # 验证配置
     errors = Config.validate()
     if errors:

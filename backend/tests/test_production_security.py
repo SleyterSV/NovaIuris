@@ -8,7 +8,9 @@ from unittest.mock import Mock
 from app import create_app
 from app.config import Config
 from app.models.task import TaskStatus
-from app.services.runtime_security import case_ownership
+from app.services.runtime_security import case_ownership, owns_case
+from flask import g
+from unittest.mock import patch
 
 
 class FakeEmbeddings:
@@ -191,6 +193,45 @@ class ProductionSecurityTests(unittest.TestCase):
             LOCAL_DEV_AUTH_ENABLED = True
         with self.assertRaises(RuntimeError):
             create_app(LocalIdentityInProduction)
+
+    def test_staging_uses_production_security_guards_and_persisted_ownership(self):
+        class Staging(self.config):
+            APP_ENV = 'staging'
+        class MissingStagingCredential(Staging):
+            SUPABASE_PUBLISHABLE_KEY = None
+        with self.assertRaisesRegex(RuntimeError, 'runtime configuration incomplete'):
+            create_app(MissingStagingCredential)
+
+        app = create_app(Staging)
+        client = app.test_client()
+        self.assertEqual(client.get('/api/cases').status_code, 401)
+        self.assertEqual(client.post('/api/search', headers=self.headers('a-token'),
+                                     json={'query':'test'}).status_code, 410)
+
+        repository = Mock()
+        repository.get_case.return_value = None
+        app.extensions['application_repository'] = repository
+        with app.test_request_context('/api/cases/CASE-A'):
+            g.authenticated_user_id = 'user-a'
+            with patch('app.services.runtime_security.case_ownership') as local_ownership:
+                self.assertFalse(owns_case('CASE-A'))
+                local_ownership.assert_not_called()
+        repository.get_case.assert_called_once_with('user-a', 'CASE-A')
+
+        class UnsafeStaging(Staging):
+            CORS_ALLOWED_ORIGINS = ['*']
+        with self.assertRaisesRegex(RuntimeError, 'CORS origins'):
+            create_app(UnsafeStaging)
+
+    def test_staging_readiness_fails_closed_on_dependency_failure(self):
+        class Staging(self.config):
+            APP_ENV = 'staging'
+        with patch('app._check_strict_runtime_dependencies', side_effect=TimeoutError):
+            response = create_app(Staging).test_client().get('/ready')
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(response.json['success'])
+        self.assertEqual(response.json['error']['code'], 'REQUEST_FAILED')
+        self.assertNotIn('Timeout', response.get_data(as_text=True))
 
     def test_development_identity_requires_explicit_flag_and_bearer_is_validated(self):
         class EmptyApplicationRepository:

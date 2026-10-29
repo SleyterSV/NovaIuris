@@ -21,6 +21,10 @@ class ApplicationRepository:
     def _data(response):
         return response.data or []
 
+    def health_check(self):
+        """Perform a non-sensitive PostgREST read to verify app data availability."""
+        self.client.table('profiles').select('user_id').limit(1).execute()
+
     def workspace_ids(self, user_id):
         rows = self._data(self.client.table('workspace_members').select('workspace_id').eq('user_id', user_id).execute())
         return list(dict.fromkeys(row['workspace_id'] for row in rows if row.get('workspace_id')))

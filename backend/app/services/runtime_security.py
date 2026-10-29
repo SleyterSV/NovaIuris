@@ -8,6 +8,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
 from flask import current_app, g
+from ..config import STRICT_DEPLOYMENT_ENVIRONMENTS
 
 
 def verify_supabase_user(token, config):
@@ -106,7 +107,7 @@ def case_ownership():
 
 def owns_case(case_id, create=False):
     repository = current_app.extensions.get('application_repository')
-    if repository and current_app.config.get('APP_ENV') == 'production':
+    if repository and current_app.config.get('APP_ENV') in STRICT_DEPLOYMENT_ENVIRONMENTS:
         record = repository.get_case(authenticated_user_id(), case_id)
         if not record:
             return False

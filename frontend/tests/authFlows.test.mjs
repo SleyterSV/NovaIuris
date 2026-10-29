@@ -55,21 +55,21 @@ afterEach(() => {
 })
 
 test('signup confirmation, resend, and password reset use the allow-listed app origin', async () => {
-  globalThis.window = { location:{ origin:'http://localhost:5173', search:'' } }
+  globalThis.window = { location:{ origin:'http://localhost:3000', search:'' } }
   await startAuth(createAuthClient())
   const signup = await signUp('Test User', 'test@example.test', 'SecurePass1')
   assert.equal(signup.confirmationRequired, true)
   assert.equal(calls.at(-1)[0], 'signUp')
-  assert.equal(calls.at(-1)[1].options.emailRedirectTo, 'http://localhost:5173')
+  assert.equal(calls.at(-1)[1].options.emailRedirectTo, 'http://localhost:3000')
 
   assert.equal(await resendConfirmation('test@example.test'), '')
   assert.deepEqual(calls.at(-1), ['resend', {
-    type:'signup', email:'test@example.test', options:{ emailRedirectTo:'http://localhost:5173' }
+    type:'signup', email:'test@example.test', options:{ emailRedirectTo:'http://localhost:3000' }
   }])
 
   assert.equal(await requestPasswordReset('test@example.test'), '')
   assert.deepEqual(calls.at(-1), ['resetPasswordForEmail', 'test@example.test', {
-    redirectTo:'http://localhost:5173/?auth_action=reset'
+    redirectTo:'http://localhost:3000/?auth_action=reset'
   }])
 })
 
@@ -103,7 +103,7 @@ test('recovery event accepts password update only through the authenticated SDK 
 })
 
 test('expired callback errors are translated to safe guidance', async () => {
-  globalThis.window = { location:{ origin:'http://localhost:5173', search:'?error=access_denied&error_code=otp_expired' } }
+  globalThis.window = { location:{ origin:'http://localhost:3000', search:'?error=access_denied&error_code=otp_expired' } }
   await startAuth(createAuthClient())
   assert.match(authState.linkError, /venci[oó] o ya fue utilizado/)
   assert.doesNotMatch(authState.linkError, /otp_expired|access_denied/)

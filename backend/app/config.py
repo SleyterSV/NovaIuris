@@ -6,6 +6,8 @@
 import os
 from dotenv import load_dotenv
 
+STRICT_DEPLOYMENT_ENVIRONMENTS = frozenset({'staging', 'production'})
+
 # 加载项目根目录的 .env 文件
 # 路径: NovaIuris/.env (相对于 backend/app/config.py)
 project_root_env = os.path.join(os.path.dirname(__file__), '../../.env')
@@ -21,7 +23,7 @@ class Config:
     """Flask配置类"""
     
     # Flask配置
-    APP_ENV = os.environ.get('APP_ENV', 'development').lower()
+    APP_ENV = os.environ.get('APP_ENV', 'development').strip().lower()
     SECRET_KEY = os.environ.get('SECRET_KEY')
     SUPABASE_URL = os.environ.get('SUPABASE_URL')
     SUPABASE_PUBLISHABLE_KEY = os.environ.get('SUPABASE_PUBLISHABLE_KEY')

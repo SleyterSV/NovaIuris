@@ -4,6 +4,7 @@ import re
 from threading import Lock
 _pipeline_lock = Lock()
 from flask import Blueprint, request, jsonify, current_app, g
+from ..config import STRICT_DEPLOYMENT_ENVIRONMENTS
 from ..utils.api_response import api_error
 from ..utils.case_contract import normalize_case_result
 from ..services.novacourt_pipeline_service import NovaCourtPipelineService
@@ -164,7 +165,7 @@ def start_public_source_handoff():
         except Exception as exc:
             current_app.logger.error('event=handoff_case_persist_failed request_id=%s error_type=%s', g.request_id, type(exc).__name__)
             return api_error('CASE_CREATE_FAILED', 'No fue posible preparar el caso.', g.request_id, 503)
-    elif current_app.config.get('APP_ENV') == 'production':
+    elif current_app.config.get('APP_ENV') in STRICT_DEPLOYMENT_ENVIRONMENTS:
         return api_error('PERSISTENCE_UNAVAILABLE', 'La creaciÃ³n de casos no estÃ¡ disponible.', g.request_id, 503)
     try:
         # Validate published V2 identity before scheduling any work. Analysis resolves it again.
@@ -232,7 +233,7 @@ def input_case():
 
 @case_bp.route('/case', methods=['POST'])
 def analyze_case():
-    if current_app.config.get('APP_ENV') == 'production':
+    if current_app.config.get('APP_ENV') in STRICT_DEPLOYMENT_ENVIRONMENTS:
         return api_error('LEGACY_DISABLED', 'Use tareas persistentes para analizar casos.', g.request_id, 410)
     try:
         text, case_id, _ = input_case()
